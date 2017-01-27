@@ -1,6 +1,6 @@
-Trident
+# Trident
 
-==Installation on Ubuntu (or similar Linux Distros)==
+## Installation on Ubuntu (or similar Linux Distros)
 
 The installation should be fairly easy on Ubuntu (or on similar Linux distro
 that provide packages of commonly-used libraries). Make sure you have
@@ -33,19 +33,19 @@ path to the environmental variable PYTHONPATH if you want to use Trident with
 Python), 3) an executable called "trident_exec". 
 
 
-==Installation on MacOS==
+## Installation on MacOS
 
 The process is very similar to Ubuntu. You can install the libraries that
 are mentioned with Homebrew.
 
-==Installation on Windows==
+## Installation on Windows
 
 I'm very sorry but I do not have a Windows machine, so I've never compiled
 Trident with this OS. I hope that the information that I gave about the
 compilation with other environments will be helpful to install Trident under
 this system.
 
-==More advanced info on compilation==
+## More advanced info on compilation
 
 The compilation relies on CMake to create the executable and libraries. CMake
 requires that you create a new directory and run the program "cmake" inside it
@@ -99,9 +99,9 @@ Remember a few things: If your system uses a version of Boost which is older
 than 1.62, then you might get many warnings during the compilation. These
 warnings are not problematic since they relate to a bug in the Boost libraries.
 
-==Troubleshooting==
+## Troubleshooting
 
-- It does not compile!
+### It does not compile!
 
 I'm sorry to hear this. I did my best to make the compilation process as robust
 as possible, but things can always go wrong.
@@ -121,7 +121,7 @@ problem. To check SNAP has been correctly compiled, make sure that the file
 In order to compile, Trident also requires Python3, so the headers should be
 installed. Typically Python3 is installed on every system but if you get errors on python-related files then double-check that this is indeed the case.
 
-==License==
+## License
 
 Trident is released under Apache 2 license. In the source tree
 there are two directories called "rdf3x" and "snap". The first directory
@@ -133,7 +133,7 @@ Commons. In order to comply with the original license, also this modified
 version should be considered released with the same license.  The other
 directory ("snap") contains a modified version of the SNAP library developed at
 Stanford (<a href="http://snap.stanford.edu/snap/index.html">Here</a> is the
-link to the homepage of the projecti). I modified the code of SNAP in order to
+link to the homepage of the project). I modified the code of SNAP in order to
 be able to scale up to larger graphs. Since the original version of SNAP is
 released with the BSD license, then also my modified version is released with
 the same license. 
