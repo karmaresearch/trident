@@ -1,0 +1,6 @@
+.ycm*
+.DS_Store
+/build*
+/trident*
+*.a
+*.o
