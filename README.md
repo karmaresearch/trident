@@ -1,6 +1,10 @@
 # Trident
 
+<<<<<<< HEAD
 ## Installation on Ubuntu (or similar Linux Distros)
+=======
+ ## Installation on Ubuntu (or similar Linux Distros)
+>>>>>>> 001a754bed82e0bc2e33809d4cf9301c128aecd9
 
 The installation should be fairly easy on Ubuntu (or on similar Linux distro
 that provide packages of commonly-used libraries). Make sure you have
