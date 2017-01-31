@@ -83,34 +83,13 @@ unsigned StorageStrat::getStrat7() {
 }
 
 
-/*const unsigned StorageStrat::FIXEDSTRAT1 = getStrat1();
-  const unsigned StorageStrat::FIXEDSTRAT2 = getStrat2();
-  const unsigned StorageStrat::FIXEDSTRAT3 = getStrat3();
-  const unsigned StorageStrat::FIXEDSTRAT4 = getStrat4();*/
 const unsigned StorageStrat::FIXEDSTRAT5 = getStrat5();
 const unsigned StorageStrat::FIXEDSTRAT6 = getStrat6();
 const unsigned StorageStrat::FIXEDSTRAT7 = getStrat7();
 
 PairItr *StorageStrat::getBinaryTable(const char signature) {
     int storageType = getStorageType(signature);
-    /*if (storageType == ROW_ITR) {
-      statsRow++;
-      RowTable*ph = f1->get();
-      ph->setCompressionMode(getCompr1(signature), getCompr2(signature));
-      ph->setDifferenceMode(getDiff1(signature));
-      return ph;
-      } else if (storageType == CLUSTER_ITR)  {
-      statsCluster++;
-      ClusterTable*ph = f2->get();
-      ph->mode_compression(getCompr1(signature), getCompr2(signature));
-      ph->mode_difference(getDiff1(signature));
-      return ph;
-      } else if (storageType == COLUMN_ITR) {
-      statsColumn++;
-      ColumnTable*ph = f3->get();
-      ph->setCompressionMode(getCompr1(signature), getCompr2(signature));
-      return ph;
-      } else*/ if (storageType == NEWCOLUMN_ITR) {
+    if (storageType == NEWCOLUMN_ITR) {
           NewColumnTable *ph = f4->get();
           return ph;
       } else if (storageType == NEWROW_ITR) {

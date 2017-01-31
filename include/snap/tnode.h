@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _TNODE_H
@@ -98,7 +98,69 @@ class TNode {
             const char *p = SnapReaders::f_sop[file];
             const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
-            return reader(sop , NodeN);
+            return reader(sop, NodeN);
+        }
+
+        SnapReaders::pReader GetOutReader() const {
+            const uint8_t strat = rawblock[10];
+            return SnapReaders::readers[strat];
+        }
+
+        SnapReaders::pReader GetInReader() const {
+            const uint8_t strat = rawblock[23];
+            return SnapReaders::readers[strat];
+        }
+
+        int GetOutLenField() const {
+            const uint8_t strat = rawblock[10];
+            //const int storageType = StorageStrat::getStorageType(strat);
+            //assert(storageType == NEWROW_ITR);
+            const char nbytes1 = (strat >> 3) & 3;
+            switch (nbytes1) {
+                case 0:
+                    return 1;
+                case 1:
+                    return 2;
+                case 2:
+                    return 4;
+                case 3:
+                    return 5;
+                default:
+                    throw 10;
+            }
+        }
+
+        int GetInLenField() const {
+            const uint8_t strat = rawblock[23];
+            const char nbytes1 = (strat >> 3) & 3;
+            switch (nbytes1) {
+                case 0:
+                    return 1;
+                case 1:
+                    return 2;
+                case 2:
+                    return 4;
+                case 3:
+                    return 5;
+                default:
+                    throw 10;
+            }
+        }
+
+        const char *GetBeginOut() const {
+            const short file = *(short*)(rawblock + 11);
+            const char *p = SnapReaders::f_sop[file];
+            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const char *sop = p + pos;
+            return sop;
+        }
+
+        const char *GetBeginIn() const {
+            const short file = *(short*)(rawblock + 24);
+            const char *p = SnapReaders::f_osp[file];
+            const long pos = (*(long*)(rawblock + 26)) & 0XFFFFFFFFFFl;
+            const char *osp = p + pos;
+            return osp;
         }
 
         /// Returns ID of NodeN-th neighboring node. ##TNGraph::TNodeI::GetNbrNId

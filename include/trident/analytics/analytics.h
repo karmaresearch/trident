@@ -202,8 +202,9 @@ class Analytics {
                     retValue = DOUBLE;
 
                 } else if (nameTask == "clustcoef") {
-                    auto fp = static_cast<void (*)(const K& ,
-                            std::vector<float>&)>(&TSnap::GetNodeClustCf<K>);
+                    auto fp = static_cast<void (*)(const K&,
+                            std::vector<float>&)>(&NativeTasks::clustcoef<K>);
+                            //std::vector<float>&)>(&TSnap::GetNodeClustCf<K>);
                     f = std::bind(fp,
                             std::ref(Graph),
                             std::ref(values1));
