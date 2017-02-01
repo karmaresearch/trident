@@ -123,15 +123,15 @@ class Analytics {
                 case DOUBLE:
                     retValue_double = f_double(); break;
             }
-            std::chrono::milliseconds duration = std::chrono::duration_cast<
-                std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
-            BOOST_LOG_TRIVIAL(info) << "Runtime " << nameTask << ": " << duration.count() << " ms.";
+            std::chrono::microseconds duration = std::chrono::duration_cast<
+                std::chrono::microseconds>(std::chrono::system_clock::now() - start);
+            BOOST_LOG_TRIVIAL(info) << "Runtime " << nameTask << ": " << duration.count() / 1000 << " ms. (" << duration.count() << " mu_s)";
             switch (r) {
                 case INT:
-                    BOOST_LOG_TRIVIAL(info) << "Output: " << retValue_int;
+                    BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_int;
                     break;
                 case DOUBLE:
-                    BOOST_LOG_TRIVIAL(info) << "Output: " << retValue_double;
+                    BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_double;
                     break;
                 default:
                     break;
@@ -145,6 +145,7 @@ class Analytics {
                     string outputfile,
                     string params) {
                 AnalyticsTasks &tasks = AnalyticsTasks::getInstance();
+                tasks.load(nameTask, params);
                 AnalyticsTasks::Task task = tasks.getTask(nameTask);
                 //Check if the graph comply with the requirements of the task
 

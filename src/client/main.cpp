@@ -410,7 +410,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     ana_options.add_options()("oparg1",
             po::value<string>()->default_value(""),
             "First argument for the analytical operation. Normally it is the path to output the results of the computation.");
-    string helpstring = "List of values to give to additional parameters. The list of details depends on the action.\n" + AnalyticsTasks::getInstance().getTaskDetails();
+    string helpstring = "List of values to give to additional parameters. The list of details depends on the action. Parameters should be split by ';', e.g., src=0;dst=10 for bfs. Notice that the character ';' should be escaped ('\\;').\n" + AnalyticsTasks::getInstance().getTaskDetails();
     ana_options.add_options()("oparg2",
             po::value<string>()->default_value(""),
             helpstring.c_str());

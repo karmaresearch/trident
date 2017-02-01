@@ -27,6 +27,7 @@
 #include <snap-core/Snap.h>
 
 #include <vector>
+#include <map>
 
 class Querier;
 class NativeTasks {
@@ -44,7 +45,11 @@ class NativeTasks {
                     const long src,
                     const long dst) {
 
-                TIntH NIdDistH(Graph->GetNodes());
+                //TIntH NIdDistH(Graph->GetNodes());
+                //NIdDistH.AddDat(src, 0);
+                int limitDist = ~0;
+                std::map<long, int> NIdDist;
+                NIdDist.insert(std::make_pair(src, 0));
                 bool FollowOut = true;
                 bool FollowIn = true;
 
@@ -57,16 +62,16 @@ class NativeTasks {
                 while (!Queue.Empty()) {
                     const long NId = Queue.Top();
                     Queue.Pop();
-                    const long Dist = NIdDistH.GetDat(NId);
-                    if (Dist == MxDist) {
+                    const long Dist = NIdDist.find(NId)->second;
+                    if (Dist == limitDist) {
                         break;
                     }
                     const typename K::TObj::TNodeI NodeI = Graph->GetNI(NId);
                     if (FollowOut) {
                         for (v = 0; v < NodeI.GetOutDeg(); v++) {
                             const long DstNId = NodeI.GetOutNId(v);
-                            if (!NIdDistH.IsKey(DstNId)) {
-                                NIdDistH.AddDat(DstNId, Dist+1);
+                            if (!NIdDist.count(DstNId)) {
+                                NIdDist.insert(std::make_pair(DstNId, Dist+1));
                                 MxDist = TMath::Mx(MxDist, Dist+1);
                                 if (DstNId == dst) {
                                     return MxDist;
@@ -79,8 +84,8 @@ class NativeTasks {
                     if (FollowIn) {
                         for (v = 0; v < NodeI.GetInDeg(); v++) {
                             const long DstNId = NodeI.GetInNId(v);
-                            if (!NIdDistH.IsKey(DstNId)) {
-                                NIdDistH.AddDat(DstNId, Dist+1);
+                            if (!NIdDist.count(DstNId)) {
+                                NIdDist.insert(std::make_pair(DstNId, Dist+1));
                                 MxDist = TMath::Mx(MxDist, Dist+1);
                                 if (DstNId == dst) {
                                     return MxDist;
@@ -90,7 +95,7 @@ class NativeTasks {
                         }
                     }
                 }
-                return MxDist;
+                return limitDist;
             }
 
         template <class PGraph>
