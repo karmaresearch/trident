@@ -195,10 +195,10 @@ class Analytics {
 
                 } else if (nameTask == "avg_clustcoef") {
                     auto fp = static_cast<double (*)(const K& ,
-                            int)>(&TSnap::GetClustCf<K>);
+                            long)>(&TSnap::GetClustCf<K>);
                     f_double = std::bind(fp,
                             std::ref(Graph),
-                            task.getParam("samplen").as<int>());
+                            task.getParam("samplen").as<long>());
                     nargs = 0;
                     retValue = DOUBLE;
 
