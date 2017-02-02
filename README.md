@@ -7,10 +7,11 @@ that provide packages of commonly-used libraries). Make sure you have
 the following packages installed (with apt-get or similar):
 
 git
-libbost-all-dev
+libboost-all-dev
 liblz4-dev
 libtbb-dev
 libsparsehash-dev
+python3-dev
 cmake
 
 Then, create a directory in the main source directory (e.g build), move it
