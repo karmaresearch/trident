@@ -1,31 +1,11 @@
-/*
- * Copyright 2017 Jacopo Urbani
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
-**/
-
-
 #include <snap/tasks.h>
 
 #include <boost/log/trivial.hpp>
+#include <boost/filesystem.hpp>
 
 #include <iostream>
 
+namespace fs = boost::filesystem;
 
 AnalyticsTasks AnalyticsTasks::__tasks_;
 
@@ -63,6 +43,25 @@ void AnalyticsTasks::initialize() {
     params.push_back(Param("dst", LONG, ""));
     tasks.insert(std::make_pair("bfs", Task("bfs", params)));
 
+    params.clear();
+    params.push_back(Param("testnodes", INT, "-1"));
+    tasks.insert(std::make_pair("diameter", Task("diameter", params)));
+
+    params.clear();
+    params.push_back(Param("nodes", PATH, ""));
+    tasks.insert(std::make_pair("mod", Task("mod", params)));
+
+    params.clear();
+    tasks.insert(std::make_pair("maxwcc", Task("maxwcc", params)));
+
+    params.clear();
+    tasks.insert(std::make_pair("maxscc", Task("maxscc", params)));
+
+    params.clear();
+    params.push_back(Param("node", LONG, ""));
+    params.push_back(Param("len", LONG, ""));
+    tasks.insert(std::make_pair("rw", Task("rw", params)));
+
     init = true;
 }
 
@@ -87,6 +86,8 @@ string AnalyticsTasks::getStringType(TYPE t) {
             return "double";
         case BOOL:
             return "bool";
+        case PATH:
+            return "path";
         default:
             return "unknown";
     }
@@ -158,6 +159,12 @@ void AnalyticsTasks::Param::set(string value) {
                 break;
             case BOOL:
                 boost::lexical_cast<bool>(value);
+                break;
+            case PATH:
+                if (!fs::exists(fs::path(value))) {
+                    BOOST_LOG_TRIVIAL(error) << "Path " << value << " does not exist";
+                    throw 10;
+                }
                 break;
         }
     } catch (boost::bad_lexical_cast &) {

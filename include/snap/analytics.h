@@ -1,46 +1,23 @@
-/*
- * Copyright 2017 Jacopo Urbani
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- **/
-
-
 #ifndef _ANALYTICS_H
 #define _ANALYTICS_H
 
 #include <snap-core/Snap.h>
+#include <snap/nativetasks.h>
+#include <snap/tasks.h>
+#include <snap/directed.h>
+#include <snap/undirected.h>
 
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 #include <trident/kb/dictmgmt.h>
-#include <trident/analytics/nativetasks.h>
-
-#include <snap/tasks.h>
-
-#include <snap/directed.h>
-#include <snap/undirected.h>
+#include <trident/utils/tridentutils.h>
 
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include <functional>
 
-typedef enum _RetValue { NONE, DOUBLE, INT } F_RetValue;
+typedef enum _RetValue { NORETURN, DOUBLE, INT, V_LONG } F_RetValue;
 
 class Analytics {
 
@@ -111,27 +88,38 @@ class Analytics {
                 std::function<void()> &f,
                 std::function<int64()> &f_int,
                 std::function<double()> &f_double,
+                std::function<std::vector<long>()> &f_vlong,
                 F_RetValue r,
                 int64 &retValue_int,
-                double &retValue_double) {
+                double &retValue_double,
+                std::vector<long> &retValue_vlong) {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             switch (r) {
-                case NONE:
+                case NORETURN:
                     f(); break;
                 case INT:
                     retValue_int = f_int(); break;
                 case DOUBLE:
                     retValue_double = f_double(); break;
+                case V_LONG:
+                    retValue_vlong = f_vlong(); break;
             }
             std::chrono::microseconds duration = std::chrono::duration_cast<
                 std::chrono::microseconds>(std::chrono::system_clock::now() - start);
             BOOST_LOG_TRIVIAL(info) << "Runtime " << nameTask << ": " << duration.count() / 1000 << " ms. (" << duration.count() << " mu_s)";
+            string els = "";
             switch (r) {
                 case INT:
                     BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_int;
                     break;
                 case DOUBLE:
                     BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_double;
+                    break;
+                case V_LONG:
+                    for (auto el : retValue_vlong) {
+                        els += to_string(el) + " ";
+                    }
+                    BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": (" << retValue_vlong.size() << ") " << els;
                     break;
                 default:
                     break;
@@ -152,16 +140,21 @@ class Analytics {
                 BOOST_LOG_TRIVIAL(info) << "Loading the graph ...";
                 K Graph = new V(&kb);
 
+                //Possible inputs
+                std::vector<long> inputv;
+
                 //Possible outputs
                 std::vector<float> values1;
+                std::vector<float> values1_i;
                 std::vector<float> values2;
                 int nargs = 1;
-                F_RetValue retValue = NONE;
+                F_RetValue retValue = NORETURN;
 
                 //Pointers to functions
                 std::function<void()> f;
                 std::function<int64()> f_int;
                 std::function<double()> f_double;
+                std::function<std::vector<long>()> f_vlong;
 
                 BOOST_LOG_TRIVIAL(info) << "Run task " << task.tostring();
 
@@ -205,7 +198,7 @@ class Analytics {
                 } else if (nameTask == "clustcoef") {
                     auto fp = static_cast<void (*)(const K&,
                             std::vector<float>&)>(&NativeTasks::clustcoef<K>);
-                            //std::vector<float>&)>(&TSnap::GetNodeClustCf<K>);
+                    //std::vector<float>&)>(&TSnap::GetNodeClustCf<K>);
                     f = std::bind(fp,
                             std::ref(Graph),
                             std::ref(values1));
@@ -236,6 +229,47 @@ class Analytics {
                     nargs = 0;
                     retValue = INT;
 
+                } else if (nameTask == "diameter") {
+                    auto fp = static_cast<int64 (*)(const K&, const int&, const bool&)>(&NativeTasks::GetDiam<K>);
+                    f_int = std::bind(fp,
+                            std::ref(Graph),
+                            task.getParam("testnodes").as<int>(),
+                            true);
+                    nargs = 0;
+                    retValue = INT;
+                } else if (nameTask == "mod") {
+                    TridentUtils::loadFromFile(task.getParam("nodes").as<string>(),
+                            inputv);
+                    auto fp = static_cast<double (*)(const K&,
+                            const std::vector<long>&,
+                            long)>(&NativeTasks::GetMod<K>);
+                    f_double = std::bind(fp,
+                            std::ref(Graph),
+                            std::ref(inputv),
+                            Graph->GetNodes());
+                    nargs = 0;
+                    retValue = DOUBLE;
+
+                } else if (nameTask == "maxwcc") {
+                    f_double = std::bind(TSnap::GetMxWccSz<K>,
+                            std::ref(Graph));
+                    nargs = 0;
+                    retValue = DOUBLE;
+
+                } else if (nameTask == "maxscc") {
+                    f_double = std::bind(TSnap::GetMxSccSz<K>,
+                            std::ref(Graph));
+                    nargs = 0;
+                    retValue = DOUBLE;
+
+                } else if (nameTask == "rw") {
+                    f_vlong = std::bind(NativeTasks::randomWalk<K>,
+                            std::ref(Graph),
+                            task.getParam("node").as<long>(),
+                            task.getParam("len").as<long>());
+                    nargs = 0;
+                    retValue = V_LONG;
+
                 } else {
                     BOOST_LOG_TRIVIAL(error) << "Task " << nameTask << " is not known!";
                     throw 10;
@@ -244,9 +278,11 @@ class Analytics {
                 /**** RUN SNAP FUNCTIONS ****/
                 int64 retValue_int;
                 double retValue_double;
-                runTask(nameTask, f, f_int, f_double,
+                std::vector<long> retValue_vlong;
+                runTask(nameTask, f, f_int, f_double, f_vlong,
                         retValue, retValue_int,
-                        retValue_double);
+                        retValue_double,
+                        retValue_vlong);
 
                 /**** SAVE THE RESULTS TO A FILE ****/
                 if (outputfile != "") {

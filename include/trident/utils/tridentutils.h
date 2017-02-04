@@ -17,26 +17,32 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _RES_STATS_H
 #define _RES_STATS_H
 
+#include <vector>
+#include <string>
+
 class TridentUtils {
     public:
 
-    static long getVmRSS();
+        static long getVmRSS();
 
-    static double getCPUUsage();
+        static double getCPUUsage();
 
-    static long diskread();
+        static long diskread();
 
-    static long diskwrite();
-    
-    static long phy_diskread();
+        static long diskwrite();
 
-    static long phy_diskwrite();
+        static long phy_diskread();
+
+        static long phy_diskwrite();
+
+        static void loadFromFile(std::string inputfile,
+                std::vector<long> &values);
 
 };
 

@@ -1,25 +1,3 @@
-/*
- * Copyright 2017 Jacopo Urbani
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- **/
-
-
 #ifndef _NATIVE_TASKS_H
 #define _NATIVE_TASKS_H
 
@@ -28,6 +6,7 @@
 
 #include <vector>
 #include <map>
+#include <random>
 
 class Querier;
 class NativeTasks {
@@ -119,9 +98,9 @@ class NativeTasks {
                     const auto size1_out = NI.GetOutDeg();
 
                     /*const auto reader1_in = NI.GetInReader();
-                    const auto begin1_in = NI.GetBeginIn();
-                    const int len1_in = NI.GetInLenField();
-                    const auto size1_in = NI.GetInDeg();*/
+                      const auto begin1_in = NI.GetBeginIn();
+                      const int len1_in = NI.GetInLenField();
+                      const auto size1_in = NI.GetInDeg();*/
 
                     for (long srcNbr = 0; srcNbr < size1_out; srcNbr++) {
                         const long nbr1 = reader1_out(begin1_out, srcNbr);
@@ -158,6 +137,80 @@ class NativeTasks {
                     NIdCCfH[i] = CCf;
                 }
             }
+
+        template <class PGraph>
+            static int64 GetDiam(const PGraph& Graph,
+                    const int& NTestNodes,
+                    const bool& IsDir) {
+                int64 FullDiam = -1;
+                TIntFltH DistToCntH;
+                TBreathFS<PGraph> BFS(Graph);
+                long minnodes = min((long)NTestNodes, Graph->GetNodes());
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<long> dis(0, Graph->GetNodes());
+                for (int tries = 0; tries < minnodes; tries++) {
+                    const long NId = dis(gen);
+                    BFS.DoBfs(NId, true, ! IsDir, -1, TInt::Mx);
+                    for (long i = 0; i < BFS.NIdDistH.Len(); i++) {
+                        DistToCntH.AddDat(BFS.NIdDistH[i]) += 1; }
+                }
+                TIntFltKdV DistNbrsPdfV;
+                double SumPathL=0, PathCnt=0;
+                for (long i = 0; i < DistToCntH.Len(); i++) {
+                    DistNbrsPdfV.Add(TIntFltKd(DistToCntH.GetKey(i), DistToCntH[i]));
+                    SumPathL += DistToCntH.GetKey(i) * DistToCntH[i];
+                    PathCnt += DistToCntH[i];
+                }
+                DistNbrsPdfV.Sort();
+                FullDiam = DistNbrsPdfV.Last().Key;
+                return FullDiam;
+            }
+
+        template<typename PGraph>
+            static double GetMod(const PGraph& Graph,
+                    const std::vector<long>& NIdV,
+                    long GEdges) {
+                if (GEdges == -1) { GEdges = Graph->GetEdges(); }
+                double EdgesIn = 0.0, EEdgesIn = 0.0;
+                std::set<long> input_s;
+                for(const auto el : NIdV)
+                    input_s.insert(el);
+                for (long e1 = 0; e1 < NIdV.size(); e1++) {
+                    typename PGraph::TObj::TNodeI NI = Graph->GetNI(NIdV[e1]);
+                    EEdgesIn += NI.GetOutDeg();
+                    for (long i = 0; i < NI.GetOutDeg(); i++) {
+                        if (input_s.count(NI.GetOutNId(i))) { EdgesIn += 1; }
+                    }
+                }
+                EEdgesIn = EEdgesIn*EEdgesIn / (2.0*GEdges);
+                if ((EdgesIn - EEdgesIn) == 0) { return 0; }
+                else { return (EdgesIn - EEdgesIn) / (2.0*GEdges); } // modularity
+            }
+
+
+        template<typename PGraph>
+            static std::vector<long> randomWalk(const PGraph& Graph,
+                    const long node,
+                    const long len) {
+                std::vector<long> output;
+                long id = node;
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                output.push_back(node);
+
+                while (output.size() < len) {
+                    typename PGraph::TObj::TNodeI NI = Graph->GetNI(id);
+                    const long n = NI.GetDeg();
+                    if (n == 0)
+                        break;
+                    std::uniform_int_distribution<long> dis(0, n);
+                    id = NI.GetNbrNId(dis(gen));
+                    output.push_back(id);
+                }
+                return output;
+            }
+
 
 };
 

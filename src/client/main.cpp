@@ -29,8 +29,7 @@
 #include <trident/kb/kbconfig.h>
 #include <trident/kb/querier.h>
 #include <trident/binarytables/storagestrat.h>
-#include <trident/analytics/analytics.h>
-
+#include <trident/mining/miner.h>
 #include <trident/tests/common.h>
 
 #include <trident/sparql/query.h>
@@ -39,7 +38,11 @@
 #include <kognac/utils.h>
 
 #include <snap/tasks.h>
-#include <mining/miner.h>
+
+
+//SNAP dependencies
+#include <snap/analytics.h>
+//END SNAP dependencies
 
 //RDF3X dependencies
 #include <layers/TridentLayer.hpp>

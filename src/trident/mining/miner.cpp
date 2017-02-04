@@ -20,8 +20,7 @@
 **/
 
 
-#include <mining/miner.h>
-
+#include <trident/mining/miner.h>
 #include <trident/kb/querier.h>
 
 #include <iostream>

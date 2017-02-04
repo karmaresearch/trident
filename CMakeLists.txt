@@ -142,7 +142,7 @@ ENDIF()
 
 #add files to compile
 file(GLOB trident_SRC
-    "src/trident/**/*.cpp" "src/layers/*.cpp" "rdf3x/src/**/*.cpp"  src/snap/*.cpp src/mining/miner.cpp
+    "src/trident/**/*.cpp" "src/layers/*.cpp" "rdf3x/src/**/*.cpp"  src/snap/*.cpp src/trident/mining/miner.cpp
     )
 file(GLOB tridentp_SRC
     "src/python/*.cpp")

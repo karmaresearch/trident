@@ -17,15 +17,19 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
+#include <trident/utils/tridentutils.h>
+
+#include <boost/lexical_cast.hpp>
+#include <boost/log/trivial.hpp>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+#include <fstream>
 
-#include <trident/utils/tridentutils.h>
 
 using namespace std;
 
@@ -46,7 +50,7 @@ long TridentUtils::getVmRSS() {
     while (fgets(line, 128, file) != NULL){
         if (strncmp(line, "VmRSS:", 6) == 0){
             result = parseLine(line, 3);
-                break;
+            break;
         }
         //cout << line << endl;
     }
@@ -86,7 +90,7 @@ long TridentUtils::diskread() {
     while (fgets(line, 128, file) != NULL){
         if (strncmp(line, "rchar: ", 7) == 0){
             result = parseLine(line, 0);
-                break;
+            break;
         }
     }
     fclose(file);
@@ -101,7 +105,7 @@ long TridentUtils::diskwrite() {
     while (fgets(line, 128, file) != NULL){
         if (strncmp(line, "wchar: ", 7) == 0){
             result = parseLine(line, 0);
-                break;
+            break;
         }
     }
     fclose(file);
@@ -116,7 +120,7 @@ long TridentUtils::phy_diskread() {
     while (fgets(line, 128, file) != NULL){
         if (strncmp(line, "read_bytes: ", 12) == 0){
             result = parseLine(line, 0);
-                break;
+            break;
         }
     }
     fclose(file);
@@ -131,9 +135,25 @@ long TridentUtils::phy_diskwrite() {
     while (fgets(line, 128, file) != NULL){
         if (strncmp(line, "write_bytes: ", 13) == 0){
             result = parseLine(line, 0);
-                break;
+            break;
         }
     }
     fclose(file);
     return result;
+}
+
+void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
+    std::ifstream ifs(inputfile);
+    std::string line;
+    while (std::getline(ifs, line)) {
+        long value;
+        try {
+            value = boost::lexical_cast<long>(line);
+        } catch (boost::bad_lexical_cast &) {
+            BOOST_LOG_TRIVIAL(error) << "Failed conversion of " << line;
+            throw 10;
+        }
+        values.push_back(value);
+    }
+    ifs.close();
 }
