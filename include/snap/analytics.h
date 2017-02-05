@@ -246,7 +246,7 @@ class Analytics {
                     f_double = std::bind(fp,
                             std::ref(Graph),
                             std::ref(inputv),
-                            Graph->GetNodes());
+                            Graph->GetEdges());
                     nargs = 0;
                     retValue = DOUBLE;
 

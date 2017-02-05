@@ -173,14 +173,15 @@ class NativeTasks {
                     long GEdges) {
                 if (GEdges == -1) { GEdges = Graph->GetEdges(); }
                 double EdgesIn = 0.0, EEdgesIn = 0.0;
-                std::set<long> input_s;
+                TUInt64Set input_s(NIdV.size());
                 for(const auto el : NIdV)
-                    input_s.insert(el);
+                    input_s.AddKey(el);
+
                 for (long e1 = 0; e1 < NIdV.size(); e1++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(NIdV[e1]);
                     EEdgesIn += NI.GetOutDeg();
                     for (long i = 0; i < NI.GetOutDeg(); i++) {
-                        if (input_s.count(NI.GetOutNId(i))) { EdgesIn += 1; }
+                        if (input_s.IsKey(NI.GetOutNId(i))) { EdgesIn += 1; }
                     }
                 }
                 EEdgesIn = EEdgesIn*EEdgesIn / (2.0*GEdges);
