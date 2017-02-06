@@ -362,8 +362,8 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     load_options.add_options()("nindices",
             po::value<int>()->default_value(6),
             "Set the number of indices to use. Can be 1,3,4,6. Default is '6'");
-//    load_options.add_options()("incrindices", po::value<bool>()->default_value(false),
-//            "Create the indices a few at the time (saves space). Default is 'false'");
+    load_options.add_options()("incrindices", po::value<bool>()->default_value(false),
+            "Create the indices a few at the time (saves space). Default is 'false'");
     load_options.add_options()("aggrIndices", po::value<bool>()->default_value(false),
             "Use aggredated indices. Default is 'false'");
     load_options.add_options()("enableFixedStrat", po::value<bool>()->default_value(false),
@@ -683,8 +683,7 @@ void testkb(string kbDir, po::variables_map &vm) {
         p.maxReadingThreads = vm["readThreads"].as<int>();
         p.dictionaries = vm["ndicts"].as<int>();
         p.nindices = vm["nindices"].as<int>();
-        //p.createIndicesInBlocks = vm["incrindices"].as<bool>();
-        p.createIndicesInBlocks = false; //I disable the sequential index creation procedure because it is not working.
+        p.createIndicesInBlocks = vm["incrindices"].as<bool>();
         p.aggrIndices = vm["aggrIndices"].as<bool>();
         p.canSkipTables = vm["skipTables"].as<bool>();
         p.enableFixedStrat = vm["enableFixedStrat"].as<bool>();
@@ -937,8 +936,7 @@ int main(int argc, const char** argv) {
         p.maxReadingThreads = vm["readThreads"].as<int>();
         p.dictionaries = vm["ndicts"].as<int>();
         p.nindices = vm["nindices"].as<int>();
-        //p.createIndicesInBlocks = vm["incrindices"].as<bool>();
-        p.createIndicesInBlocks = false;
+        p.createIndicesInBlocks = vm["incrindices"].as<bool>();
         p.aggrIndices = vm["aggrIndices"].as<bool>();
         p.canSkipTables = vm["skipTables"].as<bool>();
         p.enableFixedStrat = vm["enableFixedStrat"].as<bool>();

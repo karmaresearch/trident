@@ -1021,6 +1021,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     SinkPtr logPtr = params.logPtr;
     bool removeInput = params.removeInput;
     long estimatedSize = params.estimatedSize;
+    bool deletePreviousExt = params.deletePreviousExt;
 
     SimpleTripleWriter *posWriter = NULL;
     if (POSoutputDir != NULL) {
@@ -1056,7 +1057,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     assert(sampleWriter == NULL || randThreshold > 0);
 
     auto inputmerge = Utils::getFiles(inputDir, true);
-    FileMerger<Triple> merger(inputmerge, true, true);
+    FileMerger<Triple> merger(inputmerge, true, deletePreviousExt);
     LZ4Writer *plainWriter = NULL;
     if (storeRaw) {
         std::string file = ins->getPathPermutationStorage(permutation) + std::string("raw");
@@ -2153,6 +2154,7 @@ void Loader::parallel_createIndices(
         params.printstats = printStats;
         params.POSoutputDir = NULL;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = true;
 
         params.permutation = 1;
         params.inputDir = permDirs[1];
@@ -2208,6 +2210,7 @@ void Loader::parallel_createIndices(
         params.removeInput = true;
         params.printstats = printStats;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = true;
 
         params.permutation = 1;
         params.inputDir = permDirs[1];
@@ -2256,6 +2259,7 @@ void Loader::parallel_createIndices(
     params.logPtr = logPtr;
     params.removeInput = true;
     params.estimatedSize = estimatedSize;
+    params.deletePreviousExt = true;
 
     sortAndInsert(params);
     for (int i = 0; i < 3; ++i) {
@@ -2280,6 +2284,7 @@ void Loader::parallel_createIndices(
         params.aggregated = true;
         params.printstats = printStats;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = true;
 
         params.permutation = 2;
         params.inputDir = aggr1Dir;
@@ -2342,6 +2347,7 @@ void Loader::seq_createIndices(
     params.logPtr = logPtr;
     params.removeInput = false;
     params.estimatedSize = estimatedSize;
+    params.deletePreviousExt = false;
 
     sortAndInsert(params);
 
@@ -2455,6 +2461,7 @@ void Loader::seq_createIndices(
         params.logPtr = logPtr;
         params.removeInput = false;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = false;
 
         sortAndInsert(params);
         BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2479,6 +2486,7 @@ void Loader::seq_createIndices(
         params.logPtr = logPtr;
         params.removeInput = true;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = false;
 
         sortAndInsert(params);
         BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2511,6 +2519,7 @@ void Loader::seq_createIndices(
         params.logPtr = logPtr;
         params.removeInput = false;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = false;
 
         sortAndInsert(params);
         BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2537,6 +2546,7 @@ void Loader::seq_createIndices(
         params.logPtr = logPtr;
         params.removeInput = true;
         params.estimatedSize = estimatedSize;
+        params.deletePreviousExt = false;
 
         sortAndInsert(params);
         BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();

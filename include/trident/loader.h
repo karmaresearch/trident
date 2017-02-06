@@ -246,6 +246,7 @@ struct ParamSortAndInsert {
     SinkPtr logPtr;
     bool removeInput;
     long estimatedSize;
+    bool deletePreviousExt;
 };
 
 class L_Triple {
