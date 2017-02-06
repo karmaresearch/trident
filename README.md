@@ -14,11 +14,20 @@ libsparsehash-dev
 python3-dev
 cmake
 
-Then, create a directory in the main source directory (e.g build), move it
-there and launch the command (see below for some special parameters like DEBUG
-mode, etc.)
+Then, clone Trident (if you have not already done so):
 
 ```
+git clone https://github.com/jrbn/trident.git
+```
+
+This will create a `trident` directory. Next, create a build directory in the main source directory
+(e.g build), go to this directory and launch `cmake` (see below for some special parameters like DEBUG
+mode, etc.). So:
+
+```
+cd trident
+mkdir build
+cd build
 cmake ..
 ```
 
@@ -118,9 +127,6 @@ compiled first, otherwise Trident won't be able to compile. The CMake process
 should automatically take care of this, but if things go wrong here you have a
 problem. To check SNAP has been correctly compiled, make sure that the file
 "snap/snap-core/libsnap.a" exists. 
-
-In order to compile, Trident also requires Python3, so the headers should be
-installed. Typically Python3 is installed on every system but if you get errors on python-related files then double-check that this is indeed the case.
 
 ## License
 
