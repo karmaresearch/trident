@@ -28,7 +28,7 @@ namespace TSnap {
     /// Computes the number of Closed and Open triads. ##TSnap::GetTriads1
     template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriadsX, int64& OpenTriadsX, long SampleNodes);
     /// Computes the number of open and close triads for every node of the network. ##TSnap::GetTriads2
-    template <class PGraph> void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, int SampleNodes=-1);
+    template <class PGraph> void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, long SampleNodes=-1);
     template <class PGraph> void GetTriads(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV, long SampleNodes=-1);
     /// Counts the number of edges that participate in at least one triad. ##TSnap::GetTriadEdges
     template <class PGraph> int GetTriadEdges(const PGraph& Graph, int SampleEdges=-1);
@@ -139,7 +139,7 @@ namespace TSnap {
         return SumCcf / double(NIdCOTriadV.size());
     }
 
-    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int SampleNodes) {
+    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, long SampleNodes) {
         TIntTrV NIdCOTriadV;
         GetTriads(Graph, NIdCOTriadV, SampleNodes);
         THash<TInt, TFltPr> DegSumCnt;
@@ -162,7 +162,7 @@ namespace TSnap {
     }
 
     template <class PGraph>
-        double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriads, int64& OpenTriads, int SampleNodes) {
+        double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriads, int64& OpenTriads, long SampleNodes) {
             TIntTrV NIdCOTriadV;
             GetTriads(Graph, NIdCOTriadV, SampleNodes);
             THash<TInt, TFltPr> DegSumCnt;
@@ -285,7 +285,7 @@ namespace TSnap {
     // Function pretends that the graph is undirected (count unique connected triples of nodes)
     // This implementation is faster, it converts hash tables to vectors
     template <class PGraph>
-        void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, int SampleNodes) {
+        void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, long SampleNodes) {
             const bool IsDir = Graph->HasFlag(gfDirected);
             TIntSet NbrH;
             TIntV NIdV;
