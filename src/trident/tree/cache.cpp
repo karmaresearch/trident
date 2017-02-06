@@ -97,9 +97,15 @@ void Cache::flushNode(Node *node, const bool registerNode) {
         //Serialize the node
         int sizeBuffer = node->serialize(supportBuffer, 0);
         if (compressedNodes) {
+#if LZ4_VERSION_MAJOR > 1 || LZ4_VERSION_MINOR > 2 || (LZ4_VERSION_MINOR == 2 && LZ4_VERSION_RELEASE >= 9)
+	    // LZ4_compress_default does not exist before lz4 version 129.
             int sizeCompressedBuffer = LZ4_compress_default(supportBuffer,
                                                     supportBuffer2, sizeBuffer, SIZE_SUPPORT_BUFFER);
-            if (sizeCompressedBuffer == 0) {
+#else
+            int sizeCompressedBuffer = LZ4_compress(supportBuffer,
+                                                    supportBuffer2, sizeBuffer);
+#endif
+            if (sizeCompressedBuffer == 0 || sizeCompressedBuffer > SIZE_SUPPORT_BUFFER) {
                 BOOST_LOG_TRIVIAL(error) << "Failed compressing buffer (size=0)";
                 throw 10;
             }
