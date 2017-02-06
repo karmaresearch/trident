@@ -187,8 +187,14 @@ void StringBuffer::compressBlocks() {
             break;
         }
 
+#if LZ4_VERSION_MAJOR > 1 || LZ4_VERSION_MINOR > 2 || (LZ4_VERSION_MINOR == 2 && LZ4_VERSION_RELEASE >= 9)
+        // LZ4_compress_HC does not exist in older lz4 versions
         int cs = LZ4_compress_HC(currentUncompressedBuffer, compressedBuffer,
                                 sCurrentUncompressedBuffer, maxSize,  4);
+#else
+        int cs = LZ4_compressHC2_limitedOutput(currentUncompressedBuffer, compressedBuffer,
+                                sCurrentUncompressedBuffer, maxSize,  4);
+#endif
 
         long totalSize = 0;
 
