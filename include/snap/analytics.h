@@ -149,6 +149,7 @@ class Analytics {
 
                 //Possible inputs
                 std::vector<long> inputv;
+                std::vector<std::pair<long,long>> inputp;
 
                 //Possible outputs
                 std::vector<float> values1;
@@ -228,13 +229,23 @@ class Analytics {
                     retValue = INT;
 
                 } else if (nameTask == "bfs") {
-                    auto fp = static_cast<long (*)(const K&, const long, const long)>(&NativeTasks::getShortPath);
-                    f_int = std::bind(fp,
-                            std::ref(Graph),
-                            task.getParam("src").as<long>(),
-                            task.getParam("dst").as<long>());
-                    nargs = 0;
-                    retValue = INT;
+                    string pairs = task.getParam("pairs").as<string>();
+                    if (pairs != "") {
+                        TridentUtils::loadPairFromFile(pairs, inputp, '\t');
+                        f_vlong = std::bind(NativeTasks::getShortPath2<K>,
+                                std::ref(Graph),
+                                std::ref(inputp));
+                        nargs = 0;
+                        retValue = V_LONG;
+                    } else {
+                        auto fp = static_cast<long (*)(const K&, const long, const long)>(&NativeTasks::getShortPath);
+                        f_int = std::bind(fp,
+                                std::ref(Graph),
+                                task.getParam("src").as<long>(),
+                                task.getParam("dst").as<long>());
+                        nargs = 0;
+                        retValue = INT;
+                    }
 
                 } else if (nameTask == "diameter") {
                     auto fp = static_cast<int64 (*)(const K&, const int&, const bool&)>(&NativeTasks::GetDiam<K>);

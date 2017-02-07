@@ -20,8 +20,10 @@ int main(int argc, const char** argv) {
     const TStr InFNm = TStr(argv[1]);
     //Output file
     const TStr OutFNm = TStr(argv[2]);
-    //File with list of noes
+    //File with list of nodes
     const TStr argsMod = TStr(argv[3]);
+    //File with list of pairs of nodes
+    const TStr pairNodes = TStr(argv[4]);
 
     printf("Loading %s...", InFNm.CStr());
     TIntFltH BtwH, EigH, PRankH, CcfH, CloseH, HubH, AuthH;
@@ -81,11 +83,25 @@ int main(int argc, const char** argv) {
     }
     ifs.close();
     long len = 3;
-    long s = 0;
     start = std::chrono::system_clock::now();
     auto randWalk = TSnap::randomWalk2(Graph, InputNodes, len);
     std::chrono::milliseconds durationRW = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     cout << endl << "Runtime RandomWalk: " << durationRW.count() << " ms." << randWalk.size() << endl;
+
+    std::ifstream ifs2(string(pairNodes.CStr()));
+    std::vector<std::pair<long, long>> pairs;
+    while (std::getline(ifs2, line)) {
+        auto pos = line.find('\t');
+        long v1 = boost::lexical_cast<long>(line.substr(0, pos));
+        long v2 = boost::lexical_cast<long>(line.substr(pos+1, line.size()));
+        pairs.push_back(std::make_pair(v1, v2));
+    }
+    ifs2.close();
+    start = std::chrono::system_clock::now();
+    auto bfsoutput = TSnap::GetShortPath(Graph, pairs);
+    std::chrono::milliseconds durationBFS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
+    cout << endl << "Runtime BFS: " << durationBFS.count() << " ms. " << bfsoutput.size() << endl;
+
 
     const int edges = Graph->GetEdges();
     start = std::chrono::system_clock::now();

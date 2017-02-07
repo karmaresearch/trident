@@ -1,3 +1,5 @@
+#include <vector>
+
 namespace TSnap {
 
 /////////////////////////////////////////////////
@@ -15,6 +17,7 @@ template <class PGraph> int GetNodesAtHops(const PGraph& Graph, const int& Start
 // Shortest paths
 /// Returns the length of the shortest path from node SrcNId to node DstNId. ##GetShortPath1
 template <class PGraph> int GetShortPath(const PGraph& Graph, const int& SrcNId, const int& DstNId, const bool& IsDir=false);
+template <class PGraph> std::vector<long> GetShortPath(const PGraph& Graph, std::vector<std::pair<long,long>> &pairs);
 /// Returns the length of the shortest path from node SrcNId to all other nodes in the network. ##GetShortPath2
 template <class PGraph> int GetShortPath(const PGraph& Graph, const int& SrcNId, TIntH& NIdToDistH, const bool& IsDir=false, const int& MaxDist=TInt::Mx);
 
@@ -386,7 +389,15 @@ int GetShortPath(const PGraph& Graph, const int& SrcNId, const int& DstNId, cons
   BFS.DoBfs(SrcNId, true, ! IsDir, DstNId, TInt::Mx);
   return BFS.GetHops(SrcNId, DstNId);
 }
-
+template <class PGraph>
+std::vector<long> GetShortPath(const PGraph& Graph, std::vector<std::pair<long, long>> &pairs) {
+    std::vector<long> output;
+    for(auto p : pairs) {
+        long len = GetShortPath(Graph, p.first, p.second);
+        output.push_back(len);
+    }
+    return output;
+}
 template <class PGraph>
 int64 GetBfsFullDiam_stl(const PGraph& Graph, const int& NTestNodes, const bool& IsDir) {
   int FullDiam;

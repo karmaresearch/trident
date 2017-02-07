@@ -41,6 +41,7 @@ void AnalyticsTasks::initialize() {
     params.clear();
     params.push_back(Param("src", LONG, ""));
     params.push_back(Param("dst", LONG, ""));
+    params.push_back(Param("pairs", PATH, ""));
     tasks.insert(std::make_pair("bfs", Task("bfs", params)));
 
     params.clear();

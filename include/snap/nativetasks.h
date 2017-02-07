@@ -23,12 +23,9 @@ class NativeTasks {
             static long getShortPath(const K &Graph,
                     const long src,
                     const long dst) {
-
-                //TIntH NIdDistH(Graph->GetNodes());
-                //NIdDistH.AddDat(src, 0);
                 int limitDist = ~0;
-                std::map<long, int> NIdDist;
-                NIdDist.insert(std::make_pair(src, 0));
+                TUInt64H NIdDistH;
+                NIdDistH.AddDat(src, 0);
                 bool FollowOut = true;
                 bool FollowIn = true;
 
@@ -41,7 +38,7 @@ class NativeTasks {
                 while (!Queue.Empty()) {
                     const long NId = Queue.Top();
                     Queue.Pop();
-                    const long Dist = NIdDist.find(NId)->second;
+                    const long Dist = NIdDistH.GetDat(NId);
                     if (Dist == limitDist) {
                         break;
                     }
@@ -49,8 +46,8 @@ class NativeTasks {
                     if (FollowOut) {
                         for (v = 0; v < NodeI.GetOutDeg(); v++) {
                             const long DstNId = NodeI.GetOutNId(v);
-                            if (!NIdDist.count(DstNId)) {
-                                NIdDist.insert(std::make_pair(DstNId, Dist+1));
+                            if (!NIdDistH.IsKey(DstNId)) {
+                                NIdDistH.AddDat(DstNId, Dist+1);
                                 MxDist = TMath::Mx(MxDist, Dist+1);
                                 if (DstNId == dst) {
                                     return MxDist;
@@ -63,8 +60,8 @@ class NativeTasks {
                     if (FollowIn) {
                         for (v = 0; v < NodeI.GetInDeg(); v++) {
                             const long DstNId = NodeI.GetInNId(v);
-                            if (!NIdDist.count(DstNId)) {
-                                NIdDist.insert(std::make_pair(DstNId, Dist+1));
+                            if (!NIdDistH.IsKey(DstNId)) {
+                                NIdDistH.AddDat(DstNId, Dist+1);
                                 MxDist = TMath::Mx(MxDist, Dist+1);
                                 if (DstNId == dst) {
                                     return MxDist;
@@ -75,6 +72,17 @@ class NativeTasks {
                     }
                 }
                 return limitDist;
+            }
+
+        template<class K>
+            static std::vector<long> getShortPath2(const K &Graph,
+                    std::vector<std::pair<long,long>> &pairs) {
+                std::vector<long> distances;
+                for (auto p : pairs) {
+                    long d = getShortPath(Graph, p.first, p.second);
+                    distances.push_back(d);
+                }
+                return distances;
             }
 
         template <class PGraph>

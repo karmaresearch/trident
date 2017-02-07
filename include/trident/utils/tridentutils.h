@@ -44,6 +44,8 @@ class TridentUtils {
         static void loadFromFile(std::string inputfile,
                 std::vector<long> &values);
 
+        static void loadPairFromFile(std::string inputfile,
+                std::vector<std::pair<long,long>> &values, char sep);
 };
 
 #endif

@@ -157,3 +157,23 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
     }
     ifs.close();
 }
+
+void TridentUtils::loadPairFromFile(std::string inputfile,
+        std::vector<std::pair<long,long>> &values, char sep) {
+    std::ifstream ifs(inputfile);
+    std::string line;
+    while (std::getline(ifs, line)) {
+        long v1, v2;
+        try {
+            auto pos = line.find(sep);
+            v1 = boost::lexical_cast<long>(line.substr(0, pos));
+            v2 = boost::lexical_cast<long>(line.substr(pos+1, line.size()));
+        } catch (boost::bad_lexical_cast &) {
+            BOOST_LOG_TRIVIAL(error) << "Failed conversion of " << line;
+            throw 10;
+        }
+        values.push_back(std::make_pair(v1, v2));
+    }
+    ifs.close();
+
+}

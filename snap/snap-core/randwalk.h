@@ -88,12 +88,13 @@ namespace TSnap {
     template <class PGraph>
         std::vector<long> randomWalk2(const PGraph &Graph,
                 const std::vector<long> &nodes,
-                const long len) {
+                const long len) {            
             std::vector<long> output;
             for (const auto el : nodes) {
                 auto out = randomWalk<PGraph>(Graph, el, len);
-                for(const auto o : out)
+                for(const auto o : out) {
                     output.push_back(o);
+                }
             }
             return output;
         }
