@@ -252,18 +252,18 @@ namespace TSnap {
             const int NNodes = Graph->GetNodes();
             TVec<typename PGraph::TObj::TNodeI> NV;
             PRankH.Gen(NNodes);
-            /*int MxId = -1;*/
+            int MxId = -1;
             for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                 NV.Add(NI);
                 PRankH.AddDat(NI.GetId(), 1.0/NNodes);
-                /*int Id = NI.GetId();
+                int Id = NI.GetId();
                   if (Id > MxId) {
                   MxId = Id;
-                  }*/
+                  }
             }
 
-            TFltV PRankV(NNodes);
-            TIntV OutDegV(NNodes);
+            TFltV PRankV(MxId+1);
+            TIntV OutDegV(MxId+1);
 
             for (int j = 0; j < NNodes; j++) {
                 typename PGraph::TObj::TNodeI NI = NV[j];
@@ -303,8 +303,8 @@ namespace TSnap {
             }
 
             for (int i = 0; i < NNodes; i++) {
-                //typename PGraph::TObj::TNodeI NI = NV[i];
-                PRankH[i] = PRankV[i];
+                typename PGraph::TObj::TNodeI NI = NV[i];
+                PRankH[i] = PRankV[NI.GetId()];
             }
         }
 

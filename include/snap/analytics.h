@@ -263,7 +263,7 @@ class Analytics {
                     retValue = DOUBLE;
 
                 } else if (nameTask == "rw") {
-                    f_vlong = std::bind(NativeTasks::randomWalk<K>,
+                    f_vlong = std::bind(TSnap::randomWalk<K>,
                             std::ref(Graph),
                             task.getParam("node").as<long>(),
                             task.getParam("len").as<long>());

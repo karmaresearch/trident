@@ -188,31 +188,6 @@ class NativeTasks {
                 if ((EdgesIn - EEdgesIn) == 0) { return 0; }
                 else { return (EdgesIn - EEdgesIn) / (2.0*GEdges); } // modularity
             }
-
-
-        template<typename PGraph>
-            static std::vector<long> randomWalk(const PGraph& Graph,
-                    const long node,
-                    const long len) {
-                std::vector<long> output;
-                long id = node;
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                output.push_back(node);
-
-                while (output.size() < len) {
-                    typename PGraph::TObj::TNodeI NI = Graph->GetNI(id);
-                    const long n = NI.GetDeg();
-                    if (n == 0)
-                        break;
-                    std::uniform_int_distribution<long> dis(0, n);
-                    id = NI.GetNbrNId(dis(gen));
-                    output.push_back(id);
-                }
-                return output;
-            }
-
-
 };
 
 #endif
