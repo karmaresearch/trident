@@ -214,6 +214,18 @@ namespace TSnap {
         }
 
     template <class PGraph>
+        void GetNodeClustCf(const PGraph& Graph, TIntFltH& NIdCCfH) {
+            TIntTrV NIdCOTriadV;
+            GetTriads(Graph, NIdCOTriadV);
+            NIdCCfH.Clr(false);
+            for (int i = 0; i < NIdCOTriadV.Len(); i++) {
+                const int D = NIdCOTriadV[i].Val2()+NIdCOTriadV[i].Val3();
+                const double CCf = D!=0 ? NIdCOTriadV[i].Val2() / double(D) : 0.0;
+                NIdCCfH.AddDat(NIdCOTriadV[i].Val1, CCf);
+            }
+        }
+
+    template <class PGraph>
         int64 GetTriads(const PGraph& Graph, long SampleNodes) {
             int64 OpenTriads, ClosedTriads;
             return GetTriads(Graph, ClosedTriads, OpenTriads, SampleNodes);
