@@ -108,6 +108,7 @@ class Analytics {
                 std::chrono::microseconds>(std::chrono::system_clock::now() - start);
             BOOST_LOG_TRIVIAL(info) << "Runtime " << nameTask << ": " << duration.count() / 1000 << " ms. (" << duration.count() << " mu_s)";
             string els = "";
+            int i = 0;
             switch (r) {
                 case INT:
                     BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_int;
@@ -116,8 +117,14 @@ class Analytics {
                     BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": " << retValue_double;
                     break;
                 case V_LONG:
+                    i = 0;
                     for (auto el : retValue_vlong) {
+                        if (i == 16) {
+                            els += " ...";
+                            break;
+                        }
                         els += to_string(el) + " ";
+                        i++;
                     }
                     BOOST_LOG_TRIVIAL(info) << "Output " << nameTask << ": (" << retValue_vlong.size() << ") " << els;
                     break;
@@ -263,12 +270,23 @@ class Analytics {
                     retValue = DOUBLE;
 
                 } else if (nameTask == "rw") {
-                    f_vlong = std::bind(TSnap::randomWalk<K>,
-                            std::ref(Graph),
-                            task.getParam("node").as<long>(),
-                            task.getParam("len").as<long>());
-                    nargs = 0;
-                    retValue = V_LONG;
+                    if (task.getParam("nodes").as<string>() != "") {
+                        TridentUtils::loadFromFile(task.getParam("nodes").as<string>(),
+                                inputv);
+                        f_vlong = std::bind(TSnap::randomWalk2<K>,
+                                std::ref(Graph),
+                                std::ref(inputv),
+                                task.getParam("len").as<long>());
+                        nargs = 0;
+                        retValue = V_LONG;
+                    } else {
+                        f_vlong = std::bind(TSnap::randomWalk<K>,
+                                std::ref(Graph),
+                                task.getParam("node").as<long>(),
+                                task.getParam("len").as<long>());
+                        nargs = 0;
+                        retValue = V_LONG;
+                    }
 
                 } else {
                     BOOST_LOG_TRIVIAL(error) << "Task " << nameTask << " is not known!";

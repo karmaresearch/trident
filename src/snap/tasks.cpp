@@ -58,7 +58,8 @@ void AnalyticsTasks::initialize() {
     tasks.insert(std::make_pair("maxscc", Task("maxscc", params)));
 
     params.clear();
-    params.push_back(Param("node", LONG, ""));
+    params.push_back(Param("nodes", PATH, ""));
+    params.push_back(Param("node", LONG, "-1"));
     params.push_back(Param("len", LONG, ""));
     tasks.insert(std::make_pair("rw", Task("rw", params)));
 

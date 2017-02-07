@@ -28,7 +28,7 @@ int main(int argc, const char** argv) {
 
     std::chrono::milliseconds durationPR;
     PNGraph Graph = TSnap::LoadEdgeList<PNGraph>(InFNm);
-    PUNGraph UGraph = TSnap::ConvertGraph<PUNGraph>(Graph); 
+    PUNGraph UGraph = TSnap::ConvertGraph<PUNGraph>(Graph);
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     TSnap::GetPageRank(Graph, PRankH, 0.85, 0, 100);
@@ -44,7 +44,7 @@ int main(int argc, const char** argv) {
     //TSnap::GetEigenVectorCentr(UGraph, EigH);
     //std::chrono::milliseconds durationEV = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     //cout << endl << "Runtime EigenVector: " << durationEV.count() << " ms." << endl;
- 
+
     start = std::chrono::system_clock::now();
     TSnap::GetNodeClustCf(UGraph, CcfH);
     std::chrono::milliseconds durationCF = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
@@ -71,13 +71,22 @@ int main(int argc, const char** argv) {
     cout << endl << "Runtime MaxScc: " << durationMaxScc.count() << " ms." << outputScc << endl;
 
     TIntV Values;
+    std::vector<long> InputNodes;
     std::ifstream ifs(string(argsMod.CStr()));
     std::string line;
     while (std::getline(ifs, line)) {
         int v = boost::lexical_cast<int>(line);
         Values.Add(v);
+        InputNodes.push_back(v);
     }
     ifs.close();
+    long len = 3;
+    long s = 0;
+    start = std::chrono::system_clock::now();
+    auto randWalk = TSnap::randomWalk2(Graph, InputNodes, len);
+    std::chrono::milliseconds durationRW = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
+    cout << endl << "Runtime RandomWalk: " << durationRW.count() << " ms." << randWalk.size() << endl;
+
     const int edges = Graph->GetEdges();
     start = std::chrono::system_clock::now();
     double outputMod = TSnap::GetModularity(Graph, Values, edges);

@@ -77,9 +77,23 @@ namespace TSnap {
                 const long n = NI.GetDeg();
                 if (n == 0)
                     break;
-                std::uniform_int_distribution<long> dis(0, n);
-                id = NI.GetNbrNId(dis(gen));
+                std::uniform_int_distribution<long> dis(0, n-1);
+                const long nbr = dis(gen);
+                id = NI.GetNbrNId(nbr);
                 output.push_back(id);
+            }
+            return output;
+        }
+
+    template <class PGraph>
+        std::vector<long> randomWalk2(const PGraph &Graph,
+                const std::vector<long> &nodes,
+                const long len) {
+            std::vector<long> output;
+            for (const auto el : nodes) {
+                auto out = randomWalk<PGraph>(Graph, el, len);
+                for(const auto o : out)
+                    output.push_back(o);
             }
             return output;
         }
