@@ -1,7 +1,7 @@
-KOGNAC_BUILDIR=../../kognac/build_debug/
-TRIDENT_BUILDIR=../build_debug
+KOGNAC_BUILDIR=../build/kognac/
+TRIDENT_BUILDIR=../build
 CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/glib-core
-CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core
+CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -fopenmp
 CPLUS=g++
 
 test_snap:
