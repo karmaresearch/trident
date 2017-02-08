@@ -252,9 +252,20 @@ long Loader::parseSnapFile(string inputtriples,
 
     while(std::getline(compressedFile2, line)) {
         origline = line;
+        char delim = '\t';
         if (line[0] != '#') {
             long s,o;
-            int pos = line.find('\t');
+            auto pos = line.find(delim);
+            if (pos == string::npos) {
+                if (delim == '\t') {
+                    delim = ' ';
+                    pos = line.find(delim);
+                    if (pos == string::npos) {
+                        BOOST_LOG_TRIVIAL(error) << "Failed parsing the SNAP file (no delim)";
+                        throw 10;
+                    }
+                }
+            }
             string ss = line.substr(0, pos);
             s = stol(ss);
             line = line.substr(pos + 1);
