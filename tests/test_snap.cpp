@@ -48,7 +48,7 @@ int main(int argc, const char** argv) {
     //cout << endl << "Runtime EigenVector: " << durationEV.count() << " ms." << endl;
 
     start = std::chrono::system_clock::now();
-    TSnap::GetNodeClustCf(UGraph, CcfH);
+    TSnap::GetNodeClustCf_scala(UGraph, CcfH);
     std::chrono::milliseconds durationCF = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     cout << endl << "Runtime ClusterCoeff: " << durationCF.count() << " ms." << endl;
 

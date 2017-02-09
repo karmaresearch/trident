@@ -21,6 +21,7 @@ namespace TSnap {
     template <class PGraph> double GetNodeClustCf(const PGraph& Graph, const int& NId);
     /// Computes clustering coefficient of each node of the Graph. ##TSnap::GetClustCf1
     template <class PGraph> void GetNodeClustCf(const PGraph& Graph, TIntFltH& NIdCCfH);
+    template <class PGraph> void GetNodeClustCf_scala(const PGraph& Graph, TIntFltH& NIdCCfH);
     template <class PGraph> void GetNodeClustCf(const PGraph& Graph, std::vector<float>& NIdCCfH);
 
     /// Returns the number of triangles in a graph. ##TSnap::GetTriads
@@ -29,6 +30,7 @@ namespace TSnap {
     template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriadsX, int64& OpenTriadsX, long SampleNodes);
     /// Computes the number of open and close triads for every node of the network. ##TSnap::GetTriads2
     template <class PGraph> void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, long SampleNodes=-1);
+    template <class PGraph> void GetTriads_v0(const PGraph& Graph, TIntTrV& NIdCOTriadV, int SampleNodes=-1);
     template <class PGraph> void GetTriads(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV, long SampleNodes=-1);
     /// Counts the number of edges that participate in at least one triad. ##TSnap::GetTriadEdges
     template <class PGraph> int GetTriadEdges(const PGraph& Graph, int SampleEdges=-1);
@@ -226,6 +228,18 @@ namespace TSnap {
         }
 
     template <class PGraph>
+        void GetNodeClustCf_scala(const PGraph& Graph, TIntFltH& NIdCCfH) {
+            TIntTrV NIdCOTriadV;
+            GetTriads_v0(Graph, NIdCOTriadV);
+            NIdCCfH.Clr(false);
+            for (int i = 0; i < NIdCOTriadV.Len(); i++) {
+                const int D = NIdCOTriadV[i].Val2()+NIdCOTriadV[i].Val3();
+                const double CCf = D!=0 ? NIdCOTriadV[i].Val2() / double(D) : 0.0;
+                NIdCCfH.AddDat(NIdCOTriadV[i].Val1, CCf);
+            }
+        }
+
+    template <class PGraph>
         int64 GetTriads(const PGraph& Graph, long SampleNodes) {
             int64 OpenTriads, ClosedTriads;
             return GetTriads(Graph, ClosedTriads, OpenTriads, SampleNodes);
@@ -249,7 +263,7 @@ namespace TSnap {
     // Function pretends that the graph is undirected (count unique connected triples of nodes)
     // This implementation is slower, it uses hash tables directly
     template <class PGraph>
-        void GetTriads_v0(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV, long SampleNodes) {
+        void GetTriads_v0(const PGraph& Graph, TIntTrV& NIdCOTriadV, int SampleNodes) {
             const bool IsDir = Graph->HasFlag(gfDirected);
             TIntSet NbrH;
             TIntV NIdV;
@@ -259,12 +273,12 @@ namespace TSnap {
             NIdV.Shuffle(Rnd);
             if (SampleNodes == -1) {
                 SampleNodes = Graph->GetNodes(); }
-            NIdCOTriadV.clear();
-            NIdCOTriadV.reserve(SampleNodes);
+            NIdCOTriadV.Clr(false);
+            NIdCOTriadV.Reserve(SampleNodes);
             for (int node = 0; node < SampleNodes; node++) {
                 typename PGraph::TObj::TNodeI NI = Graph->GetNI(NIdV[node]);
                 if (NI.GetDeg() < 2) {
-                    NIdCOTriadV.push_back(TUInt64Tr(NI.GetId(), 0, 0)); // zero triangles
+                    NIdCOTriadV.Add(TIntTr(NI.GetId(), 0, 0)); // zero triangles
                     continue;
                 }
                 // find neighborhood
@@ -290,7 +304,7 @@ namespace TSnap {
                     }
                 }
                 IAssert(2*(OpenCnt+CloseCnt) == NbrH.Len()*(NbrH.Len()-1));
-                NIdCOTriadV.push_back(TUInt64Tr(NI.GetId(), CloseCnt, OpenCnt));
+                NIdCOTriadV.Add(TIntTr(NI.GetId(), CloseCnt, OpenCnt));
             }
         }
 
