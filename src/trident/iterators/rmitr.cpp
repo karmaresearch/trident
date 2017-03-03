@@ -32,6 +32,7 @@ void RmItr::init(PairItr *itr, PairItr *rmitr, long nfirstterms) {
     noseccol = false;
     hnc = hn = false;
     v1 = v2 = key = -1;
+    constraint1 = constraint2 = -1;
     if (rmitr->hasNext()) {
         rmitr->next();
         rmitrvalid = true;
