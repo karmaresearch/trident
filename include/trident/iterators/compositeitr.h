@@ -45,6 +45,10 @@ private:
     long nfirstterms;
     PairItr *kbitr;
 
+    long savedv1, savedv2, savedcurrentCount;
+    int savedlastIdx;
+    bool savedhn, savedhnc;
+
     void rearrangeChildren();
 
 public:
@@ -80,11 +84,29 @@ public:
     }
 
     void mark() {
-        throw 10;
+	savedv1 = v1;
+	savedv2 = v2;
+	savedcurrentCount = currentCount;
+	savedlastIdx = lastIdx;
+	savedhn = hn;
+	savedhnc = hnc;
+	kbitr->mark();
+	for (int i = children.size() - 1; i >= 0; i--) {
+	    children[i]->mark();
+	}
     }
 
-    void reset(const char i) {
-        throw 10;
+    void reset(const char r) {
+	v1 = savedv1;
+	v2 = savedv2;
+	currentCount = savedcurrentCount;
+	lastIdx = savedlastIdx;
+	hn = savedhn;
+	hnc = savedhnc;
+	kbitr->reset(r);
+	for (int i = children.size() - 1; i >= 0; i--) {
+	    children[i]->reset(r);
+	}
     }
 
     void moveto(const long c1, const long c2);

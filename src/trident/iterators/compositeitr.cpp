@@ -215,6 +215,7 @@ void CompositeItr::init(std::vector<PairItr*> &iterators,
                         long nfirstterms, PairItr * kbitr) {
     ignseccol = false;
     v1 = v2 = -1;
+    constraint1 = constraint2 = -1;
     children = iterators;
     hn = !children.empty();
     hnc =  true;

@@ -33,6 +33,7 @@ void TermItr::init(TableStorage *tables, uint64_t size, int perm, Root *tree) {
     this->size = size;
     this->perm = perm;
     this->tree = tree;
+    constraint1 = constraint2 = -1;
 
     this->buffer = tables->getBeginTableCoordinates(currentfile);
     this->endbuffer = tables->getEndTableCoordinates(currentfile);

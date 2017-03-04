@@ -85,6 +85,7 @@ uint64_t DiffScanItr::estCardinality() {
 }
 
 void DiffScanItr::init(TreeItr *root, int perm, DiffIndex *diff) {
+    constraint1 = constraint2 = -1;
     this->perm = perm;
     this->root = std::unique_ptr<TreeItr>(root);
     this->diff = diff;
