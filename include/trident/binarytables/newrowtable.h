@@ -154,6 +154,7 @@ class NewRowTable: public AbsNewTable {
         }
 
         void setup(const char* start, const char *end) {
+	    initializeConstraints();
             this->start = start;
             current = start;
             this->end = end;

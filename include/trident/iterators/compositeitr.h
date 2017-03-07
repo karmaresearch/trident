@@ -26,6 +26,8 @@
 #include <trident/iterators/pairitr.h>
 #include <trident/kb/consts.h>
 
+#include <boost/log/trivial.hpp>
+
 #include <vector>
 
 class DiffIndex;
@@ -97,6 +99,7 @@ public:
     }
 
     void reset(const char r) {
+	BOOST_LOG_TRIVIAL(debug) << "reset: r = " << (int) r;
 	v1 = savedv1;
 	v2 = savedv2;
 	currentCount = savedcurrentCount;

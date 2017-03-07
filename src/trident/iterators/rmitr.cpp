@@ -26,13 +26,13 @@
 #include <assert.h>
 
 void RmItr::init(PairItr *itr, PairItr *rmitr, long nfirstterms) {
+    initializeConstraints();
     this->itr = itr;
     this->rmitr = rmitr;
     this->delnfirstterms = nfirstterms;
     noseccol = false;
     hnc = hn = false;
     v1 = v2 = key = -1;
-    constraint1 = constraint2 = -1;
     if (rmitr->hasNext()) {
         rmitr->next();
         rmitrvalid = true;

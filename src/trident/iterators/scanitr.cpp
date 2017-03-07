@@ -31,6 +31,7 @@
 using namespace std;
 
 void ScanItr::init(int idx, Querier *q) {
+    initializeConstraints();
     this->idx = idx;
     this->q = q;
     currentTable = NULL;
@@ -54,7 +55,6 @@ void ScanItr::init(int idx, Querier *q) {
     strat = q->getStorageStrat();
     ignseccolumn = false;
     hnc = hn = false;
-    constraint1 = constraint2 = -1;
 }
 
 uint64_t ScanItr::getCardinality() {
