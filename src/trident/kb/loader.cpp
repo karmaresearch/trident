@@ -1670,7 +1670,7 @@ void Loader::load(ParamsLoad p) {
     config.setParamBool(USEFIXEDSTRAT, p.enableFixedStrat);
     config.setParamInt(FIXEDSTRAT, p.fixedStrat);
     config.setParamInt(THRESHOLD_SKIP_TABLE, p.thresholdSkipTable);
-    BOOST_LOG_TRIVIAL(debug) << "Optimizing memory management for " << totalCount << " terms";
+    BOOST_LOG_TRIVIAL(debug) << "Optimizing memory management for " << totalCount << " triples";
     MemoryOptimizer::optimizeForWriting(totalCount, config);
     if (p.dictMethod == DICT_HASH) {
         config.setParamBool(DICTHASH, true);
@@ -1683,7 +1683,7 @@ void Loader::load(ParamsLoad p) {
             nperms,
             signaturePerm,
             fileNameDictionaries,
-            !p.inputCompressed || p.dictDir != "");
+            p.storeDicts);
 
     delete[] permDirs;
     delete[] fileNameDictionaries;

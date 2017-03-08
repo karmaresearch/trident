@@ -427,6 +427,7 @@ struct ParamsLoad {
     long limitSpace;
     string graphTransformation;
     int timeoutStats;
+    bool storeDicts;
 };
 
 class Loader {
