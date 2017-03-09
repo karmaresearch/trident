@@ -349,7 +349,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             "If set greater than 0, it starts a new thread to log some resource statistics every n seconds. Works only under Linux. Default is '-1' (disabled)");
     load_options.add_options()("onlyCompress",
             po::value<bool>()->default_value(false),
-            "Only compresses the data. Default is DISABLED");
+            "Only compresses the data. Works only with RDF inputs. Default is DISABLED");
     load_options.add_options()("sample",
             po::value<bool>()->default_value(true),
             "Store a little sample of the data, to improve query optimization. Default is ENABLED");
@@ -359,6 +359,9 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     load_options.add_options()("storeplainlist",
             po::value<bool>()->default_value(false),
             "Next to the indices, stores also a dump of all the input in a single file. This improves scan queries. Default is DISABLED");
+    load_options.add_options()("storedicts",
+            po::value<bool>()->default_value(true),
+            "Should I also store the dictionaries? (Maybe I don't need it, since I only want to do graph analytics. Default is ENABLED");
     load_options.add_options()("nindices",
             po::value<int>()->default_value(6),
             "Set the number of indices to use. Can be 1,3,4,6. Default is '6'");
@@ -697,6 +700,7 @@ void testkb(string kbDir, po::variables_map &vm) {
         p.remoteLocation = "";
         p.limitSpace = 0;
         p.graphTransformation = vm["gf"].as<string>();
+        p.storeDicts = vm["storedicts"].as<bool>();
 
         loader.load(p);
     }
@@ -950,6 +954,7 @@ int main(int argc, const char** argv) {
         p.remoteLocation = vm["remoteLoc"].as<string>();
         p.limitSpace = vm["limitSpace"].as<long>();
         p.graphTransformation = vm["gf"].as<string>();
+        p.storeDicts = vm["storedicts"].as<bool>();
 
         loader.load(p);
 

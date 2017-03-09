@@ -45,6 +45,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/chrono.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <tbb/parallel_sort.h>
 #include <tbb/task_scheduler_init.h>
@@ -240,13 +241,16 @@ long Loader::parseSnapFile(string inputtriples,
         int parallelProcesses) {
     long counter = 0;
     std::map<long, long> dictionary;
+    BOOST_LOG_TRIVIAL(debug) << "Loading input graph from " << inputtriples;
 
     //Create the permutations
     std::vector<Triple> triples;
     ifstream rawFile2;
     rawFile2.open(inputtriples);
     boost::iostreams::filtering_istream compressedFile2;
-    compressedFile2.push(io::gzip_decompressor());
+    if (boost::algorithm::ends_with(inputtriples, ".gz")) {
+        compressedFile2.push(io::gzip_decompressor());
+    }
     compressedFile2.push(rawFile2);
     string line, origline;
 
@@ -287,6 +291,7 @@ long Loader::parseSnapFile(string inputtriples,
             triples.push_back(Triple(s, 0, o));
         }
     }
+    BOOST_LOG_TRIVIAL(debug) << "Loaded a vocabulary of " << dictionary.size();
     int detailPerms[6];
     Compressor::parsePermutationSignature(signaturePerm, detailPerms);
     for(int i = 0; i < nperms; ++i) {
@@ -1665,7 +1670,7 @@ void Loader::load(ParamsLoad p) {
     config.setParamBool(USEFIXEDSTRAT, p.enableFixedStrat);
     config.setParamInt(FIXEDSTRAT, p.fixedStrat);
     config.setParamInt(THRESHOLD_SKIP_TABLE, p.thresholdSkipTable);
-    BOOST_LOG_TRIVIAL(debug) << "Optimizing memory management for " << totalCount << " terms";
+    BOOST_LOG_TRIVIAL(debug) << "Optimizing memory management for " << totalCount << " triples";
     MemoryOptimizer::optimizeForWriting(totalCount, config);
     if (p.dictMethod == DICT_HASH) {
         config.setParamBool(DICTHASH, true);
@@ -1678,7 +1683,7 @@ void Loader::load(ParamsLoad p) {
             nperms,
             signaturePerm,
             fileNameDictionaries,
-            !p.inputCompressed || p.dictDir != "");
+            p.storeDicts);
 
     delete[] permDirs;
     delete[] fileNameDictionaries;
