@@ -269,6 +269,10 @@ SPARQLLexer::Token SPARQLLexer::getNext()
             }
             if (pos == tokenStart)
                 return Error;
+	    if (*(pos-1) == '.') {
+		// The last character of an identifier may not be a '.'.
+		pos--;
+	    }
             return Identifier;
         }
     }
