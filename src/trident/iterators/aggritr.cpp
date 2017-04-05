@@ -170,6 +170,7 @@ void AggrItr::moveto(const long c1, const long c2) {
 }
 
 void AggrItr::init(int idx, PairItr* itr, Querier *q) {
+    initializeConstraints();
     value1 = value2 = -1;
     mainItr = itr;
     this->q = q;

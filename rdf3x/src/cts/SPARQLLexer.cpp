@@ -257,14 +257,22 @@ SPARQLLexer::Token SPARQLLexer::getNext()
         // Identifier
         default:
             --pos;
-            while (pos != input.end()) {
-                char c = *pos;
-                if (((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) || c == '.') {
-                    ++pos;
-                } else break;
+	    char c = *pos;
+	    if (((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) || c == '_') {
+		++pos;
+		while (pos != input.end()) {
+		    c = *pos;
+		    if (((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) || c == '.' || c == '-' || c == '_') {
+			++pos;
+		    } else break;
+		}
             }
             if (pos == tokenStart)
                 return Error;
+	    if (*(pos-1) == '.') {
+		// The last character of an identifier may not be a '.'.
+		pos--;
+	    }
             return Identifier;
         }
     }

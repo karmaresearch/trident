@@ -528,7 +528,7 @@ int Querier::getIndex(long s, long p, long o) {
 
     if (s >= 0) {
         //SPO or SOP
-        if (p >= 0 || p == -2 || o == -1) {
+        if (p >= 0 || (p == -2 && o < 0)) {
             return IDX_SPO;
         } else {
             return IDX_SOP;
@@ -537,7 +537,7 @@ int Querier::getIndex(long s, long p, long o) {
 
     if (o >= 0) {
         //OPS or OSP
-        if (p >= 0 || p == -2 || s == -1) {
+        if (p >= 0 || (p == -2 && s < 0)) {
             return IDX_OPS;
         } else {
             if (nindices == 3) {
@@ -550,7 +550,7 @@ int Querier::getIndex(long s, long p, long o) {
 
     if (p >= 0) {
         //POS or PSO
-        if (o >= 0 || o == -2 || s == -1) {
+        if (o >= 0 || (o == -2 && s < 0)) {
             return IDX_POS;
         } else {
             return IDX_PSO;

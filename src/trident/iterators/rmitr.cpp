@@ -26,6 +26,7 @@
 #include <assert.h>
 
 void RmItr::init(PairItr *itr, PairItr *rmitr, long nfirstterms) {
+    initializeConstraints();
     this->itr = itr;
     this->rmitr = rmitr;
     this->delnfirstterms = nfirstterms;

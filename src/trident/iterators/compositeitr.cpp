@@ -213,6 +213,7 @@ void CompositeItr::moveto(const long c1, const long c2) {
 
 void CompositeItr::init(std::vector<PairItr*> &iterators,
                         long nfirstterms, PairItr * kbitr) {
+    initializeConstraints();
     ignseccol = false;
     v1 = v2 = -1;
     children = iterators;

@@ -140,6 +140,7 @@ public:
     }
 
     void init(PairItr * mainitr, PairItr * rmitr) {
+	initializeConstraints();
         this->mainitr = mainitr;
         this->rmitr = rmitr;
         this->currentCount = 0;

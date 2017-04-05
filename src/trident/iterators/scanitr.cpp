@@ -31,6 +31,7 @@
 using namespace std;
 
 void ScanItr::init(int idx, Querier *q) {
+    initializeConstraints();
     this->idx = idx;
     this->q = q;
     currentTable = NULL;

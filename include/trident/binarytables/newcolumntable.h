@@ -375,6 +375,7 @@ class NewColumnTable: public AbsNewTable {
                 uint8_t columnOther, SequenceWriter *output);
 
         void setup(const char* start, const char *end) {
+	    initializeConstraints();
             this->start = start;
             this->end = end;
             currentValue1 = currentValue2 = -1;

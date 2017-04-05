@@ -135,6 +135,7 @@ public:
     }
 
     void init() {
+	initializeConstraints();
         children.clear();
         activechildren.clear();
     }

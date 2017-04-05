@@ -34,6 +34,11 @@ protected:
     long constraint2;
     long key;
 public:
+    void initializeConstraints() {
+	setConstraint1(NO_CONSTRAINT);
+	setConstraint2(NO_CONSTRAINT);
+    }   
+
     virtual int getTypeItr() = 0;
 
     virtual long getValue1() = 0;

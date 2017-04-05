@@ -35,8 +35,11 @@ private:
     bool noseccol;
     long v1, v2;
     long curCount, nextCount;
-
     bool hnc, hn;
+
+    bool savedrmitrvalid;
+    long savedv1, savedv2, savedcurCount, savednextCount;
+
 
     int cmp(PairItr *itr1, PairItr *itr2);
 
@@ -57,11 +60,27 @@ public:
     }
 
     void mark() {
-        throw 10;
+        savedrmitrvalid = rmitrvalid;
+	savedv1 = v1;
+	savedv2 = v2;
+	savedcurCount = curCount;
+	savednextCount = nextCount;
+	itr->mark();
+	rmitr->mark();
     }
 
     void reset(const char i) {
-        throw 10;
+        rmitrvalid = savedrmitrvalid;
+	hnc = false;
+	if (i == 0) {
+	    v1 = savedv1;
+	} else {
+	    v2 = savedv2;
+	}
+	curCount = savedcurCount;
+	nextCount = savednextCount;
+	itr->reset(i);
+	rmitr->reset(i);
     }
 
     PairItr *getMainItr() {

@@ -136,6 +136,7 @@ long CompositeScanItr::getCount() {
 }
 
 void CompositeScanItr::init(int perm) {
+    initializeConstraints();
     hnc = false;
     hn = false;
     v1 = v2 = 0;

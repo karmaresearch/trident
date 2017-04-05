@@ -26,6 +26,7 @@
 #include <trident/tree/coordinates.h>
 
 void TermItr::init(TableStorage *tables, uint64_t size, int perm, Root *tree) {
+    initializeConstraints();
     this->tables = tables;
     this->nfiles = tables->getLastCreatedFile() + 1;
     this->currentfile = 0;

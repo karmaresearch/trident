@@ -80,6 +80,7 @@ long DiffTermItr::getCount() {
 }
 
 void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, TreeItr * itr) {
+    initializeConstraints();
     this->perm = perm;
     this->nkeys = nkeys;
     this->nuniquekeys = nuniquekeys;
@@ -91,6 +92,7 @@ void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, TreeItr * itr) {
 void DiffTermItr::init(int perm, long nkeys, long nuniquekeys,
           const char *array,
           const uint8_t nbytes) {
+    initializeConstraints();
     this->perm = perm;
     this->nkeys = nkeys;
     this->nuniquekeys = nuniquekeys;
@@ -102,6 +104,7 @@ void DiffTermItr::init(int perm, long nkeys, long nuniquekeys,
 }
 
 void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, const long value) {
+    initializeConstraints();
     this->perm = perm;
     this->nkeys = nkeys;
     this->nuniquekeys = nuniquekeys;

@@ -140,6 +140,7 @@ public:
 
     void init(long key, long first, long second, const char *values,
               uint8_t nbytes, long nelements, uint8_t posarray) {
+	initializeConstraints();
         noseccol = false;
         setKey(key);
         v1 = first;
