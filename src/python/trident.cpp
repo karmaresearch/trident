@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <Python.h>
@@ -36,7 +36,7 @@ namespace logging = boost::log;
 
 typedef struct {
     PyObject_HEAD
-    KB *kb;
+        KB *kb;
     Querier *q;
 } trident_Db;
 
@@ -67,6 +67,58 @@ static PyObject *db_exists(PyObject *self, PyObject *args) {
     Querier *q = ((trident_Db*)self)->q;
     const long nresults = q->getCardOnIndex(IDX_SPO, s, p, o);
     return PyBool_FromLong(nresults);
+}
+
+static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
+    long term;
+    PyObject *tuple;
+    const char *pattern;
+    if (!PyArg_ParseTuple(args, "lOs", &term, &tuple, &pattern))
+        return NULL;
+
+    if (strcmp(pattern, "?cxxcc") == 0) {
+        PyObject *op1 = PyTuple_GetItem(tuple, 0);
+        PyObject *op2 = PyTuple_GetItem(tuple, 1);
+        PyObject *oo2 = PyTuple_GetItem(tuple, 2);
+        long p1 = PyLong_AsLong(op1);
+        long p2 = PyLong_AsLong(op2);
+        long o2 = PyLong_AsLong(oo2);
+        Querier *q = ((trident_Db*)self)->q;
+        auto itr1 = q->getPermuted(IDX_SPO, term, p1, -1, true);
+        auto itr2 = q->getPermuted(IDX_OPS, o2, p2, -1, true);
+        //Merge join
+        long found = 0;
+        long v2 = -1;
+        while (itr1->hasNext()) {
+            itr1->next();
+            long v1 = itr1->getValue2();
+            while (v2 == -1 || v2 < v1) {
+                if (itr2->hasNext()) {
+                    itr2->next();
+                    v2 = itr2->getValue2();
+                } else {
+                    v2 = -1;
+                    break;
+                }
+            }
+            if (v2 != -1) {
+                if (v2 == v1) {
+                    found = 1;
+                    break;
+                }
+            } else {
+                //Second iterator is finished!
+                break;
+            }
+        }
+
+        q->releaseItr(itr1);
+        q->releaseItr(itr2);
+        return PyBool_FromLong(found);
+    } else {
+        cerr << "Not yet implemented" << endl;
+        return PyBool_FromLong(0);
+    }
 }
 
 static PyObject *db_counts(PyObject *self, PyObject *args) {
@@ -502,6 +554,7 @@ static PyMethodDef Db_methods[] = {
     {"count_o", db_counto, METH_VARARGS, "Get the number of triples with the same object" },
     {"count_p", db_countp, METH_VARARGS, "Get the number of triples with the same predicate" },
     {"exists", db_exists, METH_VARARGS, "Check if the given triple exists" },
+    {"existsQuery", db_existsQuery, METH_VARARGS, "Check if the given triple exists among the results of a given pattern" },
     {"n_terms", db_nterms, METH_VARARGS, "Get the number of terms in the graph" },
     {"n_triples", db_ntriples, METH_VARARGS, "Get the number of edges in the graph" },
     {"all", db_all, METH_VARARGS, "Get the list of all triples" },
@@ -561,7 +614,7 @@ static struct PyModuleDef tridentmodule = {
     "trident",   /* name of module */
     NULL,        /* module documentation, may be NULL */
     -1,          /* size of per-interpreter state of the module,
-                 or -1 if the module keeps state in global variables. */
+                    or -1 if the module keeps state in global variables. */
     NULL
 };
 
