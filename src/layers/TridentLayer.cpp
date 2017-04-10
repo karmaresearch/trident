@@ -43,11 +43,34 @@ bool TridentLayer::lookup(const std::string& text,
         resp = dict->getNumber(uri.c_str(), uri.size(), &longid);
     } else {
         resp = dict->getNumber(text.c_str(), text.size(), &longid);
-        if (!resp && type == Type::Date) {
-            //Repeat the process attaching the datatype
-            string text2 = "\"" + text + "\"^^<http://www.w3.org/2001/XMLSchema#date>";
-            resp = dict->getNumber(text2.c_str(), text2.size(), & longid);
-        }
+	if (! resp) {
+	    string tp = "";
+	    switch(type) {
+	    case ::Type::ID::String:
+		tp = "http://www.w3.org/2001/XMLSchema#string";
+		break;
+	    case ::Type::ID::Integer:
+		tp = "http://www.w3.org/2001/XMLSchema#integer";
+		break;
+	    case ::Type::ID::Decimal:
+		tp = "http://www.w3.org/2001/XMLSchema#decimal";
+		break;
+	    case ::Type::ID::Double:
+		tp = "http://www.w3.org/2001/XMLSchema#double";
+		break;
+	    case ::Type::ID::Boolean:
+		tp = "http://www.w3.org/2001/XMLSchema#boolean";
+		break;
+	    case ::Type::ID::Date:
+		tp = "http://www.w3.org/2001/XMLSchema#date";
+		break;
+	    default:
+		// TODO?
+		break;
+	    }
+	    string txt = "\"" + text + "\"^^<" + tp + ">";
+	    resp = dict->getNumber(txt.c_str(), txt.size(), &longid);
+	}
     }
     if (resp) {
         id = (uint64_t) longid;
