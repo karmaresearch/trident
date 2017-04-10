@@ -345,11 +345,34 @@ void SPARQLParser::parseRDFLiteral(std::string& value, Element::SubType& subType
         valueType = lexer.getTokenValue();
     } else if (token == SPARQLLexer::Type) {
         token = lexer.getNext();
-        if (token == SPARQLLexer::IRI) {
+	if (token == SPARQLLexer::Identifier) {
+	    string prefix = lexer.getTokenValue();
+            // prefix:suffix
+            SPARQLLexer::Token t = lexer.getNext();
+            if (t != SPARQLLexer::Colon) {
+                //There could be an hypen
+                if (lexer.getTokenValue() == "-") {
+                    //Read the remaining as prefix
+                    lexer.getNext();
+                    prefix = prefix + string("-") + lexer.getTokenValue();
+                }
+                if (lexer.getNext() != SPARQLLexer::Colon)
+                    throw ParserException("':' expected after '" + prefix + "'");
+            }
+
+            if (!prefixes.count(prefix))
+                throw ParserException("unknown prefix '" + prefix + "'");
+            if (lexer.getNext() != SPARQLLexer::Identifier)
+                throw ParserException("identifier expected after ':'");
+            subType = Element::CustomType;
+            valueType = prefixes[prefix] + lexer.getIRIValue();
+	    BOOST_LOG_TRIVIAL(error) << "Token: valueType = " << valueType << ", value = " << value;
+
+	} else if (token == SPARQLLexer::IRI) {
             subType = Element::CustomType;
             valueType = lexer.getIRIValue();
         } else {
-            throw ParserException("type URI expeted after '^^'");
+            throw ParserException("type URI expected after '^^'");
         }
     } else {
         lexer.unget(token);
