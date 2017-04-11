@@ -144,6 +144,9 @@ public:
     virtual std::unique_ptr<DBLayer::Scan> getScan(const DataOrder order,
             const Aggr_t aggr,
             Hint *hint) = 0;
+
+    virtual ~DBLayer() {
+    }
 };
 
 #endif
