@@ -1022,6 +1022,12 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
             }
         }
     }
+
+    // Apparently, dpTable has null entries at the end??? --Ceriel
+    while (! dpTable.empty() && dpTable.back() == NULL) {
+	dpTable.pop_back();
+    }
+
     // Extract the bestplan
     if ((dpTable.empty() || (!dpTable.back())) && subqueryPlans.size() == 0)
         return 0;
