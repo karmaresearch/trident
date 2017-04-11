@@ -1025,7 +1025,7 @@ SPARQLParser::Element SPARQLParser::parseBlankNode(PatternGroup & group, map<str
             return subject;
         } else if (token == SPARQLLexer::Identifier) {
             if (!lexer.isKeyword("filter"))
-                throw ParserException("'filter' expected");
+                throw ParserException("'filter' expected, not " + lexer.getTokenValue());
             parseFilter(group, localVars);
             continue;
         } else {
@@ -1137,10 +1137,23 @@ void SPARQLParser::parseGraphPattern(PatternGroup & group)
             lexer.unget(token);
             return;
         } else if (token == SPARQLLexer::Identifier) {
-            if (!lexer.isKeyword("filter"))
-                throw ParserException("'filter' expected");
-            parseFilter(group, localVars);
-            continue;
+	    if (lexer.isKeyword("optional")) {
+		lexer.getNext();
+		PatternGroup optionalGroup;
+		parseGroupGraphPattern(optionalGroup);
+		group.optional.push_back(optionalGroup);
+
+		//Remove a potential trailing .
+		if (lexer.hasNext(SPARQLLexer::Token::Dot)) {
+		    lexer.getNext();
+		}
+	    } else if (lexer.isKeyword("filter")) {
+		parseFilter(group, localVars);
+            } else if (lexer.isKeyword("bind")) {
+                parseAssignment(group);
+	    } else {
+                throw ParserException("Unexpected: " + lexer.getTokenValue());
+	    }
         } else {
             // Error while parsing, let our caller handle it
             lexer.unget(token);
