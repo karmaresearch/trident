@@ -769,7 +769,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     bool singletonNeeded = (!(query.nodes.size() + query.optional.size() + query.unions.size())) && query.tableFunctions.size();
 
     // Check if we could handle the query
-    if ((query.nodes.size() + query.optional.size() + query.unions.size() + query.tableFunctions.size() + singletonNeeded) > BitSet::maxWidth)
+    if ((query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() + query.tableFunctions.size() + singletonNeeded) > BitSet::maxWidth)
         return 0;
 
     //Is it a subselect?
@@ -792,7 +792,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     // Seed the DP table with scans
     vector<Problem*> dpTable;
-    dpTable.resize(query.nodes.size() + query.optional.size() + query.unions.size() + query.tableFunctions.size() + singletonNeeded);
+    dpTable.resize(query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() +  query.tableFunctions.size() + singletonNeeded);
     Problem* last = 0;
     unsigned id = 0;
     for (vector<QueryGraph::Node>::const_iterator iter = query.nodes.begin(), limit = query.nodes.end(); iter != limit; ++iter, ++id) {
@@ -820,6 +820,22 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
             dpTable[0] = p;
         last = p;
     }
+
+    for (unsigned i = 0; i < subqueryPlans.size(); ++i, ++id) {
+	Plan *subqueryPlan = subqueryPlans[i];
+	// Create new problem instance
+	Problem* p = problems.alloc();
+	p->next = 0;
+	p->plans = subqueryPlan;
+	p->relations = BitSet();
+	p->relations.set(id);
+        if (last)
+            last->next = p;
+        else
+            dpTable[0] = p;
+        last = p;
+    }
+
     unsigned functionIds = id;
     for (vector<QueryGraph::TableFunction>::const_iterator iter = query.tableFunctions.begin(), limit = query.tableFunctions.end(); iter != limit; ++iter, ++id) {
         Problem* p = buildTableFunction(*iter, id);
@@ -1029,42 +1045,9 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     }
 
     // Extract the bestplan
-    if ((dpTable.empty() || (!dpTable.back())) && subqueryPlans.size() == 0)
+    if (dpTable.empty())
         return 0;
-    Plan* plan = dpTable.size() > 0 ?  dpTable.back()->plans : NULL;
-    if (!plan && subqueryPlans.size() == 0)
-        return 0;
-
-    //Join the subqueries if any
-    if (subqueryPlans.size() > 0) {
-        //Plan is the best plan to join the main patterns
-        for (unsigned i = 0; i < subqueryPlans.size(); ++i) {
-            //Join the current plan with the ith subquery
-            Plan *subqueryPlan = subqueryPlans[i];
-
-            if (plan == NULL) {
-                plan = subqueryPlan;
-            } else {
-                Plan* p = plans.alloc();
-                p->op = Plan::HashJoin;
-                p->opArg = 0;
-
-                if (plan->cardinality < subqueryPlan->cardinality) {
-                    p->left = plan;
-                    p->right = subqueryPlan;
-                } else {
-                    p->left = subqueryPlan;
-                    p->right = plan;
-                }
-
-                p->next = 0;
-                if ((p->cardinality = p->left->cardinality * p->right->cardinality) < 1) p->cardinality = 1;
-                p->costs = p->left->costs + p->right->costs + Costs::hashJoin(p->left->cardinality, p->right->cardinality);
-                p->ordering = ~0u;
-                plan = p;
-            }
-        }
-    }
+    Plan* plan =  dpTable.back()->plans;
 
     // Add all remaining filters
     set<const QueryGraph::Filter*> appliedFilters;

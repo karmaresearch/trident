@@ -61,7 +61,7 @@ void HashJoin::BuildHashTable::run()
         // Compute the slots
         uint64_t leftKey = leftValue->value;
         uint64_t slot1 = hash1(leftKey, hashTableSize), slot2 = hash2(leftKey, hashTableSize);
-        BOOST_LOG_TRIVIAL(debug) << "leftKey = " << leftKey;
+        // BOOST_LOG_TRIVIAL(debug) << "leftKey = " << leftKey;
 
         // Scan if the entry already exists
         Entry* e = join.hashTable[slot1];

@@ -483,7 +483,7 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict, Different
         std::shared_ptr<QueryGraph> subquery(new QueryGraph());
         myself->transform(**itr, *subquery);
         output.subqueries.push_back(subquery);
-        if (output.subqueries[0]->knownEmpty()) {
+        if (subquery->knownEmpty()) {
             return false;
         }
     }

@@ -1177,7 +1177,7 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
 
             //The last token should be the RCurly
             if (lexer.getNext() != SPARQLLexer::RCurly) {
-                throw ParserException("'{' expected");
+                throw ParserException("'}' expected");
             }
             return;
 
@@ -1192,14 +1192,6 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
                 lexer.getNext();
             }
         } else if (token == SPARQLLexer::LCurly) {
-
-            //SPARQLLexer::Token nextToken = lexer.getNext();
-            //Check if it is a select
-            //if (lexer.isKeyword("select")) {
-            //Parse the subquery
-            //lexer.unget(nextToken);
-            //} else {
-            //lexer.unget(nextToken);
 
             // Parse the group
             PatternGroup newGroup;
@@ -1235,7 +1227,6 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
 
             if (token != SPARQLLexer::Dot)
                 lexer.unget(token);
-            //}
 
         } else if ((token == SPARQLLexer::IRI) ||
                    (token == SPARQLLexer::Variable) ||
@@ -1253,6 +1244,12 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
             } else if (token == SPARQLLexer::Identifier
                        && lexer.isKeyword("bind")) {
                 parseAssignment(group);
+            } else if (token == SPARQLLexer::Identifier
+                       && lexer.isKeyword("optional")) {
+		// Parser Optional
+		group.optional.push_back(PatternGroup());
+		PatternGroup& optionalGroup = group.optional.back();
+		parseGroupGraphPattern(optionalGroup);
             } else {
                 lexer.unget(token);
                 parseGraphPattern(group);
