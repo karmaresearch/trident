@@ -400,6 +400,9 @@ static bool isUnused(const QueryGraph::SubQuery& query, const QueryGraph::Node& 
         for (vector<QueryGraph::SubQuery>::const_iterator iter2 = (*iter).begin(), limit2 = (*iter).end(); iter2 != limit2; ++iter2)
             if (!isUnused(*iter2, node, val))
                 return false;
+    for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin(); itr != query.subqueries.end(); ++itr)
+	if (! isUnused((*itr)->getQuery(), node, val))
+	    return false;
     return true;
 }
 //---------------------------------------------------------------------------

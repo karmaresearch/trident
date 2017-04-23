@@ -130,6 +130,8 @@ private:
     std::map<std::string, unsigned> namedVariables;
     /// The total variable count
     unsigned variableCount;
+    /// The named variables of the parent, if present
+    std::map<std::string, unsigned> *namedParentVariables;
 
     /// The projection modifier
     ProjectionModifier projectionModifier;
@@ -211,6 +213,8 @@ public:
     explicit SPARQLParser(SPARQLLexer& lexer,
                           std::map<std::string, std::string> prefixes);
 
+    explicit SPARQLParser(SPARQLLexer& lexer,
+                          std::map<std::string, std::string> prefixes, std::map<std::string, unsigned> *pv, unsigned vc);
     /// Destructor
     ~SPARQLParser();
 

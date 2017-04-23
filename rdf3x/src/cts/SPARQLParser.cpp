@@ -113,13 +113,22 @@ SPARQLParser::Filter& SPARQLParser::Filter::operator=(const Filter& other)
 }
 //---------------------------------------------------------------------------
 SPARQLParser::SPARQLParser(SPARQLLexer& lexer)
-    : lexer(lexer), variableCount(0), projectionModifier(Modifier_None), limit(~0u)
+    : lexer(lexer), variableCount(0), namedParentVariables(NULL), projectionModifier(Modifier_None), limit(~0u)
       // Constructor
 {
 }
 SPARQLParser::SPARQLParser(SPARQLLexer& lexer,
                            std::map<std::string, std::string> prefixes) : SPARQLParser(lexer) {
     this->prefixes = prefixes;
+}
+
+SPARQLParser::SPARQLParser(SPARQLLexer& lexer, std::map<std::string, std::string> prefixes,
+	std::map<std::string, unsigned> *pv, unsigned nv) : SPARQLParser(lexer) {
+    this->prefixes = prefixes;
+    this->namedParentVariables = pv;
+    this->variableCount = nv;
+    // For now:
+    this->namedVariables = *pv;
 }
 //---------------------------------------------------------------------------
 SPARQLParser::~SPARQLParser()
@@ -130,9 +139,12 @@ SPARQLParser::~SPARQLParser()
 unsigned SPARQLParser::nameVariable(const string& name)
 // Lookup or create a named variable
 {
-    if (namedVariables.count(name))
+    if (namedVariables.count(name)) {
+	BOOST_LOG_TRIVIAL(debug) << "Found variable " << name << ", value = " << namedVariables[name];
         return namedVariables[name];
+    }
 
+    BOOST_LOG_TRIVIAL(debug) << "New variable " << name << ", value = " << variableCount;
     unsigned result = variableCount++;
     namedVariables[name] = result;
     return result;
@@ -1171,9 +1183,11 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
         if (lexer.isKeyword("select")) {
             lexer.unget(token);
 
-            SPARQLParser *newSubquery = new SPARQLParser(lexer, prefixes);
+            SPARQLParser *newSubquery = new SPARQLParser(lexer, prefixes, &namedVariables, variableCount);
             newSubquery->parse(true);
             group.subqueries.push_back(newSubquery);
+	    variableCount = newSubquery->variableCount;
+	    namedVariables = newSubquery->namedVariables;
 
             //The last token should be the RCurly
             if (lexer.getNext() != SPARQLLexer::RCurly) {
