@@ -33,6 +33,9 @@ bool TupleTableItr::same(const long l1, const long l2) const {
 }
 
 bool TupleTableItr::hasNext() {
+    if (table->getSizeRow() == 0) {
+	return counter == -1 ? ! table->isEmpty() : false;
+    }
     if (!hnc) {
         if (skipLast && counter != -1) {
             while (nextpos < table->getNRows() && same(counter, nextpos)) {
@@ -49,6 +52,9 @@ bool TupleTableItr::hasNext() {
 }
 
 void TupleTableItr::next() {
+    if (table->getSizeRow() == 0) {
+	counter++;
+    }
     counter = nextpos;
     hnc = false;
 }

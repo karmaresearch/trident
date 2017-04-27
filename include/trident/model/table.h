@@ -35,6 +35,7 @@ private:
     const size_t sizeRow;
     const std::vector<int> signature;
     std::vector<uint64_t> values;
+    bool empty;
 
     struct Sorter {
         const uint8_t nfields;
@@ -84,13 +85,17 @@ public:
         long size;
     };
 
-    TupleTable(std::vector<int> sig) : sizeRow(sig.size()), signature(sig) {
+    TupleTable(std::vector<int> sig) : sizeRow(sig.size()), signature(sig), empty(true) {
     }
 
-    TupleTable(int fields, std::vector<int> sig) : sizeRow(fields), signature(sig) {
+    TupleTable(int fields, std::vector<int> sig) : sizeRow(fields), signature(sig), empty(true) {
     }
 
-    TupleTable(int fields) : sizeRow(fields), signature() {
+    TupleTable(int fields) : sizeRow(fields), signature(), empty(true) {
+    }
+
+    bool isEmpty() const {
+	return empty;
     }
 
     size_t getSizeRow() const {
@@ -98,31 +103,42 @@ public:
     }
 
     size_t getNRows() const {
+	if (sizeRow == 0) {
+	    return empty ? 0 : 1;
+	}
         return values.size() / sizeRow;
     }
 
     void addRow(const uint64_t *row) {
+	empty = false;
         for (size_t i = 0; i < sizeRow; ++i) {
             values.push_back(row[i]);
         }
     }
 
     void addValue(const uint64_t v) {
+	empty = false;
+	assert(sizeRow != 0);
         values.push_back(v);
     }
 
     void addAll(TupleTable *t) {
         assert(t != NULL && t->sizeRow == sizeRow);
+	if (t->values.size() > 0) {
+	    empty = false;
+	}
         copy(t->values.begin(), t->values.end(), back_inserter(values));
     }
 
     void addRow(const uint64_t *row, const size_t srow) {
+	empty = false;
         for (size_t i = 0; i < srow; ++i) {
             values.push_back(row[i]);
         }
     }
 
     void addRow(const uint64_t *row, const int sizeProjection, int* projections) {
+	empty = false;
         for (int i = 0; i < sizeProjection; ++i) {
             values.push_back(row[projections[i]]);
         }
@@ -149,6 +165,7 @@ public:
     std::pair<std::shared_ptr<TupleTable>, std::shared_ptr<TupleTable>> getDenseSparseForBifocalSampling(TupleTable *t2);
 
     uint64_t getPosAtRow(const uint32_t row, const uint32_t column) const {
+	assert(sizeRow > 0);
         return values.at(row * sizeRow + column);
     }
 
