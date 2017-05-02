@@ -71,6 +71,8 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         aggrIndices = notAggrIndices = cacheIndices = 0;
         spo = sop = pos = pso = ops = osp = 0;
 
+	currentValue.clear();
+
         if (files[0]) {
             std::string pathFirstPerm = files[0]->getPath();
             pathRawData = pathFirstPerm + std::string("raw");
