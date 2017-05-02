@@ -409,6 +409,17 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             po::value<string>()->default_value(""),
             "Path to the file/dir that contains the triples to update");
 
+    po::options_description mine_options("Options for <mine>");
+    mine_options.add_options()("minSupport",
+            po::value<long>()->default_value(1000),
+            "Min support for the patterns to mine.");
+    mine_options.add_options()("minLen",
+            po::value<int>()->default_value(2),
+            "Min lengths of the patterns.");
+    mine_options.add_options()("maxLen",
+            po::value<int>()->default_value(10),
+            "Max lengths of the patterns.");
+
     po::options_description ana_options("Options for <analytics>");
     ana_options.add_options()("op",
             po::value<string>()->default_value(""),
@@ -427,7 +438,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             "Output directory to store the graph");
 
     po::options_description cmdline_options("Generic options");
-    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options);
+    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options);
     cmdline_options.add_options()("input,i", po::value<string>(),
             "The path of the KB directory. This parameter is REQUIRED.")(
                 "logLevel,l", po::value<logging::trivial::severity_level>(),
@@ -599,12 +610,21 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
     bool parsingOk;
 
     // Parse the query
-    std::fstream inFile;
-    inFile.open(queryFileName);//open the input file
-    std::stringstream strStream;
-    strStream << inFile.rdbuf();//read the file
+    string queryContent = "";
+    if (queryFileName == "") {
+        //Read it from STDIN
+        cout << "SPARQL Query:" << endl;
+        getline(cin, queryContent);
+        cout << "QUERY " << queryContent << endl;
+    } else {
+        std::fstream inFile;
+        inFile.open(queryFileName);//open the input file
+        std::stringstream strStream;
+        strStream << inFile.rdbuf();//read the file
+        queryContent = strStream.str();
+    }
 
-    SPARQLLexer lexer(strStream.str());
+    SPARQLLexer lexer(queryContent);
     SPARQLParser parser(lexer);
 
     boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
@@ -787,10 +807,11 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
     Analytics::run(kb, op, param1, param2);
 }
 
-void mineFrequentPatterns(string kbdir) {
+void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
     BOOST_LOG_TRIVIAL(info) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
+    miner.getFrequentPatterns(minLen, maxLen, minSupport);
 }
 
 bool checkMachineConstraints() {
@@ -976,7 +997,10 @@ int main(int argc, const char** argv) {
         launchAnalytics(kb, vm["op"].as<string>(), vm["oparg1"].as<string>(),
                 vm["oparg2"].as<string>());
     } else if (cmd == "mine")  {
-        mineFrequentPatterns(kbDir);
+        long minSupport = vm["minSupport"].as<long>();
+        int minLen = vm["minLen"].as<int>();
+        int maxLen = vm["maxLen"].as<int>();
+        mineFrequentPatterns(kbDir, minLen, maxLen, minSupport);
     } else if (cmd == "dump") {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
