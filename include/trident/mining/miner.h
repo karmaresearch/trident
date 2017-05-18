@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _MINER_H
@@ -35,39 +35,41 @@ using namespace std;
 typedef std::pair<uint32_t, uint32_t> PatternElement;
 
 class MyPatternContainer : public PatternContainer<PatternElement> {
-	private:
-		DictMgmt *dict;
-		std::vector<FPattern<PatternElement>> patterns;
+    private:
+        DictMgmt *dict;
+        std::vector<FPattern<PatternElement>> patterns;
+        const long ignid;
 
-	public:
-		MyPatternContainer(int minLen, DictMgmt *dict) :
-			PatternContainer(minLen),
-			dict(dict) {
-			}
+    public:
+        MyPatternContainer(int minLen, DictMgmt *dict, long ignid) :
+            PatternContainer(minLen),
+            dict(dict), ignid(ignid) {
+            }
 
-		string vector2string(const std::vector<PatternElement>&);
+        string vector2string(const std::vector<PatternElement>&);
 
-		void add(const FPattern<PatternElement> &);
+        void add(const FPattern<PatternElement> &);
 
-		void printOrderedBySupport();
+        void printOrderedBySupport();
 };
 
 class Miner {
-	private:
-		std::unique_ptr<KB> kb;
-		DictMgmt *dict;
+    private:
+        std::unique_ptr<KB> kb;
+        DictMgmt *dict;
+        long ignid;
 
-		PatternElement rootValue;
-		FPTree<PatternElement> tree;
+        PatternElement rootValue;
+        FPTree<PatternElement> tree;
 
-		void processPattern(std::vector<PatternElement>&);
+        void processPattern(std::vector<PatternElement>&);
 
-	public:
-		Miner(string kbDir, const int fptreeInternalBufferSize);
+    public:
+        Miner(string kbDir, const int fptreeInternalBufferSize);
 
-		void mine();
+        void mine();
 
-		void getFrequentPatterns(const int minLen, const int maxLen, const int minSupport);
+        void getFrequentPatterns(const int minLen, const int maxLen, const int minSupport);
 
 };
 

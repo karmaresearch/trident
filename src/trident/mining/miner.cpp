@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/mining/miner.h>
@@ -26,160 +26,195 @@
 #include <iostream>
 
 Miner::Miner(string kbDir, const int fptreeInternalBufferSize) :
-	rootValue(std::make_pair(-1, -1)), tree(rootValue, fptreeInternalBufferSize) {
-		KBConfig config;
-		kb = std::unique_ptr<KB>(new KB(kbDir.c_str(), true, false, true, config));
-		dict = kb->getDictMgmt();
-	}
+    rootValue(std::make_pair(-1, -1)), tree(rootValue, fptreeInternalBufferSize) {
+        KBConfig config;
+        kb = std::unique_ptr<KB>(new KB(kbDir.c_str(), true, false, true, config));
+        dict = kb->getDictMgmt();
+        this->ignid = kb->getNTerms();
+    }
 
 void Miner::processPattern(std::vector<PatternElement>& buffer) {
-	if (buffer.size() <= 2) {
-		//Ignore groups that are too small to create a pattern to
-		return;
-	}
-	tree.insert(buffer);
+    if (buffer.size() <= 2) {
+        //Ignore groups that are too small to create a pattern to
+        return;
+    }
+    tree.insert(buffer);
 }
 
 bool __sortBySupport(const FPattern<PatternElement> &el1,
-		const FPattern<PatternElement> &el2) {
-	if (el1.support != el2.support) {
-		return el1.support > el2.support;
-	} else {
-		return el1.patternElements.size() < el2.patternElements.size();
-	}
+        const FPattern<PatternElement> &el2) {
+    if (el1.support != el2.support) {
+        return el1.support > el2.support;
+    } else {
+        return el1.patternElements.size() < el2.patternElements.size();
+    }
 }
 
 struct Tripl {
-	long s, p, o;
-	long count;
+    long s, p, o;
+    long count;
 };
 
+bool cmpTripl(const Tripl& x, const Tripl& y) {
+    return x.s == y.s && x.p == y.p && x.o == y.o;
+}
+
 bool sortSPO(const Tripl &a, const Tripl &b) {
-	if (a.s != b.s) {
-		return a.s < b.s;
-	} else {
-		if (a.count != b.count) {
-			return a.count > b.count;
-		} else {
-			if (a.p != b.p) {
-				return a.p < b.p;
-			} else {
-				return a.o < b.o;
-			}
-		}
-	}
+    if (a.s != b.s) {
+        return a.s < b.s;
+    } else {
+        if (a.count != b.count) {
+            return a.count > b.count;
+        } else {
+            if (a.p != b.p) {
+                return a.p < b.p;
+            } else {
+                return a.o < b.o;
+            }
+        }
+    }
+}
+
+bool sortPOS(const Tripl &a, const Tripl &b) {
+    if (a.p != b.p) {
+        return a.p < b.p;
+    } else {
+        if (a.o != b.o) {
+            return a.o < b.o;
+        } else {
+            return a.s < b.s;
+        }
+    }
 }
 
 void Miner::mine() {
-	//Load a KB
-	Querier *q = kb->query();
+    //Load a KB
+    Querier *q = kb->query();
 
-	//First count the popularity of the rules
-	PairItr *itr = q->get(IDX_POS, -1, -1, -1);
+    //First count the popularity of the rules
+    PairItr *itr = q->get(IDX_POS, -1, -1, -1);
 
-	BOOST_LOG_TRIVIAL(info) << "Reading the input ...";
-	//Collect all pairs in main memory
-	std::vector<Tripl> triples;
-	while (itr->hasNext()) {
-		itr->next();
-		Tripl t;
-		t.s = itr->getValue2();
-		t.p = itr->getKey();
-		t.o = itr->getValue1();
-		triples.push_back(t);
-	}
-	q->releaseItr(itr);
-	//Release data structures
-	delete q;
+    BOOST_LOG_TRIVIAL(info) << "Reading the input ...";
+    //Collect all pairs in main memory
+    std::vector<Tripl> triples;
+    while (itr->hasNext()) {
+        itr->next();
+        Tripl t;
+        t.s = itr->getValue2();
+        t.p = itr->getKey();
+        t.o = itr->getValue1();
+        triples.push_back(t);
+        Tripl t1;
+        t1.s = t.s;
+        t1.p = t.p;
+        t1.o = ignid;
+        triples.push_back(t1);
+    }
+    q->releaseItr(itr);
+    //Release data structures
+    delete q;
 
-	//Now we can count the frequencies
-	BOOST_LOG_TRIVIAL(info) << "Counting the frequencies ...";
-	std::pair<uint64_t, uint64_t> prevPair = std::make_pair(0, 0);
-	long count = 0;
-	size_t prevIdx = 0;
-	size_t currentIdx = 0;
-	for (; currentIdx < triples.size(); ++currentIdx) {
-		Tripl el = triples[currentIdx];
-		if (el.p != prevPair.first || el.o != prevPair.second) {
-			//Add the count to all previous triples
-			for (size_t i = prevIdx; i < currentIdx; ++i) {
-				triples[i].count = count;
-			}
-			count = 0;
-			prevIdx = currentIdx;
-			prevPair = make_pair(el.p, el.o);
-		}
-		count++;
-	}
-	for (size_t i = prevIdx; i < currentIdx; ++i) {
-		triples[i].count = count;
-	}
+    //Sort and re-order and remove duplicates
+    std::sort(triples.begin(), triples.end(), sortPOS);
+    auto last = std::unique(triples.begin(), triples.end(), cmpTripl);
+    triples.erase(last, triples.end());
 
-	//Sort all the triples by SPO
-	BOOST_LOG_TRIVIAL(info) << "Sorting the triples by S,count ...";
-	sort(triples.begin(), triples.end(), sortSPO);
-	BOOST_LOG_TRIVIAL(info) << "Done.";
+    //Now we can count the frequencies
+    BOOST_LOG_TRIVIAL(info) << "Counting the frequencies ...";
+    std::pair<uint64_t, uint64_t> prevPair = std::make_pair(0, 0);
+    long count = 0;
+    size_t prevIdx = 0;
+    size_t currentIdx = 0;
+    for (; currentIdx < triples.size(); ++currentIdx) {
+        Tripl el = triples[currentIdx];
+        if (el.p != prevPair.first || el.o != prevPair.second) {
+            //Add the count to all previous triples
+            for (size_t i = prevIdx; i < currentIdx; ++i) {
+                triples[i].count = count;
+            }
+            count = 0;
+            prevIdx = currentIdx;
+            prevPair = make_pair(el.p, el.o);
+        }
+        count++;
+    }
+    for (size_t i = prevIdx; i < currentIdx; ++i) {
+        triples[i].count = count;
+    }
 
-	//Create a buffer of pairs
-	std::vector<PatternElement> buffer;
-	buffer.reserve(100);
+    //Sort all the triples by SPO
+    BOOST_LOG_TRIVIAL(info) << "Sorting the triples by S,count ...";
+    sort(triples.begin(), triples.end(), sortSPO);
+    BOOST_LOG_TRIVIAL(info) << "Done.";
 
-	//Scan the KB
-	long currentS = -1;
-	long counter = 0;
-	for (const auto &triple : triples) {
-		//BOOST_LOG_TRIVIAL(info) << triple.s << " " << triple.p << " " << triple.o << " " << triple.count;
-		if (triple.s != currentS) {
-			if (!buffer.empty()) {
-				processPattern(buffer);
-			}
-			currentS = triple.s;
-			buffer.clear();
-		}
-		buffer.push_back(make_pair(triple.p, triple.o));
-		counter++;
-		if (counter % 1000000 == 0) {
-			BOOST_LOG_TRIVIAL(info) << "Processed " << counter << " pairs";
-		}
-	}
+    //Create a buffer of pairs
+    std::vector<PatternElement> buffer;
+    buffer.reserve(100);
 
-	if (!buffer.empty()) {
-		processPattern(buffer);
-	}
+    //Scan the KB
+    long currentS = -1;
+    long counter = 0;
+    for (const auto &triple : triples) {
+        //BOOST_LOG_TRIVIAL(info) << triple.s << " " << triple.p << " " << triple.o << " " << triple.count;
+        if (triple.s != currentS) {
+            if (!buffer.empty()) {
+                processPattern(buffer);
+            }
+            currentS = triple.s;
+            buffer.clear();
+        }
+        buffer.push_back(make_pair(triple.p, triple.o));
+        counter++;
+        if (counter % 1000000 == 0) {
+            BOOST_LOG_TRIVIAL(info) << "Processed " << counter << " pairs";
+        }
+    }
+
+    if (!buffer.empty()) {
+        processPattern(buffer);
+    }
 }
 
 void Miner::getFrequentPatterns(const int minLen, const int maxLen, const int minSupport) {
-	MyPatternContainer container(minLen, dict);
-	tree.getFreqPatterns(container, maxLen, minSupport);
-	container.printOrderedBySupport();
+    MyPatternContainer container(minLen, dict, this->ignid);
+    tree.getFreqPatterns(container, maxLen, minSupport);
+    container.printOrderedBySupport();
 }
 
 string MyPatternContainer::vector2string(const std::vector<PatternElement> &elements) {
-	string out = "[";
-	char textbuffer[MAX_TERM_SIZE];
+    string out = "[";
+    char textbuffer[MAX_TERM_SIZE];
 
-	for (const auto &el : elements) {
-		dict->getText(el.first, textbuffer);
-		out += "(" + string(textbuffer);
-		dict->getText(el.second, textbuffer);
-		out += "," + string(textbuffer) + ") ";
-	}
-	out = out.substr(0, out.size() - 1);
-	out += "]";
-	return out;
+    for (const auto &el : elements) {
+        if (el.first != this->ignid) {
+            dict->getText(el.first, textbuffer);
+        } else {
+            strcpy(textbuffer, "IGNORED");
+        }
+        out += "(" + string(textbuffer);
+        if (el.second != this->ignid) {
+            dict->getText(el.second, textbuffer);
+        } else {
+            strcpy(textbuffer, "IGNORED");
+        }
+        out += "," + string(textbuffer) + ") ";
+    }
+    out = out.substr(0, out.size() - 1);
+    out += "]";
+    return out;
 }
 
 void MyPatternContainer::add(const FPattern<PatternElement> &pattern) {
-	if (pattern.patternElements.size() >= minLen)
-		patterns.push_back(pattern);
+    if (pattern.patternElements.size() >= minLen)
+        patterns.push_back(pattern);
 }
 
 void MyPatternContainer::printOrderedBySupport() {
-	std::sort(patterns.begin(), patterns.end(), __sortBySupport);
-	for (const auto &pattern : patterns) {
-		if (pattern.patternElements.size() >= minLen) {
-			string spatterns = vector2string(pattern.patternElements);
-			cout << pattern.support << " " << spatterns <<  endl;
-		}
-	}
+    std::sort(patterns.begin(), patterns.end(), __sortBySupport);
+    for (const auto &pattern : patterns) {
+        if (pattern.patternElements.size() >= minLen) {
+            string spatterns = vector2string(pattern.patternElements);
+            cout << pattern.support << " " << spatterns <<  endl;
+        }
+    }
 }
