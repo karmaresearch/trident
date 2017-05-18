@@ -223,6 +223,10 @@ public:
 
     uint64_t getCardinality();
 
+    uint64_t getNTerms() {
+        return kb.getNTerms();
+    }
+
     std::unique_ptr<DBLayer::Scan> getScan(const DBLayer::DataOrder order,
                                            const DBLayer::Aggr_t,
                                            Hint *hint);

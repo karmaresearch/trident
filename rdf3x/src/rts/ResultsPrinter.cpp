@@ -32,158 +32,177 @@ ResultsPrinter::ResultsPrinter(Runtime& runtime, Operator* input, const vector<R
 }
 //---------------------------------------------------------------------------
 ResultsPrinter::~ResultsPrinter()
-// Destructor
+    // Destructor
 {
     delete input;
 }
 //---------------------------------------------------------------------------
 namespace {
-//---------------------------------------------------------------------------
-void CacheEntry::printValue(ostream &out, bool escape) const
-// Print the raw value
-{
-    if (escape) {
-        for (const char* iter = start, *limit = stop; iter != limit; ++iter) {
-            char c = *iter;
-            if ((c == ' ') || (c == '\n') || (c == '\\'))
-                out << '\\';
-            out << c;
+    //---------------------------------------------------------------------------
+    void CacheEntry::printValue(ostream &out, bool escape) const
+        // Print the raw value
+    {
+        if (escape) {
+            for (const char* iter = start, *limit = stop; iter != limit; ++iter) {
+                char c = *iter;
+                if ((c == ' ') || (c == '\n') || (c == '\\'))
+                    out << '\\';
+                out << c;
+            }
+        } else {
+            for (const char* iter = start, *limit = stop; iter != limit; ++iter)
+                out << *iter;
         }
-    } else {
-        for (const char* iter = start, *limit = stop; iter != limit; ++iter)
-            out << *iter;
     }
-}
-//---------------------------------------------------------------------------
-void CacheEntry::print(ostream &out, const map<uint64_t, CacheEntry>& stringCache, bool escape) const
-// Print it
-{
-    switch (type) {
-    case Type::URI:
-        out << '<';
-        printValue(out, escape);
-        out << '>';
-        break;
-    case Type::Literal:
-        out << '"';
-        printValue(out, escape);
-        out << '"';
-        break;
-    case Type::CustomLanguage:
-        out << '"';
-        printValue(out, escape);
-        out << "\"@";
-        (*stringCache.find(subType)).second.printValue(out, escape);
-        break;
-    case Type::CustomType:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<";
-        (*stringCache.find(subType)).second.printValue(out, escape);
-        out << ">";
-        break;
-    case Type::String:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<http://www.w3.org/2001/XMLSchema#string>";
-        break;
-    case Type::Integer:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<http://www.w3.org/2001/XMLSchema#integer>";
-        break;
-    case Type::Decimal:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<http://www.w3.org/2001/XMLSchema#decimal>";
-        break;
-    case Type::Double:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<http://www.w3.org/2001/XMLSchema#double>";
-        break;
-    case Type::Boolean:
-        out << '"';
-        printValue(out, escape);
-        out << "\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
-        break;
-    case Type::Date:
-        out << '"';
-        printValue(out, escape);
-        out << '"';
-        break;
+    //---------------------------------------------------------------------------
+    void CacheEntry::print(ostream &out, const map<uint64_t, CacheEntry>& stringCache, bool escape) const
+        // Print it
+    {
+        switch (type) {
+            case Type::URI:
+                out << '<';
+                printValue(out, escape);
+                out << '>';
+                break;
+            case Type::Literal:
+                out << '"';
+                printValue(out, escape);
+                out << '"';
+                break;
+            case Type::CustomLanguage:
+                out << '"';
+                printValue(out, escape);
+                out << "\"@";
+                (*stringCache.find(subType)).second.printValue(out, escape);
+                break;
+            case Type::CustomType:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<";
+                (*stringCache.find(subType)).second.printValue(out, escape);
+                out << ">";
+                break;
+            case Type::String:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<http://www.w3.org/2001/XMLSchema#string>";
+                break;
+            case Type::Integer:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<http://www.w3.org/2001/XMLSchema#integer>";
+                break;
+            case Type::Decimal:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<http://www.w3.org/2001/XMLSchema#decimal>";
+                break;
+            case Type::Double:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<http://www.w3.org/2001/XMLSchema#double>";
+                break;
+            case Type::Boolean:
+                out << '"';
+                printValue(out, escape);
+                out << "\"^^<http://www.w3.org/2001/XMLSchema#boolean>";
+                break;
+            case Type::Date:
+                out << '"';
+                printValue(out, escape);
+                out << '"';
+                break;
+        }
     }
-}
-//---------------------------------------------------------------------------
-void CacheEntry::print(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
-    print(cout, stringCache, escape);
-}
-//---------------------------------------------------------------------------
-string CacheEntry::tostring(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
-    ostringstream os;
-    print(os, stringCache, escape);
-    return os.str();
-}
-//---------------------------------------------------------------------------
-static void printResult(map<uint64_t, CacheEntry>& stringCache, vector<uint64_t>::const_iterator start, vector<uint64_t>::const_iterator stop, bool escape)
-// Print a result row
-{
-    if (start == stop) return;
-    if (!~(*start))
-        cout << "NULL";
-    else
-        stringCache[*start].print(stringCache, escape);
-    for (++start; start != stop; ++start) {
-        cout << '\t';
+    //---------------------------------------------------------------------------
+    void CacheEntry::print(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
+        print(cout, stringCache, escape);
+    }
+    //---------------------------------------------------------------------------
+    string CacheEntry::tostring(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
+        ostringstream os;
+        print(os, stringCache, escape);
+        return os.str();
+    }
+    //---------------------------------------------------------------------------
+    static void printResult(map<uint64_t, CacheEntry>& stringCache, vector<uint64_t>::const_iterator start, vector<uint64_t>::const_iterator stop, bool escape)
+        // Print a result row
+    {
+        if (start == stop) return;
         if (!~(*start))
             cout << "NULL";
         else
             stringCache[*start].print(stringCache, escape);
+        for (++start; start != stop; ++start) {
+            cout << '\t';
+            if (!~(*start))
+                cout << "NULL";
+            else
+                stringCache[*start].print(stringCache, escape);
+        }
     }
-}
 };
 //---------------------------------------------------------------------------
-void formatJSONRow(map<uint64_t, CacheEntry> &stringCache,
-                   vector<uint64_t>::const_iterator start,
-                   vector<uint64_t>::const_iterator stop,
-                   boost::property_tree::ptree *output) {
+void formatJSONRow(const std::vector<std::string> &columns,
+        map<uint64_t, CacheEntry> &stringCache,
+        vector<uint64_t>::const_iterator start,
+        vector<uint64_t>::const_iterator stop,
+        boost::property_tree::ptree *output) {
     if (start == stop) return;
     boost::property_tree::ptree row;
     if (start != stop) {
+        int idx = 0;
         boost::property_tree::ptree fbinding;
-        fbinding.put("type", "literal");
-        if (!~(*start))
+        if (!~(*start)) {
+            fbinding.put("type", "literal");
             fbinding.put("value", "NULL");
-        else
-            fbinding.put("value", stringCache[*start].tostring(stringCache, false));
-        row.push_back(std::make_pair("", fbinding));
+        } else {
+            std::string el = stringCache[*start].tostring(stringCache, false);
+            if (el[0] == '<' && el.size() > 2) {
+                fbinding.put("type", "uri");
+                fbinding.put("value", el.substr(1, el.size() - 2));
+            } else {
+                fbinding.put("type", "literal");
+                fbinding.put("value", el);
+            }
+        }
+        row.push_back(std::make_pair(columns[idx++], fbinding));
 
         for (++start; start != stop; ++start) {
             boost::property_tree::ptree binding;
-            binding.put("type", "literal");
-            if (!~(*start))
+            if (!~(*start)) {
+                binding.put("type", "literal");
                 binding.put("value", "NULL");
-            else
-                binding.put("value", stringCache[*start].tostring(stringCache, false));
-            row.push_back(std::make_pair("", binding));
+            } else {
+                std::string el = stringCache[*start].tostring(stringCache, false);
+                if (el[0] == '<' && el.size() > 2) {
+                    binding.put("type", "uri");
+                    binding.put("value", el.substr(1, el.size() - 2));
+                } else {
+                    binding.put("type", "literal");
+                    binding.put("value", el);
+                }
+            }
+            row.push_back(std::make_pair(columns[idx++], binding));
         }
     }
     output->push_back(std::make_pair("", row));
 }
 //---------------------------------------------------------------------------
-void ResultsPrinter::formatJSON(const int ncolumns,
-                vector<uint64_t> &results,
-                map<uint64_t, CacheEntry> &stringCache,
-                ResultsPrinter::DuplicateHandling duplicateHandling,
-                boost::property_tree::ptree *output) {
+void ResultsPrinter::formatJSON(const std::vector<string> &columns,
+        vector<uint64_t> &results,
+        map<uint64_t, CacheEntry> &stringCache,
+        ResultsPrinter::DuplicateHandling duplicateHandling,
+        boost::property_tree::ptree *output) {
+    const int ncolumns = columns.size();
     if (duplicateHandling == ResultsPrinter::ExpandDuplicates) {
         for (vector<uint64_t>::const_iterator iter = results.begin(),
                 limit = results.end(); iter != limit;) {
             uint64_t count = *iter;
             ++iter;
             for (uint64_t index = 0; index < count; index++) {
-		nrows++;
-                formatJSONRow(stringCache, iter, iter + ncolumns, output);
+                nrows++;
+                formatJSONRow(columns, stringCache, iter, iter + ncolumns, output);
             }
             iter += ncolumns;
         }
@@ -193,15 +212,15 @@ void ResultsPrinter::formatJSON(const int ncolumns,
                 limit = results.end(); iter != limit;) {
             //uint64_t count = *iter;
             ++iter;
-		nrows++;
-            formatJSONRow(stringCache, iter, iter + ncolumns, output);
+            nrows++;
+            formatJSONRow(columns, stringCache, iter, iter + ncolumns, output);
             iter += ncolumns;
         }
     }
 }
 //---------------------------------------------------------------------------
 uint64_t ResultsPrinter::first()
-// Produce the first tuple
+    // Produce the first tuple
 {
     observedOutputCardinality = 1;
 
@@ -247,7 +266,7 @@ uint64_t ResultsPrinter::first()
     // Lookup the strings
     set<unsigned> subTypes;
     TemporaryDictionary* tempDict = runtime.hasTemporaryDictionary() ?
-                                    (&runtime.getTemporaryDictionary()) : 0;
+        (&runtime.getTemporaryDictionary()) : 0;
     //DifferentialIndex* diffIndex = runtime.hasDifferentialIndex() ? (&runtime.getDifferentialIndex()) : 0;
     QueryDict *dictQuery = runtime.getQueryDict();
     if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
@@ -314,8 +333,8 @@ uint64_t ResultsPrinter::first()
 
     if (jsonoutput) {
         //Format the output in JSON format
-        formatJSON(output.size(), results, stringCache, duplicateHandling,
-                   jsonoutput);
+        formatJSON(this->jsonvars, results, stringCache, duplicateHandling,
+                jsonoutput);
     }
 
     // Skip printing the results?
@@ -355,13 +374,13 @@ uint64_t ResultsPrinter::first()
 }
 //---------------------------------------------------------------------------
 uint64_t ResultsPrinter::next()
-// Produce the next tuple
+    // Produce the next tuple
 {
     return false;
 }
 //---------------------------------------------------------------------------
 void ResultsPrinter::print(PlanPrinter& out)
-// Print the operator tree. Debugging only.
+    // Print the operator tree. Debugging only.
 {
     out.beginOperator("ResultsPrinter", expectedOutputCardinality, observedOutputCardinality);
     out.addMaterializationAnnotation(output);
@@ -370,13 +389,13 @@ void ResultsPrinter::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 void ResultsPrinter::addMergeHint(Register* /*reg1*/, Register* /*reg2*/)
-// Add a merge join hint
+    // Add a merge join hint
 {
     // Do not propagate as we break the pipeline
 }
 //---------------------------------------------------------------------------
 void ResultsPrinter::getAsyncInputCandidates(Scheduler& scheduler)
-// Register parts of the tree that can be executed asynchronous
+    // Register parts of the tree that can be executed asynchronous
 {
     input->getAsyncInputCandidates(scheduler);
 }

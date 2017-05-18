@@ -59,6 +59,9 @@ IF (${sparsehash} STREQUAL "sparsehash-NOTFOUND")
     include_directories(${CMAKE_BINARY_DIR}/kognac/external/sparsehash/src/)
 ENDIF()
 
+#CURL
+find_library(curl curl)
+
 #LZ4
 find_library(lz4 lz4)
 find_path (lz4h lz4.h)
@@ -168,6 +171,6 @@ if (CMAKE_THREAD_LIBS_INIT)
 endif()
 
 #Create both a library and the executable program
-TARGET_LINK_LIBRARIES(trident kognac lz4 tbb snap ${rt} ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(trident curl kognac lz4 tbb snap ${rt} ${Boost_LIBRARIES})
 TARGET_LINK_LIBRARIES(tridentp trident ${PY3_LIBRARIES})
 TARGET_LINK_LIBRARIES(trident_exec trident)

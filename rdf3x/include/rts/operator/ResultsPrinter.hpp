@@ -75,8 +75,9 @@ private:
     uint64_t nrows;
     //Produce JSON output
     boost::property_tree::ptree *jsonoutput;
+    std::vector<std::string> jsonvars;
 
-    void formatJSON(const int ncolumns,
+    void formatJSON(const std::vector<std::string> &columns,
                 std::vector<uint64_t> &results,
                 std::map<uint64_t, CacheEntry> &stringCache,
                 ResultsPrinter::DuplicateHandling duplicateHandling,
@@ -101,8 +102,10 @@ public:
         silent = flag;
     }
 
-    void setJSONOutput(boost::property_tree::ptree *jsonoutput) {
+    void setJSONOutput(boost::property_tree::ptree *jsonoutput,
+            const std::vector<std::string> &jsonvars) {
         this->jsonoutput = jsonoutput;
+        this->jsonvars = jsonvars;
     }
 
     /// Produce the first tuple

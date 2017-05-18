@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <meta name="author" content="Jacopo Urbani">
+    <meta name="description" content="Trident">
+    <link href="main.css" rel="stylesheet" type="text/css">
+    <link href='yasgui/yasqe.min.css' rel='stylesheet' type='text/css'>
+    <link href='yasgui/yasr.min.css' rel='stylesheet' type='text/css'>
+
+    <script src='yasgui/yasqe.bundled.min.js' type="text/javascript">
+</script>
+    <script src='yasgui/yasr.bundled.min.js' type="text/javascript">
+</script>
+
+    <title>Trident Web Interface</title>
+</head>
+
+<body>
+    <div id="wrapper">
+        <div id="header" class="block">
+            <h1>Trident Web Interface</h1>
+        </div>
+
+
+        <div id="yasqe">
+        </div>
+
+
+        <div id="yasr">
+        </div>
+
+        <script type="text/javascript">
+var yasqe = YASQE(document.getElementById("yasqe"), {
+        sparql: {
+                showQueryButton: true,
+                endpoint: 'http://localhost:WEB_PORT/sparql'            
+        }
+        });
+        yasqe.addPrefixes({"owl": "http://www.w3.org/2002/07/owl#" });
+        var yasr = YASR(document.getElementById("yasr"), {
+        getUsedPrefixes: yasqe.getPrefixesFromQuery
+        });
+
+        yasqe.options.sparql.callbacks.complete = yasr.setResponse;
+
+</script>
+    </div>
+</body>
+</html>

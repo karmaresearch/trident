@@ -31,6 +31,7 @@
 #include <trident/binarytables/storagestrat.h>
 #include <trident/mining/miner.h>
 #include <trident/tests/common.h>
+#include <trident/server/server.h>
 
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
@@ -135,6 +136,7 @@ void printHelp(const char *programName, po::options_description &desc) {
     cout << "analytics\t\t perform analytical operations on the graph." << endl;
     cout << "info\t\tprint some information about the KB." << endl << endl;
     cout << "dump\t\tdump the graph on files." << endl << endl;
+    cout << "server\t\tstart a server." << endl << endl;
     cout << desc << endl;
 }
 
@@ -163,6 +165,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
             && cmd != "rm"
             && cmd != "analytics"
             && cmd != "mine"
+            && cmd != "server"
             && cmd != "dump") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
@@ -409,6 +412,12 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             po::value<string>()->default_value(""),
             "Path to the file/dir that contains the triples to update");
 
+    po::options_description server_options("Options for <server>");
+    server_options.add_options()("port",
+            po::value<int>()->default_value(8080),
+            "Port to listen to.");
+
+
     po::options_description mine_options("Options for <mine>");
     mine_options.add_options()("minSupport",
             po::value<long>()->default_value(1000),
@@ -438,7 +447,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             "Output directory to store the graph");
 
     po::options_description cmdline_options("Generic options");
-    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options);
+    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options);
     cmdline_options.add_options()("input,i", po::value<string>(),
             "The path of the KB directory. This parameter is REQUIRED.")(
                 "logLevel,l", po::value<logging::trivial::severity_level>(),
@@ -778,6 +787,16 @@ void printInfo(KB &kb) {
     }
 }
 
+void startServer(KB &kb, int port) {
+    fs::path full_path( fs::initial_path<fs::path>());
+    std::unique_ptr<TridentServer> webint;
+    webint = std::unique_ptr<TridentServer>(
+            new TridentServer(kb, full_path.string() + "/../webinterface"));
+    webint->start("0.0.0.0", to_string(port));
+    BOOST_LOG_TRIVIAL(info) << "Server is launched at 0.0.0.0:" << to_string(port);
+    webint->join();
+}
+
 void printStats(KB &kb, Querier *q) {
     BOOST_LOG_TRIVIAL(debug) << "Max mem (MB) " << Utils::get_max_mem();
     BOOST_LOG_TRIVIAL(debug) << "# Read Index Blocks = " << kb.getStats().getNReadIndexBlocks();
@@ -1005,6 +1024,10 @@ int main(int argc, const char** argv) {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         dump(&kb, vm["output"].as<string>());
+    } else if (cmd == "server") {
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        startServer(kb, vm["port"].as<int>());
     }
 
     //Print other stats
