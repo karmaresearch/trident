@@ -12,6 +12,7 @@ liblz4-dev
 libtbb-dev
 libsparsehash-dev
 python3-dev
+libcurl-dev
 cmake
 
 Then, clone Trident (if you have not already done so):
@@ -89,9 +90,13 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 
 Trident requires that the Boost libraries are compiled with multi-threading
 support and should be available in accessable locations. Trident also requires
-Intel's Thread Building Block libraries. Trident uses other libraries (e.g.
-Google's sparsehash library, LZ4, etc.), but if these other libraries are not
-available then CMake will (or should) automatically download and compile them.
+Intel's Thread Building Block libraries and libcurl. These three libraries will
+not be installed by the Trident compilation routines, so you must be sure they
+are already installed.
+
+Trident uses other libraries (e.g. Google's sparsehash library, LZ4, etc.),
+but if these other libraries are not available then CMake will (or should)
+automatically download and compile them.
 
 Trident heavily relies on KOGNAC (an advanced compression library) to encode
 the knowledge graph and for various other routines. KOGNAC is available at <a

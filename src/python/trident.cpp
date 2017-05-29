@@ -317,6 +317,61 @@ static PyObject *db_listo(PyObject *self, PyObject *args) {
     return obj;
 }
 
+static PyObject *db_degree(PyObject *self, PyObject *args) {
+    PyObject *obj = PyList_New(0);
+    KB *kb = ((trident_Db*)self)->kb;
+    TreeItr *itr = kb->getItrTerms();
+    TermCoordinates coord;
+    while (itr->hasNext()) {
+        long key = itr->next(&coord);
+        long inels = coord.getNElements(IDX_SOP);
+        long outels = coord.getNElements(IDX_OSP);
+        PyObject *t = PyTuple_New(2);
+        PyTuple_SetItem(t, 0, PyLong_FromLong(key));
+        PyTuple_SetItem(t, 1, PyLong_FromLong(inels + outels));
+        PyList_Append(obj, t);
+        Py_DECREF(t);
+    }
+    delete itr;
+    return obj;
+}
+
+static PyObject *db_indegree(PyObject *self, PyObject *args) {
+    PyObject *obj = PyList_New(0);
+    KB *kb = ((trident_Db*)self)->kb;
+    TreeItr *itr = kb->getItrTerms();
+    TermCoordinates coord;
+    while (itr->hasNext()) {
+        long key = itr->next(&coord);
+        long inels = coord.getNElements(IDX_SOP);
+        PyObject *t = PyTuple_New(2);
+        PyTuple_SetItem(t, 0, PyLong_FromLong(key));
+        PyTuple_SetItem(t, 1, PyLong_FromLong(inels));
+        PyList_Append(obj, t);
+        Py_DECREF(t);
+    }
+    delete itr;
+    return obj;
+}
+
+static PyObject *db_outdegree(PyObject *self, PyObject *args) {
+    PyObject *obj = PyList_New(0);
+    KB *kb = ((trident_Db*)self)->kb;
+    TreeItr *itr = kb->getItrTerms();
+    TermCoordinates coord;
+    while (itr->hasNext()) {
+        long key = itr->next(&coord);
+        long outels = coord.getNElements(IDX_OSP);
+        PyObject *t = PyTuple_New(2);
+        PyTuple_SetItem(t, 0, PyLong_FromLong(key));
+        PyTuple_SetItem(t, 1, PyLong_FromLong(outels));
+        PyList_Append(obj, t);
+        Py_DECREF(t);
+    }
+    delete itr;
+    return obj;
+}
+
 static PyObject *db_all(PyObject *self, PyObject *args) {
     int text = 0;
     if (!PyArg_ParseTuple(args, "|b", &text))
@@ -561,6 +616,9 @@ static PyMethodDef Db_methods[] = {
     {"all_s", db_lists, METH_VARARGS, "Get the list of all subjects" },
     {"all_p", db_listp, METH_VARARGS, "Get the list of all predicates" },
     {"all_o", db_listo, METH_VARARGS, "Get the list of all objects" },
+    {"degree", db_degree, METH_VARARGS, "Get the list of all nodes with their degrees" },
+    {"indegree", db_indegree, METH_VARARGS, "Get the list of all nodes with their indegrees" },
+    {"outdegree", db_outdegree, METH_VARARGS, "Get the list of all nodes with their outdegrees" },
     {"lookup_id", trident_lookup_id, METH_VARARGS, "Lookup for the IDs of terms" },
     {"lookup_str", trident_lookup_str, METH_VARARGS, "Lookup for the textual term given the ID" },
     {"search_id", trident_search_id, METH_VARARGS, "Search for the IDs of terms" },
