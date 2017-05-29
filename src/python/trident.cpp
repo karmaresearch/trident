@@ -324,8 +324,22 @@ static PyObject *db_degree(PyObject *self, PyObject *args) {
     TermCoordinates coord;
     while (itr->hasNext()) {
         long key = itr->next(&coord);
-        long inels = coord.getNElements(IDX_SOP);
-        long outels = coord.getNElements(IDX_OSP);
+        long inels = 0;
+        long outels = 0;
+        if (coord.exists(IDX_SOP)) {
+            inels = coord.getNElements(IDX_SOP);
+        } else {
+            if (coord.exists(IDX_SPO)) {
+                inels = coord.getNElements(IDX_SPO);
+            }
+        }
+        if (coord.exists(IDX_OPS)) {
+            outels = coord.getNElements(IDX_OPS);
+        } else {
+            if (coord.exists(IDX_OSP)) {
+                outels = coord.getNElements(IDX_OSP);
+            }
+        }
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(key));
         PyTuple_SetItem(t, 1, PyLong_FromLong(inels + outels));
@@ -343,7 +357,14 @@ static PyObject *db_indegree(PyObject *self, PyObject *args) {
     TermCoordinates coord;
     while (itr->hasNext()) {
         long key = itr->next(&coord);
-        long inels = coord.getNElements(IDX_SOP);
+        long inels = 0;
+        if (coord.exists(IDX_OSP)) {
+            inels = coord.getNElements(IDX_OSP);
+        } else {
+            if (coord.exists(IDX_OPS)) {
+                inels = coord.getNElements(IDX_OPS);
+            }
+        }
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(key));
         PyTuple_SetItem(t, 1, PyLong_FromLong(inels));
@@ -361,7 +382,14 @@ static PyObject *db_outdegree(PyObject *self, PyObject *args) {
     TermCoordinates coord;
     while (itr->hasNext()) {
         long key = itr->next(&coord);
-        long outels = coord.getNElements(IDX_OSP);
+        long outels = 0;
+        if (coord.exists(IDX_SOP)) {
+            outels = coord.getNElements(IDX_SOP);
+        } else {
+            if (coord.exists(IDX_SPO)) {
+                outels = coord.getNElements(IDX_SPO);
+            }
+        }
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(key));
         PyTuple_SetItem(t, 1, PyLong_FromLong(outels));
