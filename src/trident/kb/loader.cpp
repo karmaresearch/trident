@@ -1590,7 +1590,6 @@ void Loader::load(ParamsLoad p) {
                 p.dictDir,
                 permDirs + 3, //Store the output in the SOP directory
                 1,
-                //p.createIndicesInBlocks ? 1 : nperms,
                 signaturePerm,
                 fileNameDictionaries[0],
                 p.maxReadingThreads,
@@ -1604,18 +1603,12 @@ void Loader::load(ParamsLoad p) {
                         p.parallelThreads, p.maxReadingThreads, false, NULL, false,
                         p.graphTransformation != "");
                 //Compress it
-                //if (p.createIndicesInBlocks) {
                 BOOST_LOG_TRIVIAL(debug) << "For now I create only one permutation";
                 int tmpsig = 0;
                 Compressor::addPermutation(IDX_SPO, tmpsig);
-                comp.compress(permDirs, 1, tmpsig, fileNameDictionaries,
+                comp.compress(p.graphTransformation != "" ? permDirs + 3 : permDirs, 1, tmpsig, fileNameDictionaries,
                         p.dictionaries, p.parallelThreads, p.maxReadingThreads,
                         p.graphTransformation != "");
-                //} else {
-                //    comp.compress(permDirs, nperms, signaturePerm, fileNameDictionaries,
-                //            p.dictionaries, p.parallelThreads, p.maxReadingThreads,
-                //            p.graphTransformation != "");
-                //}
                 totalCount = comp.getTotalCount();
             } else if (p.dictMethod == DICT_SMART) {
                 throw 10;
@@ -1810,7 +1803,7 @@ void Loader::loadKB(KB &kb,
     }
     if (graphTransformation == "undirected") {
         BOOST_LOG_TRIVIAL(debug) << "Transforming the graph in 'undirected'";
-        string input = permDirs[0];
+        string input = permDirs[3];
         string output = input + "_tmp";
         fs::create_directories(output);
         std::vector<string> files = Utils::getFiles(input);
@@ -1833,7 +1826,7 @@ void Loader::loadKB(KB &kb,
             }
         }
         fs::remove_all(input);
-        fs::rename(fs::path(output), fs::path(input));
+        fs::rename(fs::path(output), input);
         BOOST_LOG_TRIVIAL(debug) << "End transformation";
         kb.setGraphType(GraphType::UNDIRECTED);
     }
