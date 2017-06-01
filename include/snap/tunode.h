@@ -37,11 +37,12 @@ class TUNode {
             return v;
         }
 
-        /// Returns degree of the current node, the sum of in-degree and out-degree.
+        /// Returns degree of the current node, since the in-degree and out-degree are equal, I just pick one
         long GetDeg() const {
-            const long v1 = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
+            //const long v1 = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
             const long v2 = (*(long*)(rawblock + 5)) & 0XFFFFFFFFFFl;
-            return v1 + v2;
+            //return v1 + v2;
+            return v2;
         }
 
         /// Returns in-degree of the current node.
@@ -67,7 +68,7 @@ class TUNode {
         /// Returns ID of NodeN-th neighboring node. ##TNGraph::TNodeI::GetNbrNId
         long GetNbrNId(const long& NodeN) const {
             const long v = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
-            if (NodeN < v) {
+            //if (NodeN < v) {
                 //This code does not work for newcolumn reader because there I would need to further advance to remove some initial bytes that store metadata. However, newcolumn layout is never triggered so it should be fine
                 const uint8_t strat = rawblock[23];
                 SnapReaders::pReader reader = SnapReaders::readers[strat];
@@ -76,7 +77,7 @@ class TUNode {
                 const long pos = (*(long*)(rawblock + 26)) & 0XFFFFFFFFFFl;
                 const char *osp = p + pos;
                 return reader(osp, NodeN);
-            } else {
+            /*} else {
                 //The same warning as before applies also to here
                 const uint8_t strat = rawblock[10];
                 SnapReaders::pReader reader = SnapReaders::readers[strat];
@@ -85,7 +86,7 @@ class TUNode {
                 const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
                 const char *sop = p + pos;
                 return reader(sop , NodeN);
-            }
+            }*/
         }
 
         SnapReaders::pReader GetOutReader() const {

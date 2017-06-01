@@ -1816,6 +1816,8 @@ void Loader::loadKB(KB &kb,
             while (!reader.isEof()) {
                 L_Triple t;
                 t.readFrom(&reader);
+                //Write both versions.
+                t.writeTo(&writer);
                 if (t.first > t.third) {
                     //swap them
                     long box = t.first;
