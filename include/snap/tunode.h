@@ -39,7 +39,9 @@ class TUNode {
 
         /// Returns degree of the current node, the sum of in-degree and out-degree.
         long GetDeg() const {
-            return GetInDeg() + GetOutDeg();
+            const long v1 = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
+            const long v2 = (*(long*)(rawblock + 5)) & 0XFFFFFFFFFFl;
+            return v1 + v2;
         }
 
         /// Returns in-degree of the current node.
