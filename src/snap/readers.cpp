@@ -268,5 +268,7 @@ std::vector<const char*> SnapReaders::f_osp;
 void SnapReaders::loadAllFiles(KB *kb) {
     //Load all files and put them in a static array
     SnapReaders::f_sop = kb->openAllFiles(IDX_SOP);
-    SnapReaders::f_osp = kb->openAllFiles(IDX_OSP);
+    if (kb->getGraphType() != GraphType::UNDIRECTED) {
+        SnapReaders::f_osp = kb->openAllFiles(IDX_OSP);
+    }
 }

@@ -53,7 +53,7 @@ class Trident_UTNGraph {
 
         /// Returns an iterator referring to the past-the-end node in the graph.
         Trident_UTNGraph::TNodeI EndNI() const {
-            return TNodeI(rawnodes + nnodes * 31);
+            return TNodeI(rawnodes + nnodes * 18);
         }
 
         Trident_UTNGraph::TEdgeI BegEI() const {
@@ -66,14 +66,14 @@ class Trident_UTNGraph {
 
         /// Returns an iterator referring to the node of ID NId in the graph.
         Trident_UTNGraph::TNodeI GetNI(const long& NId) const {
-            return TNodeI(rawnodes + 31 * NId);
+            return TNodeI(rawnodes + 18 * NId);
         }
 
         /// Gets a vector IDs of all nodes in the graph.
         void GetNIdV(std::vector<long>& NIdV) const {
             NIdV.resize(GetNodes());
             for (long i = 0; i < nnodes; ++i) {
-                const long v = (*(long*)(rawnodes + 31 * i)) & 0XFFFFFFFFFFl;
+                const long v = (*(long*)(rawnodes + 18 * i)) & 0XFFFFFFFFFFl;
                 NIdV[i] = v;
             }
         }

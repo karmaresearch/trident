@@ -123,21 +123,32 @@ SinkPtr initLogging(
     return sink;
 }
 
-void printHelp(const char *programName, po::options_description &desc) {
-    cout << "Usage: " << programName << " <command> [options]" << endl << endl;
-    cout << "Possible commands:" << endl;
-    cout << "help\t\t produce help message." << endl;
-    cout << "query\t\t query the KB using the RDF3X query optimizer and executor." << endl;
-    cout << "query_native\t\t query the KB using the experimental engine." << endl;
-    cout << "load\t\t load the KB." << endl;
-    cout << "add\t\t add triples to an existing KB." << endl;
-    cout << "rm\t\t rm triples to an existing KB." << endl;
-    cout << "lookup\t\t lookup for values in the dictionary." << endl;
-    cout << "analytics\t\t perform analytical operations on the graph." << endl;
-    cout << "info\t\tprint some information about the KB." << endl << endl;
-    cout << "dump\t\tdump the graph on files." << endl << endl;
-    cout << "server\t\tstart a server." << endl << endl;
-    cout << desc << endl;
+void printHelp(const char *programName, string section,
+        po::options_description &desc,
+        std::map<string,po::options_description> &sections) {
+
+    if (section != "") {
+        if (sections.count(section)) {
+            cout << sections[section] << endl;
+        } else {
+            cout << "Command " << section << " not recognized" << endl;
+        }
+    } else {
+        cout << "Usage: " << programName << " <command> [options]" << endl << endl;
+        cout << "Possible commands:" << endl;
+        cout << "help\t\t produce help message." << endl;
+        cout << "query\t\t query the KB using the RDF3X query optimizer and executor." << endl;
+        cout << "query_native\t\t query the KB using the experimental engine." << endl;
+        cout << "load\t\t load the KB." << endl;
+        cout << "add\t\t add triples to an existing KB." << endl;
+        cout << "rm\t\t rm triples to an existing KB." << endl;
+        cout << "lookup\t\t lookup for values in the dictionary." << endl;
+        cout << "analytics\t\t perform analytical operations on the graph." << endl;
+        cout << "info\t\tprint some information about the KB." << endl << endl;
+        cout << "dump\t\tdump the graph on files." << endl << endl;
+        cout << "server\t\tstart a server." << endl << endl;
+        cout << desc << endl;
+    }
 }
 
 inline void printErrorMsg(const char *msg) {
@@ -147,7 +158,8 @@ inline void printErrorMsg(const char *msg) {
 }
 
 bool checkParams(po::variables_map &vm, int argc, const char** argv,
-        po::options_description &desc) {
+        po::options_description &desc,
+        std::map<string,po::options_description> &sections) {
 
     string cmd;
     if (argc < 2) {
@@ -173,7 +185,11 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
     }
 
     if (cmd == "help") {
-        printHelp(argv[0], desc);
+        string section = "";
+        if (argc > 2) {
+            section = argv[2];
+        }
+        printHelp(argv[0], section, desc, sections);
         return false;
     } else {
         /*** Check common parameters ***/
@@ -272,6 +288,15 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
                         "The number of dictionary partitions must be at least 1");
                 return false;
             }
+            if (!vm["gf"].empty()) {
+                string v = vm["gf"].as<string>();
+                if (v != "unlabeled" && v != "undirected") {
+                    printErrorMsg(
+                            "The parameter 'gf' accepts only 'unlabeled' or 'undirected'");
+                    return false;
+                }
+
+            }
         } else if (cmd == "add" || cmd == "rm") {
             if (!vm.count("update")) {
                 printErrorMsg(
@@ -297,6 +322,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 }
 
 bool initParams(int argc, const char** argv, po::variables_map &vm) {
+    std::map<string, po::options_description> sections;
 
     po::options_description query_options("Options for <query>");
     query_options.add_options()("query,q", po::value<string>()->default_value(""),
@@ -313,8 +339,6 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     query_options.add_options()("disbifsampl",
             po::value<bool>()->default_value(false),
             "Disable bifocal sampling (accurate but expensive). Default is false");
-    /*query_options.add_options()("updates,u", po::value<string>()->default_value(""),
-      "The path to additional updates that should be included during querying. Default is ''");*/
 
     po::options_description load_options("Options for <load>");
     load_options.add_options()("inputformat", po::value<string>()->default_value("rdf"),
@@ -389,7 +413,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             "");
     load_options.add_options()("gf",
             po::value<string>()->default_value(""),
-            "Possible graph transformations. 'not_multigraph' removes the edge labels, 'undirected' makes the graph undirected and without edge labels");
+            "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels");
 
     po::options_description lookup_options("Options for <lookup>");
     lookup_options.add_options()("text,t", po::value<string>(),
@@ -448,6 +472,17 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
 
     po::options_description cmdline_options("Generic options");
     cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options);
+
+    sections.insert(make_pair("query",query_options));
+    sections.insert(make_pair("lookup",lookup_options));
+    sections.insert(make_pair("load",load_options));
+    sections.insert(make_pair("test",test_options));
+    sections.insert(make_pair("update",update_options));
+    sections.insert(make_pair("analytics",ana_options));
+    sections.insert(make_pair("dump",dump_options));
+    sections.insert(make_pair("mine",mine_options));
+    sections.insert(make_pair("server",server_options));
+
     cmdline_options.add_options()("input,i", po::value<string>(),
             "The path of the KB directory. This parameter is REQUIRED.")(
                 "logLevel,l", po::value<logging::trivial::severity_level>(),
@@ -460,7 +495,9 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             po::command_line_parser(argc, argv).options(cmdline_options).run(),
             vm);
 
-    return checkParams(vm, argc, argv, cmdline_options);
+
+
+    return checkParams(vm, argc, argv, cmdline_options, sections);
 }
 
 void lookup(DictMgmt *dict, po::variables_map &vm) {

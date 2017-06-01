@@ -170,7 +170,6 @@ void FlatTreeWriter::write(const long key,
     supportBuffer[2] = cKey[2];
     supportBuffer[3] = cKey[3];
     supportBuffer[4] = cKey[4];
-    //Utils::encode_longNBytes(supportBuffer, 5, key);
 
     if (n_sop > 0) {
         char *cnels = (char*) &n_sop;
@@ -179,26 +178,22 @@ void FlatTreeWriter::write(const long key,
         supportBuffer[7] = cnels[2];
         supportBuffer[8] = cnels[3];
         supportBuffer[9] = cnels[4];
-        //Utils::encode_longNBytes(supportBuffer + 5, 5, n_sop);
         supportBuffer[10] = strat_sop;
         char *cfile = (char*) &file_sop;
         supportBuffer[11] = cfile[0];
         supportBuffer[12] = cfile[1];
-        //Utils::encode_short(supportBuffer + 11, file_sop);
         cnels = (char*) &pos_sop;
         supportBuffer[13] = cnels[0];
         supportBuffer[14] = cnels[1];
         supportBuffer[15] = cnels[2];
         supportBuffer[16] = cnels[3];
         supportBuffer[17] = cnels[4];
-        //Utils::encode_longNBytes(supportBuffer + 13, 5, pos_sop);
     } else {
         supportBuffer[5] = 0;
         supportBuffer[6] = 0;
         supportBuffer[7] = 0;
         supportBuffer[8] = 0;
         supportBuffer[9] = 0;
-        //Utils::encode_longNBytes(supportBuffer + 5, 5, 0);
     }
     if (n_osp > 0) {
         char *cnels = (char*) &n_osp;
@@ -207,28 +202,28 @@ void FlatTreeWriter::write(const long key,
         supportBuffer[20] = cnels[2];
         supportBuffer[21] = cnels[3];
         supportBuffer[22] = cnels[4];
-        //Utils::encode_longNBytes(supportBuffer + 18, 5, n_osp);
         supportBuffer[23] = strat_osp;
         char *cfile = (char*) &file_osp;
         supportBuffer[24] = cfile[0];
         supportBuffer[25] = cfile[1];
-        //Utils::encode_short(supportBuffer + 24, file_osp);
         cnels = (char*) &pos_osp;
         supportBuffer[26] = cnels[0];
         supportBuffer[27] = cnels[1];
         supportBuffer[28] = cnels[2];
         supportBuffer[29] = cnels[3];
         supportBuffer[30] = cnels[4];
-        //Utils::encode_longNBytes(supportBuffer + 26, 5, pos_osp);
     } else {
         supportBuffer[18] = 0;
         supportBuffer[19] = 0;
         supportBuffer[20] = 0;
         supportBuffer[21] = 0;
         supportBuffer[22] = 0;
-        //Utils::encode_longNBytes(supportBuffer + 18, 5, 0);
     }
-    ofs.write(supportBuffer, 31);
+    if (!undirected) {
+        ofs.write(supportBuffer, 31);
+    } else {
+        ofs.write(supportBuffer, 18); //I only use SOP, since the other is always 0
+    }
 }
 
 long Loader::parseSnapFile(string inputtriples,
@@ -1798,7 +1793,7 @@ void Loader::loadKB(KB &kb,
         outputDirs[i] = kbDir + "/p" + to_string(i);
     }
 
-    if (graphTransformation == "not_multigraph") {
+    if (graphTransformation == "unlabeled") {
         kb.setGraphType(GraphType::DIRECTED);
     }
     if (graphTransformation == "undirected") {
@@ -1835,7 +1830,11 @@ void Loader::loadKB(KB &kb,
 
     if (graphTransformation != "") {
         //I don't need POS,PSO,SPO,OPS
-        nindices = 2;
+        if (graphTransformation == "undirected") {
+            nindices = 1;
+        } else {
+            nindices = 2;
+        }
         ins->disableColumnStorage();
         ins->setUsageRowForLargeTables();
     }
@@ -1904,7 +1903,9 @@ void Loader::loadKB(KB &kb,
         string flatfile = kbDir + "/tree/flat";
         //Create a tree itr to go through the tree
         std::unique_ptr<Root> root(kb.getRootTree());
-        loadFlatTree(kbDir + "/p" + to_string(IDX_SOP), kbDir + "/p" +  to_string(IDX_OSP), flatfile, root.get());
+        loadFlatTree(kbDir + "/p" + to_string(IDX_SOP),
+                kbDir + "/p" +  to_string(IDX_OSP),
+                flatfile, root.get(), graphTransformation == "undirected");
     }
 
     if (sample) {
@@ -2118,7 +2119,14 @@ void Loader::parallel_createIndices(
 
     //Sort chunks of the triple in main memory
     std::vector<std::pair<string, char>> outputdirs;
-    if (nindices == 2) {
+    if (nindices == 1) {
+        PermSorter::sortChunks(permDirs[3],
+                maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                false,
+                outputdirs);
+    } else if (nindices == 2) {
         outputdirs.push_back(make_pair(permDirs[4], IDX_OSP));
         PermSorter::sortChunks(permDirs[3],
                 maxReadingThreads,
@@ -2710,7 +2718,8 @@ void Loader::processTermCoordinates(Inserter *ins,
 void Loader::loadFlatTree(string sop,
         string osp,
         string flatfile,
-        Root *root) {
+        Root *root,
+        bool undirected) {
     //Write SOP
     long keyToAdd = -1;
     std::vector<string> files = Utils::getFiles(sop);
@@ -2720,7 +2729,7 @@ void Loader::loadFlatTree(string sop,
     }
     const int maxPossibleIdx = files.size();
     std::unique_ptr<FlatTreeWriter> ftw =
-        std::unique_ptr<FlatTreeWriter>(new FlatTreeWriter(flatfile));
+        std::unique_ptr<FlatTreeWriter>(new FlatTreeWriter(flatfile, undirected));
     TreeItr *itr = root->itr();
     TermCoordinates coord;
 

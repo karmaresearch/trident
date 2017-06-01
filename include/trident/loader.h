@@ -203,9 +203,10 @@ class BufferCoordinates {
 class FlatTreeWriter {
     private:
         ofstream ofs;
+        const bool undirected;
 
     public:
-        FlatTreeWriter(string f) {
+        FlatTreeWriter(string f, bool undirected) : undirected(undirected) {
             ofs.open(f);
         }
 
@@ -493,7 +494,8 @@ class Loader {
 
         static void loadFlatTree(string sop, string osp,
                 string output,
-                Root *tree);
+                Root *tree,
+                bool undirected);
 
         static char rewriteNewColumnStrategy(const char *table);
 
