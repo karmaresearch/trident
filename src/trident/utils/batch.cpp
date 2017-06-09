@@ -78,11 +78,12 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
 
     long i = 0;
     while (i < this->batchsize && this->currentidx < this->ntriples) {
-        long s = *(long*)(this->rawtriples + currentidx * 15);
+        long idx = indices[currentidx];
+        long s = *(long*)(this->rawtriples + idx * 15);
         s = s & 0xFFFFFFFFFFl;
-        long p = *(long*)(this->rawtriples + currentidx * 15 + 5);
+        long p = *(long*)(this->rawtriples + idx * 15 + 5);
         p = p & 0xFFFFFFFFFFl;
-        long o = *(long*)(this->rawtriples + currentidx * 15 + 10);
+        long o = *(long*)(this->rawtriples + idx * 15 + 10);
         o = o & 0xFFFFFFFFFFl;
         output[i*3] = s;
         output[i*3+1] = p;
