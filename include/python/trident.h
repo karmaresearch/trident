@@ -26,6 +26,7 @@
 #include <Python.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
+#include <trident/utils/batch.h>
 
 typedef struct {
     PyObject_HEAD
@@ -35,5 +36,14 @@ typedef struct {
 } trident_Itr;
 
 extern PyTypeObject trident_ItrType;
+
+typedef struct {
+    PyObject_HEAD
+        std::unique_ptr<BatchCreator> creator;
+    std::vector<uint64_t> batch;
+    long batchsize;
+} trident_Batcher;
+
+extern PyTypeObject trident_BatcherType;
 
 #endif

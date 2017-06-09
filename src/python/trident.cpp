@@ -26,6 +26,8 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <numpy/arrayobject.h>
+
 #include <python/trident.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
@@ -705,25 +707,29 @@ static struct PyModuleDef tridentmodule = {
 };
 
 PyMODINIT_FUNC PyInit_trident(void) {
+    PyObject *m;
+    m = PyModule_Create(&tridentmodule);
+    if (m == NULL)
+        return NULL;
+
     boost::shared_ptr<logging::core> core = logging::core::get();
     core->set_filter(logging::trivial::severity >= logging::trivial::info);
-
-    PyObject *m;
 
     trident_DbType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&trident_DbType) < 0)
         return NULL;
     if (PyType_Ready(&trident_ItrType) < 0)
         return NULL;
-
-    m = PyModule_Create(&tridentmodule);
-    if (m == NULL)
+    if (PyType_Ready(&trident_BatcherType) < 0)
         return NULL;
 
     Py_INCREF(&trident_DbType);
     Py_INCREF(&trident_ItrType);
+    Py_INCREF(&trident_BatcherType);
     PyModule_AddObject(m, "Db", (PyObject *)&trident_DbType);
     PyModule_AddObject(m, "Itr", (PyObject *)&trident_ItrType);
+    PyModule_AddObject(m, "Batcher", (PyObject *)&trident_BatcherType);
+
 
     return m;
 }

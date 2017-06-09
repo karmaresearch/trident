@@ -290,7 +290,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
             }
             if (!vm["gf"].empty()) {
                 string v = vm["gf"].as<string>();
-                if (v != "unlabeled" && v != "undirected") {
+                if (v != "" && v != "unlabeled" && v != "undirected") {
                     printErrorMsg(
                             "The parameter 'gf' accepts only 'unlabeled' or 'undirected'");
                     return false;
@@ -886,7 +886,7 @@ bool checkMachineConstraints() {
     int n = 1;
     // big endian if true
     if(*(char *)&n != 1) {
-        BOOST_LOG_TRIVIAL(error) << "Some features of Trident rely on little endianness... sorry";
+        BOOST_LOG_TRIVIAL(error) << "Some features of Trident rely on little endianness. Change machine ...sorry";
         return false;
     }
     return true;
