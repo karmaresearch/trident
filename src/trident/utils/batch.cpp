@@ -84,10 +84,10 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
         p = p & 0xFFFFFFFFFFl;
         long o = *(long*)(this->rawtriples + currentidx * 15 + 10);
         o = o & 0xFFFFFFFFFFl;
-        output[i] = s;
-        output[i+1] = p;
-        output[i+2] = o;
-        i+=3;
+        output[i*3] = s;
+        output[i*3+1] = p;
+        output[i*3+2] = o;
+        i+=1;
         this->currentidx++;
     }
     if (i < this->batchsize) {
