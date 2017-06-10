@@ -39,6 +39,7 @@
 #include <condition_variable>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
 
@@ -429,6 +430,7 @@ struct ParamsLoad {
     string graphTransformation;
     int timeoutStats;
     bool storeDicts;
+    bool relsOwnIDs;
 };
 
 class Loader {
@@ -585,7 +587,8 @@ class Loader {
                 int nperms,
                 int signaturePerms,
                 string *fileNameDictionaries,
-                bool storeDicts);
+                bool storeDicts,
+                bool relsOwnIDs);
 
         void createPermutations(string inputDir,
                 int nperms,
@@ -630,6 +633,8 @@ class Loader {
 
         static void monitorPerformance(SinkPtr logger, int seconds,
                 std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
+
+        static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);
 
     public:
 

@@ -57,6 +57,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstdio>
+#include <unordered_map>
 #include <cstdlib>
 
 namespace fs = boost::filesystem;
@@ -1577,7 +1578,7 @@ void Loader::load(ParamsLoad p) {
         fileNameDictionaries[i] = p.tmpDir + string("/dict-") + to_string(i);
     }
 
-    if (p.inputformat == "snap") {
+    if (p.inputformat == "snap") { /*** LOAD SNAP FILES ***/
         if (p.graphTransformation == "") {
             p.graphTransformation = "not_multigraph";
         }
@@ -1589,25 +1590,26 @@ void Loader::load(ParamsLoad p) {
                 fileNameDictionaries[0],
                 p.maxReadingThreads,
                 p.parallelThreads);
-    } else { //RDF file
+    } else { /*** LOAD RDF FILES ***/
         if (!p.inputCompressed) {
-            if (p.dictMethod == DICT_HEURISTICS) {
-                Compressor comp(p.triplesInputDir, p.tmpDir);
-                //Parse the input
-                comp.parse(p.dictionaries, p.sampleMethod, p.sampleArg, (int)(p.sampleRate * 100),
-                        p.parallelThreads, p.maxReadingThreads, false, NULL, false,
-                        p.graphTransformation != "");
-                //Compress it
-                BOOST_LOG_TRIVIAL(debug) << "For now I create only one permutation";
-                int tmpsig = 0;
-                Compressor::addPermutation(IDX_SPO, tmpsig);
-                comp.compress(p.graphTransformation != "" ? permDirs + 3 : permDirs, 1, tmpsig, fileNameDictionaries,
-                        p.dictionaries, p.parallelThreads, p.maxReadingThreads,
-                        p.graphTransformation != "");
-                totalCount = comp.getTotalCount();
-            } else if (p.dictMethod == DICT_SMART) {
+            if (p.dictMethod != DICT_HEURISTICS) {
                 throw 10;
             }
+            Compressor comp(p.triplesInputDir, p.tmpDir);
+            //Parse the input
+            comp.parse(p.dictionaries, p.sampleMethod, p.sampleArg, (int)(p.sampleRate * 100),
+                    p.parallelThreads, p.maxReadingThreads, false, NULL, false,
+                    p.graphTransformation != "");
+            //Compress it
+            BOOST_LOG_TRIVIAL(debug) << "For now I create only one permutation";
+            int tmpsig = 0;
+            Compressor::addPermutation(IDX_SPO, tmpsig);
+            comp.compress(p.graphTransformation != "" ? permDirs + 3 : permDirs,
+                    1, tmpsig, fileNameDictionaries,
+                    p.dictionaries, p.parallelThreads, p.maxReadingThreads,
+                    p.graphTransformation != "");
+            totalCount = comp.getTotalCount();
+            BOOST_LOG_TRIVIAL(info) << "Compression is finished. Starting the loading ...";
             if (p.onlyCompress) {
                 //Convert the triple files and the dictionary files in gzipped files
                 string outputTriples = p.kbDir + string("/triples.gz");
@@ -1628,18 +1630,7 @@ void Loader::load(ParamsLoad p) {
                 }
                 return;
             }
-
-            BOOST_LOG_TRIVIAL(info) << "Compression is finished. Starting the loading ...";
         } else {
-            /*totalCount = createPermsAndDictsFromFiles(p.triplesInputDir,
-              p.dictDir,
-              permDirs,
-              p.createIndicesInBlocks ? 1 : nperms,
-              signaturePerm,
-              fileNameDictionaries[0],
-              p.maxReadingThreads,
-              p.parallelThreads);
-              */
             totalCount = createPermsAndDictsFromFiles(p.triplesInputDir,
                     p.dictDir,
                     p.graphTransformation != "" ? permDirs + 3 : permDirs, //Use only the first dir
@@ -1671,22 +1662,52 @@ void Loader::load(ParamsLoad p) {
             nperms,
             signaturePerm,
             fileNameDictionaries,
-            p.storeDicts);
+            p.storeDicts,
+            p.relsOwnIDs);
 
+    /*** CLEANUP ***/
     delete[] permDirs;
     delete[] fileNameDictionaries;
     if (p.tmpDir != p.kbDir) {
         fs::remove_all(fs::path(p.tmpDir));
     }
-
     std::unique_lock<std::mutex> lck(mtx);
     isFinished = true;
     cv.notify_all();
     lck.unlock();
     monitor.join();
-
     boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(info) << "Loading is finished: Time (sec) " << sec.count();
+}
+
+void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
+    //For each file in the directory, replace the predicate IDs with new ones
+    long counter = 0;
+    auto files = Utils::getFiles(inputdir);
+    for (auto pathfile : files) {
+        {
+            LZ4Reader reader(pathfile);
+            LZ4Writer writer(pathfile + "-new");
+            BOOST_LOG_TRIVIAL(debug) << "Converting " << pathfile;
+            while (!reader.isEof()) {
+                long s = reader.parseLong();
+                long p = reader.parseLong();
+                long o = reader.parseLong();
+                if (map.count(p)) {
+                    p = map[p];
+                } else {
+                    map.insert(std::make_pair(p, counter));
+                    p = counter;
+                    counter += 1;
+                }
+                writer.writeLong(s);
+                writer.writeLong(p);
+                writer.writeLong(o);
+            }
+        }
+        fs::remove(pathfile);
+        fs::rename(pathfile + "-new", pathfile);
+    }
 }
 
 void Loader::loadKB(KB &kb,
@@ -1696,7 +1717,8 @@ void Loader::loadKB(KB &kb,
         int nperms,
         int signaturePerms,
         string *fileNameDictionaries,
-        bool storeDicts) {
+        bool storeDicts,
+        bool relsOwnIDs) {
 
     //Init params
     string tmpDir = p.tmpDir;
@@ -1742,13 +1764,11 @@ void Loader::loadKB(KB &kb,
             insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0], true,
                     true, true, maxValues);
         }
-
 #ifdef REASONING
         addSchemaTerms(dictionaries, maxValues[0], kb.getDictMgmt());
 #endif
         delete[] maxValues;
         delete[] threads;
-
         /*** Close the dictionaries ***/
         BOOST_LOG_TRIVIAL(debug) << "Closing dict...";
         kb.closeMainDict();
@@ -1837,6 +1857,24 @@ void Loader::loadKB(KB &kb,
         }
         ins->disableColumnStorage();
         ins->setUsageRowForLargeTables();
+    } else {
+        //If the relations should have their own IDs, I rewrite the compressed
+        //graph storing an additional map with the IDs of the relations
+        if (relsOwnIDs) {
+            if (!storeDicts) {
+                BOOST_LOG_TRIVIAL(error) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
+                throw 10;
+            }
+            std::unordered_map<long,long> ent2rel;
+            //The input is on the form SPO
+            rewriteKG(permDirs[0], ent2rel);
+            //Store the map in a file
+            LZ4Writer writer(kbDir + "/e2r");
+            for (auto pair : ent2rel) {
+                writer.writeLong(pair.first);
+                writer.writeLong(pair.second);
+            }
+        }
     }
 
     createIndices(parallelProcesses, maxReadingThreads,
@@ -1947,6 +1985,7 @@ void Loader::loadKB(KB &kb,
                 nperms,
                 signaturePerms,
                 fileNameDictionaries,
+                false,
                 false);
 
         fs::remove_all(fs::path(sampleDir));

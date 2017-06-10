@@ -91,6 +91,7 @@ class KB {
         size_t thresholdSkipTable;
 
         bool dictEnabled;
+        bool relsIDsSep; //Do relations have their own IDs?
 
         double sampleRate;
 
@@ -151,6 +152,10 @@ class KB {
 
         uint64_t getNTerms() const {
             return totalNumberTerms;
+        }
+
+        bool areRelIDsSeparated() const {
+            return relsIDsSep;
         }
 
         GraphType getGraphType() const {

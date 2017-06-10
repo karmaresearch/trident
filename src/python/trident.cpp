@@ -494,6 +494,11 @@ static PyObject *db_nterms(PyObject *self, PyObject *args) {
     return PyLong_FromLong(kb->getNTerms());
 }
 
+static PyObject *db_nrels(PyObject *self, PyObject *args) {
+    KB *kb = ((trident_Db*)self)->kb;
+    DictMgmt *dict = kb->getDictMgmt();
+    return PyLong_FromLong(dict->getNRels());
+}
 static PyObject *db_allpo(PyObject *self, PyObject *args) {
     long s;
     if (!PyArg_ParseTuple(args, "l", &s))
@@ -588,6 +593,22 @@ static PyObject * trident_lookup_str(PyObject *self, PyObject *args) {
     }
 }
 
+static PyObject * trident_lookup_relstr(PyObject *self, PyObject *args) {
+    long id;
+    if (!PyArg_ParseTuple(args, "l", &id))
+        return NULL;
+    KB *kb = ((trident_Db*)self)->kb;
+    char term[MAX_TERM_SIZE];
+    int len;
+    bool resp = kb->getDictMgmt()->getTextRel(id, term, len);
+    if (resp) {
+        return PyUnicode_FromStringAndSize(term, len);
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
 static PyObject * trident_search_id(PyObject *self, PyObject *args) {
     const char *term;
     if (!PyArg_ParseTuple(args, "s", &term))
@@ -641,6 +662,7 @@ static PyMethodDef Db_methods[] = {
     {"exists", db_exists, METH_VARARGS, "Check if the given triple exists" },
     {"existsQuery", db_existsQuery, METH_VARARGS, "Check if the given triple exists among the results of a given pattern" },
     {"n_terms", db_nterms, METH_VARARGS, "Get the number of terms in the graph" },
+    {"n_relations", db_nrels, METH_VARARGS, "Get the number of relations in the graph. This method works only if the KG used independent encoding for the relations." },
     {"n_triples", db_ntriples, METH_VARARGS, "Get the number of edges in the graph" },
     {"all", db_all, METH_VARARGS, "Get the list of all triples" },
     {"all_s", db_lists, METH_VARARGS, "Get the list of all subjects" },
@@ -649,8 +671,9 @@ static PyMethodDef Db_methods[] = {
     {"degree", db_degree, METH_VARARGS, "Get the list of all nodes with their degrees" },
     {"indegree", db_indegree, METH_VARARGS, "Get the list of all nodes with their indegrees" },
     {"outdegree", db_outdegree, METH_VARARGS, "Get the list of all nodes with their outdegrees" },
-    {"lookup_id", trident_lookup_id, METH_VARARGS, "Lookup for the IDs of terms" },
-    {"lookup_str", trident_lookup_str, METH_VARARGS, "Lookup for the textual term given the ID" },
+    {"lookup_id", trident_lookup_id, METH_VARARGS, "Lookup for the ID of an input term" },
+    {"lookup_str", trident_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
+    {"lookup_relstr", trident_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
     {"search_id", trident_search_id, METH_VARARGS, "Search for the IDs of terms" },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

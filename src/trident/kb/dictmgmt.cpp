@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/kb/dictmgmt.h>
@@ -26,6 +26,7 @@
 #include <trident/tree/treeitr.h>
 
 #include <kognac/hashfunctions.h>
+#include <kognac/lz4io.h>
 
 #include <lz4.h>
 #include <boost/thread.hpp>
@@ -38,7 +39,7 @@
 using namespace std;
 namespace timens = boost::chrono;
 
-DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash) :
+DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
     hash(hash) {
         nTuples = 0;
         printTuples = false;
@@ -76,6 +77,18 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash) :
                 - start;
             BOOST_LOG_TRIVIAL(debug) << "Time loading GUD " << sec.count() * 1000;
         }
+
+        if (fs::exists(e2r)) {
+            BOOST_LOG_TRIVIAL(debug) << "Load the mappings rel->ent from " << e2r;
+            //Load the mappings from the relation IDs to the entity IDs
+            r2e.set_deleted_key(~0lu);
+            LZ4Reader reader(e2r);
+            while (!reader.isEof()) {
+                long e = reader.parseLong();
+                long r = reader.parseLong();
+                r2e.insert(std::make_pair(r,e));
+            }
+        }
     }
 
 TreeItr *DictMgmt::getInvDictIterator() {
@@ -98,6 +111,14 @@ void DictMgmt::putInUpdateDict(const uint64_t id,
     gud_modified = true;
     if (id > gud_largestID)
         gud_largestID = id;
+}
+
+bool DictMgmt::getTextRel(nTerm key, char *value, int &size) {
+    if (r2e.count(key)) {
+        return getText(r2e[key], value, size);
+    } else {
+        return false;
+    }
 }
 
 bool DictMgmt::getText(nTerm key, char *value) {

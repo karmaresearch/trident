@@ -130,13 +130,14 @@ private:
     //global datastructures for small updates (GUD=global update dictionary)
     google::dense_hash_map<uint64_t, string> gud_idtext;
     google::sparse_hash_map<string, uint64_t> gud_textid;
+    google::sparse_hash_map<uint64_t, uint64_t> r2e;
     bool gud_modified;
     uint64_t gud_largestID;
     string gudLocation;
 
 public:
 
-    DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash);
+    DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r);
 
     void addUpdates(std::vector<Dict> &updates);
 
@@ -144,6 +145,10 @@ public:
 
     uint64_t getGUDSize() {
         return gud_idtext.size();
+    }
+
+    uint64_t getNRels() {
+        return r2e.size();
     }
 
     uint64_t getLargestGUDTerm() {
@@ -165,6 +170,8 @@ public:
     StringBuffer *getStringBuffer();
 
     bool getText(nTerm key, char *value);
+
+    bool getTextRel(nTerm key, char *value, int &size);
 
     bool getText(nTerm key, char *value, int &size);
 

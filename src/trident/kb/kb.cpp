@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/kb/memoryopt.h>
@@ -60,7 +60,7 @@ KB::KB(const char *path,
 
         timens::system_clock::time_point start = timens::system_clock::now();
 
-        //Get some statistics
+        //Get statistics and configuration
         string fileConf = path + string("/kbstats");
         if (fs::exists(fs::path(fileConf))) {
             std::ifstream fis;
@@ -98,6 +98,10 @@ KB::KB(const char *path,
             fis.read(data, 4);
             graphType = (GraphType) Utils::decode_int(data, 0);
 
+            //Check whether the relations have their own IDs
+            fis.read(data, 1);
+            relsIDsSep = data[0];
+
             fis.close();
         } else {
             dictPartitions = config.getParamInt(DICTPARTITIONS);
@@ -106,6 +110,7 @@ KB::KB(const char *path,
             totalNumberTriples = 0;
             nextID = 0;
             graphType = GraphType::DEFAULT;
+            relsIDsSep = false;
             nindices = config.getParamInt(NINDICES);
             aggrIndices = config.getParamBool(AGGRINDICES);
             incompleteIndices = config.getParamBool(INCOMPLINDICES);
@@ -156,15 +161,15 @@ KB::KB(const char *path,
             - start;
         BOOST_LOG_TRIVIAL(debug) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
 
+        //Initialize the dictionaries
         if (dictEnabled) {
             loadDict(&config);
             sec = boost::chrono::system_clock::now() - start;
             BOOST_LOG_TRIVIAL(debug) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
-
-            //Start thread for lookup of dictionary terms
-            dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff", dictHash);
+            dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
+                    dictHash, string(path) + "/e2r");
         }
 
         //Initialize the memory tracker for the storage partitions
@@ -301,34 +306,34 @@ KB::KB(const char *path,
     }
 
 Root *KB::getRootTree() {
-        string fileTree = path + string("/tree/");
-        PropertyMap map;
-        map.setBool(TEXT_KEYS, false);
-        map.setBool(TEXT_VALUES, false);
-        map.setBool(COMPRESSED_NODES, false);
-        map.setInt(LEAF_SIZE_PREALL_FACTORY,
-                config.getParamInt(TREE_MAXPREALLLEAVESCACHE));
-        map.setInt(LEAF_SIZE_FACTORY, config.getParamInt(TREE_MAXLEAVESCACHE));
-        map.setInt(MAX_NODES_IN_CACHE, config.getParamInt(TREE_MAXNODESINCACHE));
-        map.setInt(NODE_MIN_BYTES, config.getParamInt(TREE_NODEMINBYTES));
-        map.setLong(CACHE_MAX_SIZE, config.getParamLong(TREE_MAXSIZECACHETREE));
-        map.setInt(FILE_MAX_SIZE, config.getParamInt(TREE_MAXFILESIZE));
-        map.setInt(MAX_N_OPENED_FILES, config.getParamInt(TREE_MAXNFILES));
-        map.setInt(MAX_EL_PER_NODE, config.getParamInt(TREE_MAXELEMENTSNODE));
+    string fileTree = path + string("/tree/");
+    PropertyMap map;
+    map.setBool(TEXT_KEYS, false);
+    map.setBool(TEXT_VALUES, false);
+    map.setBool(COMPRESSED_NODES, false);
+    map.setInt(LEAF_SIZE_PREALL_FACTORY,
+            config.getParamInt(TREE_MAXPREALLLEAVESCACHE));
+    map.setInt(LEAF_SIZE_FACTORY, config.getParamInt(TREE_MAXLEAVESCACHE));
+    map.setInt(MAX_NODES_IN_CACHE, config.getParamInt(TREE_MAXNODESINCACHE));
+    map.setInt(NODE_MIN_BYTES, config.getParamInt(TREE_NODEMINBYTES));
+    map.setLong(CACHE_MAX_SIZE, config.getParamLong(TREE_MAXSIZECACHETREE));
+    map.setInt(FILE_MAX_SIZE, config.getParamInt(TREE_MAXFILESIZE));
+    map.setInt(MAX_N_OPENED_FILES, config.getParamInt(TREE_MAXNFILES));
+    map.setInt(MAX_EL_PER_NODE, config.getParamInt(TREE_MAXELEMENTSNODE));
 
-        map.setInt(LEAF_MAX_PREALL_INTERNAL_LINES,
-                config.getParamInt(TREE_MAXPREALLINTERNALLINES));
-        map.setInt(LEAF_MAX_INTERNAL_LINES,
-                config.getParamInt(TREE_MAXINTERNALLINES));
-        map.setInt(LEAF_ARRAYS_FACTORY_SIZE, config.getParamInt(TREE_FACTORYSIZE));
-        map.setInt(LEAF_ARRAYS_PREALL_FACTORY_SIZE,
-                config.getParamInt(TREE_ALLOCATEDELEMENTS));
+    map.setInt(LEAF_MAX_PREALL_INTERNAL_LINES,
+            config.getParamInt(TREE_MAXPREALLINTERNALLINES));
+    map.setInt(LEAF_MAX_INTERNAL_LINES,
+            config.getParamInt(TREE_MAXINTERNALLINES));
+    map.setInt(LEAF_ARRAYS_FACTORY_SIZE, config.getParamInt(TREE_FACTORYSIZE));
+    map.setInt(LEAF_ARRAYS_PREALL_FACTORY_SIZE,
+            config.getParamInt(TREE_ALLOCATEDELEMENTS));
 
-        map.setInt(NODE_KEYS_FACTORY_SIZE,
-                config.getParamInt(TREE_NODE_KEYS_FACTORY_SIZE));
-        map.setInt(NODE_KEYS_PREALL_FACTORY_SIZE,
-                config.getParamInt(TREE_NODE_KEYS_PREALL_FACTORY_SIZE));
-        return new Root(fileTree, NULL, true, map);
+    map.setInt(NODE_KEYS_FACTORY_SIZE,
+            config.getParamInt(TREE_NODE_KEYS_FACTORY_SIZE));
+    map.setInt(NODE_KEYS_PREALL_FACTORY_SIZE,
+            config.getParamInt(TREE_NODE_KEYS_PREALL_FACTORY_SIZE));
+    return new Root(fileTree, NULL, true, map);
 }
 
 void KB::loadDict(KBConfig *config) {

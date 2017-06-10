@@ -414,6 +414,9 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     load_options.add_options()("gf",
             po::value<string>()->default_value(""),
             "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels");
+    load_options.add_options()("relsOwnIDs",
+            po::value<bool>()->default_value(false),
+            "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED");
 
     po::options_description lookup_options("Options for <lookup>");
     lookup_options.add_options()("text,t", po::value<string>(),
@@ -1032,6 +1035,7 @@ int main(int argc, const char** argv) {
         p.limitSpace = vm["limitSpace"].as<long>();
         p.graphTransformation = vm["gf"].as<string>();
         p.storeDicts = vm["storedicts"].as<bool>();
+        p.relsOwnIDs = vm["relsOwnIDs"].as<bool>();
 
         loader.load(p);
 
