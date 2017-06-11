@@ -40,7 +40,9 @@ extern PyTypeObject trident_ItrType;
 typedef struct {
     PyObject_HEAD
         std::unique_ptr<BatchCreator> creator;
-    std::vector<uint64_t> batch;
+    std::vector<uint64_t> batch1;
+    std::vector<uint64_t> batch2;
+    std::vector<uint64_t> batch3;
     long batchsize;
 } trident_Batcher;
 

@@ -37,7 +37,9 @@ static int Batcher_init(trident_Batcher *self, PyObject *args, PyObject *kwds) {
     if (!PyArg_ParseTuple(args, "sll", &path, &batchsize, &nthreads))
         return -1;
     self->creator = std::unique_ptr<BatchCreator>(new BatchCreator(string(path), batchsize, nthreads));
-    self->batch.resize(batchsize*3);
+    self->batch1.resize(batchsize);
+    self->batch2.resize(batchsize);
+    self->batch3.resize(batchsize);
     self->batchsize = batchsize;
     import_array();
     return 0;
@@ -56,18 +58,13 @@ static PyObject *batcher_start(PyObject *self, PyObject *args) {
 
 static PyObject *batcher_getbatch(PyObject *self, PyObject *args) {
     trident_Batcher *s = (trident_Batcher*) self;
-    bool out = s->creator->getBatch(s->batch, false); //Split column by column
+    bool out = s->creator->getBatch(s->batch1, s->batch2, s->batch3); //Split column by column
     if (out) {
-        //int size = s->batch.size();
-        //npy_intp dims[2] = { size / 3 , 3 };
-        //PyObject* numpyArray = PyArray_SimpleNewFromData(2, dims, NPY_UINT64, (void*)s->batch.data());
-        //return numpyArray;
-
-        int size = s->batch.size() / 3;
+        const uint32_t size = s->batch1.size();
         npy_intp dims[1] = { size };
-        PyObject* subj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)s->batch.data());
-        PyObject* pred = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch.data() + size));
-        PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch.data() + size*2));
+        PyObject* subj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)s->batch1.data());
+        PyObject* pred = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch2.data()));
+        PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch3.data()));
         PyObject *t = PyTuple_New(3);
         PyTuple_SetItem(t, 0, subj);
         PyTuple_SetItem(t, 1, pred);
