@@ -59,17 +59,17 @@ void BatchCreator::start() {
     this->rawtriples = static_cast<char*>(this->mapped_rgn.get_address());
     this->ntriples = (uint64_t)this->mapped_rgn.get_size() / 15; //triples
 
-    BOOST_LOG_TRIVIAL(info) << "Creating index array ...";
+    BOOST_LOG_TRIVIAL(debug) << "Creating index array ...";
     this->indices.resize(this->ntriples);
     for(long i = 0; i < this->ntriples; ++i) {
         this->indices[i] = i;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Shuffling array ...";
+    BOOST_LOG_TRIVIAL(debug) << "Shuffling array ...";
     auto engine = std::default_random_engine{};
     std::shuffle(this->indices.begin(), this->indices.end(), engine);
     this->currentidx = 0;
-    BOOST_LOG_TRIVIAL(info) << "Done";
+    BOOST_LOG_TRIVIAL(debug) << "Done";
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
