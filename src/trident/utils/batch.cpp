@@ -72,27 +72,55 @@ void BatchCreator::start() {
     BOOST_LOG_TRIVIAL(info) << "Done";
 }
 
-bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
-    //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
+bool BatchCreator::getBatch(std::vector<uint64_t> &output, bool byRow) {
+    long i = 0;
     output.resize(this->batchsize * 3);
 
-    long i = 0;
-    while (i < this->batchsize && this->currentidx < this->ntriples) {
-        long idx = indices[currentidx];
-        long s = *(long*)(this->rawtriples + idx * 15);
-        s = s & 0xFFFFFFFFFFl;
-        long p = *(long*)(this->rawtriples + idx * 15 + 5);
-        p = p & 0xFFFFFFFFFFl;
-        long o = *(long*)(this->rawtriples + idx * 15 + 10);
-        o = o & 0xFFFFFFFFFFl;
-        output[i*3] = s;
-        output[i*3+1] = p;
-        output[i*3+2] = o;
-        i+=1;
-        this->currentidx++;
-    }
-    if (i < this->batchsize) {
-        output.resize(i);
+    if (byRow) {
+        //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
+        while (i < batchsize && currentidx < ntriples) {
+            long idx = indices[currentidx];
+            long s = *(long*)(rawtriples + idx * 15);
+            s = s & 0xFFFFFFFFFFl;
+            long p = *(long*)(rawtriples + idx * 15 + 5);
+            p = p & 0xFFFFFFFFFFl;
+            long o = *(long*)(rawtriples + idx * 15 + 10);
+            o = o & 0xFFFFFFFFFFl;
+            output[i*3] = s;
+            output[i*3+1] = p;
+            output[i*3+2] = o;
+            i+=1;
+            currentidx++;
+        }
+        if (i < batchsize) {
+            output.resize(i*3);
+        }
+    } else {
+        //Write them column by column
+        while (i < batchsize && currentidx < ntriples) {
+            long idx = indices[currentidx];
+            long s = *(long*)(rawtriples + idx * 15);
+            s = s & 0xFFFFFFFFFFl;
+            long p = *(long*)(rawtriples + idx * 15 + 5);
+            p = p & 0xFFFFFFFFFFl;
+            long o = *(long*)(rawtriples + idx * 15 + 10);
+            o = o & 0xFFFFFFFFFFl;
+            output[i] = s;
+            output[batchsize + i] = p;
+            output[batchsize * 2 + i] = o;
+            i+=1;
+            currentidx++;
+        }
+        if (i < batchsize) {
+            //Shift the elements
+            for (int j = 0; j < i; ++j) {
+                output[i + j] = output[batchsize + j];
+            }
+            for (int j = 0; j < i; ++j) {
+                output[i*2 + j] = output[batchsize*2 + j];
+            }
+            output.resize(i*3);
+        }
     }
     return i > 0;
 }

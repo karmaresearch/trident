@@ -56,12 +56,23 @@ static PyObject *batcher_start(PyObject *self, PyObject *args) {
 
 static PyObject *batcher_getbatch(PyObject *self, PyObject *args) {
     trident_Batcher *s = (trident_Batcher*) self;
-    bool out = s->creator->getBatch(s->batch);
+    bool out = s->creator->getBatch(s->batch, false); //Split column by column
     if (out) {
-        int size = s->batch.size();
-        npy_intp dims[2] = { size / 3 , 3 };
-        PyObject* numpyArray = PyArray_SimpleNewFromData(2, dims, NPY_UINT64, (void*)s->batch.data());
-        return numpyArray;
+        //int size = s->batch.size();
+        //npy_intp dims[2] = { size / 3 , 3 };
+        //PyObject* numpyArray = PyArray_SimpleNewFromData(2, dims, NPY_UINT64, (void*)s->batch.data());
+        //return numpyArray;
+
+        int size = s->batch.size() / 3;
+        npy_intp dims[1] = { size };
+        PyObject* subj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)s->batch.data());
+        PyObject* pred = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch.data() + size));
+        PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch.data() + size*2));
+        PyObject *t = PyTuple_New(3);
+        PyTuple_SetItem(t, 0, subj);
+        PyTuple_SetItem(t, 1, pred);
+        PyTuple_SetItem(t, 2, obj);
+        return t;
     } else {
         Py_INCREF(Py_None);
         return Py_None;

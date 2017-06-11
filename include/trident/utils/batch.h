@@ -30,7 +30,7 @@ class BatchCreator {
 
         void start();
 
-        bool getBatch(std::vector<uint64_t> &output);
+        bool getBatch(std::vector<uint64_t> &output, bool byRow);
 
 };
 
