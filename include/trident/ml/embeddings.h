@@ -1,9 +1,12 @@
 #ifndef _EMBEDDINGS_H
 #define _EMBEDDINGS_H
 
+#include <boost/log/trivial.hpp>
+
 #include <vector>
 #include <random>
 #include <math.h>
+#include <cstdint>
 
 template<typename K>
 class Embeddings {
@@ -26,6 +29,7 @@ class Embeddings {
             std::mt19937 gen(rd());
             K min = -6.0 / sqrt(dim);
             K max = 6.0 / sqrt(dim);
+            BOOST_LOG_TRIVIAL(debug) << "min=" << min << " max=" << max;
             std::uniform_real_distribution<> dis(min, max);
             K* data = raw.data();
             for (uint32_t i = 0; i < n; i++) {
