@@ -2,6 +2,7 @@
 #define _EMBEDDINGS_H
 
 #include <vector>
+#include <cstdint>
 
 template<typename K>
 class Embeddings {
