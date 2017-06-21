@@ -2,6 +2,8 @@
 #define _EMBEDDINGS_H
 
 #include <vector>
+#include <random>
+#include <math.h>
 
 template<typename K>
 class Embeddings {
@@ -17,6 +19,20 @@ class Embeddings {
 
         K* get(const uint32_t n) {
             return raw.data() + n * dim;
+        }
+
+        void init() {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            K min = -6.0 / sqrt(dim);
+            K max = 6.0 / sqrt(dim);
+            std::uniform_real_distribution<> dis(min, max);
+            K* data = raw.data();
+            for (uint32_t i = 0; i < n; i++) {
+                for(uint16_t j = 0; j < dim; ++j) {
+                    raw[i * dim + j] = dis(gen);
+                }
+            }
         }
 };
 
