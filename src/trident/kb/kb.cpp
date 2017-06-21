@@ -545,6 +545,14 @@ KB::~KB() {
         //Write down the type of the graph
         Utils::encode_int(data, 0, (int)graphType);
         fos.write(data, 4);
+
+        //Write down whether separate IDs were used for the relations
+        if (fs::exists(string(path) + "/e2r")) {
+            data[0] = 1;
+        } else {
+            data[0] = 0;
+        }
+        fos.write(data, 1);
         fos.close();
     }
 }
