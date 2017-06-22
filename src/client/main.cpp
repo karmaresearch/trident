@@ -528,6 +528,7 @@ void launchML(KB &kb, string op, string params) {
         uint16_t dim = 50;
         uint32_t batchsize = 1000;
         uint16_t nthreads = 1;
+        float margin = 1.0;
         if (mapparams.count("dim")) {
             dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
         }

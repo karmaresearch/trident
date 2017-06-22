@@ -12,13 +12,17 @@ class Transe {
         const uint32_t ne;
         const uint32_t nr;
         const uint16_t dim;
+        const float margin;
 
         std::shared_ptr<Embeddings<float>> E;
         std::shared_ptr<Embeddings<float>> R;
 
+        float dist_l1(float* head, float* rel, float* tail);
+
     public:
-        Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr, const uint16_t dim) :
-            epochs(epochs), ne(ne), nr(nr), dim(dim) {
+        Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
+                const uint16_t dim, const float margin) :
+            epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin) {
         }
 
         void setup(const uint16_t nthreads);
