@@ -546,7 +546,7 @@ void launchML(KB &kb, string op, string params) {
 
         Transe tr(epochs, ne, nr, dim);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
-        tr.setup();
+        tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
         tr.train(batcher);
         BOOST_LOG_TRIVIAL(info) << "Done.";
