@@ -35,6 +35,7 @@
 #include <trident/ml/transe.h>
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
+#include <trident/utils/batch.h>
 
 #include <kognac/utils.h>
 
@@ -525,19 +526,29 @@ void launchML(KB &kb, string op, string params) {
         auto dict = kb.getDictMgmt();
         const uint32_t nr = dict->getNRels();
         uint16_t dim = 50;
+        uint32_t batchsize = 1000;
+        uint16_t nthreads = 1;
         if (mapparams.count("dim")) {
             dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
         }
         if (mapparams.count("epochs")) {
             epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
         }
+        if (mapparams.count("batchsize")) {
+            epochs = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
+        }
+        if (mapparams.count("nthreads")) {
+            epochs = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr;
+        BatchCreator batcher(kb.getPath(), batchsize, nthreads);
 
         Transe tr(epochs, ne, nr, dim);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup();
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
-        //TODO
+        tr.train(batcher);
         BOOST_LOG_TRIVIAL(info) << "Done.";
 
     } else {
