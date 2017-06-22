@@ -23,7 +23,7 @@ class Transe {
 
         void setup(const uint16_t nthreads);
 
-        void train(BatchCreator &batcher);
+        void train(BatchCreator &batcher, const uint16_t nthreads);
 
         std::shared_ptr<Embeddings<float>> getE() {
             return E;
