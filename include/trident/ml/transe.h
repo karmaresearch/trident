@@ -21,7 +21,7 @@ class Transe {
             epochs(epochs), ne(ne), nr(nr), dim(dim) {
         }
 
-        void setup();
+        void setup(const uint16_t nthreads);
 
         void train(BatchCreator &batcher);
 

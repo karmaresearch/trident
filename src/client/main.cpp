@@ -535,10 +535,10 @@ void launchML(KB &kb, string op, string params) {
             epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
         }
         if (mapparams.count("batchsize")) {
-            epochs = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
+            batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
         }
         if (mapparams.count("nthreads")) {
-            epochs = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+            nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
         }
 
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr;
@@ -546,7 +546,7 @@ void launchML(KB &kb, string op, string params) {
 
         Transe tr(epochs, ne, nr, dim);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
-        tr.setup();
+        tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
         tr.train(batcher);
         BOOST_LOG_TRIVIAL(info) << "Done.";
