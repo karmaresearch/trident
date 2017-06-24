@@ -88,6 +88,9 @@ class Transe {
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
                 uint64_t *violations);
 
+        //Store E and R into a file
+        void store_model(string pathmodel);
+
     public:
         Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
                 const uint16_t dim, const float margin, const float learningrate,
@@ -98,7 +101,13 @@ class Transe {
 
         void setup(const uint16_t nthreads);
 
-        void train(BatchCreator &batcher, const uint16_t nthreads);
+        void train(BatchCreator &batcher, const uint16_t nthreads,
+                const uint32_t eval_its,
+                const string storefolder);
+
+        //Load the model (=two sets of embeddings, E and R) from disk
+        static std::pair<std::shared_ptr<Embeddings<float>>,std::shared_ptr<Embeddings<float>>>
+            loadModel(string path);
 
         std::shared_ptr<Embeddings<float>> getE() {
             return E;

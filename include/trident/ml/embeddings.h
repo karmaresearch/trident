@@ -2,6 +2,9 @@
 #define _EMBEDDINGS_H
 
 #include <boost/log/trivial.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <vector>
 #include <random>
@@ -32,8 +35,16 @@ class Embeddings {
             raw.resize((size_t)n * dim);
         }
 
+        Embeddings(const uint32_t n, const uint16_t dim, std::vector<K> &emb): n(n), dim(dim) {
+            raw = emb;
+        }
+
         K* get(const uint32_t n) {
             return raw.data() + n * dim;
+        }
+
+        std::vector<K> &getAllEmbeddings() {
+            return raw;
         }
 
         void init(const uint16_t nthreads) {

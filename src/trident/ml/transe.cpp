@@ -1,7 +1,18 @@
 #include <trident/ml/transe.h>
 #include <iostream>
+#include <fstream>
 
 #include <tbb/concurrent_queue.h>
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/serialization/vector.hpp>
+
+namespace fs = boost::filesystem;
 
 using namespace std;
 
@@ -159,22 +170,20 @@ void Transe::process_batch(BatchIO &io) {
     //Update the gradient matrix with the positive subjects
     update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate,
             output1, 1, -1);
-
-    //Update the gradient matrix with the negative subjects
     update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate,
             sneg, -1, 1);
-
-    //Update the gradient matrix with the positive objects
     update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate,
             output3, -1, 1);
-
-    //Update the gradient matrix with the negative objects
     update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate,
             oneg, 1, -1);
 
     //Update the gradient matrix of the relations
     update_gradient_matrix(gradientsR, posSignMatrix, posRels,
             output2, 1, -1);
+    /*update_gradient_matrix(gradientsR, neg1SignMatrix, posRels,
+      output2, -1, 1);
+      update_gradient_matrix(gradientsR, neg2SignMatrix, posRels,
+      output2, -1, 1);*/
 
     //Update the gradients of the entities and relations
     for (auto &i : gradientsE) {
@@ -217,7 +226,29 @@ void Transe::batch_processer(
     *violations = viol;
 }
 
-void Transe::train(BatchCreator &batcher, const uint16_t nthreads) {
+void Transe::store_model(string path) {
+    ofstream ofs;
+    ofs.open(path, std::ofstream::out);
+    boost::iostreams::filtering_stream<boost::iostreams::output> out;
+    out.push(boost::iostreams::gzip_compressor());
+    out.push(ofs);
+    boost::archive::text_oarchive oa(out);
+    oa << ne;
+    oa << nr;
+    oa << dim;
+    oa << E->getAllEmbeddings();
+    oa << R->getAllEmbeddings();
+}
+
+void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
+        const uint32_t eval_its, const string storefolder) {
+
+    bool shouldStoreModel = storefolder != "" && eval_its > 0;
+    //storefolder should point to a directory. Create it if it does not exist
+    if (shouldStoreModel && !fs::exists(fs::path(storefolder))) {
+        fs::create_directories(storefolder);
+    }
+
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         BOOST_LOG_TRIVIAL(info) << "Start epoch " << epoch;
         //Init code
@@ -264,5 +295,39 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads) {
             totalV += violations[i];
         }
         BOOST_LOG_TRIVIAL(info) << "End epoch. Violations=" << totalV;
+        if (shouldStoreModel && (epoch+1) % eval_its == 0) {
+            string pathmodel = storefolder + "/model-" + to_string(epoch+1) + ".gz";
+            BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
+            store_model(pathmodel);
+        }
     }
+}
+
+std::pair<std::shared_ptr<Embeddings<float>>,std::shared_ptr<Embeddings<float>>>
+Transe::loadModel(string path) {
+    ifstream ifs;
+    ifs.open(path);
+    boost::iostreams::filtering_stream<boost::iostreams::input> inp;
+    inp.push(boost::iostreams::gzip_decompressor());
+    inp.push(ifs);
+    boost::archive::text_iarchive ia(inp);
+    uint32_t ne;
+    uint32_t nr;
+    uint16_t dim;
+    ia >> ne;
+    ia >> nr;
+    ia >> dim;
+    std::vector<float> emb_e;
+    ia >> emb_e;
+    std::vector<float> emb_r;
+    ia >> emb_r;
+    //Load E
+    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(
+            new Embeddings<float>(ne,dim,emb_e)
+            );
+    //Load R
+    std::shared_ptr<Embeddings<float>> R = std::shared_ptr<Embeddings<float>>(
+            new Embeddings<float>(nr, dim, emb_r)
+            );
+    return std::make_pair(E,R);
 }
