@@ -554,7 +554,7 @@ void launchML(KB &kb, string op, string params) {
         if (mapparams.count("storefolder")) {
             storefolder = mapparams["storefolder"];
         }
-        if (mapparams.count("eval_its")) {
+        if (mapparams.count("evalits")) {
             evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
         }
 
