@@ -29,7 +29,7 @@ class Embeddings {
 
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-            raw.resize(n * dim);
+            raw.resize((size_t)n * dim);
         }
 
         K* get(const uint32_t n) {

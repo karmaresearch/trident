@@ -529,6 +529,7 @@ void launchML(KB &kb, string op, string params) {
         uint32_t batchsize = 1000;
         uint16_t nthreads = 1;
         float margin = 1.0;
+        float learningrate = 0.1;
         if (mapparams.count("dim")) {
             dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
         }
@@ -536,20 +537,26 @@ void launchML(KB &kb, string op, string params) {
             epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
         }
         if (mapparams.count("batchsize")) {
-            epochs = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
+            batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
         }
         if (mapparams.count("nthreads")) {
-            epochs = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+            nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+        if (mapparams.count("margin")) {
+            margin = boost::lexical_cast<float>(mapparams["margin"]);
+        }
+        if (mapparams.count("learningrate")) {
+            learningrate = boost::lexical_cast<float>(mapparams["learningrate"]);
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr;
+        BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate;
         BatchCreator batcher(kb.getPath(), batchsize, nthreads);
 
-        Transe tr(epochs, ne, nr, dim);
+        Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
-        tr.train(batcher);
+        tr.train(batcher, nthreads);
         BOOST_LOG_TRIVIAL(info) << "Done.";
 
     } else {
