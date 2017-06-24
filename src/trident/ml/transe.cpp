@@ -245,7 +245,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads) {
             if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
                 inputQueue.push(pio);
                 batchcounter++;
-                if (batchcounter % 10000 == 0) {
+                if (batchcounter % 100000 == 0) {
                     BOOST_LOG_TRIVIAL(debug) << "Processed " << batchcounter << " batches";
                 }
             } else {
