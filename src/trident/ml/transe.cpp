@@ -1,6 +1,8 @@
 #include <trident/ml/transe.h>
 #include <iostream>
 
+#include <tbb/concurrent_queue.h>
+
 using namespace std;
 
 void Transe::setup(const uint16_t nthreads) {
@@ -55,170 +57,212 @@ void Transe::update_gradient_matrix(std::vector<EntityGradient> &gradients,
     }
 }
 
-void Transe::train(BatchCreator &batcher, const uint16_t nthreads) {
-    std::vector<uint64_t> output1;
-    std::vector<uint64_t> output2;
-    std::vector<uint64_t> output3;
+void Transe::process_batch(BatchIO &io) {
+    std::vector<uint64_t> &output1 = io.field1;
+    std::vector<uint64_t> &output2 = io.field2;
+    std::vector<uint64_t> &output3 = io.field3;
+    std::vector<std::unique_ptr<float>> &posSignMatrix = io.posSignMatrix;
+    std::vector<std::unique_ptr<float>> &neg1SignMatrix = io.neg1SignMatrix;
+    std::vector<std::unique_ptr<float>> &neg2SignMatrix = io.neg2SignMatrix;
 
+    //Generate negative samples
     std::vector<uint64_t> oneg;
     std::vector<uint64_t> sneg;
+    uint32_t sizebatch = output1.size();
+    oneg.resize(sizebatch);
+    sneg.resize(sizebatch);
+    gen_random(oneg, ne);
+    gen_random(sneg, ne);
 
+    //Support data structures
+    std::vector<EntityGradient> gradientsE; //The gradients for all entities
+    std::vector<EntityGradient> gradientsR; //The gradients for all entities
+    std::vector<uint32_t> posSubjsUpdate; //List that contains the positive subjects to update
+    std::vector<uint32_t> posObjsUpdate; //List that contains the positive objects to update
+    std::vector<uint32_t> negSubjsUpdate; //List that contains the negative subjects to update
+    std::vector<uint32_t> negObjsUpdate; //List that contains the negative objects to update
+    std::vector<uint32_t> posRels; //List that contains all relations to update
+
+    for(uint32_t i = 0; i < sizebatch; ++i) {
+        //Get corresponding embeddings
+        float* sp = E->get(output1[i]);
+        float* pp = R->get(output2[i]);
+        float* op = E->get(output3[i]);
+        float* on = E->get(oneg[i]);
+        float* sn = E->get(sneg[i]);
+
+        //Get the distances
+        auto diffp = dist_l1(sp, pp, op, posSignMatrix[i].get());
+        auto diff1n = dist_l1(sp, pp, on, neg1SignMatrix[i].get());
+        auto diff2n = dist_l1(sn, pp, op, neg2SignMatrix[i].get());
+
+        //Calculate the violations
+        if (diffp - diff1n + margin > 0) {
+            io.violations += 1;
+            posObjsUpdate.push_back(i);
+            negObjsUpdate.push_back(i);
+            posRels.push_back(i);
+        }
+        if (diffp - diff2n + margin > 0) {
+            io.violations += 1;
+            posSubjsUpdate.push_back(i);
+            negSubjsUpdate.push_back(i);
+            posRels.push_back(i);
+        }
+    }
+
+    //Sort the triples in the batch by subjects and objects
+    std::sort(posSubjsUpdate.begin(), posSubjsUpdate.end(), _TranseSorter(output1));
+    std::sort(negSubjsUpdate.begin(), negSubjsUpdate.end(), _TranseSorter(sneg));
+    std::sort(posObjsUpdate.begin(), posObjsUpdate.end(), _TranseSorter(output3));
+    std::sort(negObjsUpdate.begin(), negObjsUpdate.end(), _TranseSorter(oneg));
+    std::sort(posRels.begin(), posRels.end(), _TranseSorter(output2));
+
+    //Get all the terms that appear in the batch
+    std::vector<uint64_t> allterms;
+    for(auto idx : posSubjsUpdate) {
+        uint64_t t = output1[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : negSubjsUpdate) {
+        uint64_t t = sneg[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : posObjsUpdate) {
+        uint64_t t = output3[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : negObjsUpdate) {
+        uint64_t t = oneg[idx];
+        allterms.push_back(t);
+    }
+    std::sort(allterms.begin(), allterms.end());
+    auto it = std::unique(allterms.begin(), allterms.end());
+    allterms.resize(std::distance(allterms.begin(), it));
+    std::vector<uint64_t> allrels;
+    for(auto idx : posRels) {
+        uint64_t t = output2[idx];
+        allrels.push_back(t);
+    }
+    std::sort(allrels.begin(), allrels.end());
+    it = std::unique(allrels.begin(), allrels.end());
+    allrels.resize(std::distance(allrels.begin(), it));
+
+    //Initialize gradient matrix
+    for(uint16_t i = 0; i < allterms.size(); ++i) {
+        gradientsE.push_back(EntityGradient(allterms[i], dim));
+    }
+    for(uint16_t i = 0; i < allrels.size(); ++i) {
+        gradientsR.push_back(EntityGradient(allrels[i], dim));
+    }
+
+    //Update the gradient matrix with the positive subjects
+    update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate,
+            output1, 1, -1);
+
+    //Update the gradient matrix with the negative subjects
+    update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate,
+            sneg, -1, 1);
+
+    //Update the gradient matrix with the positive objects
+    update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate,
+            output3, -1, 1);
+
+    //Update the gradient matrix with the negative objects
+    update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate,
+            oneg, 1, -1);
+
+    //Update the gradient matrix of the relations
+    update_gradient_matrix(gradientsR, posSignMatrix, posRels,
+            output2, 1, -1);
+
+    //Update the gradients of the entities and relations
+    for (auto &i : gradientsE) {
+        float *emb = E->get(i.id);
+        auto n = i.n;
+        if (n > 0) {
+            for(uint16_t j = 0; j < dim; ++j) {
+                emb[j] -= learningrate * i.dimensions[j] / n;
+            }
+        }
+    }
+    for (auto &i : gradientsR) {
+        float *emb = R->get(i.id);
+        auto n = i.n;
+        if (n > 0) {
+            for(uint16_t j = 0; j < dim; ++j) {
+                emb[j] -= learningrate * i.dimensions[j] / n;
+            }
+        }
+    }
+}
+
+void Transe::batch_processer(
+        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
+        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
+        uint64_t *violations) {
+    std::shared_ptr<BatchIO> pio;
+    uint64_t viol = 0;
+    while (true) {
+        inputQueue->pop(pio);
+        if (pio == NULL) {
+            break;
+        }
+
+        process_batch(*pio.get());
+        viol += pio->violations;
+        pio->clear();
+        outputQueue->push(pio);
+    }
+    *violations = viol;
+}
+
+void Transe::train(BatchCreator &batcher, const uint16_t nthreads) {
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         BOOST_LOG_TRIVIAL(info) << "Start epoch " << epoch;
         //Init code
         batcher.start();
-        uint64_t violations = 0;
         uint32_t batchcounter = 0;
-        std::vector<std::unique_ptr<float>> posSignMatrix;
-        std::vector<std::unique_ptr<float>> neg1SignMatrix;
-        std::vector<std::unique_ptr<float>> neg2SignMatrix;
-        //Create the sign matrices (used to calculate the gradients)
-        for(uint16_t i = 0; i < batchsize; ++i) {
-            posSignMatrix.push_back(std::unique_ptr<float>(new float[dim]));
-            neg1SignMatrix.push_back(std::unique_ptr<float>(new float[dim]));
-            neg2SignMatrix.push_back(std::unique_ptr<float>(new float[dim]));
+        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> inputQueue;
+        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> doneQueue;
+        std::vector<uint64_t> violations;
+        violations.resize(nthreads);
+        for(uint16_t i = 0; i < nthreads; ++i) {
+            doneQueue.push(std::shared_ptr<BatchIO>(new BatchIO(batchsize, dim)));
         }
 
-        while (batcher.getBatch(output1, output2, output3)) {
-            //Generate negative samples
-            uint32_t sizebatch = output1.size();
-            oneg.resize(sizebatch);
-            sneg.resize(sizebatch);
-            gen_random(oneg, ne);
-            gen_random(sneg, ne);
+        //Start nthreads
+        std::vector<std::thread> threads;
+        for(uint16_t i = 0; i < nthreads; ++i) {
+            threads.push_back(std::thread(&Transe::batch_processer,
+                        this, &inputQueue, &doneQueue, &violations[i]));
+        }
 
-            //Support data structures
-            std::vector<EntityGradient> gradientsE; //The gradients for all entities
-            std::vector<EntityGradient> gradientsR; //The gradients for all entities
-            std::vector<uint32_t> posSubjsUpdate; //List that contains the positive subjects to update
-            std::vector<uint32_t> posObjsUpdate; //List that contains the positive objects to update
-            std::vector<uint32_t> negSubjsUpdate; //List that contains the negative subjects to update
-            std::vector<uint32_t> negObjsUpdate; //List that contains the negative objects to update
-            std::vector<uint32_t> posRels; //List that contains all relations to update
-            for(uint16_t i = 0; i < batchsize; ++i) {
-                memset(posSignMatrix[i].get(), 0, sizeof(float) * dim);
-                memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dim);
-                memset(neg2SignMatrix[i].get(), 0, sizeof(float) * dim);
-            }
-
-            for(uint32_t i = 0; i < sizebatch; ++i) {
-                //Get corresponding embeddings
-                float* sp = E->get(output1[i]);
-                float* pp = R->get(output2[i]);
-                float* op = E->get(output3[i]);
-                float* on = E->get(oneg[i]);
-                float* sn = E->get(sneg[i]);
-
-                //Get the distances
-                auto diffp = dist_l1(sp, pp, op, posSignMatrix[i].get());
-                auto diff1n = dist_l1(sp, pp, on, neg1SignMatrix[i].get());
-                auto diff2n = dist_l1(sn, pp, op, neg2SignMatrix[i].get());
-
-                //Calculate the violations
-                if (diffp - diff1n + margin > 0) {
-                    violations += 1;
-                    posObjsUpdate.push_back(i);
-                    negObjsUpdate.push_back(i);
-                    posRels.push_back(i);
+        //Process all batches
+        while (true) {
+            std::shared_ptr<BatchIO> pio;
+            doneQueue.pop(pio);
+            if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
+                inputQueue.push(pio);
+                batchcounter++;
+                if (batchcounter % 10000 == 0) {
+                    BOOST_LOG_TRIVIAL(debug) << "Processed " << batchcounter << " batches";
                 }
-                if (diffp - diff2n + margin > 0) {
-                    violations += 1;
-                    posSubjsUpdate.push_back(i);
-                    negSubjsUpdate.push_back(i);
-                    posRels.push_back(i);
+            } else {
+                //Puts nthread NULL pointers to tell the threads to stop
+                for(uint16_t i = 0; i < nthreads; ++i) {
+                    inputQueue.push(std::shared_ptr<BatchIO>());
                 }
-            }
-
-            //Sort the triples in the batch by subjects and objects
-            std::sort(posSubjsUpdate.begin(), posSubjsUpdate.end(), _TranseSorter(output1));
-            std::sort(negSubjsUpdate.begin(), negSubjsUpdate.end(), _TranseSorter(sneg));
-            std::sort(posObjsUpdate.begin(), posObjsUpdate.end(), _TranseSorter(output3));
-            std::sort(negObjsUpdate.begin(), negObjsUpdate.end(), _TranseSorter(oneg));
-            std::sort(posRels.begin(), posRels.end(), _TranseSorter(output2));
-
-            //Get all the terms that appear in the batch
-            std::vector<uint64_t> allterms;
-            for(auto idx : posSubjsUpdate) {
-                uint64_t t = output1[idx];
-                allterms.push_back(t);
-            }
-            for(auto idx : negSubjsUpdate) {
-                uint64_t t = sneg[idx];
-                allterms.push_back(t);
-            }
-            for(auto idx : posObjsUpdate) {
-                uint64_t t = output3[idx];
-                allterms.push_back(t);
-            }
-            for(auto idx : negObjsUpdate) {
-                uint64_t t = oneg[idx];
-                allterms.push_back(t);
-            }
-            std::sort(allterms.begin(), allterms.end());
-            auto it = std::unique(allterms.begin(), allterms.end());
-            allterms.resize(std::distance(allterms.begin(), it));
-            std::vector<uint64_t> allrels;
-            for(auto idx : posRels) {
-                uint64_t t = output2[idx];
-                allrels.push_back(t);
-            }
-            std::sort(allrels.begin(), allrels.end());
-            it = std::unique(allrels.begin(), allrels.end());
-            allrels.resize(std::distance(allrels.begin(), it));
-
-            //Initialize gradient matrix
-            for(uint16_t i = 0; i < allterms.size(); ++i) {
-                gradientsE.push_back(EntityGradient(allterms[i], dim));
-            }
-            for(uint16_t i = 0; i < allrels.size(); ++i) {
-                gradientsR.push_back(EntityGradient(allrels[i], dim));
-            }
-
-            //Update the gradient matrix with the positive subjects
-            update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate,
-                    output1, 1, -1);
-
-            //Update the gradient matrix with the negative subjects
-            update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate,
-                    sneg, -1, 1);
-
-            //Update the gradient matrix with the positive objects
-            update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate,
-                    output3, -1, 1);
-
-            //Update the gradient matrix with the negative objects
-            update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate,
-                    oneg, 1, -1);
-
-            //Update the gradient matrix of the relations
-            update_gradient_matrix(gradientsR, posSignMatrix, posRels,
-                    output2, 1, -1);
-
-            //Update the gradients of the entities and relations
-            for (auto &i : gradientsE) {
-                float *emb = E->get(i.id);
-                auto n = i.n;
-                if (n > 0) {
-                    for(uint16_t j = 0; j < dim; ++j) {
-                        emb[j] -= learningrate * i.dimensions[j] / n;
-                    }
-                }
-            }
-            for (auto &i : gradientsR) {
-                float *emb = R->get(i.id);
-                auto n = i.n;
-                if (n > 0) {
-                    for(uint16_t j = 0; j < dim; ++j) {
-                        emb[j] -= learningrate * i.dimensions[j] / n;
-                    }
-                }
-            }
-
-            batchcounter++;
-            if (batchcounter % 10000 == 0) {
-                BOOST_LOG_TRIVIAL(debug) << "Processed " << batchcounter << " batches";
+                break;
             }
         }
-        BOOST_LOG_TRIVIAL(info) << "End epoch. Violations=" << violations;
+
+        //Wait until all threads are finished
+        uint64_t totalV = 0;
+        for(uint16_t i = 0; i < nthreads; ++i) {
+            threads[i].join();
+            totalV += violations[i];
+        }
+        BOOST_LOG_TRIVIAL(info) << "End epoch. Violations=" << totalV;
     }
 }

@@ -5,6 +5,7 @@
 #include <trident/utils/batch.h>
 
 #include <boost/log/trivial.hpp>
+#include <tbb/concurrent_queue.h>
 
 struct EntityGradient {
     const uint64_t id;
@@ -21,6 +22,38 @@ struct _TranseSorter {
     _TranseSorter(const std::vector<uint64_t> &vec) : vec(vec) {}
     bool operator() (const uint32_t v1, const uint32_t v2) const {
         return vec[v1] < vec[v2];
+    }
+};
+
+struct BatchIO {
+    //Input
+    const uint16_t batchsize;
+    const uint16_t dims;
+    std::vector<uint64_t> field1;
+    std::vector<uint64_t> field2;
+    std::vector<uint64_t> field3;
+    std::vector<std::unique_ptr<float>> posSignMatrix;
+    std::vector<std::unique_ptr<float>> neg1SignMatrix;
+    std::vector<std::unique_ptr<float>> neg2SignMatrix;
+    //Output
+    uint64_t violations;
+
+    BatchIO(uint16_t batchsize, const uint16_t dims) : batchsize(batchsize), dims(dims) {
+        for(uint16_t i = 0; i < batchsize; ++i) {
+            posSignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
+            neg1SignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
+            neg2SignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
+        }
+        clear();
+    }
+
+    void clear() {
+        violations = 0;
+        for(uint16_t i = 0; i < batchsize; ++i) {
+            memset(posSignMatrix[i].get(), 0, sizeof(float) * dims);
+            memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dims);
+            memset(neg2SignMatrix[i].get(), 0, sizeof(float) * dims);
+        }
     }
 };
 
@@ -42,11 +75,18 @@ class Transe {
 
         void gen_random(std::vector<uint64_t> &input, const uint64_t max);
 
+        void process_batch(BatchIO &io);
+
         void update_gradient_matrix(std::vector<EntityGradient> &gm,
                 std::vector<std::unique_ptr<float>> &signmatrix,
                 std::vector<uint32_t> &inputTripleID,
                 std::vector<uint64_t> &inputTerms,
                 int pos, int neg);
+
+        void batch_processer(
+                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
+                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
+                uint64_t *violations);
 
     public:
         Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
