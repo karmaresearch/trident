@@ -559,7 +559,7 @@ void launchML(KB &kb, string op, string params) {
         }
 
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate <<
-            " batchsize=" << batchsize << " eval_its=" << evalits << " storefolder=" << storefolder;
+            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder;
 
         BatchCreator batcher(kb.getPath(), batchsize, nthreads);
         Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize);

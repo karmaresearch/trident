@@ -47,6 +47,10 @@ class Embeddings {
             return raw;
         }
 
+        const K* getPAllEmbeddings() {
+            return raw.data();
+        }
+
         void init(const uint16_t nthreads) {
             K min = -6.0 / sqrt(dim);
             K max = 6.0 / sqrt(dim);

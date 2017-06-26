@@ -89,7 +89,7 @@ class Transe {
                 uint64_t *violations);
 
         //Store E and R into a file
-        void store_model(string pathmodel);
+        void store_model(string pathmodel, const uint16_t nthreads);
 
     public:
         Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,

@@ -1,6 +1,5 @@
 #include <trident/ml/transe.h>
-#include <iostream>
-#include <fstream>
+#include <kognac/utils.h>
 
 #include <tbb/concurrent_queue.h>
 
@@ -11,6 +10,9 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/serialization/vector.hpp>
+
+#include <iostream>
+#include <fstream>
 
 namespace fs = boost::filesystem;
 
@@ -226,18 +228,49 @@ void Transe::batch_processer(
     *violations = viol;
 }
 
-void Transe::store_model(string path) {
+void _store_entities(string path, const float *b, const float *e) {
     ofstream ofs;
     ofs.open(path, std::ofstream::out);
     boost::iostreams::filtering_stream<boost::iostreams::output> out;
     out.push(boost::iostreams::gzip_compressor());
     out.push(ofs);
     boost::archive::text_oarchive oa(out);
-    oa << ne;
-    oa << nr;
+    const std::vector<float> a(b,e);
+    oa << a;
+}
+
+void Transe::store_model(string path, const uint16_t nthreads) {
+    ofstream ofs;
+    ofs.open(path, std::ofstream::out);
+    boost::iostreams::filtering_stream<boost::iostreams::output> out;
+    out.push(boost::iostreams::gzip_compressor());
+    out.push(ofs);
+    boost::archive::text_oarchive oa(out);
     oa << dim;
-    oa << E->getAllEmbeddings();
+    oa << nr;
     oa << R->getAllEmbeddings();
+    oa << ne;
+    //Parallelize the dumping of the entities
+    auto data = E->getPAllEmbeddings();
+    std::vector<std::thread> threads;
+    uint64_t batchsize = ((long)ne * dim) / nthreads;
+    uint64_t begin = 0;
+    uint16_t idx = 0;
+    for(uint16_t i = 0; i < nthreads; ++i) {
+        string localpath = path + "." + to_string(idx);
+        uint64_t end = begin + batchsize;
+        if (end > (ne * dim) || i == nthreads - 1) {
+            end = ne * dim;
+        }
+        if (begin < end) {
+            threads.push_back(std::thread(_store_entities, localpath, data + begin, data + end));
+            idx++;
+        }
+        begin = end;
+    }
+    for(uint16_t i = 0; i < threads.size(); ++i) {
+        threads[i].join();
+    }
 }
 
 void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
@@ -298,7 +331,29 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
         if (shouldStoreModel && (epoch+1) % eval_its == 0) {
             string pathmodel = storefolder + "/model-" + to_string(epoch+1) + ".gz";
             BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
-            store_model(pathmodel);
+            store_model(pathmodel, nthreads);
+            //Test: load the model
+            auto ptrs = loadModel(pathmodel);
+            //Check the arrays are the same
+            const float *newE = ptrs.first->getPAllEmbeddings();
+            const float *oldE = E->getPAllEmbeddings();
+            for(size_t i = 0; i < ne * dim; ++i) {
+                if (newE[i] != oldE[i]) {
+                    BOOST_LOG_TRIVIAL(error) << "Error!" << i;
+                    exit(1);
+                }
+            }
+            BOOST_LOG_TRIVIAL(debug) << "Tested " << ne * dim << " values";
+            auto newR = ptrs.second->getPAllEmbeddings();
+            const float *oldR = R->getPAllEmbeddings();
+            for(size_t i = 0; i < nr * dim; ++i) {
+                if (newR[i] != oldR[i]) {
+                    BOOST_LOG_TRIVIAL(error) << "Error!" << i;
+                    exit(1);
+                }
+            }
+            BOOST_LOG_TRIVIAL(debug) << "Tested " << nr * dim << " values";
+
         }
     }
 }
@@ -311,23 +366,52 @@ Transe::loadModel(string path) {
     inp.push(boost::iostreams::gzip_decompressor());
     inp.push(ifs);
     boost::archive::text_iarchive ia(inp);
-    uint32_t ne;
-    uint32_t nr;
     uint16_t dim;
-    ia >> ne;
-    ia >> nr;
     ia >> dim;
-    std::vector<float> emb_e;
-    ia >> emb_e;
+    uint32_t nr;
+    ia >> nr;
     std::vector<float> emb_r;
     ia >> emb_r;
-    //Load E
-    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(
-            new Embeddings<float>(ne,dim,emb_e)
-            );
+    uint32_t ne;
+    ia >> ne;
     //Load R
     std::shared_ptr<Embeddings<float>> R = std::shared_ptr<Embeddings<float>>(
             new Embeddings<float>(nr, dim, emb_r)
             );
+
+    std::vector<float> emb_e;
+    emb_e.resize(ne * dim);
+    fs::path bpath(path);
+    string dirname = bpath.parent_path().string();
+    std::vector<string> files_e = Utils::getFilesWithPrefix(
+            dirname,
+            bpath.filename().string() + ".");
+
+    //Load the files one by one
+    uint32_t idxe = 0;
+    uint16_t processedfiles = 0;
+    while (processedfiles < files_e.size()) {
+        string file = dirname + "/" + bpath.filename().string() + "." + to_string(processedfiles);
+        BOOST_LOG_TRIVIAL(debug) << "Processing file " << file;
+        ifstream ifs2;
+        ifs2.open(file);
+        boost::iostreams::filtering_stream<boost::iostreams::input> inp2;
+        inp2.push(boost::iostreams::gzip_decompressor());
+        inp2.push(ifs2);
+        boost::archive::text_iarchive ia(inp2);
+        std::vector<float> values;
+        ia >> values;
+        //Copy the values into emb_e
+        for(size_t i = 0; i < values.size(); ++i) {
+            emb_e[idxe++] = values[i];
+        }
+        processedfiles++;
+    }
+
+    //Load E
+    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(
+            new Embeddings<float>(ne,dim,emb_e)
+            );
+
     return std::make_pair(E,R);
 }
