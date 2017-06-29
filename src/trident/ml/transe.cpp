@@ -333,7 +333,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
             BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
             store_model(pathmodel, nthreads);
             //Test: load the model
-            auto ptrs = loadModel(pathmodel);
+            /*auto ptrs = loadModel(pathmodel);
             //Check the arrays are the same
             const float *newE = ptrs.first->getPAllEmbeddings();
             const float *oldE = E->getPAllEmbeddings();
@@ -353,6 +353,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
                 }
             }
             BOOST_LOG_TRIVIAL(debug) << "Tested " << nr * dim << " values";
+            */
 
         }
     }
