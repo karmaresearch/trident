@@ -184,7 +184,8 @@ class Tester {
             std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - starttime;
 
             BOOST_LOG_TRIVIAL(info) << "Time: " << elapsed_seconds.count() << " sec. Mean subj pos: " << avgsubj << " Mean obj pos: " << avgobj << " Mean pos: " << totalavg;
-            BOOST_LOG_TRIVIAL(info) << "Hit@10(s): " << avghit10s << "% Hit@10(o): " << avghit10o << "% Hit@10: " << avghit10 << "% Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
+            BOOST_LOG_TRIVIAL(info) << "Hit@10(s): " << avghit10s << "% Hit@10(o): " << avghit10o << "% Hit@10: " << avghit10 << "%";
+            BOOST_LOG_TRIVIAL(info) << "Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
 
             //Write JSON output
             boost::property_tree::ptree jsonresults;
