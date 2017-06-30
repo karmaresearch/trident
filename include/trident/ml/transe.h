@@ -102,7 +102,8 @@ class Transe {
         void setup(const uint16_t nthreads);
 
         void train(BatchCreator &batcher, const uint16_t nthreads,
-                const uint32_t eval_its,
+                const uint32_t evalits,
+                const string pathvalid,
                 const string storefolder);
 
         //Load the model (=two sets of embeddings, E and R) from disk

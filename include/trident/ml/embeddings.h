@@ -43,6 +43,14 @@ class Embeddings {
             return raw.data() + n * dim;
         }
 
+        uint16_t getDim() const {
+            return dim;
+        }
+
+        uint32_t getN() const {
+            return n;
+        }
+
         std::vector<K> &getAllEmbeddings() {
             return raw;
         }

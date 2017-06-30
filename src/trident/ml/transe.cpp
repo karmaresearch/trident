@@ -1,4 +1,5 @@
 #include <trident/ml/transe.h>
+#include <trident/ml/transetester.h>
 #include <kognac/utils.h>
 
 #include <tbb/concurrent_queue.h>
@@ -13,6 +14,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 namespace fs = boost::filesystem;
 
@@ -274,16 +276,19 @@ void Transe::store_model(string path, const uint16_t nthreads) {
 }
 
 void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
-        const uint32_t eval_its, const string storefolder) {
+        const uint32_t evalits, string pathvalid, const string storefolder) {
 
-    bool shouldStoreModel = storefolder != "" && eval_its > 0;
+    bool shouldStoreModel = storefolder != "" && evalits > 0;
+    double bestresult = std::numeric_limits<double>::max();
+    int bestepoch = -1;
+
     //storefolder should point to a directory. Create it if it does not exist
     if (shouldStoreModel && !fs::exists(fs::path(storefolder))) {
         fs::create_directories(storefolder);
     }
 
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
-        BOOST_LOG_TRIVIAL(info) << "Start epoch " << epoch;
+        std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
         //Init code
         batcher.start();
         uint32_t batchcounter = 0;
@@ -327,36 +332,34 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
             threads[i].join();
             totalV += violations[i];
         }
-        BOOST_LOG_TRIVIAL(info) << "End epoch. Violations=" << totalV;
-        if (shouldStoreModel && (epoch+1) % eval_its == 0) {
-            string pathmodel = storefolder + "/model-" + to_string(epoch+1) + ".gz";
-            BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
-            store_model(pathmodel, nthreads);
-            //Test: load the model
-            /*auto ptrs = loadModel(pathmodel);
-            //Check the arrays are the same
-            const float *newE = ptrs.first->getPAllEmbeddings();
-            const float *oldE = E->getPAllEmbeddings();
-            for(size_t i = 0; i < ne * dim; ++i) {
-                if (newE[i] != oldE[i]) {
-                    BOOST_LOG_TRIVIAL(error) << "Error!" << i;
-                    exit(1);
-                }
+        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
+        BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" << elapsed_seconds.count() << "sec. Violations=" << totalV;
+        if ((epoch+1) % evalits == 0) {
+            if (shouldStoreModel) {
+                string pathmodel = storefolder + "/model-" + to_string(epoch+1) + ".gz";
+                BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
+                store_model(pathmodel, nthreads);
             }
-            BOOST_LOG_TRIVIAL(debug) << "Tested " << ne * dim << " values";
-            auto newR = ptrs.second->getPAllEmbeddings();
-            const float *oldR = R->getPAllEmbeddings();
-            for(size_t i = 0; i < nr * dim; ++i) {
-                if (newR[i] != oldR[i]) {
-                    BOOST_LOG_TRIVIAL(error) << "Error!" << i;
-                    exit(1);
-                }
-            }
-            BOOST_LOG_TRIVIAL(debug) << "Tested " << nr * dim << " values";
-            */
 
+            bool isbest = false;
+            if (fs::exists(pathvalid)) {
+                //Load the loading data into a vector
+                std::vector<uint64_t> testset;
+                BatchCreator::loadTriples(pathvalid, testset);
+
+                //Do the test
+                TranseTester<float> tester(E, R);
+                auto result = tester.test("valid", testset, nthreads, epoch);
+                if (result < bestresult) {
+                    isbest = true;
+                    bestresult = result;
+                    bestepoch = epoch;
+                    BOOST_LOG_TRIVIAL(debug) << "Epoch " << epoch << " got best results";
+                }
+            }
         }
     }
+    BOOST_LOG_TRIVIAL(info) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult;
 }
 
 std::pair<std::shared_ptr<Embeddings<float>>,std::shared_ptr<Embeddings<float>>>

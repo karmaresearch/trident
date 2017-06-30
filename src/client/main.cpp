@@ -531,7 +531,10 @@ void launchML(KB &kb, string op, string params) {
         float margin = 1.0;
         float learningrate = 0.1;
         string storefolder = "";
+
         uint32_t evalits = 10;
+        float valid = 0.0;
+        float test = 0.0;
 
         if (mapparams.count("dim")) {
             dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
@@ -557,16 +560,22 @@ void launchML(KB &kb, string op, string params) {
         if (mapparams.count("evalits")) {
             evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
         }
+        if (mapparams.count("validperc")) {
+            valid = boost::lexical_cast<float>(mapparams["validperc"]);
+        }
+        if (mapparams.count("testperc")) {
+            test = boost::lexical_cast<float>(mapparams["testperc"]);
+        }
 
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate <<
-            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder;
+            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads;
 
-        BatchCreator batcher(kb.getPath(), batchsize, nthreads);
+        BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
         Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
-        tr.train(batcher, nthreads, evalits, storefolder);
+        tr.train(batcher, nthreads, evalits, batcher.getValidPath(), storefolder);
         BOOST_LOG_TRIVIAL(info) << "Done.";
 
     } else {

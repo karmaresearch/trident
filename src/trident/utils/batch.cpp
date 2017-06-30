@@ -11,13 +11,23 @@
 namespace fs = boost::filesystem;
 
 BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
-        uint16_t nthreads) : kbdir(kbdir), batchsize(batchsize), nthreads(nthreads) {
+        uint16_t nthreads,
+        const float valid,
+        const float test) : kbdir(kbdir), batchsize(batchsize), nthreads(nthreads), valid(valid), test(test) {
     rawtriples = NULL;
     ntriples = 0;
     currentidx = 0;
 }
 
-void BatchCreator::createInputForBatch() {
+string BatchCreator::getValidPath() {
+    return kbdir + "/_batch_valid";
+}
+
+string BatchCreator::getTestPath() {
+    return kbdir + "/_batch_test";
+}
+
+void BatchCreator::createInputForBatch(const float valid, const float test) {
     //Create a file called '_batch' in the maindir with a fixed-length record size
     BOOST_LOG_TRIVIAL(info) << "Store the input for the batch process in " << kbdir + "/_batch ...";
     KBConfig config;
@@ -25,6 +35,19 @@ void BatchCreator::createInputForBatch() {
     Querier *q = kb.query();
     auto itr = q->get(IDX_SPO, -1, -1, -1);
     long s,p,o;
+
+    ofstream ofs_valid;
+    if (valid > 0) {
+        ofs_valid.open(this->kbdir + "/_batch_valid", ios::out | ios::app | ios::binary);
+    }
+    ofstream ofs_test;
+    if (test > 0) {
+        ofs_test.open(this->kbdir + "/_batch_test", ios::out | ios::app | ios::binary);
+    }
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
+
     ofstream ofs;
     ofs.open(this->kbdir + "/_batch", ios::out | ios::app | ios::binary);
     while (itr->hasNext()) {
@@ -35,12 +58,30 @@ void BatchCreator::createInputForBatch() {
         const char *cs = (const char*)&s;
         const char *cp = (const char*)&p;
         const char *co = (const char*)&o;
-        ofs.write(cs, 5); //Max numbers have 5 bytes
-        ofs.write(cp, 5);
-        ofs.write(co, 5);
+        if (valid > 0 && dis(gen) < valid) {
+            ofs_valid.write(cs, 5); //Max numbers have 5 bytes
+            ofs_valid.write(cp, 5);
+            ofs_valid.write(co, 5);
+        } else if (test > 0 && dis(gen) < test) {
+            ofs_test.write(cs, 5); //Max numbers have 5 bytes
+            ofs_test.write(cp, 5);
+            ofs_test.write(co, 5);
+        } else {
+            ofs.write(cs, 5); //Max numbers have 5 bytes
+            ofs.write(cp, 5);
+            ofs.write(co, 5);
+        }
     }
     q->releaseItr(itr);
+
     ofs.close();
+    if (valid > 0) {
+        ofs_valid.close();
+    }
+    if (test > 0) {
+        ofs_test.close();
+    }
+
     delete q;
     BOOST_LOG_TRIVIAL(info) << "Done";
 }
@@ -48,9 +89,13 @@ void BatchCreator::createInputForBatch() {
 void BatchCreator::start() {
     //First check if the file exists
     string fin = this->kbdir + "/_batch";
-    if (!fs::exists(fin)) {
+    if (fs::exists(fin)) {
+        //if (valid > 0 || test > 0) {
+        //    BOOST_LOG_TRIVIAL(warning) << "The batch was already prepared. The 'valid' and 'test' parameters will be ignored. You must remove all _batch files so that the batch can be re-created with the given parameters";
+        //}
+    } else {
         BOOST_LOG_TRIVIAL(info) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
-        createInputForBatch();
+        createInputForBatch(valid, test);
     }
 
     //Load the file into a memory-mapped file
@@ -125,3 +170,23 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
     }
     return i > 0;
 }
+
+void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
+    bip::file_mapping mapping(path.c_str(), bip::read_only);
+    bip::mapped_region mapped_rgn(mapping, bip::read_only);
+    char *start = static_cast<char*>(mapped_rgn.get_address());
+    char *end = start + (uint64_t)mapped_rgn.get_size();
+    while (start < end) {
+        long s = *(long*)(start);
+        s = s & 0xFFFFFFFFFFl;
+        long p = *(long*)(start + 5);
+        p = p & 0xFFFFFFFFFFl;
+        long o = *(long*)(start + 10);
+        o = o & 0xFFFFFFFFFFl;
+        output.push_back(s);
+        output.push_back(p);
+        output.push_back(o);
+        start += 15;
+    }
+}
+
