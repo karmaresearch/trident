@@ -66,7 +66,9 @@ void Transe::update_gradient_matrix(std::vector<EntityGradient> &gradients,
         assert(gidx < gradients.size() && gradients[gidx].id == t);
         float *signs = signmatrix[tripleId].get();
         for(uint16_t dimidx = 0; dimidx < dim; ++dimidx) {
-            gradients[gidx].dimensions[dimidx] += signs[dimidx] >= 0 ? pos : neg;
+            if (signs[dimidx] != 0) {
+                gradients[gidx].dimensions[dimidx] += signs[dimidx] > 0 ? pos : neg;
+            }
         }
         gradients[gidx].n++;
     }
@@ -92,10 +94,20 @@ void Transe::process_batch(BatchIO &io) {
     //Support data structures
     std::vector<EntityGradient> gradientsE; //The gradients for all entities
     std::vector<EntityGradient> gradientsR; //The gradients for all entities
-    std::vector<uint32_t> posSubjsUpdate; //List that contains the positive subjects to update
-    std::vector<uint32_t> posObjsUpdate; //List that contains the positive objects to update
-    std::vector<uint32_t> negSubjsUpdate; //List that contains the negative subjects to update
-    std::vector<uint32_t> negObjsUpdate; //List that contains the negative objects to update
+
+    /*std::vector<uint32_t> posSubjsUpdate; //List that contains the positive subjects to update
+      std::vector<uint32_t> posObjsUpdate; //List that contains the positive objects to update
+      std::vector<uint32_t> negSubjsUpdate; //List that contains the negative subjects to update
+      std::vector<uint32_t> negObjsUpdate; //List that contains the negative objects to update
+      */
+    std::vector<uint32_t> posSubjsUpdate1; //List that contains the positive subjects to update
+    std::vector<uint32_t> posObjsUpdate1; //List that contains the positive objects to update
+    std::vector<uint32_t> negObjsUpdate1; //List that contains the negative objects to update
+
+    std::vector<uint32_t> posSubjsUpdate2; //List that contains the positive subjects to update
+    std::vector<uint32_t> negSubjsUpdate2; //List that contains the negative subjects to update
+    std::vector<uint32_t> posObjsUpdate2; //List that contains the positive objects to update
+
     std::vector<uint32_t> posRels; //List that contains all relations to update
 
     for(uint32_t i = 0; i < sizebatch; ++i) {
@@ -114,40 +126,78 @@ void Transe::process_batch(BatchIO &io) {
         //Calculate the violations
         if (diffp - diff1n + margin > 0) {
             io.violations += 1;
-            posObjsUpdate.push_back(i);
-            negObjsUpdate.push_back(i);
+            posSubjsUpdate1.push_back(i);
+            posObjsUpdate1.push_back(i);
+            negObjsUpdate1.push_back(i);
+            //posObjsUpdate.push_back(i);
+            //negObjsUpdate.push_back(i);
             posRels.push_back(i);
         }
         if (diffp - diff2n + margin > 0) {
             io.violations += 1;
-            posSubjsUpdate.push_back(i);
-            negSubjsUpdate.push_back(i);
+            posObjsUpdate2.push_back(i);
+            posSubjsUpdate2.push_back(i);
+            negSubjsUpdate2.push_back(i);
+            //posSubjsUpdate.push_back(i);
+            //negSubjsUpdate.push_back(i);
             posRels.push_back(i);
         }
     }
 
     //Sort the triples in the batch by subjects and objects
-    std::sort(posSubjsUpdate.begin(), posSubjsUpdate.end(), _TranseSorter(output1));
-    std::sort(negSubjsUpdate.begin(), negSubjsUpdate.end(), _TranseSorter(sneg));
-    std::sort(posObjsUpdate.begin(), posObjsUpdate.end(), _TranseSorter(output3));
-    std::sort(negObjsUpdate.begin(), negObjsUpdate.end(), _TranseSorter(oneg));
+    /*std::sort(posSubjsUpdate.begin(), posSubjsUpdate.end(), _TranseSorter(output1));
+      std::sort(negSubjsUpdate.begin(), negSubjsUpdate.end(), _TranseSorter(sneg));
+      std::sort(posObjsUpdate.begin(), posObjsUpdate.end(), _TranseSorter(output3));
+      std::sort(negObjsUpdate.begin(), negObjsUpdate.end(), _TranseSorter(oneg));
+      std::sort(posRels.begin(), posRels.end(), _TranseSorter(output2));*/
+
+    std::sort(posSubjsUpdate1.begin(), posSubjsUpdate1.end(), _TranseSorter(output1));
+    std::sort(posSubjsUpdate2.begin(), posSubjsUpdate2.end(), _TranseSorter(output1));
+    std::sort(posObjsUpdate1.begin(), posObjsUpdate1.end(), _TranseSorter(output3));
+    std::sort(posObjsUpdate2.begin(), posObjsUpdate2.end(), _TranseSorter(output3));
+    std::sort(negObjsUpdate1.begin(), negObjsUpdate1.end(), _TranseSorter(oneg));
+    std::sort(negSubjsUpdate2.begin(), negSubjsUpdate2.end(), _TranseSorter(sneg));
     std::sort(posRels.begin(), posRels.end(), _TranseSorter(output2));
 
     //Get all the terms that appear in the batch
     std::vector<uint64_t> allterms;
-    for(auto idx : posSubjsUpdate) {
+    /*    for(auto idx : posSubjsUpdate) {
+          uint64_t t = output1[idx];
+          allterms.push_back(t);
+          }
+          for(auto idx : negSubjsUpdate) {
+          uint64_t t = sneg[idx];
+          allterms.push_back(t);
+          }
+          for(auto idx : posObjsUpdate) {
+          uint64_t t = output3[idx];
+          allterms.push_back(t);
+          }
+          for(auto idx : negObjsUpdate) {
+          uint64_t t = oneg[idx];
+          allterms.push_back(t);
+          }*/
+    for(auto idx : posSubjsUpdate1) {
         uint64_t t = output1[idx];
         allterms.push_back(t);
     }
-    for(auto idx : negSubjsUpdate) {
-        uint64_t t = sneg[idx];
-        allterms.push_back(t);
-    }
-    for(auto idx : posObjsUpdate) {
+    for(auto idx : posObjsUpdate1) {
         uint64_t t = output3[idx];
         allterms.push_back(t);
     }
-    for(auto idx : negObjsUpdate) {
+    for(auto idx : posSubjsUpdate2) {
+        uint64_t t = output1[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : posObjsUpdate2) {
+        uint64_t t = output3[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : negSubjsUpdate2) {
+        uint64_t t = sneg[idx];
+        allterms.push_back(t);
+    }
+    for(auto idx : negObjsUpdate1) {
         uint64_t t = oneg[idx];
         allterms.push_back(t);
     }
@@ -172,14 +222,33 @@ void Transe::process_batch(BatchIO &io) {
     }
 
     //Update the gradient matrix with the positive subjects
-    update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate,
+    /*update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate,
+      output1, 1, -1);
+      update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate,
+      sneg, -1, 1);
+      update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate,
+      output3, -1, 1);
+      update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate,
+      oneg, 1, -1);*/
+
+    update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate1,
             output1, 1, -1);
-    update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate,
-            sneg, -1, 1);
-    update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate,
+    update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate1,
             output3, -1, 1);
-    update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate,
+    update_gradient_matrix(gradientsE, neg1SignMatrix, posSubjsUpdate1,
+            output1, -1, 1);
+    update_gradient_matrix(gradientsE, neg1SignMatrix, negObjsUpdate1,
             oneg, 1, -1);
+
+    update_gradient_matrix(gradientsE, posSignMatrix, posSubjsUpdate2,
+            output1, 1, -1);
+    update_gradient_matrix(gradientsE, posSignMatrix, posObjsUpdate2,
+            output3, -1, 1);
+    update_gradient_matrix(gradientsE, neg2SignMatrix, negSubjsUpdate2,
+            sneg, -1, 1);
+    update_gradient_matrix(gradientsE, neg2SignMatrix, posObjsUpdate2,
+            output3, 1, -1);
+
 
     //Update the gradient matrix of the relations
     update_gradient_matrix(gradientsR, posSignMatrix, posRels,
