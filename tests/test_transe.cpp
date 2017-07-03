@@ -165,7 +165,8 @@ int main(int argc, const char** argv) {
     std::vector<uint32_t> negSubjsUpdate2; //List that contains the negative subjects to update
     std::vector<uint32_t> posObjsUpdate2; //List that contains the positive objects to update
 
-    std::vector<uint32_t> posRels; //List that contains all relations to update
+    std::vector<uint32_t> posRels1; //List that contains all relations to update
+    std::vector<uint32_t> posRels2; //List that contains all relations to update
 
     for(uint32_t i = 0; i < sizebatch; ++i) {
         //Get corresponding embeddings
@@ -186,14 +187,14 @@ int main(int argc, const char** argv) {
             posSubjsUpdate1.push_back(i);
             posObjsUpdate1.push_back(i);
             negObjsUpdate1.push_back(i);
-            posRels.push_back(i);
+            posRels1.push_back(i);
         }
         if (diffp - diff2n + margin > 0) {
             violations += 1;
             posObjsUpdate2.push_back(i);
             posSubjsUpdate2.push_back(i);
             negSubjsUpdate2.push_back(i);
-            posRels.push_back(i);
+            posRels2.push_back(i);
         }
     }
 
@@ -204,7 +205,8 @@ int main(int argc, const char** argv) {
     std::sort(posObjsUpdate2.begin(), posObjsUpdate2.end(), _TranseSorter(output3));
     std::sort(negObjsUpdate1.begin(), negObjsUpdate1.end(), _TranseSorter(oneg));
     std::sort(negSubjsUpdate2.begin(), negSubjsUpdate2.end(), _TranseSorter(sneg));
-    std::sort(posRels.begin(), posRels.end(), _TranseSorter(output2));
+    std::sort(posRels1.begin(), posRels1.end(), _TranseSorter(output2));
+    std::sort(posRels2.begin(), posRels2.end(), _TranseSorter(output2));
 
     //Get all the terms that appear in the batch
     std::vector<uint64_t> allterms;
@@ -236,7 +238,11 @@ int main(int argc, const char** argv) {
     auto it = std::unique(allterms.begin(), allterms.end());
     allterms.resize(std::distance(allterms.begin(), it));
     std::vector<uint64_t> allrels;
-    for(auto idx : posRels) {
+    for(auto idx : posRels1) {
+        uint64_t t = output2[idx];
+        allrels.push_back(t);
+    }
+    for(auto idx : posRels2) {
         uint64_t t = output2[idx];
         allrels.push_back(t);
     }
@@ -272,12 +278,112 @@ int main(int argc, const char** argv) {
             output3, 1, -1);
 
     //Update the gradient matrix of the relations
-    update_gradient_matrix(gradientsR, posSignMatrix, posRels,
+    update_gradient_matrix(gradientsR, posSignMatrix, posRels1,
             output2, 1, -1);
-    /*update_gradient_matrix(gradientsR, neg1SignMatrix, posRels,
-            output2, -1, 1);
-    update_gradient_matrix(gradientsR, neg2SignMatrix, posRels,
-            output2, -1, 1);*/
+    update_gradient_matrix(gradientsR, posSignMatrix, posRels2,
+            output2, 1, -1);
+    update_gradient_matrix(gradientsR, neg1SignMatrix, posRels1,
+      output2, -1, 1);
+      update_gradient_matrix(gradientsR, neg2SignMatrix, posRels2,
+      output2, -1, 1);
 
+    //Test the model
+    ifstream ifs_test;
+    ifs_test.open(argv[5]);
+    ifs_test.read(buffer, 4);
+    int nentries = 0;
+    nentries = *(int*)buffer;
+    std::vector<uint64_t> entities;
+    for(int i = 0; i < nentries; ++i) {
+        ifs_test.read(buffer, 8);
+        entities.push_back(*(long*) buffer);
+    }
+    //Load the gradients
+    ifs_test.read(buffer, 4);
+    int leng = *(int*)buffer;
+    std::vector<std::shared_ptr<float>> goE;
+    for(int i = 0; i < leng; ++i) {
+        std::shared_ptr<float> ptr = std::shared_ptr<float>(new float[DIMS]);
+        for (int j = 0; j < DIMS; ++j) {
+            ifs_test.read(buffer, 8);
+            double v = *(double*)buffer;
+            ptr.get()[j] = v;
+        }
+        goE.push_back(ptr);
+    }
+
+    ifs_test.read(buffer, 4);
+    int nrels = 0;
+    nrels = *(int*)buffer;
+    std::vector<uint64_t> relations;
+    for(int i = 0; i < nrels; ++i) {
+        ifs_test.read(buffer, 8);
+        relations.push_back(*(long*) buffer);
+    }
+    //Load the gradients
+    ifs_test.read(buffer, 4);
+    int lrg = *(int*)buffer;
+    std::vector<std::shared_ptr<float>> goR;
+    for(int i = 0; i < lrg; ++i) {
+        std::shared_ptr<float> ptr = std::shared_ptr<float>(new float[DIMS]);
+        for (int j = 0; j < DIMS; ++j) {
+            ifs_test.read(buffer, 8);
+            double v = *(double*)buffer;
+            ptr.get()[j] = v;
+        }
+        goR.push_back(ptr);
+    }
+    ifs_test.close();
+
+    //Compare them
+    cout << entities.size() << endl;
+    if (entities.size() != allterms.size()) {
+        cout << "Problem!" << endl;
+    }
+    for(int j = 0; j < entities.size(); ++j) {
+        if (entities[j] != allterms[j]) {
+            cout << "Problem2!" << endl;
+        }
+    }
+    if (gradientsE.size() != goE.size()) {
+        cout << "Problem3!" << endl;
+    }
+    int nproblems = 0;
+    for(int i = 0; i < goE.size(); ++i) {
+        for(int j = 0; j < DIMS; ++j) {
+            float v = gradientsE[i].dimensions[j] / gradientsE[i].n;
+            if (v != goE[i].get()[j]) {
+                cout << "First problem line " << i << " c=" << j << endl;
+                return 0;
+                nproblems ++;
+            }
+        }
+    }
+    cout << "NProblems: " << nproblems << endl;
+    cout << relations.size() << endl;
+    if (relations.size() != allrels.size()) {
+        cout << "Problem!" << endl;
+    }
+    for(int j = 0; j < relations.size(); ++j) {
+        if (relations[j] != allrels[j]) {
+            cout << "Problem2!" << endl;
+        }
+    }
+    if (gradientsR.size() != goR.size()) {
+        cout << "Problem3!" << endl;
+    }
+    //Test the relations
+    nproblems = 0;
+    for(int i = 0; i < goR.size(); ++i) {
+        for(int j = 0; j < DIMS; ++j) {
+            float v = gradientsR[i].dimensions[j] / gradientsR[i].n;
+            if (v != goR[i].get()[j]) {
+                //cout << "First problem line " << i << " c=" << j << endl;
+                //return 0;
+                nproblems ++;
+            }
+        }
+    }
+    cout << "NProblems: " << nproblems << endl;
     return 0;
 }
