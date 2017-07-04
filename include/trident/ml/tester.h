@@ -52,8 +52,8 @@ class Tester {
             Embeddings<K> *pR = R.get();
             const uint16_t dime = E->getDim();
             const uint16_t dimr = R->getDim();
-            std::vector<float> testArray(dime);
-            float *test = testArray.data();
+            std::vector<K> testArray(dime);
+            double *test = testArray.data();
             std::vector<std::size_t> indices(ne);
             std::iota(indices.begin(), indices.end(), 0u);
             std::vector<std::size_t> indices2(ne);

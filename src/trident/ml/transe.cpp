@@ -22,31 +22,31 @@ namespace fs = boost::filesystem;
 using namespace std;
 
 void Transe::setup(const uint16_t nthreads,
-        std::shared_ptr<Embeddings<float>> E,
-        std::shared_ptr<Embeddings<float>> R) {
+        std::shared_ptr<Embeddings<double>> E,
+        std::shared_ptr<Embeddings<double>> R) {
     this->E = E;
     this->R = R;
     if (adagrad) {
-        pe2 = std::unique_ptr<float>(new float[dim * ne]);
-        pr2 = std::unique_ptr<float>(new float[dim * nr]);
+        pe2 = std::unique_ptr<double>(new double[dim * ne]);
+        pr2 = std::unique_ptr<double>(new double[dim * nr]);
         //Init to zero
-        memset(pe2.get(), 0, sizeof(float) * dim * ne);
-        memset(pr2.get(), 0, sizeof(float) * dim * nr);
+        memset(pe2.get(), 0, sizeof(double) * dim * ne);
+        memset(pr2.get(), 0, sizeof(double) * dim * nr);
     }
 }
 
 void Transe::setup(const uint16_t nthreads) {
     BOOST_LOG_TRIVIAL(debug) << "Creating E ...";
-    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(ne, dim));
+    std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
     E->init(nthreads);
     BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
-    std::shared_ptr<Embeddings<float>> R = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(nr, dim));
+    std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     R->init(nthreads);
     setup(nthreads, E, R);
 }
 
-float Transe::dist_l1(float* head, float* rel, float* tail,
+float Transe::dist_l1(double* head, double* rel, double* tail,
         float *matrix) {
     float result = 0.0;
     for (uint16_t i = 0; i < dim; ++i) {
@@ -129,11 +129,11 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
 
     for(uint32_t i = 0; i < sizebatch; ++i) {
         //Get corresponding embeddings
-        float* sp = E->get(output1[i]);
-        float* pp = R->get(output2[i]);
-        float* op = E->get(output3[i]);
-        float* on = E->get(oneg[i]);
-        float* sn = E->get(sneg[i]);
+        double* sp = E->get(output1[i]);
+        double* pp = R->get(output2[i]);
+        double* op = E->get(output3[i]);
+        double* on = E->get(oneg[i]);
+        double* sn = E->get(sneg[i]);
 
         //Get the distances
         auto diffp = dist_l1(sp, pp, op, posSignMatrix[i].get());
@@ -250,26 +250,29 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
     //Update the gradients of the entities and relations
     if (adagrad) {
         for(auto &i : gradientsE) {
-            float *emb = E->get(i.id);
-            float *pent = pe2.get() + i.id * dim;
+            double *emb = E->get(i.id);
+            double *pent = pe2.get() + i.id * dim;
             for(uint16_t j = 0; j < dim; ++j) {
-                pent[j] += i.dimensions[j] * i.dimensions[j];
-                float maxv = max(sqrt(pent[j]), (float)1e-7);
+                const double g = (double)i.dimensions[j] / i.n;
+                pent[j] += g * g;
+                double spent = sqrt(pent[j]);
+                double maxv = max(spent, (double)1e-7);
                 emb[j] -= learningrate * i.dimensions[j] / maxv;
             }
         }
         for(auto &i : gradientsR) {
-            float *emb = R->get(i.id);
-            float *pr = pr2.get() + i.id * dim;
+            double *emb = R->get(i.id);
+            double *pr = pr2.get() + i.id * dim;
             for(uint16_t j = 0; j < dim; ++j) {
-                pr[j] += i.dimensions[j] * i.dimensions[j];
-                float maxv = max(sqrt(pr[j]), (float)1e-7);
+                const double g = (double)i.dimensions[j] / i.n;
+                pr[j] += g * g;
+                double maxv = max(sqrt(pr[j]), (double)1e-7);
                 emb[j] -= learningrate * i.dimensions[j] / maxv;
             }
         }
     } else { //sgd
         for (auto &i : gradientsE) {
-            float *emb = E->get(i.id);
+            double *emb = E->get(i.id);
             auto n = i.n;
             if (n > 0) {
                 for(uint16_t j = 0; j < dim; ++j) {
@@ -278,7 +281,7 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
             }
         }
         for (auto &i : gradientsR) {
-            float *emb = R->get(i.id);
+            double *emb = R->get(i.id);
             auto n = i.n;
             if (n > 0) {
                 for(uint16_t j = 0; j < dim; ++j) {
@@ -309,14 +312,14 @@ void Transe::batch_processer(
     *violations = viol;
 }
 
-void _store_entities(string path, const float *b, const float *e) {
+void _store_entities(string path, const double *b, const double *e) {
     ofstream ofs;
     ofs.open(path, std::ofstream::out);
     boost::iostreams::filtering_stream<boost::iostreams::output> out;
     out.push(boost::iostreams::gzip_compressor());
     out.push(ofs);
     boost::archive::text_oarchive oa(out);
-    const std::vector<float> a(b,e);
+    const std::vector<double> a(b,e);
     oa << a;
 }
 
@@ -427,7 +430,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
                 BatchCreator::loadTriples(pathvalid, testset);
 
                 //Do the test
-                TranseTester<float> tester(E, R);
+                TranseTester<double> tester(E, R);
                 auto result = tester.test("valid", testset, nthreads, epoch);
                 if (result < bestresult) {
                     isbest = true;
@@ -441,7 +444,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
     BOOST_LOG_TRIVIAL(info) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult;
 }
 
-std::pair<std::shared_ptr<Embeddings<float>>,std::shared_ptr<Embeddings<float>>>
+std::pair<std::shared_ptr<Embeddings<double>>,std::shared_ptr<Embeddings<double>>>
 Transe::loadModel(string path) {
     ifstream ifs;
     ifs.open(path);
@@ -453,16 +456,16 @@ Transe::loadModel(string path) {
     ia >> dim;
     uint32_t nr;
     ia >> nr;
-    std::vector<float> emb_r;
+    std::vector<double> emb_r;
     ia >> emb_r;
     uint32_t ne;
     ia >> ne;
     //Load R
-    std::shared_ptr<Embeddings<float>> R = std::shared_ptr<Embeddings<float>>(
-            new Embeddings<float>(nr, dim, emb_r)
+    std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(
+            new Embeddings<double>(nr, dim, emb_r)
             );
 
-    std::vector<float> emb_e;
+    std::vector<double> emb_e;
     emb_e.resize(ne * dim);
     fs::path bpath(path);
     string dirname = bpath.parent_path().string();
@@ -482,7 +485,7 @@ Transe::loadModel(string path) {
         inp2.push(boost::iostreams::gzip_decompressor());
         inp2.push(ifs2);
         boost::archive::text_iarchive ia(inp2);
-        std::vector<float> values;
+        std::vector<double> values;
         ia >> values;
         //Copy the values into emb_e
         for(size_t i = 0; i < values.size(); ++i) {
@@ -492,8 +495,8 @@ Transe::loadModel(string path) {
     }
 
     //Load E
-    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(
-            new Embeddings<float>(ne,dim,emb_e)
+    std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(
+            new Embeddings<double>(ne,dim,emb_e)
             );
 
     return std::make_pair(E,R);

@@ -68,12 +68,12 @@ class Transe {
         const uint16_t batchsize;
         const bool adagrad;
 
-        std::shared_ptr<Embeddings<float>> E;
-        std::shared_ptr<Embeddings<float>> R;
-        std::unique_ptr<float> pe2; //used for adagrad
-        std::unique_ptr<float> pr2; //used for adagrad
+        std::shared_ptr<Embeddings<double>> E;
+        std::shared_ptr<Embeddings<double>> R;
+        std::unique_ptr<double> pe2; //used for adagrad
+        std::unique_ptr<double> pr2; //used for adagrad
 
-        float dist_l1(float* head, float* rel, float* tail,
+        float dist_l1(double* head, double* rel, double* tail,
                 float *matrix);
 
         void gen_random(std::vector<uint64_t> &input, const uint64_t max);
@@ -109,8 +109,8 @@ class Transe {
         void setup(const uint16_t nthreads);
 
         void setup(const uint16_t nthreads,
-                std::shared_ptr<Embeddings<float>> E,
-                std::shared_ptr<Embeddings<float>> R);
+                std::shared_ptr<Embeddings<double>> E,
+                std::shared_ptr<Embeddings<double>> R);
 
         void train(BatchCreator &batcher, const uint16_t nthreads,
                 const uint32_t evalits,
@@ -118,14 +118,14 @@ class Transe {
                 const string storefolder);
 
         //Load the model (=two sets of embeddings, E and R) from disk
-        static std::pair<std::shared_ptr<Embeddings<float>>,std::shared_ptr<Embeddings<float>>>
+        static std::pair<std::shared_ptr<Embeddings<double>>,std::shared_ptr<Embeddings<double>>>
             loadModel(string path);
 
-        std::shared_ptr<Embeddings<float>> getE() {
+        std::shared_ptr<Embeddings<double>> getE() {
             return E;
         }
 
-        std::shared_ptr<Embeddings<float>> getR() {
+        std::shared_ptr<Embeddings<double>> getR() {
             return R;
         }
 };
