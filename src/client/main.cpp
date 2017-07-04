@@ -531,6 +531,7 @@ void launchML(KB &kb, string op, string params) {
         float margin = 1.0;
         float learningrate = 0.1;
         string storefolder = "";
+        bool adagrad = false;
 
         uint32_t evalits = 10;
         float valid = 0.0;
@@ -566,12 +567,15 @@ void launchML(KB &kb, string op, string params) {
         if (mapparams.count("testperc")) {
             test = boost::lexical_cast<float>(mapparams["testperc"]);
         }
+        if (mapparams.count("adagrad")) {
+            adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
+        }
 
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate <<
-            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads;
+            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " adagrad=" << adagrad;
 
         BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
-        Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize);
+        Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";

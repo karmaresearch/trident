@@ -66,22 +66,25 @@ class Transe {
         const float margin;
         const float learningrate;
         const uint16_t batchsize;
+        const bool adagrad;
 
         std::shared_ptr<Embeddings<float>> E;
         std::shared_ptr<Embeddings<float>> R;
+        std::unique_ptr<float> pe2; //used for adagrad
+        std::unique_ptr<float> pr2; //used for adagrad
 
         float dist_l1(float* head, float* rel, float* tail,
                 float *matrix);
 
         void gen_random(std::vector<uint64_t> &input, const uint64_t max);
 
-        void process_batch(BatchIO &io);
-
         void update_gradient_matrix(std::vector<EntityGradient> &gm,
                 std::vector<std::unique_ptr<float>> &signmatrix,
                 std::vector<uint32_t> &inputTripleID,
                 std::vector<uint64_t> &inputTerms,
                 int pos, int neg);
+
+        void process_batch(BatchIO &io);
 
         void batch_processer(
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
@@ -94,12 +97,20 @@ class Transe {
     public:
         Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
                 const uint16_t dim, const float margin, const float learningrate,
-                const uint16_t batchsize) :
+                const uint16_t batchsize, const bool adagrad) :
             epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
-            learningrate(learningrate), batchsize(batchsize) {
+            learningrate(learningrate), batchsize(batchsize), adagrad(adagrad) {
             }
 
+
+        void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
+                std::vector<uint64_t> &sneg);
+
         void setup(const uint16_t nthreads);
+
+        void setup(const uint16_t nthreads,
+                std::shared_ptr<Embeddings<float>> E,
+                std::shared_ptr<Embeddings<float>> R);
 
         void train(BatchCreator &batcher, const uint16_t nthreads,
                 const uint32_t evalits,

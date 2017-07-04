@@ -15,19 +15,35 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <cmath>
 
 namespace fs = boost::filesystem;
 
 using namespace std;
 
+void Transe::setup(const uint16_t nthreads,
+        std::shared_ptr<Embeddings<float>> E,
+        std::shared_ptr<Embeddings<float>> R) {
+    this->E = E;
+    this->R = R;
+    if (adagrad) {
+        pe2 = std::unique_ptr<float>(new float[dim * ne]);
+        pr2 = std::unique_ptr<float>(new float[dim * nr]);
+        //Init to zero
+        memset(pe2.get(), 0, sizeof(float) * dim * ne);
+        memset(pr2.get(), 0, sizeof(float) * dim * nr);
+    }
+}
+
 void Transe::setup(const uint16_t nthreads) {
     BOOST_LOG_TRIVIAL(debug) << "Creating E ...";
-    E = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(ne, dim));
+    std::shared_ptr<Embeddings<float>> E = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(ne, dim));
     //Initialize it
     E->init(nthreads);
     BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
-    R = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(nr, dim));
+    std::shared_ptr<Embeddings<float>> R = std::shared_ptr<Embeddings<float>>(new Embeddings<float>(nr, dim));
     R->init(nthreads);
+    setup(nthreads, E, R);
 }
 
 float Transe::dist_l1(float* head, float* rel, float* tail,
@@ -75,21 +91,26 @@ void Transe::update_gradient_matrix(std::vector<EntityGradient> &gradients,
 }
 
 void Transe::process_batch(BatchIO &io) {
+    //Generate negative samples
+    std::vector<uint64_t> oneg;
+    std::vector<uint64_t> sneg;
+    uint32_t sizebatch = io.field1.size();
+    oneg.resize(sizebatch);
+    sneg.resize(sizebatch);
+    gen_random(oneg, ne);
+    gen_random(sneg, ne);
+    process_batch(io, oneg, sneg);
+}
+
+void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
+        std::vector<uint64_t> &sneg) {
     std::vector<uint64_t> &output1 = io.field1;
     std::vector<uint64_t> &output2 = io.field2;
     std::vector<uint64_t> &output3 = io.field3;
     std::vector<std::unique_ptr<float>> &posSignMatrix = io.posSignMatrix;
     std::vector<std::unique_ptr<float>> &neg1SignMatrix = io.neg1SignMatrix;
     std::vector<std::unique_ptr<float>> &neg2SignMatrix = io.neg2SignMatrix;
-
-    //Generate negative samples
-    std::vector<uint64_t> oneg;
-    std::vector<uint64_t> sneg;
-    uint32_t sizebatch = output1.size();
-    oneg.resize(sizebatch);
-    sneg.resize(sizebatch);
-    gen_random(oneg, ne);
-    gen_random(sneg, ne);
+    const uint32_t sizebatch = io.field1.size();
 
     //Support data structures
     std::vector<EntityGradient> gradientsE; //The gradients for all entities
@@ -220,28 +241,49 @@ void Transe::process_batch(BatchIO &io) {
     update_gradient_matrix(gradientsR, posSignMatrix, posRels1,
             output2, 1, -1);
     update_gradient_matrix(gradientsR, neg1SignMatrix, posRels1,
-      output2, -1, 1);
+            output2, -1, 1);
     update_gradient_matrix(gradientsR, posSignMatrix, posRels2,
             output2, 1, -1);
-      update_gradient_matrix(gradientsR, neg2SignMatrix, posRels2,
-      output2, -1, 1);
+    update_gradient_matrix(gradientsR, neg2SignMatrix, posRels2,
+            output2, -1, 1);
 
     //Update the gradients of the entities and relations
-    for (auto &i : gradientsE) {
-        float *emb = E->get(i.id);
-        auto n = i.n;
-        if (n > 0) {
+    if (adagrad) {
+        for(auto &i : gradientsE) {
+            float *emb = E->get(i.id);
+            float *pent = pe2.get() + i.id * dim;
             for(uint16_t j = 0; j < dim; ++j) {
-                emb[j] -= learningrate * i.dimensions[j] / n;
+                pent[j] += i.dimensions[j] * i.dimensions[j];
+                float maxv = max(sqrt(pent[j]), (float)1e-7);
+                emb[j] -= learningrate * i.dimensions[j] / maxv;
             }
         }
-    }
-    for (auto &i : gradientsR) {
-        float *emb = R->get(i.id);
-        auto n = i.n;
-        if (n > 0) {
+        for(auto &i : gradientsR) {
+            float *emb = R->get(i.id);
+            float *pr = pr2.get() + i.id * dim;
             for(uint16_t j = 0; j < dim; ++j) {
-                emb[j] -= learningrate * i.dimensions[j] / n;
+                pr[j] += i.dimensions[j] * i.dimensions[j];
+                float maxv = max(sqrt(pr[j]), (float)1e-7);
+                emb[j] -= learningrate * i.dimensions[j] / maxv;
+            }
+        }
+    } else { //sgd
+        for (auto &i : gradientsE) {
+            float *emb = E->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] -= learningrate * i.dimensions[j] / n;
+                }
+            }
+        }
+        for (auto &i : gradientsR) {
+            float *emb = R->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] -= learningrate * i.dimensions[j] / n;
+                }
             }
         }
     }
