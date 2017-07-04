@@ -138,7 +138,9 @@ int main(int argc, const char** argv) {
             double *enew2 = Ecur->get(i);
             bool broken = false;
             for(int j = 0; j < DIMS; ++j) {
-                if (enew1[j] != enew2[j]) {
+                long e1 = enew1[j] * 6;
+                long e2 = enew2[j] * 6;
+                if (e1 != e2) {
                     cout << "emb " << i << " d=" << j << " " << enew1[j] << " " << enew2[j] << endl;
                     broken = true;
                 }

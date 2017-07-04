@@ -252,13 +252,22 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
         for(auto &i : gradientsE) {
             double *emb = E->get(i.id);
             double *pent = pe2.get() + i.id * dim;
+            double sum = 0.0; //used for normalization
             for(uint16_t j = 0; j < dim; ++j) {
                 const double g = (double)i.dimensions[j] / i.n;
                 pent[j] += g * g;
                 double spent = sqrt(pent[j]);
                 double maxv = max(spent, (double)1e-7);
                 emb[j] -= learningrate * i.dimensions[j] / maxv;
+                sum += emb[j] * emb[j];
             }
+            sum = sqrt(sum);
+            //normalization step
+            for(uint16_t j = 0; j < dim; ++j) {
+                emb[j] = emb[j] / sum;
+            }
+
+
         }
         for(auto &i : gradientsR) {
             double *emb = R->get(i.id);
@@ -275,8 +284,15 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
             double *emb = E->get(i.id);
             auto n = i.n;
             if (n > 0) {
+                double sum = 0.0; //used for normalization
                 for(uint16_t j = 0; j < dim; ++j) {
                     emb[j] -= learningrate * i.dimensions[j] / n;
+                    sum += emb[j] * emb[j];
+                }
+                sum = sqrt(sum);
+                //normalization step
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] = emb[j] / sum;
                 }
             }
         }
