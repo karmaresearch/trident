@@ -68,6 +68,17 @@ int main(int argc, const char** argv) {
             double v = *(double*)(buffer);
             embr_old.push_back(v);
         }
+        ifs.read(buffer, 4);
+        int npe= *(int*)buffer;
+        std::unique_ptr<double> pe2(new double[nents * DIMS]);
+        for(int j = 0; j < npe * DIMS; ++j) {
+            ifs.read(buffer, 8);
+            double v = *(double*)(buffer);
+            pe2.get()[j] = v;
+        }
+        std::unique_ptr<double> pr2(new double[nrels * DIMS]);
+        memset(pr2.get(), 0, sizeof(double) * DIMS * nrels);
+
         //new
         std::vector<double> embe_new;
         for(int j = 0; j < nents * DIMS; ++j) {
@@ -99,7 +110,7 @@ int main(int argc, const char** argv) {
 
         //Done with the reading
         Transe tr(150, nents, nrels, DIMS, 2.0, 0.1, 544, true);
-        tr.setup(1, E_old, R_old);
+        tr.setup(1, E_old, R_old, std::move(pe2), std::move(pr2));
         BatchIO io(544, DIMS);
         for(int i = 0; i < triples.size(); i+=3) {
             io.field1.push_back(triples[i]);
@@ -147,8 +158,6 @@ int main(int argc, const char** argv) {
             }
             if (broken)
                 return 0;
-            else
-                cout << "emb " << i << " is ok" << endl;
         }
         //
         //TODO Check R

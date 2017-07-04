@@ -23,16 +23,13 @@ using namespace std;
 
 void Transe::setup(const uint16_t nthreads,
         std::shared_ptr<Embeddings<double>> E,
-        std::shared_ptr<Embeddings<double>> R) {
+        std::shared_ptr<Embeddings<double>> R,
+        std::unique_ptr<double> pe,
+        std::unique_ptr<double> pr) {
     this->E = E;
     this->R = R;
-    if (adagrad) {
-        pe2 = std::unique_ptr<double>(new double[dim * ne]);
-        pr2 = std::unique_ptr<double>(new double[dim * nr]);
-        //Init to zero
-        memset(pe2.get(), 0, sizeof(double) * dim * ne);
-        memset(pr2.get(), 0, sizeof(double) * dim * nr);
-    }
+    this->pe2 = std::move(pe);
+    this->pr2 = std::move(pr);
 }
 
 void Transe::setup(const uint16_t nthreads) {
@@ -43,7 +40,16 @@ void Transe::setup(const uint16_t nthreads) {
     BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     R->init(nthreads);
-    setup(nthreads, E, R);
+    std::unique_ptr<double> lpe2;
+    std::unique_ptr<double> lpr2;
+    if (adagrad) {
+        lpe2 = std::unique_ptr<double>(new double[dim * ne]);
+        lpr2 = std::unique_ptr<double>(new double[dim * nr]);
+        //Init to zero
+        memset(lpe2.get(), 0, sizeof(double) * dim * ne);
+        memset(lpr2.get(), 0, sizeof(double) * dim * nr);
+    }
+    setup(nthreads, E, R, std::move(lpe2), std::move(lpr2));
 }
 
 float Transe::dist_l1(double* head, double* rel, double* tail,
@@ -258,7 +264,7 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 pent[j] += g * g;
                 double spent = sqrt(pent[j]);
                 double maxv = max(spent, (double)1e-7);
-                emb[j] -= learningrate * i.dimensions[j] / maxv;
+                emb[j] -= learningrate * g / maxv;
                 sum += emb[j] * emb[j];
             }
             sum = sqrt(sum);
@@ -276,7 +282,7 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 const double g = (double)i.dimensions[j] / i.n;
                 pr[j] += g * g;
                 double maxv = max(sqrt(pr[j]), (double)1e-7);
-                emb[j] -= learningrate * i.dimensions[j] / maxv;
+                emb[j] -= learningrate * g / maxv;
             }
         }
     } else { //sgd

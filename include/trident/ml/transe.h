@@ -110,7 +110,9 @@ class Transe {
 
         void setup(const uint16_t nthreads,
                 std::shared_ptr<Embeddings<double>> E,
-                std::shared_ptr<Embeddings<double>> R);
+                std::shared_ptr<Embeddings<double>> R,
+                std::unique_ptr<double> pe,
+                std::unique_ptr<double> pr);
 
         void train(BatchCreator &batcher, const uint16_t nthreads,
                 const uint32_t evalits,
