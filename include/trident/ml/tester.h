@@ -70,8 +70,6 @@ class Tester {
             long counter = 0;
             int stepperc = 10;
             long sizeinput = end - start;
-            //std::vector<uint32_t> allpositionsO;
-            //std::vector<uint32_t> allpositionsS;
             while (start != end)  {
                 //Get an input triple to test
                 uint64_t s = testset[start];
@@ -88,7 +86,6 @@ class Tester {
                 positionsO += posO;
                 hit10O += posO <= 10;
                 hit3O += posO <= 3;
-                //allpositionsO.push_back(posO);
 
                 //Test subjects
                 predictS(test, pR->get(p), dimr, pE->get(o), dime);
@@ -99,7 +96,6 @@ class Tester {
                 positionsS += posS;
                 hit10S += posS <= 10;
                 hit3S += posS <= 3;
-                //allpositionsS.push_back(posS);
 
                 //Track progress
                 counter++;
