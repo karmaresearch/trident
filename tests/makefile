@@ -4,6 +4,9 @@ CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/gli
 CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core 
 CPLUS=g++
 
+test_transe3:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testTranse3 -std=c++0x -DBOOST_LOG_DYN_LINK -g -O0 test_transe3.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap -lboost_serialization
+
 test_transe2:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testTranse2 -std=c++0x -DBOOST_LOG_DYN_LINK -g -O0 test_transe2.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap -lboost_serialization
 

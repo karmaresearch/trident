@@ -70,6 +70,8 @@ class Tester {
             long counter = 0;
             int stepperc = 10;
             long sizeinput = end - start;
+            //std::vector<uint32_t> allpositionsO;
+            //std::vector<uint32_t> allpositionsS;
             while (start != end)  {
                 //Get an input triple to test
                 uint64_t s = testset[start];
@@ -82,20 +84,22 @@ class Tester {
                 for(uint64_t idx = 0; idx < ne; ++idx) {
                     scores[idx] = closeness(test, pE->get(idx), dime);
                 }
-                const uint64_t posO = getPos(ne, scores, indices, indices2, o);
+                const uint64_t posO = getPos(ne, scores, indices, indices2, o) + 1;
                 positionsO += posO;
-                hit10O += posO < 10;
-                hit3O += posO < 3;
+                hit10O += posO <= 10;
+                hit3O += posO <= 3;
+                //allpositionsO.push_back(posO);
 
                 //Test subjects
                 predictS(test, pR->get(p), dimr, pE->get(o), dime);
                 for(uint64_t idx = 0; idx < ne; ++idx) {
                     scores[idx] = closeness(test, pE->get(idx), dime);
                 }
-                const uint64_t posS = getPos(ne, scores, indices, indices2, s);
+                const uint64_t posS = getPos(ne, scores, indices, indices2, s) + 1;
                 positionsS += posS;
-                hit10S += posS < 10;
-                hit3S += posS < 3;
+                hit10S += posS <= 10;
+                hit3S += posS <= 3;
+                //allpositionsS.push_back(posS);
 
                 //Track progress
                 counter++;
@@ -172,14 +176,14 @@ class Tester {
             }
 
             //return the output statistics
-            double avgsubj = (positionsS / (double) testset.size());
-            double avgobj = (positionsO / (double) testset.size());
+            double avgsubj = (positionsS / (double) ntriples);
+            double avgobj = (positionsO / (double) ntriples);
             double totalavg = (avgsubj + avgobj) / 2;
-            double avghit10s = (hit10S) / (double) testset.size() * 100;
-            double avghit10o = (hit10O) / (double) testset.size() * 100;
+            double avghit10s = (hit10S) / (double) ntriples * 100;
+            double avghit10o = (hit10O) / (double) ntriples * 100;
             double avghit10 = (avghit10s + avghit10o) / 2;
-            double avghit3s = (hit3S) / (double) testset.size() * 100;
-            double avghit3o = (hit3O) / (double) testset.size() * 100;
+            double avghit3s = (hit3S) / (double) ntriples * 100;
+            double avghit3o = (hit3O) / (double) ntriples * 100;
             double avghit3 = (avghit3s + avghit3o) / 2;
             std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - starttime;
 

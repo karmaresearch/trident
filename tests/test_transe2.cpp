@@ -76,8 +76,14 @@ int main(int argc, const char** argv) {
             double v = *(double*)(buffer);
             pe2.get()[j] = v;
         }
+        ifs.read(buffer, 4);
+        int npr= *(int*)buffer;
         std::unique_ptr<double> pr2(new double[nrels * DIMS]);
-        memset(pr2.get(), 0, sizeof(double) * DIMS * nrels);
+        for(int j = 0; j < npr * DIMS; ++j) {
+            ifs.read(buffer, 8);
+            double v = *(double*)(buffer);
+            pr2.get()[j] = v;
+        }
 
         //new
         std::vector<double> embe_new;
@@ -86,7 +92,6 @@ int main(int argc, const char** argv) {
             double v = *(double*)(buffer);
             embe_new.push_back(v);
         }
-        ifs.read(buffer, 4);
         std::vector<double> embr_new;
         for(int j = 0; j < nrels * DIMS; ++j) {
             ifs.read(buffer, 8);
@@ -96,14 +101,6 @@ int main(int argc, const char** argv) {
         ifs.close();
 
         //Load OLD embeddings
-        /*std::vector<float> tmpembe;
-        std::vector<float> tmpembr;
-        for(auto t : embe_old) {
-            tmpembe.push_back(t);
-        }
-        for(auto t : embr_old) {
-            tmpembr.push_back(t);
-        }*/
         std::shared_ptr<Embeddings<double>> E_old = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(embe_old.size() / DIMS, DIMS, embe_old));
         std::shared_ptr<Embeddings<double>> R_old = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(embr_old.size() / DIMS, DIMS, embr_old));
 
@@ -129,15 +126,6 @@ int main(int argc, const char** argv) {
         }
         tr.process_batch(io, oneg, sneg);
 
-        //Load NEW embeddings
-        /*std::vector<float> tmpembe_new;
-        std::vector<float> tmpembr_new;
-        for(auto t : embe_new) {
-            tmpembe_new.push_back(t);
-        }
-        for(auto t : embr_new) {
-            tmpembr_new.push_back(t);
-        }*/
         std::unique_ptr<Embeddings<double>> E_new = std::unique_ptr<Embeddings<double>>(new Embeddings<double>(embe_new.size() / DIMS, DIMS, embe_new));
         std::unique_ptr<Embeddings<double>> R_new = std::unique_ptr<Embeddings<double>>(new Embeddings<double>(embr_new.size() / DIMS, DIMS, embr_new));
 
@@ -159,8 +147,24 @@ int main(int argc, const char** argv) {
             if (broken)
                 return 0;
         }
-        //
-        //TODO Check R
+        //Check R
+        std::shared_ptr<Embeddings<double>> Rcur = tr.getR();
+        for(int i = 0; i < nrels; ++i) {
+            double *rnew1 = R_new->get(i);
+            double *rnew2 = Rcur->get(i);
+            bool broken = false;
+            for(int j = 0; j < DIMS; ++j) {
+                long r1 = rnew1[j] * 6;
+                long r2 = rnew2[j] * 6;
+                if (r1 != r2) {
+                    cout << "rel " << i << " d=" << j << " " << rnew1[j] << " " << rnew2[j] << endl;
+                    broken = true;
+                }
+            }
+            if (broken)
+                return 0;
+        }
+        cout << "Tested " << nents << " " << nrels << endl;
     }
     return 0;
 }

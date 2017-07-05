@@ -102,7 +102,6 @@ class Transe {
             learningrate(learningrate), batchsize(batchsize), adagrad(adagrad) {
             }
 
-
         void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 std::vector<uint64_t> &sneg);
 
