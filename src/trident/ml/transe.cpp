@@ -43,11 +43,11 @@ void Transe::setup(const uint16_t nthreads) {
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;
     if (adagrad) {
-        lpe2 = std::unique_ptr<double>(new double[dim * ne]);
-        lpr2 = std::unique_ptr<double>(new double[dim * nr]);
+        lpe2 = std::unique_ptr<double>(new double[(uint64_t)dim * ne]);
+        lpr2 = std::unique_ptr<double>(new double[(uint64_t)dim * nr]);
         //Init to zero
-        memset(lpe2.get(), 0, sizeof(double) * dim * ne);
-        memset(lpr2.get(), 0, sizeof(double) * dim * nr);
+        memset(lpe2.get(), 0, sizeof(double) * (uint64_t)dim * ne);
+        memset(lpr2.get(), 0, sizeof(double) * (uint64_t)dim * nr);
     }
     setup(nthreads, E, R, std::move(lpe2), std::move(lpr2));
 }
