@@ -334,28 +334,58 @@ void Transe::batch_processer(
     *violations = viol;
 }
 
-void _store_entities(string path, const double *b, const double *e) {
+void _store_entities(string path, bool compress, const double *b, const double *e) {
     ofstream ofs;
     ofs.open(path, std::ofstream::out);
     boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    out.push(boost::iostreams::gzip_compressor());
+    if (compress) {
+        out.push(boost::iostreams::gzip_compressor());
+    }
     out.push(ofs);
-    boost::archive::text_oarchive oa(out);
-    const std::vector<double> a(b,e);
-    oa << a;
+    while (b != e) {
+        ofs.write((char*)b, 8);
+        b++;
+    }
+    /*boost::archive::text_oarchive oa(out);
+      const std::vector<double> a(b,e);
+      BOOST_LOG_TRIVIAL(debug) << "Serializing a vector of " << a.size() << " elements";
+      oa << a;
+      */
+    BOOST_LOG_TRIVIAL(debug) << "Done";
 }
 
-void Transe::store_model(string path, const uint16_t nthreads) {
+void Transe::store_model(string path,
+        const bool compressstorage,
+        const uint16_t nthreads) {
     ofstream ofs;
+    if (compressstorage) {
+        path = path + ".gz";
+    }
     ofs.open(path, std::ofstream::out);
     boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    out.push(boost::iostreams::gzip_compressor());
+    if (compressstorage) {
+        out.push(boost::iostreams::gzip_compressor());
+    }
     out.push(ofs);
-    boost::archive::text_oarchive oa(out);
-    oa << dim;
-    oa << nr;
-    oa << R->getAllEmbeddings();
-    oa << ne;
+
+    /*
+       boost::archive::text_oarchive oa(out);
+       oa << dim;
+       oa << nr;
+       oa << R->getAllEmbeddings();
+       oa << ne;
+       */
+
+    out.write((char*)&dim, 4);
+    out.write((char*)&nr, 4);
+    out.write((char*)&ne, 4);
+    auto starr  = R->getPAllEmbeddings();
+    auto endr = starr + dim * nr;
+    while (starr != endr) {
+        out.write((char*)starr, 8);
+        starr++;
+    }
+
     //Parallelize the dumping of the entities
     auto data = E->getPAllEmbeddings();
     std::vector<std::thread> threads;
@@ -370,7 +400,9 @@ void Transe::store_model(string path, const uint16_t nthreads) {
         }
         BOOST_LOG_TRIVIAL(debug) << "Storing " << (end - begin) << " values in " << localpath << " ...";
         if (begin < end) {
-            threads.push_back(std::thread(_store_entities, localpath, data + begin, data + end));
+            threads.push_back(std::thread(_store_entities,
+                        localpath, compressstorage,
+                        data + begin, data + end));
             idx++;
         }
         begin = end;
@@ -378,10 +410,14 @@ void Transe::store_model(string path, const uint16_t nthreads) {
     for(uint16_t i = 0; i < threads.size(); ++i) {
         threads[i].join();
     }
+    BOOST_LOG_TRIVIAL(debug) << "Serialization done";
 }
 
 void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
-        const uint32_t evalits, string pathvalid, const string storefolder) {
+        const uint16_t nstorethreads,
+        const uint32_t evalits, const uint32_t storeits, string pathvalid,
+        const string storefolder,
+        const bool compresstorage) {
 
     bool shouldStoreModel = storefolder != "" && evalits > 0;
     double bestresult = std::numeric_limits<double>::max();
@@ -439,24 +475,23 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" << elapsed_seconds.count() << "sec. Violations=" << totalV;
-        if ((epoch+1) % evalits == 0) {
-            if (shouldStoreModel) {
-                string pathmodel = storefolder + "/model-" + to_string(epoch+1) + ".gz";
-                BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel;
-                store_model(pathmodel, nthreads);
-            }
 
-            bool isbest = false;
+        if (shouldStoreModel && (epoch + 1) % storeits == 0) {
+            string pathmodel = storefolder + "/model-" + to_string(epoch+1);
+            BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
+            store_model(pathmodel, compresstorage, nstorethreads);
+        }
+
+        if ((epoch+1) % evalits == 0) {
             if (fs::exists(pathvalid)) {
                 //Load the loading data into a vector
                 std::vector<uint64_t> testset;
                 BatchCreator::loadTriples(pathvalid, testset);
-
                 //Do the test
                 TranseTester<double> tester(E, R);
+                BOOST_LOG_TRIVIAL(debug) << "Testing on the valid dataset ...";
                 auto result = tester.test("valid", testset, nthreads, epoch);
                 if (result < bestresult) {
-                    isbest = true;
                     bestresult = result;
                     bestepoch = epoch;
                     BOOST_LOG_TRIVIAL(debug) << "Epoch " << epoch << " got best results";

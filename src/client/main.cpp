@@ -528,12 +528,15 @@ void launchML(KB &kb, string op, string params) {
         uint16_t dim = 50;
         uint32_t batchsize = 1000;
         uint16_t nthreads = 1;
+        uint16_t nstorethreads = 1;
         float margin = 1.0;
         float learningrate = 0.1;
         string storefolder = "";
         bool adagrad = false;
+        bool compresstorage = false;
 
         uint32_t evalits = 10;
+        uint32_t storeits = 10;
         float valid = 0.0;
         float test = 0.0;
 
@@ -549,6 +552,9 @@ void launchML(KB &kb, string op, string params) {
         if (mapparams.count("nthreads")) {
             nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
         }
+        if (mapparams.count("nstorethreads")) {
+            nstorethreads = boost::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
+        }
         if (mapparams.count("margin")) {
             margin = boost::lexical_cast<float>(mapparams["margin"]);
         }
@@ -557,6 +563,9 @@ void launchML(KB &kb, string op, string params) {
         }
         if (mapparams.count("storefolder")) {
             storefolder = mapparams["storefolder"];
+        }
+        if (mapparams.count("storeits")) {
+            storeits = boost::lexical_cast<uint32_t>(mapparams["storeits"]);
         }
         if (mapparams.count("evalits")) {
             evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
@@ -570,16 +579,24 @@ void launchML(KB &kb, string op, string params) {
         if (mapparams.count("adagrad")) {
             adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
         }
+        if (mapparams.count("compress")) {
+            compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
+        }
 
         BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate <<
-            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " adagrad=" << adagrad;
+            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
 
         BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
         Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
-        tr.train(batcher, nthreads, evalits, batcher.getValidPath(), storefolder);
+        tr.train(batcher, nthreads,
+                nstorethreads,
+                evalits, storeits,
+                batcher.getValidPath(),
+                storefolder,
+                compresstorage);
         BOOST_LOG_TRIVIAL(info) << "Done.";
 
     } else {

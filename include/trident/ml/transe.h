@@ -92,7 +92,8 @@ class Transe {
                 uint64_t *violations);
 
         //Store E and R into a file
-        void store_model(string pathmodel, const uint16_t nthreads);
+        void store_model(string pathmodel, const bool gzipcompress,
+                const uint16_t nthreads);
 
     public:
         Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
@@ -114,9 +115,12 @@ class Transe {
                 std::unique_ptr<double> pr);
 
         void train(BatchCreator &batcher, const uint16_t nthreads,
+                const uint16_t nstorethreads,
                 const uint32_t evalits,
+                const uint32_t storeits,
                 const string pathvalid,
-                const string storefolder);
+                const string storefolder,
+                const bool compressstorage);
 
         //Load the model (=two sets of embeddings, E and R) from disk
         static std::pair<std::shared_ptr<Embeddings<double>>,std::shared_ptr<Embeddings<double>>>
