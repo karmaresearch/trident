@@ -365,9 +365,10 @@ void Transe::store_model(string path, const uint16_t nthreads) {
     for(uint16_t i = 0; i < nthreads; ++i) {
         string localpath = path + "." + to_string(idx);
         uint64_t end = begin + batchsize;
-        if (end > (ne * dim) || i == nthreads - 1) {
-            end = ne * dim;
+        if (end > ((long)ne * dim) || i == nthreads - 1) {
+            end = (long)ne * dim;
         }
+        BOOST_LOG_TRIVIAL(debug) << "Storing " << (end - begin) << " values in " << localpath << " ...";
         if (begin < end) {
             threads.push_back(std::thread(_store_entities, localpath, data + begin, data + end));
             idx++;
