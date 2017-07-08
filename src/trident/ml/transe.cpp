@@ -399,7 +399,6 @@ void Transe::batch_processer(
         nbatches += 1;
     }
     *violations = viol;
-    BOOST_LOG_TRIVIAL(debug) << nbatches;
 }
 
 void _store_entities(string path, bool compress, const double *b, const double *e) {
