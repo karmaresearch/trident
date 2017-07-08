@@ -40,6 +40,40 @@ void Transe::setup(const uint16_t nthreads) {
     BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     R->init(nthreads);
+
+    //Load from disk
+    /*ofstream ofs;
+    ofs.open("TODO");
+    ofs.write((char*)&this->dim, 2);
+    ofs.write((char*)&this->ne, 4);
+    ofs.write((char*)&this->nr, 4);
+    const double *embs = E->getPAllEmbeddings();
+    for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
+        ofs.write((char*)(embs + i), 8);
+    }
+    const double *embsr = R->getPAllEmbeddings();
+    for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
+        ofs.write((char*)(embsr + i), 8);
+    }
+    ofs.close();
+    ifstream ifs;
+    ifs.open("TODO");
+    char buffer[10];
+    ifs.read(buffer, 10);
+    std::vector<double> embs;
+    for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
+        ifs.read(buffer, 8);
+        embs.push_back(*(double*)buffer);
+    }
+    E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim, embs));
+    embs.clear();
+    for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
+        ifs.read(buffer, 8);
+        embs.push_back(*(double*)buffer);
+    }
+    R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim, embs));
+    ifs.close();*/
+
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;
     if (adagrad) {

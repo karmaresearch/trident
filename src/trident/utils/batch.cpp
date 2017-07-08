@@ -33,7 +33,7 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
-    auto itr = q->get(IDX_SPO, -1, -1, -1);
+    auto itr = q->get(IDX_PSO, -1, -1, -1);
     long s,p,o;
 
     ofstream ofs_valid;
@@ -85,6 +85,33 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
     delete q;
     BOOST_LOG_TRIVIAL(info) << "Done";
 }
+
+struct _pso {
+    const char *rawtriples;
+    _pso(const char *rawtriples) : rawtriples(rawtriples) {}
+    bool operator() (const uint64_t idx1, const uint64_t idx2) const {
+        long s1 = *(long*)(rawtriples + idx1 * 15);
+        s1 = s1 & 0xFFFFFFFFFFl;
+        long p1 = *(long*)(rawtriples + idx1 * 15 + 5);
+        p1 = p1 & 0xFFFFFFFFFFl;
+        long o1 = *(long*)(rawtriples + idx1 * 15 + 10);
+        o1 = o1 & 0xFFFFFFFFFFl;
+        long s2 = *(long*)(rawtriples + idx2 * 15);
+        s2 = s2 & 0xFFFFFFFFFFl;
+        long p2 = *(long*)(rawtriples + idx2 * 15 + 5);
+        p2 = p2 & 0xFFFFFFFFFFl;
+        long o2 = *(long*)(rawtriples + idx2 * 15 + 10);
+        o2 = o2 & 0xFFFFFFFFFFl;
+        if (p1 != p2) {
+            return p1 < p2;
+        } else if (s1 != s2) {
+            return s1 < s2;
+        } else {
+            return o1 < o2;
+        }
+    }
+};
+
 
 void BatchCreator::start() {
     //First check if the file exists

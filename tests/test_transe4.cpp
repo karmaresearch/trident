@@ -11,15 +11,29 @@
 
 #include <kognac/utils.h>
 
+#include <boost/filesystem.hpp>
+
 #define DIMS 50
 
 namespace timens = boost::chrono;
 using namespace std;
 
 int main(int argc, const char** argv) {
+    std::unique_ptr<Transe> tr;
     auto files = Utils::getFiles(argv[1]);
-    for(auto f : files) {
+    string parentpath = string(argv[1]);
+    long it = 0;
+    for(int idxfile = 0; idxfile < files.size(); ++idxfile) {
+        //Find the file in the array...
+        bool found = false;
+        string f = parentpath + "batch." + to_string(idxfile);
+        if (!boost::filesystem::exists(f)) {
+            BOOST_LOG_TRIVIAL(debug) << "File " << f << " exists";
+            continue;
+        }
+        it += 1;
         cout << "Testing " << f << endl;
+        /******* READ INPUT *******/
         //Load the datastructures
         std::vector<uint64_t> triples;
         std::vector<uint64_t> negatives;
@@ -99,16 +113,15 @@ int main(int argc, const char** argv) {
             embr_new.push_back(v);
         }
         ifs.close();
+        /******* END READ INPUT *******/
 
         //Load OLD embeddings
         std::shared_ptr<Embeddings<double>> E_old = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(embe_old.size() / DIMS, DIMS, embe_old));
         std::shared_ptr<Embeddings<double>> R_old = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(embr_old.size() / DIMS, DIMS, embr_old));
-        cout << triples.size() / 3 << endl;
+        cout << "Batch size" << triples.size() / 3 << endl;
 
 
         //Done with the reading
-        Transe tr(150, nents, nrels, DIMS, 2.0, 0.1, triples.size()/3, true);
-        tr.setup(1, E_old, R_old, std::move(pe2), std::move(pr2));
         BatchIO io(triples.size()/3, DIMS);
         for(int i = 0; i < triples.size(); i+=3) {
             io.field1.push_back(triples[i]);
@@ -125,14 +138,17 @@ int main(int argc, const char** argv) {
                 oneg.push_back(negatives[i+1]);
             test = !test;
         }
-        tr.process_batch(io, oneg, sneg);
+        if (it == 1) {
+            tr = std::unique_ptr<Transe>(new Transe(150, nents, nrels, DIMS, 2.0, 0.1, triples.size()/3, true));
+            tr->setup(1, E_old, R_old, std::move(pe2), std::move(pr2));
+        }
+        tr->process_batch(io, oneg, sneg);
 
         std::unique_ptr<Embeddings<double>> E_new = std::unique_ptr<Embeddings<double>>(new Embeddings<double>(embe_new.size() / DIMS, DIMS, embe_new));
         std::unique_ptr<Embeddings<double>> R_new = std::unique_ptr<Embeddings<double>>(new Embeddings<double>(embr_new.size() / DIMS, DIMS, embr_new));
 
-
         //Check E
-        std::shared_ptr<Embeddings<double>> Ecur = tr.getE();
+        std::shared_ptr<Embeddings<double>> Ecur = tr->getE();
         for(int i = 0; i < nents; ++i) {
             double *enew1 = E_new->get(i);
             double *enew2 = Ecur->get(i);
@@ -149,7 +165,7 @@ int main(int argc, const char** argv) {
                 return 0;
         }
         //Check R
-        std::shared_ptr<Embeddings<double>> Rcur = tr.getR();
+        std::shared_ptr<Embeddings<double>> Rcur = tr->getR();
         for(int i = 0; i < nrels; ++i) {
             double *rnew1 = R_new->get(i);
             double *rnew2 = Rcur->get(i);
