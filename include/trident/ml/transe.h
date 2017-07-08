@@ -3,6 +3,7 @@
 
 #include <trident/ml/embeddings.h>
 #include <trident/utils/batch.h>
+#include <trident/kb/querier.h>
 
 #include <boost/log/trivial.hpp>
 #include <tbb/concurrent_queue.h>
@@ -59,6 +60,7 @@ struct BatchIO {
 
 class Transe {
     private:
+        Querier *q;
         const uint16_t epochs;
         const uint32_t ne;
         const uint32_t nr;
@@ -76,7 +78,11 @@ class Transe {
         float dist_l1(double* head, double* rel, double* tail,
                 float *matrix);
 
-        void gen_random(std::vector<uint64_t> &input, const uint64_t max);
+        void gen_random(BatchIO &io,
+                std::vector<uint64_t> &input,
+                const uint64_t max,
+                const bool subjObjs,
+                const uint16_t ntries);
 
         void update_gradient_matrix(std::vector<EntityGradient> &gm,
                 std::vector<std::unique_ptr<float>> &signmatrix,
@@ -89,17 +95,19 @@ class Transe {
         void batch_processer(
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
-                uint64_t *violations);
+                uint64_t *violation,
+                uint16_t epoch);
 
         //Store E and R into a file
         void store_model(string pathmodel, const bool gzipcompress,
                 const uint16_t nthreads);
 
     public:
-        Transe(const uint16_t epochs, const uint32_t ne, const uint32_t nr,
+        Transe(Querier *q, const uint16_t epochs, const uint32_t ne,
+                const uint32_t nr,
                 const uint16_t dim, const float margin, const float learningrate,
                 const uint16_t batchsize, const bool adagrad) :
-            epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
+            q(q), epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
             learningrate(learningrate), batchsize(batchsize), adagrad(adagrad) {
             }
 

@@ -33,7 +33,7 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
-    auto itr = q->get(IDX_PSO, -1, -1, -1);
+    auto itr = q->get(IDX_SPO, -1, -1, -1);
     long s,p,o;
 
     ofstream ofs_valid;
@@ -138,7 +138,6 @@ void BatchCreator::start() {
     }
 
     BOOST_LOG_TRIVIAL(debug) << "Shuffling array ...";
-    auto engine = std::default_random_engine{};
     std::shuffle(this->indices.begin(), this->indices.end(), engine);
     this->currentidx = 0;
     BOOST_LOG_TRIVIAL(debug) << "Done";

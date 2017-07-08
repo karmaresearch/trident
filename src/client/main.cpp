@@ -587,7 +587,8 @@ void launchML(KB &kb, string op, string params) {
             " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
 
         BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
-        Transe tr(epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
+        Querier *q = kb.query();
+        Transe tr(q, epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
@@ -598,7 +599,7 @@ void launchML(KB &kb, string op, string params) {
                 storefolder,
                 compresstorage);
         BOOST_LOG_TRIVIAL(info) << "Done.";
-
+        delete q;
     } else {
         BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
         return;

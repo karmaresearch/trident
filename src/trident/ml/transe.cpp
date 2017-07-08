@@ -43,36 +43,36 @@ void Transe::setup(const uint16_t nthreads) {
 
     //Load from disk
     /*ofstream ofs;
-    ofs.open("TODO");
-    ofs.write((char*)&this->dim, 2);
-    ofs.write((char*)&this->ne, 4);
-    ofs.write((char*)&this->nr, 4);
-    const double *embs = E->getPAllEmbeddings();
-    for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
-        ofs.write((char*)(embs + i), 8);
-    }
-    const double *embsr = R->getPAllEmbeddings();
-    for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
-        ofs.write((char*)(embsr + i), 8);
-    }
-    ofs.close();
-    ifstream ifs;
-    ifs.open("TODO");
-    char buffer[10];
-    ifs.read(buffer, 10);
-    std::vector<double> embs;
-    for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
-        ifs.read(buffer, 8);
-        embs.push_back(*(double*)buffer);
-    }
-    E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim, embs));
-    embs.clear();
-    for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
-        ifs.read(buffer, 8);
-        embs.push_back(*(double*)buffer);
-    }
-    R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim, embs));
-    ifs.close();*/
+      ofs.open("TODO");
+      ofs.write((char*)&this->dim, 2);
+      ofs.write((char*)&this->ne, 4);
+      ofs.write((char*)&this->nr, 4);
+      const double *embs = E->getPAllEmbeddings();
+      for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
+      ofs.write((char*)(embs + i), 8);
+      }
+      const double *embsr = R->getPAllEmbeddings();
+      for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
+      ofs.write((char*)(embsr + i), 8);
+      }
+      ofs.close();
+      ifstream ifs;
+      ifs.open("TODO");
+      char buffer[10];
+      ifs.read(buffer, 10);
+      std::vector<double> embs;
+      for(uint32_t i = 0; i < this->dim * this->ne; ++i) {
+      ifs.read(buffer, 8);
+      embs.push_back(*(double*)buffer);
+      }
+      E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim, embs));
+      embs.clear();
+      for(uint32_t i = 0; i < this->dim * this->nr; ++i) {
+      ifs.read(buffer, 8);
+      embs.push_back(*(double*)buffer);
+      }
+      R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim, embs));
+      ifs.close();*/
 
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;
@@ -97,12 +97,34 @@ float Transe::dist_l1(double* head, double* rel, double* tail,
     return result;
 }
 
-void Transe::gen_random(std::vector<uint64_t> &input, const uint64_t max) {
+void Transe::gen_random(
+        BatchIO &io,
+        std::vector<uint64_t> &input,
+        const uint64_t max,
+        const bool subjObjs,
+        const uint16_t ntries) {
+
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, max-1);
     for(uint32_t i = 0; i < input.size(); ++i) {
-        input[i] = dis(gen);
+        long s, p, o;
+        s = io.field1[i];
+        p = io.field2[i];
+        o = io.field3[i];
+        for(uint16_t attemptId = 0; attemptId < ntries; ++attemptId) {
+            input[i] = dis(gen);
+            //Check if the resulting triple is existing ...
+            if (subjObjs) {
+                s = input[i];
+            } else {
+                o = input[i];
+            }
+            if (q->isEmpty(s, p, o)) {
+                break;
+            } else {
+            }
+        }
     }
 }
 
@@ -137,8 +159,8 @@ void Transe::process_batch(BatchIO &io) {
     uint32_t sizebatch = io.field1.size();
     oneg.resize(sizebatch);
     sneg.resize(sizebatch);
-    gen_random(oneg, ne);
-    gen_random(sneg, ne);
+    gen_random(io, oneg, ne, true, 3);
+    gen_random(io, sneg, ne, false, 3);
     process_batch(io, oneg, sneg);
 }
 
@@ -351,21 +373,36 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
 void Transe::batch_processer(
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
-        uint64_t *violations) {
+        uint64_t *violations,
+        uint16_t epoch) {
     std::shared_ptr<BatchIO> pio;
     uint64_t viol = 0;
+    uint16_t nbatches = 0;
     while (true) {
         inputQueue->pop(pio);
         if (pio == NULL) {
             break;
         }
 
+        /*ofstream ofs;
+        ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
+        long size = pio->field1.size();
+        ofs.write((char*)&size, 8);
+        for(int i = 0; i < size; ++i) {
+            ofs.write((char*)&pio->field1[i], 8);
+            ofs.write((char*)&pio->field2[i], 8);
+            ofs.write((char*)&pio->field3[i], 8);
+        }
+        ofs.close();*/
+
         process_batch(*pio.get());
         viol += pio->violations;
         pio->clear();
         outputQueue->push(pio);
+        nbatches += 1;
     }
     *violations = viol;
+    BOOST_LOG_TRIVIAL(debug) << "N. batches " << nbatches;
 }
 
 void _store_entities(string path, bool compress, const double *b, const double *e) {
@@ -473,13 +510,15 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
         violations.resize(nthreads);
         for(uint16_t i = 0; i < nthreads; ++i) {
             doneQueue.push(std::shared_ptr<BatchIO>(new BatchIO(batchsize, dim)));
+            violations[i] = 0;
         }
 
         //Start nthreads
         std::vector<std::thread> threads;
         for(uint16_t i = 0; i < nthreads; ++i) {
             threads.push_back(std::thread(&Transe::batch_processer,
-                        this, &inputQueue, &doneQueue, &violations[i]));
+                        this, &inputQueue, &doneQueue, &violations[i],
+                        epoch));
         }
 
         //Process all batches

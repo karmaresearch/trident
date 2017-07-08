@@ -1,11 +1,12 @@
 #ifndef  BATCH_H_
 #define BATCH_H_
 
-#include <string>
-#include <vector>
-
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+
+#include <string>
+#include <vector>
+#include <random>
 
 using namespace std;
 namespace bip = boost::interprocess;
@@ -24,6 +25,7 @@ class BatchCreator {
         uint64_t ntriples;
         std::vector<uint64_t> indices;
         uint64_t currentidx;
+        std::default_random_engine engine;
 
         void createInputForBatch(const float valid, const float test);
 
