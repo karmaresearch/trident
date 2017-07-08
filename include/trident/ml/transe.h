@@ -70,6 +70,10 @@ class Transe {
         const uint16_t batchsize;
         const bool adagrad;
 
+        std::random_device rd;
+        std::mt19937 gen;
+        std::uniform_int_distribution<> dis;
+
         std::shared_ptr<Embeddings<double>> E;
         std::shared_ptr<Embeddings<double>> R;
         std::unique_ptr<double> pe2; //used for adagrad
@@ -80,7 +84,6 @@ class Transe {
 
         void gen_random(BatchIO &io,
                 std::vector<uint64_t> &input,
-                const uint64_t max,
                 const bool subjObjs,
                 const uint16_t ntries);
 
@@ -90,7 +93,8 @@ class Transe {
                 std::vector<uint64_t> &inputTerms,
                 int pos, int neg);
 
-        void process_batch(BatchIO &io);
+        void process_batch(BatchIO &io,
+                const uint16_t epoch, const uint16_t nbatches);
 
         void batch_processer(
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
@@ -108,7 +112,8 @@ class Transe {
                 const uint16_t dim, const float margin, const float learningrate,
                 const uint16_t batchsize, const bool adagrad) :
             q(q), epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
-            learningrate(learningrate), batchsize(batchsize), adagrad(adagrad) {
+            learningrate(learningrate), batchsize(batchsize), adagrad(adagrad),
+    gen(rd()), dis(0, ne - 1) {
             }
 
         void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,

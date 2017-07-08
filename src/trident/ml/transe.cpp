@@ -100,19 +100,15 @@ float Transe::dist_l1(double* head, double* rel, double* tail,
 void Transe::gen_random(
         BatchIO &io,
         std::vector<uint64_t> &input,
-        const uint64_t max,
         const bool subjObjs,
         const uint16_t ntries) {
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, max-1);
     for(uint32_t i = 0; i < input.size(); ++i) {
         long s, p, o;
         s = io.field1[i];
         p = io.field2[i];
         o = io.field3[i];
-        for(uint16_t attemptId = 0; attemptId < ntries; ++attemptId) {
+        uint16_t attemptId;
+        for(attemptId = 0; attemptId < ntries; ++attemptId) {
             input[i] = dis(gen);
             //Check if the resulting triple is existing ...
             if (subjObjs) {
@@ -122,7 +118,6 @@ void Transe::gen_random(
             }
             if (q->isEmpty(s, p, o)) {
                 break;
-            } else {
             }
         }
     }
@@ -152,15 +147,29 @@ void Transe::update_gradient_matrix(std::vector<EntityGradient> &gradients,
     }
 }
 
-void Transe::process_batch(BatchIO &io) {
+void Transe::process_batch(BatchIO &io, const uint16_t epoch, const uint16_t nbatches) {
     //Generate negative samples
     std::vector<uint64_t> oneg;
     std::vector<uint64_t> sneg;
     uint32_t sizebatch = io.field1.size();
     oneg.resize(sizebatch);
     sneg.resize(sizebatch);
-    gen_random(io, oneg, ne, true, 3);
-    gen_random(io, sneg, ne, false, 3);
+    gen_random(io, sneg, true, 10);
+    gen_random(io, oneg, false, 10);
+
+    /*ofstream ofs;
+    ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
+    long size = io.field1.size();
+    ofs.write((char*)&size, 8);
+    for(int i = 0; i < size; ++i) {
+        ofs.write((char*)&io.field1[i], 8);
+        ofs.write((char*)&io.field2[i], 8);
+        ofs.write((char*)&io.field3[i], 8);
+        ofs.write((char*)&sneg[i], 8);
+        ofs.write((char*)&oneg[i], 8);
+    }
+    ofs.close();*/
+
     process_batch(io, oneg, sneg);
 }
 
@@ -383,26 +392,14 @@ void Transe::batch_processer(
         if (pio == NULL) {
             break;
         }
-
-        /*ofstream ofs;
-        ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
-        long size = pio->field1.size();
-        ofs.write((char*)&size, 8);
-        for(int i = 0; i < size; ++i) {
-            ofs.write((char*)&pio->field1[i], 8);
-            ofs.write((char*)&pio->field2[i], 8);
-            ofs.write((char*)&pio->field3[i], 8);
-        }
-        ofs.close();*/
-
-        process_batch(*pio.get());
+        process_batch(*pio.get(), epoch, nbatches);
         viol += pio->violations;
         pio->clear();
         outputQueue->push(pio);
         nbatches += 1;
     }
     *violations = viol;
-    BOOST_LOG_TRIVIAL(debug) << "N. batches " << nbatches;
+    BOOST_LOG_TRIVIAL(debug) << nbatches;
 }
 
 void _store_entities(string path, bool compress, const double *b, const double *e) {
@@ -417,11 +414,6 @@ void _store_entities(string path, bool compress, const double *b, const double *
         ofs.write((char*)b, 8);
         b++;
     }
-    /*boost::archive::text_oarchive oa(out);
-      const std::vector<double> a(b,e);
-      BOOST_LOG_TRIVIAL(debug) << "Serializing a vector of " << a.size() << " elements";
-      oa << a;
-      */
     BOOST_LOG_TRIVIAL(debug) << "Done";
 }
 
@@ -438,15 +430,6 @@ void Transe::store_model(string path,
         out.push(boost::iostreams::gzip_compressor());
     }
     out.push(ofs);
-
-    /*
-       boost::archive::text_oarchive oa(out);
-       oa << dim;
-       oa << nr;
-       oa << R->getAllEmbeddings();
-       oa << ne;
-       */
-
     out.write((char*)&dim, 4);
     out.write((char*)&nr, 4);
     out.write((char*)&ne, 4);
@@ -526,6 +509,7 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
             std::shared_ptr<BatchIO> pio;
             doneQueue.pop(pio);
             if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
+                pio->violations = 0;
                 inputQueue.push(pio);
                 batchcounter++;
                 if (batchcounter % 100000 == 0) {

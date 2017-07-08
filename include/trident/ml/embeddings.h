@@ -60,8 +60,8 @@ class Embeddings {
         }
 
         void init(const uint16_t nthreads) {
-            K min = -6.0 / sqrt(dim);
-            K max = 6.0 / sqrt(dim);
+            K min = -6.0 / sqrt(n + dim);
+            K max = 6.0 / sqrt(n + dim);
             BOOST_LOG_TRIVIAL(debug) << "min=" << min << " max=" << max;
             if (nthreads > 1) {
                 uint64_t batchPerThread = raw.size() / nthreads;
