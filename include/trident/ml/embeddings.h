@@ -20,12 +20,31 @@ class Embeddings {
         std::vector<K> raw;
 
         static void init_seq(K* begin,
-                K*end, K min, K max) {
+                K*end, uint16_t dim, K min, K max,
+                const bool normalization) {
             std::random_device rd;
             std::mt19937 gen(rd());
             std::uniform_real_distribution<> dis(min, max);
+            assert(((end - begin) % dim) == 0);
+            uint64_t count = 0;
+            double sum = 0.0;
             while (begin != end) {
                 *begin = dis(gen);
+
+                //Normalization
+                if (normalization) {
+                    sum += *begin * *begin;
+                    if (((count + 1) % dim) == 0) {
+                        //Normalize the previous row
+                        sum = sqrt(sum);
+                        for(uint16_t i = 0; i < dim; ++i) {
+                            *(begin - i) /= sum;
+                        }
+                        sum = 0.0;
+                    }
+                    count++;
+                }
+
                 begin++;
             }
         }
@@ -59,26 +78,26 @@ class Embeddings {
             return raw.data();
         }
 
-        void init(const uint16_t nthreads) {
+        void init(const uint16_t nthreads, const bool normalization) {
             K min = -6.0 / sqrt(n + dim);
             K max = 6.0 / sqrt(n + dim);
-            BOOST_LOG_TRIVIAL(debug) << "min=" << min << " max=" << max;
             if (nthreads > 1) {
-                uint64_t batchPerThread = raw.size() / nthreads;
+                uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
                 K* begin = raw.data();
                 K* end = raw.data() + raw.size();
                 while (begin < end) {
-                    K* tmpend = (begin + batchPerThread) < end ? begin + batchPerThread : end;
+                    uint64_t offset = batchPerThread * dim;
+                    K* tmpend = (begin + offset) < end ? begin + offset : end;
                     threads.push_back(std::thread(Embeddings::init_seq, begin, tmpend,
-                                min, max));
-                    begin += batchPerThread;
+                                dim, min, max, normalization));
+                    begin += offset;
                 }
                 for(uint16_t i = 0; i < threads.size(); ++i) {
                     threads[i].join();
                 }
             } else {
-                init_seq(raw.data(), raw.data() + n * dim, min, max);
+                init_seq(raw.data(), raw.data() + n * dim, dim, min, max, normalization);
             }
         }
 };

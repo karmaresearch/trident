@@ -36,10 +36,10 @@ void Transe::setup(const uint16_t nthreads) {
     BOOST_LOG_TRIVIAL(debug) << "Creating E ...";
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
-    E->init(nthreads);
+    E->init(nthreads, true);
     BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
-    R->init(nthreads);
+    R->init(nthreads, false);
 
     //Load from disk
     /*ofstream ofs;
@@ -158,17 +158,17 @@ void Transe::process_batch(BatchIO &io, const uint16_t epoch, const uint16_t nba
     gen_random(io, oneg, false, 10);
 
     /*ofstream ofs;
-    ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
-    long size = io.field1.size();
-    ofs.write((char*)&size, 8);
-    for(int i = 0; i < size; ++i) {
-        ofs.write((char*)&io.field1[i], 8);
-        ofs.write((char*)&io.field2[i], 8);
-        ofs.write((char*)&io.field3[i], 8);
-        ofs.write((char*)&sneg[i], 8);
-        ofs.write((char*)&oneg[i], 8);
-    }
-    ofs.close();*/
+      ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
+      long size = io.field1.size();
+      ofs.write((char*)&size, 8);
+      for(int i = 0; i < size; ++i) {
+      ofs.write((char*)&io.field1[i], 8);
+      ofs.write((char*)&io.field2[i], 8);
+      ofs.write((char*)&io.field3[i], 8);
+      ofs.write((char*)&sneg[i], 8);
+      ofs.write((char*)&oneg[i], 8);
+      }
+      ofs.close();*/
 
     process_batch(io, oneg, sneg);
 }
