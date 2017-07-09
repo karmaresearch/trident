@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/tree/intermediatenode.h>
@@ -31,31 +31,32 @@
 
 #include <iostream>
 #include <assert.h>
+#include <mutex>
 
 #define CHILD_NOT_FOUND -1
 
 IntermediateNode::IntermediateNode(TreeContext *context, Node *child1,
-                                   Node *child2) :
+        Node *child2) :
     Node(context) {
-    children = new Node*[context->getMaxElementsPerNode() + 1];
-    idChildren = new long[context->getMaxElementsPerNode() + 1];
+        children = new Node*[context->getMaxElementsPerNode() + 1];
+        idChildren = new long[context->getMaxElementsPerNode() + 1];
 
-    if (context->textKeys()) {
-        int size = 0;
-        tTerm *key = child1->largestTextualKey(&size);
-        putkeyAt(key, size, 0);
-    } else {
-        long key1 = child1->largestNumericKey();
-        long key2 = child2->smallestNumericKey();
-        putkeyAt((key1 + key2) / 2, 0);
+        if (context->textKeys()) {
+            int size = 0;
+            tTerm *key = child1->largestTextualKey(&size);
+            putkeyAt(key, size, 0);
+        } else {
+            long key1 = child1->largestNumericKey();
+            long key2 = child2->smallestNumericKey();
+            putkeyAt((key1 + key2) / 2, 0);
+        }
+        children[0] = child1;
+        idChildren[0] = child1->getId();
+        children[1] = child2;
+        idChildren[1] = child2->getId();
+        lastUpdatedChild = -1;
+        setState(STATE_MODIFIED);
     }
-    children[0] = child1;
-    idChildren[0] = child1->getId();
-    children[1] = child2;
-    idChildren[1] = child2->getId();
-    lastUpdatedChild = -1;
-    setState(STATE_MODIFIED);
-}
 
 int IntermediateNode::unserialize(char *bytes, int pos) {
     pos = Node::unserialize(bytes, pos);
@@ -207,7 +208,7 @@ void textAvg(Node *parent, int p, Node *child1, Node *child2) {
 }
 
 Node *IntermediateNode::updateChildren(Node *split, int p,
-                                       void (*insertAverage)(Node*, int p, Node*, Node*)) {
+        void (*insertAverage)(Node*, int p, Node*, Node*)) {
     setState(STATE_MODIFIED);
     if (shouldSplit()) {
         IntermediateNode *n1 = getContext()->getCache()->newIntermediateNode();
@@ -363,8 +364,6 @@ Node *IntermediateNode::append(nTerm key, TermCoordinates *value) {
     }
 }
 
-
-
 Node *IntermediateNode::append(nTerm key, long coordinatesTerm) {
     int p = getCurrentSize();
     ensureChildIsLoaded(p);
@@ -378,7 +377,7 @@ Node *IntermediateNode::append(nTerm key, long coordinatesTerm) {
 }
 
 Node *IntermediateNode::putOrGet(tTerm *key, int sizeKey, nTerm &value,
-                                 bool &insertResult) {
+        bool &insertResult) {
     // Forward the request to the children
     int p = pos(key, sizeKey);
     if (p < 0) {
@@ -397,9 +396,17 @@ Node *IntermediateNode::putOrGet(tTerm *key, int sizeKey, nTerm &value,
 
 void IntermediateNode::ensureChildIsLoaded(int p) {
     if (children[p] == NULL) {
-        children[p] = getContext()->getCache()->getNodeFromCache(idChildren[p]);
-        children[p]->setParent(this);
-        getContext()->getCache()->registerNode(children[p]);
+#ifdef MT
+        std::unique_lock<std::mutex> lock(getContext()->getMutex());
+        if (children[p] == NULL) {
+#endif
+            children[p] = getContext()->getCache()->getNodeFromCache(idChildren[p]);
+            children[p]->setParent(this);
+            getContext()->getCache()->registerNode(children[p]);
+#ifdef MT
+        }
+        lock.unlock();
+#endif
     }
 }
 

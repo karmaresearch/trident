@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef FILEMANAGER_H_
@@ -34,6 +34,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <mutex>
 
 using namespace std;
 
@@ -59,14 +60,21 @@ class FileManager {
 
         Stats* const stats;
 
+#ifdef MT
+        std::mutex mutex;
+#endif
+
         bool isFileLoaded(const int id) {
             return openedFiles[id] != NULL;
         }
 
         void load_file(const int id) {
             if (!isFileLoaded(id)) {
+#ifdef MT
+                std::unique_lock<std::mutex> lock(mutex);
+                if (!isFileLoaded(id)) {
+#endif                    
                 if (nOpenedFiles >= maxFiles) {
-                    //BOOST_LOG_TRIVIAL(debug) << "load_file: nOpenedFiles = " << nOpenedFiles << ", maxFiles = " << maxFiles;
                     //Take the last opened file
                     int idxFileToRemove = trackerOpenedFiles.front();
                     int firstFileRemoved = -1;
@@ -105,9 +113,6 @@ class FileManager {
                         nOpenedFiles--;
                     }
                 }
-
-                //BOOST_LOG_TRIVIAL(debug) << "Creating map for file " << id;
-
                 std::stringstream filePath;
                 filePath << cacheDir << "/" << id;
                 T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
@@ -115,6 +120,10 @@ class FileManager {
                 openedFiles[id] = f;
                 trackerOpenedFiles.push_back(id);
                 nOpenedFiles++;
+#ifdef MT
+            }
+            lock.unlock();
+#endif            
             }
         }
     public:

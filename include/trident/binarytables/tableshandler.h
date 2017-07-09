@@ -37,6 +37,7 @@
 
 #include <string>
 #include <iostream>
+#include <mutex>
 
 namespace fs = boost::filesystem;
 namespace bip = boost::interprocess;
@@ -99,6 +100,10 @@ class TableStorage {
 
         FileMarks *marks[MAX_N_FILES];
         bool marksLoaded[MAX_N_FILES];
+
+#ifdef MT
+        std::mutex mutex;
+#endif
 
         FileManager<FileDescriptor, FileDescriptor> *cache;
 

@@ -202,6 +202,8 @@ class Querier {
 
         bool isEmpty(const long s, const long p, const long o);
 
+        bool exists(const long s, const long p, const long o);
+
         int getIndex(const long s, const long p, const long o);
 
         char getStrategy(const int idx, const long v);

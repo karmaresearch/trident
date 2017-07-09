@@ -28,6 +28,8 @@
 
 #include <kognac/factory.h>
 
+#include <mutex>
+
 class Cache;
 class StringBuffer;
 
@@ -44,6 +46,10 @@ private:
     PreallocatedArraysFactory<Coordinates*>* const leavesBufferFactory;
     PreallocatedArraysFactory<long>* const nodeKeyFactory;
     long nodeCounter;
+
+#ifdef MT
+        std::mutex mutex;
+#endif
 
 public:
     TreeContext(Cache *cache, StringBuffer *buffer, bool readOnly,
@@ -101,6 +107,10 @@ public:
 
     PreallocatedArraysFactory<long>* const getNodesKeyFactory() const {
         return nodeKeyFactory;
+    }
+
+    std::mutex &getMutex() {
+        return mutex;
     }
 };
 
