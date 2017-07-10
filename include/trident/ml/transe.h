@@ -36,6 +36,7 @@ struct BatchIO {
     std::vector<std::unique_ptr<float>> posSignMatrix;
     std::vector<std::unique_ptr<float>> neg1SignMatrix;
     std::vector<std::unique_ptr<float>> neg2SignMatrix;
+    Querier *q;
     //Output
     uint64_t violations;
 
@@ -60,7 +61,7 @@ struct BatchIO {
 
 class Transe {
     private:
-        Querier *q;
+        KB &kb;
         const uint16_t epochs;
         const uint32_t ne;
         const uint32_t nr;
@@ -82,7 +83,8 @@ class Transe {
         float dist_l1(double* head, double* rel, double* tail,
                 float *matrix);
 
-        void gen_random(BatchIO &io,
+        void gen_random(Querier *q,
+                BatchIO &io,
                 std::vector<uint64_t> &input,
                 const bool subjObjs,
                 const uint16_t ntries);
@@ -97,6 +99,7 @@ class Transe {
                 const uint16_t epoch, const uint16_t nbatches);
 
         void batch_processer(
+                Querier *q,
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
                 uint64_t *violation,
@@ -107,11 +110,11 @@ class Transe {
                 const uint16_t nthreads);
 
     public:
-        Transe(Querier *q, const uint16_t epochs, const uint32_t ne,
+        Transe(KB &kb, const uint16_t epochs, const uint32_t ne,
                 const uint32_t nr,
                 const uint16_t dim, const float margin, const float learningrate,
                 const uint16_t batchsize, const bool adagrad) :
-            q(q), epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
+            kb(kb), epochs(epochs), ne(ne), nr(nr), dim(dim), margin(margin),
             learningrate(learningrate), batchsize(batchsize), adagrad(adagrad),
     gen(rd()), dis(0, ne - 1) {
             }

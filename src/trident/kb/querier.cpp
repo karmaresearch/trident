@@ -501,8 +501,9 @@ bool Querier::exists(const long s, const long p, const long o) {
     //Use the POS index
     PairItr *itr = get(IDX_POS, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR) {
+        bool resp = itr->hasNext();
         releaseItr(itr);
-        return true;
+        return resp;
     } else {
         return false;
     }

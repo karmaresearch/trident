@@ -98,6 +98,7 @@ float Transe::dist_l1(double* head, double* rel, double* tail,
 }
 
 void Transe::gen_random(
+        Querier *q,
         BatchIO &io,
         std::vector<uint64_t> &input,
         const bool subjObjs,
@@ -116,7 +117,7 @@ void Transe::gen_random(
             } else {
                 o = input[i];
             }
-            if (q->isEmpty(s, p, o)) {
+            if (!q->exists(s, p, o)) {
                 break;
             }
         }
@@ -154,8 +155,8 @@ void Transe::process_batch(BatchIO &io, const uint16_t epoch, const uint16_t nba
     uint32_t sizebatch = io.field1.size();
     oneg.resize(sizebatch);
     sneg.resize(sizebatch);
-    gen_random(io, sneg, true, 10);
-    gen_random(io, oneg, false, 10);
+    gen_random(io.q, io, sneg, true, 10);
+    gen_random(io.q, io, oneg, false, 10);
 
     /*ofstream ofs;
       ofs.open("TODO/batch-" + to_string(epoch) + "-" + to_string(nbatches));
@@ -380,6 +381,7 @@ void Transe::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
 }
 
 void Transe::batch_processer(
+        Querier *q,
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
         uint64_t *violations,
@@ -392,6 +394,7 @@ void Transe::batch_processer(
         if (pio == NULL) {
             break;
         }
+        pio->q = q;
         process_batch(*pio.get(), epoch, nbatches);
         viol += pio->violations;
         pio->clear();
@@ -481,6 +484,12 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
         fs::create_directories(storefolder);
     }
 
+    std::vector<std::unique_ptr<Querier>> queriers;
+    for(uint16_t i = 0; i < nthreads; ++i) {
+        queriers.push_back(std::unique_ptr<Querier>(kb.query()));
+    }
+
+
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
         //Init code
@@ -498,8 +507,9 @@ void Transe::train(BatchCreator &batcher, const uint16_t nthreads,
         //Start nthreads
         std::vector<std::thread> threads;
         for(uint16_t i = 0; i < nthreads; ++i) {
+            Querier *q = queriers[i].get();
             threads.push_back(std::thread(&Transe::batch_processer,
-                        this, &inputQueue, &doneQueue, &violations[i],
+                        this, q, &inputQueue, &doneQueue, &violations[i],
                         epoch));
         }
 
