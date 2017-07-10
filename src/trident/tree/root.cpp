@@ -113,7 +113,8 @@ bool Root::get(nTerm key, TermCoordinates *value) {
     while (node->canHaveChildren()) {
         node = node->getChildForKey(key);
     }
-    return node->get(key, value);
+    bool resp = node->get(key, value);
+    return resp;
 }
 
 bool Root::get(nTerm key, long &coordinates) {

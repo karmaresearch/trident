@@ -65,6 +65,8 @@ class Root {
         const bool readOnly;
         const string path;
 
+        //std::mutex mutex;
+
         PreallocatedArraysFactory<long> *nodesKeysFactory;
         PreallocatedFactory<Coordinates> *ilFactory;
         PreallocatedArraysFactory<Coordinates*> *ilBufferFactory;

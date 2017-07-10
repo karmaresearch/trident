@@ -143,7 +143,7 @@ std::string TableStorage::getPath() {
 std::pair<const char*, const char*> TableStorage::getTable(short file, long mark) {
     //I assume all the table is in one file
     if (!marksLoaded[file]) {
-#ifdef MT        
+#ifdef MT
         std::unique_lock<std::mutex> lock(mutex);
         if (!marksLoaded[file]) {
 #endif
@@ -152,7 +152,7 @@ std::pair<const char*, const char*> TableStorage::getTable(short file, long mark
             m->parse(string(pathDir));
             marks[file] = m;
             marksLoaded[file] = true;
-#ifdef MT        
+#ifdef MT
         }
         lock.unlock();
 #endif

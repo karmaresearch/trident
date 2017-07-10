@@ -805,6 +805,11 @@ const char NCOMBS[64] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2
 //const uint8_t COMBS[29] = {0, 1, 2, 0, 2, 0, 3, 1, 4, 2, 5, 0, 1, 3, 4, 1, 2, 4, 5, 0, 2, 3, 5, 0, 1, 2, 3, 4, 5};
 
 Coordinates *Leaf::parseInternalLine(const int pos) {
+#ifdef MT
+        std::mutex &mutex = getContext()->getMutex();
+        std::unique_lock<std::mutex> lock(mutex);
+#endif
+
     unsigned char permutations = rawNode[pos];
     int startPos = (unsigned short) Utils::decode_short((const char*)rawNode,
                    getCurrentSize() + pos * 2);
@@ -848,6 +853,10 @@ Coordinates *Leaf::parseInternalLine(const int pos) {
             scanThroughArray = true;
         }
     }
+
+#ifdef MT
+        lock.unlock();
+#endif
 
     return first;
 }

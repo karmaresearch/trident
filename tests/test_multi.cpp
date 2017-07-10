@@ -17,15 +17,14 @@ using namespace std;
 
 
 void testKB(Querier *q, std::vector<uint64_t> *v) {
-    for(int i = 0; i < v->size(); i+=3) {
-        long s = v->at(i);
-        long p = v->at(i+1);
-        long o = v->at(i+2);
-        if (!q->exists(s,p,o)) {
-            cout << "Not found " << s << " " << p << " " << o << endl;
-        }
-        if (i % 100000 == 0) {
-             BOOST_LOG_TRIVIAL(debug) << "Processed " << i;
+    for(int j = 0; j < 10; j++) {
+        for(int i = 0; i < v->size(); i+=3) {
+            long s = v->at(i);
+            long p = v->at(i+1);
+            long o = v->at(i+2);
+            if (!q->exists(s,p,o)) {
+                cout << "Not found " << s << " " << p << " " << o << endl;
+            }
         }
     }
     delete q;

@@ -73,57 +73,57 @@ class FileManager {
 #ifdef MT
                 std::unique_lock<std::mutex> lock(mutex);
                 if (!isFileLoaded(id)) {
-#endif                    
-                if (nOpenedFiles >= maxFiles) {
-                    //Take the last opened file
-                    int idxFileToRemove = trackerOpenedFiles.front();
-                    int firstFileRemoved = -1;
-                    trackerOpenedFiles.pop_front();
-                    bool rem = true;
-                    assert(!trackerOpenedFiles.empty());
-                    while (openedFiles[idxFileToRemove] == NULL ||
-                            openedFiles[idxFileToRemove]->isUsed()) {
+#endif
+                    if (nOpenedFiles >= maxFiles) {
+                        //Take the last opened file
+                        int idxFileToRemove = trackerOpenedFiles.front();
+                        int firstFileRemoved = -1;
+                        trackerOpenedFiles.pop_front();
+                        bool rem = true;
+                        assert(!trackerOpenedFiles.empty());
+                        while (openedFiles[idxFileToRemove] == NULL ||
+                                openedFiles[idxFileToRemove]->isUsed()) {
 
-                        if (openedFiles[idxFileToRemove] != NULL) {
-                            //It means the file is still used
-                            trackerOpenedFiles.push_back(idxFileToRemove);
-                            if (firstFileRemoved == -1) {
-                                firstFileRemoved = idxFileToRemove;
+                            if (openedFiles[idxFileToRemove] != NULL) {
+                                //It means the file is still used
+                                trackerOpenedFiles.push_back(idxFileToRemove);
+                                if (firstFileRemoved == -1) {
+                                    firstFileRemoved = idxFileToRemove;
+                                }
+                            } else {
+                                nOpenedFiles--;
                             }
-                        } else {
+
+                            if (!trackerOpenedFiles.empty()) {
+                                idxFileToRemove = trackerOpenedFiles.front();
+                                trackerOpenedFiles.pop_front();
+                            } else {
+                                rem = false;
+                            }
+
+                            if (idxFileToRemove == firstFileRemoved) {
+                                rem = false;
+                                break;
+                            }
+                        }
+                        if (rem) {
+                            //BOOST_LOG_TRIVIAL(debug) << "Deleting map for file " << idxFileToRemove;
+                            delete openedFiles[idxFileToRemove];
+                            openedFiles[idxFileToRemove] = NULL;
                             nOpenedFiles--;
                         }
-
-                        if (!trackerOpenedFiles.empty()) {
-                            idxFileToRemove = trackerOpenedFiles.front();
-                            trackerOpenedFiles.pop_front();
-                        } else {
-                            rem = false;
-                        }
-
-                        if (idxFileToRemove == firstFileRemoved) {
-                            rem = false;
-                            break;
-                        }
                     }
-                    if (rem) {
-                        //BOOST_LOG_TRIVIAL(debug) << "Deleting map for file " << idxFileToRemove;
-                        delete openedFiles[idxFileToRemove];
-                        openedFiles[idxFileToRemove] = NULL;
-                        nOpenedFiles--;
-                    }
-                }
-                std::stringstream filePath;
-                filePath << cacheDir << "/" << id;
-                T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
-                        bytesTracker, openedFiles, stats);
-                openedFiles[id] = f;
-                trackerOpenedFiles.push_back(id);
-                nOpenedFiles++;
+                    std::stringstream filePath;
+                    filePath << cacheDir << "/" << id;
+                    T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
+                            bytesTracker, openedFiles, stats);
+                    openedFiles[id] = f;
+                    trackerOpenedFiles.push_back(id);
+                    nOpenedFiles++;
 #ifdef MT
-            }
-            lock.unlock();
-#endif            
+                }
+                lock.unlock();
+#endif
             }
         }
     public:

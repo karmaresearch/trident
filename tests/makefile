@@ -5,7 +5,7 @@ CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core
 CPLUS=g++
 
 test_multi:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testMulti -std=c++0x -DBOOST_LOG_DYN_LINK  -O3 test_multi.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testMulti -std=c++0x -DBOOST_LOG_DYN_LINK  -O0 -g test_multi.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
 
 test_snap:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testSnap -std=c++0x -DBOOST_LOG_DYN_LINK  -O3 test_snap.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
