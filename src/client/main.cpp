@@ -614,7 +614,6 @@ void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport)
 }
 
 int main(int argc, const char** argv) {
-
     //Check some constraints
     if (!checkMachineConstraints()) {
         return EXIT_FAILURE;

@@ -15,6 +15,9 @@ set(COMPILE_FLAGS "-c -DBOOST_LOG_DYN_LINK -fPIC -std=c++11 -Wall -Wno-sign-comp
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_C_COMPILER "gcc")
 
+#Add support for multithreading ... Comment the following line to disable it
+add_definitions(-DMT)
+
 #Set to release mode if nothing is specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")

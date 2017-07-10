@@ -143,11 +143,19 @@ std::string TableStorage::getPath() {
 std::pair<const char*, const char*> TableStorage::getTable(short file, long mark) {
     //I assume all the table is in one file
     if (!marksLoaded[file]) {
-        sprintf(pathDir + sizePathDir, "%d.idx", file);
-        FileMarks *m = new FileMarks();
-        m->parse(string(pathDir));
-        marks[file] = m;
-        marksLoaded[file] = true;
+#ifdef MT
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!marksLoaded[file]) {
+#endif
+            sprintf(pathDir + sizePathDir, "%d.idx", file);
+            FileMarks *m = new FileMarks();
+            m->parse(string(pathDir));
+            marks[file] = m;
+            marksLoaded[file] = true;
+#ifdef MT
+        }
+        lock.unlock();
+#endif
     }
     std::pair<uint64_t,uint64_t> coord = marks[file]->getPos(mark);
     uint64_t realLen = (int) - 1;

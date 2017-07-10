@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef FILEMANAGER_H_
@@ -34,6 +34,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <mutex>
 
 using namespace std;
 
@@ -59,62 +60,70 @@ class FileManager {
 
         Stats* const stats;
 
+#ifdef MT
+        std::mutex mutex;
+#endif
+
         bool isFileLoaded(const int id) {
             return openedFiles[id] != NULL;
         }
 
         void load_file(const int id) {
             if (!isFileLoaded(id)) {
-                if (nOpenedFiles >= maxFiles) {
-                    //BOOST_LOG_TRIVIAL(debug) << "load_file: nOpenedFiles = " << nOpenedFiles << ", maxFiles = " << maxFiles;
-                    //Take the last opened file
-                    int idxFileToRemove = trackerOpenedFiles.front();
-                    int firstFileRemoved = -1;
-                    trackerOpenedFiles.pop_front();
-                    bool rem = true;
-                    assert(!trackerOpenedFiles.empty());
-                    while (openedFiles[idxFileToRemove] == NULL ||
-                            openedFiles[idxFileToRemove]->isUsed()) {
+#ifdef MT
+                std::unique_lock<std::mutex> lock(mutex);
+                if (!isFileLoaded(id)) {
+#endif
+                    if (nOpenedFiles >= maxFiles) {
+                        //Take the last opened file
+                        int idxFileToRemove = trackerOpenedFiles.front();
+                        int firstFileRemoved = -1;
+                        trackerOpenedFiles.pop_front();
+                        bool rem = true;
+                        assert(!trackerOpenedFiles.empty());
+                        while (openedFiles[idxFileToRemove] == NULL ||
+                                openedFiles[idxFileToRemove]->isUsed()) {
 
-                        if (openedFiles[idxFileToRemove] != NULL) {
-                            //It means the file is still used
-                            trackerOpenedFiles.push_back(idxFileToRemove);
-                            if (firstFileRemoved == -1) {
-                                firstFileRemoved = idxFileToRemove;
+                            if (openedFiles[idxFileToRemove] != NULL) {
+                                //It means the file is still used
+                                trackerOpenedFiles.push_back(idxFileToRemove);
+                                if (firstFileRemoved == -1) {
+                                    firstFileRemoved = idxFileToRemove;
+                                }
+                            } else {
+                                nOpenedFiles--;
                             }
-                        } else {
+
+                            if (!trackerOpenedFiles.empty()) {
+                                idxFileToRemove = trackerOpenedFiles.front();
+                                trackerOpenedFiles.pop_front();
+                            } else {
+                                rem = false;
+                            }
+
+                            if (idxFileToRemove == firstFileRemoved) {
+                                rem = false;
+                                break;
+                            }
+                        }
+                        if (rem) {
+                            //BOOST_LOG_TRIVIAL(debug) << "Deleting map for file " << idxFileToRemove;
+                            delete openedFiles[idxFileToRemove];
+                            openedFiles[idxFileToRemove] = NULL;
                             nOpenedFiles--;
                         }
-
-                        if (!trackerOpenedFiles.empty()) {
-                            idxFileToRemove = trackerOpenedFiles.front();
-                            trackerOpenedFiles.pop_front();
-                        } else {
-                            rem = false;
-                        }
-
-                        if (idxFileToRemove == firstFileRemoved) {
-                            rem = false;
-                            break;
-                        }
                     }
-                    if (rem) {
-                        //BOOST_LOG_TRIVIAL(debug) << "Deleting map for file " << idxFileToRemove;
-                        delete openedFiles[idxFileToRemove];
-                        openedFiles[idxFileToRemove] = NULL;
-                        nOpenedFiles--;
-                    }
+                    std::stringstream filePath;
+                    filePath << cacheDir << "/" << id;
+                    T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
+                            bytesTracker, openedFiles, stats);
+                    openedFiles[id] = f;
+                    trackerOpenedFiles.push_back(id);
+                    nOpenedFiles++;
+#ifdef MT
                 }
-
-                //BOOST_LOG_TRIVIAL(debug) << "Creating map for file " << id;
-
-                std::stringstream filePath;
-                filePath << cacheDir << "/" << id;
-                T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
-                        bytesTracker, openedFiles, stats);
-                openedFiles[id] = f;
-                trackerOpenedFiles.push_back(id);
-                nOpenedFiles++;
+                lock.unlock();
+#endif
             }
         }
     public:

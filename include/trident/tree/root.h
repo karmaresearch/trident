@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef ROOT_H_
@@ -29,6 +29,7 @@
 #include <trident/utils/propertymap.h>
 
 #include <string>
+#include <mutex>
 
 class Node;
 class TreeContext;
@@ -56,45 +57,47 @@ typedef enum params {
 } TreeParams;
 
 class Root {
-private:
-    Cache *cache;
-    StringBuffer *stringbuffer;
-    Node *rootNode;
-    TreeContext *context;
-    const bool readOnly;
-    const string path;
+    private:
+        Cache *cache;
+        StringBuffer *stringbuffer;
+        Node *rootNode;
+        TreeContext *context;
+        const bool readOnly;
+        const string path;
 
-    PreallocatedArraysFactory<long> *nodesKeysFactory;
-    PreallocatedFactory<Coordinates> *ilFactory;
-    PreallocatedArraysFactory<Coordinates*> *ilBufferFactory;
+        //std::mutex mutex;
 
-    void flushChildrenToCache();
+        PreallocatedArraysFactory<long> *nodesKeysFactory;
+        PreallocatedFactory<Coordinates> *ilFactory;
+        PreallocatedArraysFactory<Coordinates*> *ilBufferFactory;
 
-public:
-    Root(std::string path, StringBuffer *buffer, bool readOnly,
-         PropertyMap &conf);
+        void flushChildrenToCache();
 
-    bool get(tTerm *key, const int sizeKey, nTerm *value);
+    public:
+        Root(std::string path, StringBuffer *buffer, bool readOnly,
+                PropertyMap &conf);
 
-    bool get(nTerm key, TermCoordinates *value);
+        bool get(tTerm *key, const int sizeKey, nTerm *value);
 
-    bool get(nTerm key, long &coordinates);
+        bool get(nTerm key, TermCoordinates *value);
 
-    void put(nTerm key, TermCoordinates *value);
+        bool get(nTerm key, long &coordinates);
 
-    void append(tTerm *key, int sizeKey, nTerm &value);
+        void put(nTerm key, TermCoordinates *value);
 
-    bool insertIfNotExists(tTerm *key, int sizeKey, nTerm &value);
+        void append(tTerm *key, int sizeKey, nTerm &value);
 
-    void put(nTerm key, long coordinates);
+        bool insertIfNotExists(tTerm *key, int sizeKey, nTerm &value);
 
-    void append(nTerm key, long coordinates);
+        void put(nTerm key, long coordinates);
 
-    void append(nTerm key, TermCoordinates *value);
+        void append(nTerm key, long coordinates);
 
-    TreeItr *itr();
+        void append(nTerm key, TermCoordinates *value);
 
-    ~Root();
+        TreeItr *itr();
+
+        ~Root();
 };
 
 #endif /* ROOT_H_ */

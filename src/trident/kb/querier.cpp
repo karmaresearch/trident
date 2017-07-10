@@ -71,7 +71,7 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         aggrIndices = notAggrIndices = cacheIndices = 0;
         spo = sop = pos = pso = ops = osp = 0;
 
-	currentValue.clear();
+        currentValue.clear();
 
         if (files[0]) {
             std::string pathFirstPerm = files[0]->getPath();
@@ -496,6 +496,19 @@ long Querier::getCard(const long s, const long p, const long o) {
     }
 }
 
+//Check whether a triple exists
+bool Querier::exists(const long s, const long p, const long o) {
+    //Use the POS index
+    PairItr *itr = get(IDX_POS, s, p, o);
+    if (itr->getTypeItr() != EMPTY_ITR) {
+        releaseItr(itr);
+        return true;
+    } else {
+        return false;
+    }
+
+}
+
 bool Querier::isEmpty(const long s, const long p, const long o) {
     if (s < 0 && p < 0 && o < 0) {
         //They are all variables. Return the input size...
@@ -868,6 +881,11 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
     }
 
     if (!diffIndices.empty()) {
+
+#ifdef MT
+        BOOST_LOG_TRIVIAL(warning) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
+#endif
+
         std::vector<PairItr*> iterators;
         long nfirstterms = 0;
         for (int i = 0; i < diffIndices.size(); ++i) {
