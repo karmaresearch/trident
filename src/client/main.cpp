@@ -33,6 +33,7 @@
 #include <trident/tests/common.h>
 #include <trident/server/server.h>
 #include <trident/ml/transe.h>
+#include <trident/ml/distmul.h>
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
 #include <trident/utils/batch.h>
@@ -516,78 +517,84 @@ void launchML(KB &kb, string op, string params) {
     BOOST_LOG_TRIVIAL(debug) << "Parsed params: " << boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
                 boost::spirit::karma::string), mapparams);
 
+    if (!kb.areRelIDsSeparated()) {
+        BOOST_LOG_TRIVIAL(error) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
+        return;
+    }
+
+    //Setting up parameters
+    uint16_t epochs = 100;
+    const uint32_t ne = kb.getNTerms();
+    auto dict = kb.getDictMgmt();
+    const uint32_t nr = dict->getNRels();
+    uint16_t dim = 50;
+    uint32_t batchsize = 1000;
+    uint16_t nthreads = 1;
+    uint16_t nstorethreads = 1;
+    float margin = 1.0;
+    float learningrate = 0.1;
+    string storefolder = "";
+    bool adagrad = false;
+    bool compresstorage = false;
+    uint64_t numneg = 0;
+
+    uint32_t evalits = 10;
+    uint32_t storeits = 10;
+    float valid = 0.0;
+    float test = 0.0;
+
+    if (mapparams.count("dim")) {
+        dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
+    }
+    if (mapparams.count("epochs")) {
+        epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
+    }
+    if (mapparams.count("batchsize")) {
+        batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
+    }
+    if (mapparams.count("nthreads")) {
+        nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+    }
+    if (mapparams.count("nstorethreads")) {
+        nstorethreads = boost::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
+    }
+    if (mapparams.count("margin")) {
+        margin = boost::lexical_cast<float>(mapparams["margin"]);
+    }
+    if (mapparams.count("learningrate")) {
+        learningrate = boost::lexical_cast<float>(mapparams["learningrate"]);
+    }
+    if (mapparams.count("storefolder")) {
+        storefolder = mapparams["storefolder"];
+    }
+    if (mapparams.count("storeits")) {
+        storeits = boost::lexical_cast<uint32_t>(mapparams["storeits"]);
+    }
+    if (mapparams.count("evalits")) {
+        evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
+    }
+    if (mapparams.count("validperc")) {
+        valid = boost::lexical_cast<float>(mapparams["validperc"]);
+    }
+    if (mapparams.count("testperc")) {
+        test = boost::lexical_cast<float>(mapparams["testperc"]);
+    }
+    if (mapparams.count("adagrad")) {
+        adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
+    }
+    if (mapparams.count("compress")) {
+        compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
+    }
+    if (mapparams.count("numneg")) {
+        numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
+    }
+
     if (op == "transe") {
-        if (!kb.areRelIDsSeparated()) {
-            BOOST_LOG_TRIVIAL(error) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
-            return;
-        }
-        uint16_t epochs = 100;
-        const uint32_t ne = kb.getNTerms();
-        auto dict = kb.getDictMgmt();
-        const uint32_t nr = dict->getNRels();
-        uint16_t dim = 50;
-        uint32_t batchsize = 1000;
-        uint16_t nthreads = 1;
-        uint16_t nstorethreads = 1;
-        float margin = 1.0;
-        float learningrate = 0.1;
-        string storefolder = "";
-        bool adagrad = false;
-        bool compresstorage = false;
 
-        uint32_t evalits = 10;
-        uint32_t storeits = 10;
-        float valid = 0.0;
-        float test = 0.0;
-
-        if (mapparams.count("dim")) {
-            dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
-        }
-        if (mapparams.count("epochs")) {
-            epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
-        }
-        if (mapparams.count("batchsize")) {
-            batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
-        }
-        if (mapparams.count("nthreads")) {
-            nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
-        }
-        if (mapparams.count("nstorethreads")) {
-            nstorethreads = boost::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
-        }
-        if (mapparams.count("margin")) {
-            margin = boost::lexical_cast<float>(mapparams["margin"]);
-        }
-        if (mapparams.count("learningrate")) {
-            learningrate = boost::lexical_cast<float>(mapparams["learningrate"]);
-        }
-        if (mapparams.count("storefolder")) {
-            storefolder = mapparams["storefolder"];
-        }
-        if (mapparams.count("storeits")) {
-            storeits = boost::lexical_cast<uint32_t>(mapparams["storeits"]);
-        }
-        if (mapparams.count("evalits")) {
-            evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
-        }
-        if (mapparams.count("validperc")) {
-            valid = boost::lexical_cast<float>(mapparams["validperc"]);
-        }
-        if (mapparams.count("testperc")) {
-            test = boost::lexical_cast<float>(mapparams["testperc"]);
-        }
-        if (mapparams.count("adagrad")) {
-            adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
-        }
-        if (mapparams.count("compress")) {
-            compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
-        }
-
-        BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate <<
-            " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
+        BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
 
         BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
-        Transe tr(kb, epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
+        TranseLearner tr(kb, epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
         tr.setup(nthreads);
         BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
@@ -598,6 +605,28 @@ void launchML(KB &kb, string op, string params) {
                 storefolder,
                 compresstorage);
         BOOST_LOG_TRIVIAL(info) << "Done.";
+
+    } else if (op == "distmul") {
+
+
+        BOOST_LOG_TRIVIAL(debug) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
+        BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
+        DistMulLearner tr(kb, epochs, ne, nr, dim, margin,
+                learningrate,
+                batchsize,
+                adagrad,
+                numneg);
+        BOOST_LOG_TRIVIAL(info) << "Setting up DistMul...";
+        tr.setup(nthreads);
+        BOOST_LOG_TRIVIAL(info) << "Launching the training of DistMul...";
+        tr.train(batcher, nthreads,
+                nstorethreads,
+                evalits, storeits,
+                batcher.getValidPath(),
+                storefolder,
+                compresstorage);
+        BOOST_LOG_TRIVIAL(info) << "Done.";
+
     } else {
         BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
         return;
