@@ -173,6 +173,12 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
     if (adagrad) {
         for(auto &i : gradientsE) {
             double *emb = E->get(i.id);
+
+            if (E->isLocked(i.id)) {
+                io.conflicts++;
+            }
+            E->lock(i.id);
+
             double *pent = pe2.get() + i.id * dim;
             double sum = 0.0; //used for normalization
             for(uint16_t j = 0; j < dim; ++j) {
@@ -189,10 +195,18 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 emb[j] = emb[j] / sum;
             }
 
+            E->unlock(i.id);
+
 
         }
         for(auto &i : gradientsR) {
             double *emb = R->get(i.id);
+
+            if (R->isLocked(i.id)) {
+                io.conflicts++;
+            }
+            R->lock(i.id);
+
             double *pr = pr2.get() + i.id * dim;
             for(uint16_t j = 0; j < dim; ++j) {
                 const double g = (double)i.dimensions[j] / i.n;
@@ -200,6 +214,8 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 double maxv = max(sqrt(pr[j]), (double)1e-7);
                 emb[j] -= learningrate * g / maxv;
             }
+
+            R->unlock(i.id);
         }
     } else { //sgd
         for (auto &i : gradientsE) {

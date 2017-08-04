@@ -68,10 +68,9 @@ void Learner::batch_processer(
         Querier *q,
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
-        uint64_t *violations,
+        ThreadOutput *output,
         uint16_t epoch) {
     std::shared_ptr<BatchIO> pio;
-    uint64_t viol = 0;
     uint16_t nbatches = 0;
     while (true) {
         inputQueue->pop(pio);
@@ -80,12 +79,12 @@ void Learner::batch_processer(
         }
         pio->q = q;
         process_batch(*pio.get(), epoch, nbatches);
-        viol += pio->violations;
+        output->violations += pio->violations;
+        output->conflicts += pio->conflicts;
         pio->clear();
         outputQueue->push(pio);
         nbatches += 1;
     }
-    *violations = viol;
 }
 
 void _store_entities(string path, bool compress, const double *b, const double *e) {
@@ -180,11 +179,10 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         uint32_t batchcounter = 0;
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> inputQueue;
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> doneQueue;
-        std::vector<uint64_t> violations;
-        violations.resize(nthreads);
+        std::vector<ThreadOutput> outputs;
+        outputs.resize(nthreads);
         for(uint16_t i = 0; i < nthreads; ++i) {
             doneQueue.push(std::shared_ptr<BatchIO>(new BatchIO(batchsize, dim)));
-            violations[i] = 0;
         }
 
         //Start nthreads
@@ -192,7 +190,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         for(uint16_t i = 0; i < nthreads; ++i) {
             Querier *q = queriers[i].get();
             threads.push_back(std::thread(&Learner::batch_processer,
-                        this, q, &inputQueue, &doneQueue, &violations[i],
+                        this, q, &inputQueue, &doneQueue, &outputs[i],
                         epoch));
         }
 
@@ -218,12 +216,16 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
 
         //Wait until all threads are finished
         uint64_t totalV = 0;
+        uint64_t totalC = 0;
         for(uint16_t i = 0; i < nthreads; ++i) {
             threads[i].join();
-            totalV += violations[i];
+            totalV += outputs[i].violations;
+            totalC += outputs[i].conflicts;
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" << elapsed_seconds.count() << "sec. Violations=" << totalV;
+        BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" <<
+            elapsed_seconds.count() << "sec. Violations=" << totalV <<
+            " Conflicts=" << totalC;
 
         if (shouldStoreModel && (epoch + 1) % storeits == 0) {
             string pathmodel = storefolder + "/model-" + to_string(epoch+1);

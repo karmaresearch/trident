@@ -11,6 +11,7 @@
 #include <math.h>
 #include <cstdint>
 #include <thread>
+#include <mutex>
 
 template<typename K>
 class Embeddings {
@@ -18,6 +19,8 @@ class Embeddings {
         const uint32_t n;
         const uint16_t dim;
         std::vector<K> raw;
+
+        std::vector<uint8_t> locks;
 
         static void init_seq(K* begin,
                 K*end, uint16_t dim, K min, K max,
@@ -52,6 +55,7 @@ class Embeddings {
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
             raw.resize((size_t)n * dim);
+            locks.resize(n);
         }
 
         Embeddings(const uint32_t n, const uint16_t dim, std::vector<K> &emb): n(n), dim(dim) {
@@ -60,6 +64,18 @@ class Embeddings {
 
         K* get(const uint32_t n) {
             return raw.data() + n * dim;
+        }
+
+        void lock(uint32_t idx) {
+            locks[idx]++;
+        }
+
+        void unlock(uint32_t idx) {
+            locks[idx]--;
+        }
+
+        bool isLocked(uint32_t idx) {
+            return locks[idx]>0;
         }
 
         uint16_t getDim() const {

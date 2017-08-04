@@ -31,6 +31,7 @@ struct BatchIO {
     Querier *q;
     //Output
     uint64_t violations;
+    uint64_t conflicts;
 
     BatchIO(uint16_t batchsize, const uint16_t dims) : batchsize(batchsize), dims(dims) {
         for(uint16_t i = 0; i < batchsize; ++i) {
@@ -42,12 +43,21 @@ struct BatchIO {
     }
 
     void clear() {
-        violations = 0;
+        conflicts = violations = 0;
         for(uint16_t i = 0; i < batchsize; ++i) {
             memset(posSignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg2SignMatrix[i].get(), 0, sizeof(float) * dims);
         }
+    }
+};
+
+struct ThreadOutput {
+    uint64_t violations;
+    uint64_t conflicts;
+    ThreadOutput() {
+        violations = 0;
+        conflicts = 0;
     }
 };
 
@@ -75,7 +85,7 @@ class Learner {
                 Querier *q,
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
                 tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
-                uint64_t *violation,
+                ThreadOutput *output,
                 uint16_t epoch);
 
         //Store E and R into a file
