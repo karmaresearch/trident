@@ -6,14 +6,8 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/serialization/vector.hpp>
 
 #include <iostream>
-#include <fstream>
 #include <chrono>
 #include <cmath>
 
@@ -87,25 +81,10 @@ void Learner::batch_processer(
     }
 }
 
-void _store_entities(string path, bool compress, const double *b, const double *e) {
-    ofstream ofs;
-    ofs.open(path, std::ofstream::out);
-    boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    if (compress) {
-        out.push(boost::iostreams::gzip_compressor());
-    }
-    out.push(ofs);
-    while (b != e) {
-        ofs.write((char*)b, 8);
-        b++;
-    }
-    BOOST_LOG_TRIVIAL(debug) << "Done";
-}
-
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
-    ofstream ofs;
+/*    ofstream ofs;
     if (compressstorage) {
         path = path + ".gz";
     }
@@ -148,7 +127,14 @@ void Learner::store_model(string path,
     }
     for(uint16_t i = 0; i < threads.size(); ++i) {
         threads[i].join();
-    }
+    }*/
+
+    BOOST_LOG_TRIVIAL(debug) << "Start serialization ...";
+    fs::create_directories(path);
+    BOOST_LOG_TRIVIAL(debug) << "Serializing R ...";
+    R->store(path + "/R", compressstorage, nthreads);
+    BOOST_LOG_TRIVIAL(debug) << "Serializing E ...";
+    E->store(path + "/E", compressstorage, nthreads);
     BOOST_LOG_TRIVIAL(debug) << "Serialization done";
 }
 

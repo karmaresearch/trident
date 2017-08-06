@@ -176,6 +176,7 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
 
             if (E->isLocked(i.id)) {
                 io.conflicts++;
+                E->incrConflict(i.id);
             }
             E->lock(i.id);
 
@@ -196,14 +197,13 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
             }
 
             E->unlock(i.id);
-
-
         }
         for(auto &i : gradientsR) {
             double *emb = R->get(i.id);
 
             if (R->isLocked(i.id)) {
                 io.conflicts++;
+                R->incrConflict(i.id);
             }
             R->lock(i.id);
 

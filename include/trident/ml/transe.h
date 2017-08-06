@@ -22,7 +22,5 @@ class TranseLearner : public PairwiseLearner {
 
         void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
                 std::vector<uint64_t> &sneg);
-
-
 };
 #endif
