@@ -48,7 +48,7 @@ private:
     long nodeCounter;
 
 #ifdef MT
-        std::mutex mutex;
+    std::mutex mutex;
 #endif
 
 public:
@@ -109,9 +109,11 @@ public:
         return nodeKeyFactory;
     }
 
+#ifdef MT
     std::mutex &getMutex() {
         return mutex;
     }
+#endif
 };
 
 #endif /* TREECONTEXT_H_ */
