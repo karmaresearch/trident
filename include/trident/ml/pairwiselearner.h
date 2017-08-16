@@ -30,12 +30,8 @@ class PairwiseLearner : public Learner {
                 const uint16_t ntries);
 
     public:
-        PairwiseLearner(KB &kb, const uint16_t epochs, const uint32_t ne,
-                const uint32_t nr,
-                const uint16_t dim, const float margin, const float learningrate,
-                const uint16_t batchsize, const bool adagrad) :
-            Learner(kb, epochs, ne, nr, dim, margin, learningrate, batchsize,
-                    adagrad), gen(rd()), dis(0, ne - 1) {
+        PairwiseLearner(KB &kb, LearnParams &p) :
+            Learner(kb, p), gen(rd()), dis(0, ne - 1) {
             }
 
         void process_batch(BatchIO &io, const uint16_t epoch, const uint16_t

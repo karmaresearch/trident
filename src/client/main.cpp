@@ -32,8 +32,7 @@
 #include <trident/mining/miner.h>
 #include <trident/tests/common.h>
 #include <trident/server/server.h>
-#include <trident/ml/transe.h>
-#include <trident/ml/distmul.h>
+#include <trident/ml/learner.h>
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
 #include <trident/utils/batch.h>
@@ -501,7 +500,7 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
     Analytics::run(kb, op, param1, param2);
 }
 
-void launchML(KB &kb, string op, string params) {
+void launchML(KB &kb, string op, string algo, string params) {
     BOOST_LOG_TRIVIAL(info) << "Launching " << op << " " << params << " ...";
     //Parse the params
     std::map<std::string,std::string> mapparams;
@@ -542,6 +541,8 @@ void launchML(KB &kb, string op, string params) {
     uint32_t storeits = 10;
     float valid = 0.0;
     float test = 0.0;
+
+    string fileout;
 
     if (mapparams.count("dim")) {
         dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
@@ -588,48 +589,33 @@ void launchML(KB &kb, string op, string params) {
     if (mapparams.count("numneg")) {
         numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
     }
+    if (mapparams.count("debugout")) {
+        fileout = mapparams["debugout"];
+    }
+    if (op == "learn") {
+        LearnParams p;
+        p.epochs = epochs;
+        p.ne = ne;
+        p.nr = nr;
+        p.dim = dim;
+        p.margin = margin;
+        p.learningrate = learningrate;
+        p.batchsize = batchsize;
+        p.adagrad = adagrad;
 
-    if (op == "transe") {
-
-        BOOST_LOG_TRIVIAL(debug) << "Launching TranSE with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " margin=" << margin << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
-
-        BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
-        TranseLearner tr(kb, epochs, ne, nr, dim, margin, learningrate, batchsize, adagrad);
-        BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
-        tr.setup(nthreads);
-        BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
-        tr.train(batcher, nthreads,
-                nstorethreads,
-                evalits, storeits,
-                batcher.getValidPath(),
-                storefolder,
-                compresstorage);
-        BOOST_LOG_TRIVIAL(info) << "Done.";
-
-    } else if (op == "distmul") {
-
-
-        BOOST_LOG_TRIVIAL(debug) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
-        BatchCreator batcher(kb.getPath(), batchsize, nthreads, valid, test);
-        DistMulLearner tr(kb, epochs, ne, nr, dim, margin,
-                learningrate,
-                batchsize,
-                adagrad,
-                numneg);
-        BOOST_LOG_TRIVIAL(info) << "Setting up DistMul...";
-        tr.setup(nthreads);
-        BOOST_LOG_TRIVIAL(info) << "Launching the training of DistMul...";
-        tr.train(batcher, nthreads,
-                nstorethreads,
-                evalits, storeits,
-                batcher.getValidPath(),
-                storefolder,
-                compresstorage);
-        BOOST_LOG_TRIVIAL(info) << "Done.";
-
-    } else {
-        BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
-        return;
+        p.nthreads = nthreads;
+        p.nstorethreads = nstorethreads;
+        p.evalits = evalits;
+        p.storeits = storeits;
+        p.storefolder = storefolder;
+        p.compressstorage = compresstorage;
+        p.filetrace = fileout;
+        p.valid = valid;
+        p.test = test;
+        p.numneg = numneg;
+        Learner::launchLearning(kb, algo, p);
+    } else { //can only be predict
+        //TODO
     }
 }
 
@@ -813,10 +799,14 @@ int main(int argc, const char** argv) {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         startServer(kb, vm["port"].as<int>());
-    } else if (cmd == "ml") {
+    } else if (cmd == "learn") {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        launchML(kb, vm["algo"].as<string>(), vm["args"].as<string>());
+        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+    } else if (cmd == "predict") {
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
     }
 
     //Print other stats

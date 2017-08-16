@@ -12,12 +12,8 @@ class TranseLearner : public PairwiseLearner {
                 int pos, int neg);
 
     public:
-        TranseLearner(KB &kb, const uint16_t epochs, const uint32_t ne,
-                const uint32_t nr,
-                const uint16_t dim, const float margin, const float learningrate,
-                const uint16_t batchsize, const bool adagrad) :
-            PairwiseLearner(kb, epochs, ne, nr, dim, margin, learningrate,
-                    batchsize, adagrad) {
+        TranseLearner(KB &kb, LearnParams &p) :
+            PairwiseLearner(kb, p) {
             }
 
         void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,

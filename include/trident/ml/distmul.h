@@ -18,13 +18,8 @@ class DistMulLearner: public Learner {
                 std::vector<uint64_t> &inputTerms);
 
     public:
-        DistMulLearner(KB &kb, const uint16_t epochs, const uint32_t ne,
-                const uint32_t nr,
-                const uint16_t dim, const float margin, const float learningrate,
-                const uint16_t batchsize, const bool adagrad,
-                const uint64_t numneg) :
-            Learner(kb, epochs, ne, nr, dim, margin, learningrate, batchsize,
-                    adagrad), numneg(numneg) { }
+        DistMulLearner(KB &kb, LearnParams &p) :
+            Learner(kb, p), numneg(p.numneg) { }
 
 
         void process_batch(BatchIO &io, const uint16_t epoch, const uint16_t

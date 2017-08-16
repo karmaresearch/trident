@@ -25,6 +25,7 @@ class Embeddings {
 
         std::vector<uint8_t> locks;
         std::vector<uint32_t> conflicts;
+        std::vector<uint32_t> updates;
 
         static void init_seq(K* begin,
                 K*end, uint16_t dim, K min, K max,
@@ -61,6 +62,7 @@ class Embeddings {
             raw.resize((size_t)n * dim);
             locks.resize(n);
             conflicts.resize(n);
+            updates.resize(n);
         }
 
         Embeddings(const uint32_t n, const uint16_t dim,
@@ -86,6 +88,10 @@ class Embeddings {
 
         void incrConflict(uint32_t idx) {
             conflicts[idx]++;
+        }
+
+        void incrUpdates(uint32_t idx) {
+            updates[idx]++;
         }
 
         uint16_t getDim() const {
@@ -131,7 +137,7 @@ class Embeddings {
 
         static void _store_params(std::string path, bool compress,
                 const uint16_t dim, const double *b, const double *e,
-                const uint32_t *cb) {
+                const uint32_t *cb, const uint32_t *up) {
             std::ofstream ofs;
             ofs.open(path, std::ofstream::out);
             boost::iostreams::filtering_stream<boost::iostreams::output> out;
@@ -142,8 +148,12 @@ class Embeddings {
             uint64_t counter = 0;
             while (b != e) {
                 if (counter % dim == 0) {
+                    //# Conflicts
                     ofs.write((char*)cb, 4);
                     cb++;
+                    //# Updates
+                    ofs.write((char*)up, 4);
+                    up++;
                 }
                 ofs.write((char*)b, 8);
                 b++;
@@ -194,6 +204,7 @@ class Embeddings {
                 }
                 K* data = raw.data();
                 uint32_t *c = conflicts.data();
+                uint32_t *u = updates.data();
                 std::vector<std::thread> threads;
                 uint64_t batchsize = ((long)n * dim) / nthreads;
                 uint64_t begin = 0;
@@ -213,8 +224,9 @@ class Embeddings {
                                     Embeddings::_store_params,
                                     localpath, compress, dim,
                                     data + begin, data + end,
-                                    c));
+                                    c, u));
                         c += batchsize / dim;
+                        u += batchsize / dim;
                         idx++;
                     }
                     begin = end;

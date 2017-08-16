@@ -36,9 +36,10 @@ void printHelp(const char *programName, string section,
         cout << "rm\t\t rm triples to an existing KB." << endl;
         cout << "lookup\t\t lookup for values in the dictionary." << endl;
         cout << "analytics\t\t perform analytical operations on the graph." << endl;
-        cout << "info\t\tprint some information about the KB." << endl << endl;
-        cout << "dump\t\tdump the graph on files." << endl << endl;
-        cout << "server\t\tstart a server." << endl << endl;
+        cout << "info\t\t print some information about the KB." << endl << endl;
+        cout << "dump\t\t dump the graph on files." << endl << endl;
+        cout << "learn\t\t launch an algorithm to calculate KG embeddings." << endl << endl;
+        cout << "server\t\t start a server for SPARQL queries." << endl << endl;
         cout << desc << endl;
     }
 }
@@ -71,7 +72,8 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
             && cmd != "mine"
             && cmd != "server"
             && cmd != "dump"
-            && cmd != "ml") {
+            && cmd != "learn"
+            && cmd != "predict") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
         return false;
@@ -208,7 +210,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
                         "Analytics requires the parameter 'op' to be defined");
                 return false;
             }
-        } else if (cmd == "ml") {
+        } else if (cmd == "learn" || cmd == "predict") {
             if (!vm.count("algo")) {
                 printErrorMsg(
                         "ML requires the parameter 'algo' to be defined");
@@ -364,7 +366,7 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             po::value<int>()->default_value(8080),
             "Port to listen to.");
 
-    po::options_description ml_options("Options for <ml>");
+    po::options_description ml_options("Options for <learn> or <predict>");
     ml_options.add_options()("algo",
             po::value<string>()->default_value(""),
             "The task to perform This parameter is REQUIRED.");

@@ -1,4 +1,6 @@
 #include <trident/ml/learner.h>
+#include <trident/ml/transe.h>
+#include <trident/ml/distmul.h>
 #include <trident/ml/transetester.h>
 #include <kognac/utils.h>
 
@@ -84,25 +86,25 @@ void Learner::batch_processer(
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
-/*    ofstream ofs;
-    if (compressstorage) {
-        path = path + ".gz";
-    }
-    ofs.open(path, std::ofstream::out);
-    boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    if (compressstorage) {
-        out.push(boost::iostreams::gzip_compressor());
-    }
-    out.push(ofs);
-    out.write((char*)&dim, 4);
-    out.write((char*)&nr, 4);
-    out.write((char*)&ne, 4);
-    auto starr  = R->getPAllEmbeddings();
-    auto endr = starr + dim * nr;
-    while (starr != endr) {
-        out.write((char*)starr, 8);
-        starr++;
-    }
+    /*    ofstream ofs;
+          if (compressstorage) {
+          path = path + ".gz";
+          }
+          ofs.open(path, std::ofstream::out);
+          boost::iostreams::filtering_stream<boost::iostreams::output> out;
+          if (compressstorage) {
+          out.push(boost::iostreams::gzip_compressor());
+          }
+          out.push(ofs);
+          out.write((char*)&dim, 4);
+          out.write((char*)&nr, 4);
+          out.write((char*)&ne, 4);
+          auto starr  = R->getPAllEmbeddings();
+          auto endr = starr + dim * nr;
+          while (starr != endr) {
+          out.write((char*)starr, 8);
+          starr++;
+          }
 
     //Parallelize the dumping of the entities
     auto data = E->getPAllEmbeddings();
@@ -111,22 +113,22 @@ void Learner::store_model(string path,
     uint64_t begin = 0;
     uint16_t idx = 0;
     for(uint16_t i = 0; i < nthreads; ++i) {
-        string localpath = path + "." + to_string(idx);
-        uint64_t end = begin + batchsize;
-        if (end > ((long)ne * dim) || i == nthreads - 1) {
-            end = (long)ne * dim;
-        }
-        BOOST_LOG_TRIVIAL(debug) << "Storing " << (end - begin) << " values in " << localpath << " ...";
-        if (begin < end) {
-            threads.push_back(std::thread(_store_entities,
-                        localpath, compressstorage,
-                        data + begin, data + end));
-            idx++;
-        }
-        begin = end;
+    string localpath = path + "." + to_string(idx);
+    uint64_t end = begin + batchsize;
+    if (end > ((long)ne * dim) || i == nthreads - 1) {
+    end = (long)ne * dim;
+    }
+    BOOST_LOG_TRIVIAL(debug) << "Storing " << (end - begin) << " values in " << localpath << " ...";
+    if (begin < end) {
+    threads.push_back(std::thread(_store_entities,
+    localpath, compressstorage,
+    data + begin, data + end));
+    idx++;
+    }
+    begin = end;
     }
     for(uint16_t i = 0; i < threads.size(); ++i) {
-        threads[i].join();
+    threads[i].join();
     }*/
 
     BOOST_LOG_TRIVIAL(debug) << "Start serialization ...";
@@ -185,6 +187,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
             std::shared_ptr<BatchIO> pio;
             doneQueue.pop(pio);
             if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
+                pio->epoch = epoch;
                 pio->violations = 0;
                 inputQueue.push(pio);
                 batchcounter++;
@@ -293,6 +296,138 @@ Learner::loadModel(string path) {
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(
             new Embeddings<double>(ne,dim,emb_e)
             );
-
     return std::make_pair(E,R);
+}
+
+void Learner::update_gradients(BatchIO &io,
+        std::vector<EntityGradient> &ge,
+        std::vector<EntityGradient> &gr) {
+    //Update the gradients of the entities and relations
+    if (adagrad) {
+        for(auto &i : ge) {
+            double *emb = E->get(i.id);
+
+            if (gradDebugger) {
+                gradDebugger->add(io.epoch, i.id, i.dimensions, i.n);
+            }
+            if (E->isLocked(i.id)) {
+                io.conflicts++;
+                E->incrConflict(i.id);
+            }
+            E->lock(i.id);
+            E->incrUpdates(i.id);
+
+            double *pent = pe2.get() + i.id * dim;
+            double sum = 0.0; //used for normalization
+            for(uint16_t j = 0; j < dim; ++j) {
+                const double g = (double)i.dimensions[j] / i.n;
+                pent[j] += g * g;
+                double spent = sqrt(pent[j]);
+                double maxv = max(spent, (double)1e-7);
+                emb[j] -= learningrate * g / maxv;
+                sum += emb[j] * emb[j];
+            }
+            //normalization step
+            sum = sqrt(sum);
+            for(uint16_t j = 0; j < dim; ++j) {
+                emb[j] = emb[j] / sum;
+            }
+
+            E->unlock(i.id);
+        }
+        for(auto &i : gr) {
+            double *emb = R->get(i.id);
+
+            if (R->isLocked(i.id)) {
+                io.conflicts++;
+                R->incrConflict(i.id);
+            }
+            R->lock(i.id);
+            R->incrUpdates(i.id);
+
+            double *pr = pr2.get() + i.id * dim;
+            for(uint16_t j = 0; j < dim; ++j) {
+                const double g = (double)i.dimensions[j] / i.n;
+                pr[j] += g * g;
+                double maxv = max(sqrt(pr[j]), (double)1e-7);
+                emb[j] -= learningrate * g / maxv;
+            }
+
+            R->unlock(i.id);
+        }
+    } else { //sgd
+        for (auto &i : ge) {
+            double *emb = E->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+                double sum = 0.0; //used for normalization
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] -= learningrate * i.dimensions[j] / n;
+                    sum += emb[j] * emb[j];
+                }
+                sum = sqrt(sum);
+                //normalization step
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] = emb[j] / sum;
+                }
+            }
+        }
+        for (auto &i : gr) {
+            double *emb = R->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+                for(uint16_t j = 0; j < dim; ++j) {
+                    emb[j] -= learningrate * i.dimensions[j] / n;
+                }
+            }
+        }
+    }
+}
+
+void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
+    std::unique_ptr<GradTracer> debugger;
+    if (p.filetrace != "") {
+        debugger = std::unique_ptr<GradTracer>(new GradTracer(p.ne, 1000, p.dim));
+        p.gradDebugger = std::move(debugger);
+    }
+    BOOST_LOG_TRIVIAL(debug) << "Launching " << op << " with params: " << p.tostring();
+    BatchCreator batcher(kb.getPath(), p.batchsize, p.nthreads, p.valid, p.test);
+    if (op == "transe") {
+        TranseLearner tr(kb, p);
+        BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
+        tr.setup(p.nthreads);
+        BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
+        tr.train(batcher, p.nthreads,
+                p.nstorethreads,
+                p.evalits, p.storeits,
+                batcher.getValidPath(),
+                p.storefolder,
+                p.compressstorage);
+        BOOST_LOG_TRIVIAL(info) << "Done.";
+        tr.getDebugger(debugger);
+
+    } else if (op == "distmul") {
+        DistMulLearner tr(kb, p);
+        BOOST_LOG_TRIVIAL(info) << "Setting up DistMul...";
+        tr.setup(p.nthreads);
+        BOOST_LOG_TRIVIAL(info) << "Launching the training of DistMul...";
+        tr.train(batcher, p.nthreads,
+                p.nstorethreads,
+                p.evalits, p.storeits,
+                batcher.getValidPath(),
+                p.storefolder,
+                p.compressstorage);
+        BOOST_LOG_TRIVIAL(info) << "Done.";
+        tr.getDebugger(debugger);
+
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
+        return;
+    }
+    //BOOST_LOG_TRIVIAL(debug) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
+
+    if (p.filetrace != "") {
+        debugger->store(p.filetrace);
+    }
+
 }
