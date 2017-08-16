@@ -33,6 +33,7 @@
 #include <trident/tests/common.h>
 #include <trident/server/server.h>
 #include <trident/ml/learner.h>
+#include <trident/ml/tester.h>
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
 #include <trident/utils/batch.h>
@@ -615,7 +616,8 @@ void launchML(KB &kb, string op, string algo, string params) {
         p.numneg = numneg;
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
-        //TODO
+        PredictParams p;
+        Predictor::launchPrediction(kb, algo, p);
     }
 }
 

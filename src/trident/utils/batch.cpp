@@ -27,6 +27,15 @@ string BatchCreator::getTestPath() {
     return kbdir + "/_batch_test";
 }
 
+string BatchCreator::getValidPath(string kbdir) {
+    return kbdir + "/_batch_valid";
+}
+
+string BatchCreator::getTestPath(string kbdir) {
+    return kbdir + "/_batch_test";
+}
+
+
 void BatchCreator::createInputForBatch(const float valid, const float test) {
     //Create a file called '_batch' in the maindir with a fixed-length record size
     BOOST_LOG_TRIVIAL(info) << "Store the input for the batch process in " << kbdir + "/_batch ...";

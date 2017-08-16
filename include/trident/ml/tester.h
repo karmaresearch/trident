@@ -1,14 +1,17 @@
 #ifndef _TESTER_H
 #define _TESTER_H
 
+#include <trident/ml/embeddings.h>
+#include <trident/kb/kb.h>
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <cstdint>
 #include <vector>
 #include <iostream>
 #include <string>
 #include <sstream>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 using namespace std;
 
@@ -208,6 +211,18 @@ class Tester {
 
             return (positionsS + positionsO) / (double)2;
         }
+};
+
+struct PredictParams {
+    string nametestset;
+    uint16_t nthreads;
+    string path_modele;
+    string path_modelr;
+};
+
+class Predictor {
+    public:
+        static void launchPrediction(KB &kb, string algo, PredictParams &p);
 };
 
 #endif
