@@ -11,6 +11,8 @@ class TranseLearner : public PairwiseLearner {
                 std::vector<uint64_t> &inputTerms,
                 int pos, int neg);
 
+       bool shouldUpdate(uint32_t idx);
+
     public:
         TranseLearner(KB &kb, LearnParams &p) :
             PairwiseLearner(kb, p) {

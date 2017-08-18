@@ -3,9 +3,11 @@
 #include <trident/utils/batch.h>
 
 void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
-    //TODO load model
+    //Load model
     std::shared_ptr<Embeddings<double>> E;
+    E = Embeddings<double>::load(p.path_modele);
     std::shared_ptr<Embeddings<double>> R;
+    R = Embeddings<double>::load(p.path_modelr);
 
     //Load test files
     std::vector<uint64_t> testset;

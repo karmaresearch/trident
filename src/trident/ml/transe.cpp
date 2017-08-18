@@ -24,6 +24,19 @@ void TranseLearner::update_gradient_matrix(std::vector<EntityGradient> &gradient
     }
 }
 
+bool TranseLearner::shouldUpdate(uint32_t idx) {
+    /*uint64_t median = E->getMedianUpdatesLastEpoch();
+    uint64_t allUpdatesLastEpoch = E->getAllUpdatesLastEpoch();
+    uint32_t updatesLastEpoch = E->getUpdatesLastEpoch(idx);
+    if (updatesLastEpoch < median) {
+        return false;
+    } else {
+        return true;
+    }*/
+    return true;
+    //std::cout << "s=" << output1[i] << "thisupdate=" << E->getUpdatesLastEpoch(output1[i]) << " allupdates=" << E->getAllUpdatesLastEpoch() <<  " nenties=" << E->getUpdatedEntitiesLastEpoch() << " median=" << E->getMedianUpdatesLastEpoch() << endl;
+}
+
 void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
         std::vector<uint64_t> &sneg) {
     std::vector<uint64_t> &output1 = io.field1;
@@ -65,16 +78,32 @@ void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
         //Calculate the violations
         if (diffp - diff1n + margin > 0) {
             io.violations += 1;
-            posSubjsUpdate1.push_back(i);
-            posObjsUpdate1.push_back(i);
-            negObjsUpdate1.push_back(i);
+
+            //Idea1: Check how many times it was updates in the previous epoch. If it was updated a few times, then we reduce the probability of updates
+            if (shouldUpdate(output1[i])) {
+                posSubjsUpdate1.push_back(i);
+            }
+            if (shouldUpdate(output3[i])) {
+                posObjsUpdate1.push_back(i);
+            }
+            if (shouldUpdate(oneg[i])) {
+                negObjsUpdate1.push_back(i);
+            }
             posRels1.push_back(i);
         }
         if (diffp - diff2n + margin > 0) {
             io.violations += 1;
-            posObjsUpdate2.push_back(i);
-            posSubjsUpdate2.push_back(i);
-            negSubjsUpdate2.push_back(i);
+
+            //Idea: Check how many times it was updates in the previous epoch. If it was updated a few times, then we reduce the probability of updates
+            if (shouldUpdate(output3[i])) {
+                posObjsUpdate2.push_back(i);
+            }
+            if (shouldUpdate(output1[i])) {
+                posSubjsUpdate2.push_back(i);
+            }
+            if (shouldUpdate(sneg[i])) {
+                negSubjsUpdate2.push_back(i);
+            }
             posRels2.push_back(i);
         }
     }

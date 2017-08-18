@@ -160,6 +160,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         queriers.push_back(std::unique_ptr<Querier>(kb.query()));
     }
 
+    timens::system_clock::time_point start = timens::system_clock::now();
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
         //Init code
@@ -211,6 +212,10 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
             totalV += outputs[i].violations;
             totalC += outputs[i].conflicts;
         }
+
+        E->postprocessUpdates();
+        R->postprocessUpdates();
+
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" <<
             elapsed_seconds.count() << "sec. Violations=" << totalV <<
@@ -239,64 +244,8 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
             }
         }
     }
-    BOOST_LOG_TRIVIAL(info) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult;
-}
-
-std::pair<std::shared_ptr<Embeddings<double>>,std::shared_ptr<Embeddings<double>>>
-Learner::loadModel(string path) {
-    ifstream ifs;
-    ifs.open(path);
-    boost::iostreams::filtering_stream<boost::iostreams::input> inp;
-    inp.push(boost::iostreams::gzip_decompressor());
-    inp.push(ifs);
-    boost::archive::text_iarchive ia(inp);
-    uint16_t dim;
-    ia >> dim;
-    uint32_t nr;
-    ia >> nr;
-    std::vector<double> emb_r;
-    ia >> emb_r;
-    uint32_t ne;
-    ia >> ne;
-    //Load R
-    std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(
-            new Embeddings<double>(nr, dim, emb_r)
-            );
-
-    std::vector<double> emb_e;
-    emb_e.resize(ne * dim);
-    fs::path bpath(path);
-    string dirname = bpath.parent_path().string();
-    std::vector<string> files_e = Utils::getFilesWithPrefix(
-            dirname,
-            bpath.filename().string() + ".");
-
-    //Load the files one by one
-    uint32_t idxe = 0;
-    uint16_t processedfiles = 0;
-    while (processedfiles < files_e.size()) {
-        string file = dirname + "/" + bpath.filename().string() + "." + to_string(processedfiles);
-        BOOST_LOG_TRIVIAL(debug) << "Processing file " << file;
-        ifstream ifs2;
-        ifs2.open(file);
-        boost::iostreams::filtering_stream<boost::iostreams::input> inp2;
-        inp2.push(boost::iostreams::gzip_decompressor());
-        inp2.push(ifs2);
-        boost::archive::text_iarchive ia(inp2);
-        std::vector<double> values;
-        ia >> values;
-        //Copy the values into emb_e
-        for(size_t i = 0; i < values.size(); ++i) {
-            emb_e[idxe++] = values[i];
-        }
-        processedfiles++;
-    }
-
-    //Load E
-    std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(
-            new Embeddings<double>(ne,dim,emb_e)
-            );
-    return std::make_pair(E,R);
+    boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
+    BOOST_LOG_TRIVIAL(info) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
 }
 
 void Learner::update_gradients(BatchIO &io,

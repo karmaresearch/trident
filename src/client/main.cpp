@@ -542,8 +542,12 @@ void launchML(KB &kb, string op, string algo, string params) {
     uint32_t storeits = 10;
     float valid = 0.0;
     float test = 0.0;
-
     string fileout;
+
+    //params for predict
+    string modele;
+    string modelr;
+    string nametestset;
 
     if (mapparams.count("dim")) {
         dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
@@ -593,6 +597,15 @@ void launchML(KB &kb, string op, string algo, string params) {
     if (mapparams.count("debugout")) {
         fileout = mapparams["debugout"];
     }
+    if (mapparams.count("modele")) {
+        modele = mapparams["modele"];
+    }
+    if (mapparams.count("modelr")) {
+        modelr = mapparams["modelr"];
+    }
+    if (mapparams.count("nametestset")) {
+        nametestset = mapparams["nametestset"];
+    }
     if (op == "learn") {
         LearnParams p;
         p.epochs = epochs;
@@ -617,6 +630,10 @@ void launchML(KB &kb, string op, string algo, string params) {
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
         PredictParams p;
+        p.path_modele = modele;
+        p.path_modelr = modelr;
+        p.nametestset = nametestset;
+        p.nthreads = nthreads;
         Predictor::launchPrediction(kb, algo, p);
     }
 }
