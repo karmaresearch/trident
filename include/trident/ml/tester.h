@@ -45,8 +45,16 @@ class Tester {
             uint64_t hit3O = 0;
         };
 
+        struct ResQuery {
+            uint32_t posO;
+            uint32_t posS;
+            uint64_t s,p,o;
+        };
+
         void test_seq(std::vector<uint64_t> &testset, size_t start,
-                size_t end, OutputTest *out) {
+                size_t end, OutputTest *out,
+                std::vector<ResQuery> &resultsPerQuery) {
+
             //Support variables
             std::vector<double> scores;
             const uint64_t ne = E->getN();
@@ -107,6 +115,15 @@ class Tester {
                     BOOST_LOG_TRIVIAL(debug) << "***Processed " << perc << "\% testcases***";
                     stepperc += 10;
                 }
+
+                //Store the results per single query
+                ResQuery res;
+                res.s = s;
+                res.p = p;
+                res.o = o;
+                res.posO = posO;
+                res.posS = posS;
+                resultsPerQuery.push_back(res);
             }
 
             out->positionsO = positionsO;
@@ -137,6 +154,8 @@ class Tester {
             std::chrono::time_point<std::chrono::system_clock> starttime =std::chrono::system_clock::now();
 
             std::vector<OutputTest> outputs;
+            std::vector<std::vector<ResQuery>> resQueries;
+            resQueries.resize(nthreads);
             outputs.resize(nthreads);
             std::vector<std::thread> threads;
             threads.resize(nthreads);
@@ -152,7 +171,13 @@ class Tester {
                 } else {
                     end = start + nelsPerThread;
                 }
-                threads[i] = std::thread(&Tester::test_seq, this, std::ref(testset), start, end, &outputs[i]);
+                threads[i] = std::thread(&Tester::test_seq,
+                        this,
+                        std::ref(testset),
+                        start,
+                        end,
+                        &outputs[i],
+                        std::ref(resQueries[i]));
                 start = end;
             }
             for(uint16_t i = 0; i < nthreads; ++i) {
