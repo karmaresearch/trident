@@ -1,6 +1,8 @@
 #ifndef  BATCH_H_
 #define BATCH_H_
 
+#include <trident/ml/feedback.h>
+
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -19,6 +21,9 @@ class BatchCreator {
         const float valid;
         const float test;
 
+        const bool filter;
+        const std::shared_ptr<Feedback> feedback;
+
         bip::file_mapping mapping;
         bip::mapped_region mapped_rgn;
         const char* rawtriples;
@@ -27,14 +32,18 @@ class BatchCreator {
         uint64_t currentidx;
         std::default_random_engine engine;
 
+        bool shouldBeUsed(long s, long p, long o);
+
         void createInputForBatch(const float valid, const float test);
 
     public:
         BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads,
-                const float valid, const float test);
+                const float valid, const float test, const bool filter,
+                shared_ptr<Feedback> feedback);
 
         BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads) :
-            BatchCreator(kbdir, batchsize, nthreads, 0, 0) {
+            BatchCreator(kbdir, batchsize, nthreads, 0, 0, false,
+                    std::shared_ptr<Feedback>()) {
             }
 
         void start();
@@ -47,9 +56,11 @@ class BatchCreator {
 
         string getValidPath();
 
-        static string getValidPath(string kbdir);
-
         string getTestPath();
+
+        std::shared_ptr<Feedback> getFeedback();
+
+        static string getValidPath(string kbdir);
 
         static string getTestPath(string kbdir);
 

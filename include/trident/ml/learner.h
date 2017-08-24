@@ -82,6 +82,7 @@ struct LearnParams {
     float valid;
     float test;
     uint32_t numneg;
+    bool feedback;
 
     std::unique_ptr<GradTracer> gradDebugger;
 
@@ -105,6 +106,7 @@ struct LearnParams {
         out += " valid=" + to_string(valid);
         out += " test=" + to_string(test);
         out += " numneg=" + to_string(numneg);
+        out += " feedbacks=" + to_string(feedback);
         return out;
     }
 };

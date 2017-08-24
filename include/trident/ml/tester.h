@@ -35,8 +35,7 @@ class Tester {
             return indices2[pos];
         }
 
-
-        struct OutputTest {
+        struct _OutputTest {
             uint64_t positionsO = 0;
             uint64_t positionsS = 0;
             uint64_t hit10O = 0;
@@ -45,15 +44,15 @@ class Tester {
             uint64_t hit3O = 0;
         };
 
-        struct ResQuery {
+        struct ResSingleQuery {
             uint32_t posO;
             uint32_t posS;
             uint64_t s,p,o;
         };
 
         void test_seq(std::vector<uint64_t> &testset, size_t start,
-                size_t end, OutputTest *out,
-                std::vector<ResQuery> &resultsPerQuery) {
+                size_t end, _OutputTest *out,
+                std::vector<ResSingleQuery> &resultsPerQuery) {
 
             //Support variables
             std::vector<double> scores;
@@ -117,7 +116,7 @@ class Tester {
                 }
 
                 //Store the results per single query
-                ResQuery res;
+                ResSingleQuery res;
                 res.s = s;
                 res.p = p;
                 res.o = o;
@@ -141,20 +140,25 @@ class Tester {
             this->R = R;
         }
 
+        struct OutputTest {
+            double loss;
+            std::vector<ResSingleQuery> results;
+        };
+
         virtual double closeness(K *v1, K *v2, uint16_t dim) = 0;
 
         virtual void predictO(K *s, uint16_t dims, K *p, uint16_t dimp, K* o) = 0;
 
         virtual void predictS(K *s, K *p, uint16_t dimp, K* o, uint16_t dimo) = 0;
 
-        double test(string nameTestset,
+        std::shared_ptr<OutputTest> test(string nameTestset,
                 std::vector<uint64_t> &testset,
                 const uint16_t nthreads,
                 const uint16_t epoch) {
             std::chrono::time_point<std::chrono::system_clock> starttime =std::chrono::system_clock::now();
 
-            std::vector<OutputTest> outputs;
-            std::vector<std::vector<ResQuery>> resQueries;
+            std::vector<_OutputTest> outputs;
+            std::vector<std::vector<ResSingleQuery>> resQueries;
             resQueries.resize(nthreads);
             outputs.resize(nthreads);
             std::vector<std::thread> threads;
@@ -234,7 +238,14 @@ class Tester {
             write_json(output, jsonresults);
             BOOST_LOG_TRIVIAL(debug) << "JSON: " << output.str();
 
-            return (positionsS + positionsO) / (double)2;
+
+            std::shared_ptr<OutputTest> results(new OutputTest());
+            results->loss = (positionsS + positionsO) / (double)2;
+            //Collect all results
+            for (auto v : resQueries) {
+                std::copy(v.begin(), v.end(), std::back_inserter(results->results));
+            }
+            return results;
         }
 };
 

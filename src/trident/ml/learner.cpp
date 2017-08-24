@@ -2,6 +2,7 @@
 #include <trident/ml/transe.h>
 #include <trident/ml/distmul.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/feedback.h>
 #include <kognac/utils.h>
 
 #include <tbb/concurrent_queue.h>
@@ -86,51 +87,6 @@ void Learner::batch_processer(
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
-    /*    ofstream ofs;
-          if (compressstorage) {
-          path = path + ".gz";
-          }
-          ofs.open(path, std::ofstream::out);
-          boost::iostreams::filtering_stream<boost::iostreams::output> out;
-          if (compressstorage) {
-          out.push(boost::iostreams::gzip_compressor());
-          }
-          out.push(ofs);
-          out.write((char*)&dim, 4);
-          out.write((char*)&nr, 4);
-          out.write((char*)&ne, 4);
-          auto starr  = R->getPAllEmbeddings();
-          auto endr = starr + dim * nr;
-          while (starr != endr) {
-          out.write((char*)starr, 8);
-          starr++;
-          }
-
-    //Parallelize the dumping of the entities
-    auto data = E->getPAllEmbeddings();
-    std::vector<std::thread> threads;
-    uint64_t batchsize = ((long)ne * dim) / nthreads;
-    uint64_t begin = 0;
-    uint16_t idx = 0;
-    for(uint16_t i = 0; i < nthreads; ++i) {
-    string localpath = path + "." + to_string(idx);
-    uint64_t end = begin + batchsize;
-    if (end > ((long)ne * dim) || i == nthreads - 1) {
-    end = (long)ne * dim;
-    }
-    BOOST_LOG_TRIVIAL(debug) << "Storing " << (end - begin) << " values in " << localpath << " ...";
-    if (begin < end) {
-    threads.push_back(std::thread(_store_entities,
-    localpath, compressstorage,
-    data + begin, data + end));
-    idx++;
-    }
-    begin = end;
-    }
-    for(uint16_t i = 0; i < threads.size(); ++i) {
-    threads[i].join();
-    }*/
-
     BOOST_LOG_TRIVIAL(debug) << "Start serialization ...";
     fs::create_directories(path);
     BOOST_LOG_TRIVIAL(debug) << "Serializing R ...";
@@ -164,6 +120,9 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
         //Init code
+        if (batcher.getFeedback()) {
+            batcher.getFeedback()->setCurrentEpoch(epoch);
+        }
         batcher.start();
         uint32_t batchcounter = 0;
         tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> inputQueue;
@@ -236,11 +195,29 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 TranseTester<double> tester(E, R);
                 BOOST_LOG_TRIVIAL(debug) << "Testing on the valid dataset ...";
                 auto result = tester.test("valid", testset, nthreads, epoch);
-                if (result < bestresult) {
-                    bestresult = result;
+                if (result->loss < bestresult) {
+                    bestresult = result->loss;
                     bestepoch = epoch;
                     BOOST_LOG_TRIVIAL(debug) << "Epoch " << epoch << " got best results";
                 }
+                if (batcher.getFeedback()) {
+                    batcher.getFeedback()->addFeedbacks(result);
+                }
+                //Store the results of the detailed queries
+                if (shouldStoreModel) {
+                    string pathresults = storefolder + "/results-" + to_string(epoch+1);
+                    BOOST_LOG_TRIVIAL(debug) << "Storing the results ...";
+                    ofstream out;
+                    out.open(pathresults);
+                    out << "Query\tPosS\tPosO" << endl;
+                    for (auto v : result->results) {
+                        //Print a line
+                        out << to_string(v.s) << " " << to_string(v.p) << " " << to_string(v.o);
+                        out << "\t" << to_string(v.posS) << "\t" << to_string(v.posO) << endl;
+                    }
+                }
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "I'm supposed to test the model but no data is available";
             }
         }
     }
@@ -339,8 +316,19 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
         debugger = std::unique_ptr<GradTracer>(new GradTracer(p.ne, 1000, p.dim));
         p.gradDebugger = std::move(debugger);
     }
+    std::shared_ptr<Feedback> feedback;
+    if (p.feedback) {
+        feedback = std::shared_ptr<Feedback>(new Feedback());
+    }
+    bool filter = true;
     BOOST_LOG_TRIVIAL(debug) << "Launching " << op << " with params: " << p.tostring();
-    BatchCreator batcher(kb.getPath(), p.batchsize, p.nthreads, p.valid, p.test);
+    BatchCreator batcher(kb.getPath(),
+            p.batchsize,
+            p.nthreads,
+            p.valid,
+            p.test,
+            filter,
+            feedback);
     if (op == "transe") {
         TranseLearner tr(kb, p);
         BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";

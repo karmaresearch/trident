@@ -13,10 +13,18 @@ namespace fs = boost::filesystem;
 BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         uint16_t nthreads,
         const float valid,
-        const float test) : kbdir(kbdir), batchsize(batchsize), nthreads(nthreads), valid(valid), test(test) {
-    rawtriples = NULL;
-    ntriples = 0;
-    currentidx = 0;
+        const float test,
+        const bool filter,
+        std::shared_ptr<Feedback> feedback) : kbdir(kbdir), batchsize(batchsize),
+    nthreads(nthreads), valid(valid), test(test), filter(filter),
+    feedback(feedback) {
+        rawtriples = NULL;
+        ntriples = 0;
+        currentidx = 0;
+    }
+
+std::shared_ptr<Feedback> BatchCreator::getFeedback() {
+    return feedback;
 }
 
 string BatchCreator::getValidPath() {
@@ -34,7 +42,6 @@ string BatchCreator::getValidPath(string kbdir) {
 string BatchCreator::getTestPath(string kbdir) {
     return kbdir + "/_batch_test";
 }
-
 
 void BatchCreator::createInputForBatch(const float valid, const float test) {
     //Create a file called '_batch' in the maindir with a fixed-length record size
@@ -164,16 +171,22 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
         p = p & 0xFFFFFFFFFFl;
         long o = *(long*)(rawtriples + idx * 15 + 10);
         o = o & 0xFFFFFFFFFFl;
-        output[i*3] = s;
-        output[i*3+1] = p;
-        output[i*3+2] = o;
-        i+=1;
+        if (filter && shouldBeUsed(s,p,o)) {
+            output[i*3] = s;
+            output[i*3+1] = p;
+            output[i*3+2] = o;
+            i+=1;
+        }
         currentidx++;
     }
     if (i < batchsize) {
         output.resize(i*3);
     }
     return i > 0;
+}
+
+bool BatchCreator::shouldBeUsed(long s, long p, long o) {
+    return feedback->shouldBeIncluded(s, p, o);
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
@@ -192,10 +205,12 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
         p = p & 0xFFFFFFFFFFl;
         long o = *(long*)(rawtriples + idx * 15 + 10);
         o = o & 0xFFFFFFFFFFl;
-        output1[i] = s;
-        output2[i] = p;
-        output3[i] = o;
-        i+=1;
+        if (filter && shouldBeUsed(s,p,o)) {
+            output1[i] = s;
+            output2[i] = p;
+            output3[i] = o;
+            i+=1;
+        }
         currentidx++;
     }
     if (i < batchsize) {
@@ -224,4 +239,3 @@ void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
         start += 15;
     }
 }
-

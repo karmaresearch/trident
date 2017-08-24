@@ -537,6 +537,7 @@ void launchML(KB &kb, string op, string algo, string params) {
     bool adagrad = false;
     bool compresstorage = false;
     uint64_t numneg = 0;
+    bool usefeedback = false;
 
     uint32_t evalits = 10;
     uint32_t storeits = 10;
@@ -591,6 +592,9 @@ void launchML(KB &kb, string op, string algo, string params) {
     if (mapparams.count("compress")) {
         compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
     }
+    if (mapparams.count("feedback")) {
+        usefeedback = boost::lexical_cast<bool>(mapparams["feedback"]);
+    }
     if (mapparams.count("numneg")) {
         numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
     }
@@ -627,6 +631,7 @@ void launchML(KB &kb, string op, string algo, string params) {
         p.valid = valid;
         p.test = test;
         p.numneg = numneg;
+        p.feedback = usefeedback;
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
         PredictParams p;
