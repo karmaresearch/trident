@@ -15,8 +15,7 @@ bool Feedback::shouldBeIncluded(long s, long p, long o) {
             positions += pos;
         }
         double avgpos = positions / el->second.size();
-        if (avgpos < 10) {
-            //BOOST_LOG_TRIVIAL(debug) << "Skipping (SP) " << s << " " << p << " " << o << " avg=" << avgpos << " positions=" << positions << " npos=" << el->second.size();
+        if (avgpos < threshold) {
             excluded++;
             return false;
         }
@@ -24,15 +23,13 @@ bool Feedback::shouldBeIncluded(long s, long p, long o) {
     uint64_t key_pos = (uint64_t)p << 32;
     key_pos |= o;
     if (queries_po.count(key_pos)) {
-        //BOOST_LOG_TRIVIAL(debug) << "Skipping (PO) " << s << " " << p << " " << o;
         auto el = queries_po.find(key_pos);
         long positions = 0;
         for (auto pos : el->second) {
             positions += pos;
         }
         double avgpos = positions / el->second.size();
-        if (avgpos < 10) {
-            //BOOST_LOG_TRIVIAL(debug) << "Skipping (SP) " << s << " " << p << " " << o << " avg=" << avgpos << " positions=" << positions << " npos=" << el->second.size();
+        if (avgpos < threshold) {
             excluded++;
             return false;
         }

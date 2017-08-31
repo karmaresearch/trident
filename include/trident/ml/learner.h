@@ -83,6 +83,7 @@ struct LearnParams {
     float test;
     uint32_t numneg;
     bool feedback;
+    uint32_t feedback_threshold;
 
     std::unique_ptr<GradTracer> gradDebugger;
 
@@ -107,6 +108,7 @@ struct LearnParams {
         out += " test=" + to_string(test);
         out += " numneg=" + to_string(numneg);
         out += " feedbacks=" + to_string(feedback);
+        out += " feedbacks_threshold=" + to_string(feedback_threshold);
         return out;
     }
 };

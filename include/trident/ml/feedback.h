@@ -11,8 +11,11 @@ class Feedback {
         std::unordered_map<uint64_t, std::vector<uint32_t>> queries_sp;
         uint16_t currentEpoch = 0;
         uint64_t excluded;
+        uint64_t threshold = 0;
 
     public:
+        Feedback(uint64_t threshold) : threshold(threshold) {}
+
         bool shouldBeIncluded(long s, long p, long o);
 
         void setCurrentEpoch(uint16_t epoch) {
