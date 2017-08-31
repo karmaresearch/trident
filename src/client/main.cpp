@@ -539,6 +539,7 @@ void launchML(KB &kb, string op, string algo, string params) {
     uint64_t numneg = 0;
     bool usefeedback = false;
     uint32_t feedback_threshold = 10;
+    uint32_t feedback_minfulle = 20;
 
     uint32_t evalits = 10;
     uint32_t storeits = 10;
@@ -599,6 +600,9 @@ void launchML(KB &kb, string op, string algo, string params) {
     if (mapparams.count("feedback_threshold")) {
         feedback_threshold = boost::lexical_cast<uint32_t>(mapparams["feedback_threshold"]);
     }
+    if (mapparams.count("feedback_minfullep")) {
+        feedback_minfulle = boost::lexical_cast<uint32_t>(mapparams["feedback_minfulle"]);
+    }
     if (mapparams.count("numneg")) {
         numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
     }
@@ -637,6 +641,7 @@ void launchML(KB &kb, string op, string algo, string params) {
         p.numneg = numneg;
         p.feedback = usefeedback;
         p.feedback_threshold = feedback_threshold;
+        p.feedback_minFullEpochs = feedback_minfulle;
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
         PredictParams p;

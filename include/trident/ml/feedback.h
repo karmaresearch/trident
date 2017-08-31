@@ -7,14 +7,22 @@
 
 class Feedback {
     private:
-        std::unordered_map<uint64_t, std::vector<uint32_t>> queries_po;
-        std::unordered_map<uint64_t, std::vector<uint32_t>> queries_sp;
+        struct QueryDetails {
+            std::vector<uint32_t> positions;
+            double avg = -1;
+        };
+
+        std::unordered_map<uint64_t, QueryDetails> queries_po;
+        std::unordered_map<uint64_t, QueryDetails> queries_sp;
         uint16_t currentEpoch = 0;
         uint64_t excluded;
         uint64_t threshold = 0;
+        uint32_t minFullEpochs = 0;
 
     public:
-        Feedback(uint64_t threshold) : threshold(threshold) {}
+        Feedback(uint64_t threshold, uint32_t minFullEpochs) :
+            threshold(threshold),
+            minFullEpochs(minFullEpochs) {}
 
         bool shouldBeIncluded(long s, long p, long o);
 

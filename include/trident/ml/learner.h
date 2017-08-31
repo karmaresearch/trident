@@ -84,6 +84,7 @@ struct LearnParams {
     uint32_t numneg;
     bool feedback;
     uint32_t feedback_threshold;
+    uint32_t feedback_minFullEpochs;
 
     std::unique_ptr<GradTracer> gradDebugger;
 
@@ -109,6 +110,7 @@ struct LearnParams {
         out += " numneg=" + to_string(numneg);
         out += " feedbacks=" + to_string(feedback);
         out += " feedbacks_threshold=" + to_string(feedback_threshold);
+        out += " feedbacks_minfullepoch=" + to_string(feedback_minFullEpochs);
         return out;
     }
 };

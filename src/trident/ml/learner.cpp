@@ -318,7 +318,8 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
     }
     std::shared_ptr<Feedback> feedback;
     if (p.feedback) {
-        feedback = std::shared_ptr<Feedback>(new Feedback(p.feedback_threshold));
+        feedback = std::shared_ptr<Feedback>(new Feedback(p.feedback_threshold,
+                    p.feedback_minFullEpochs));
     }
     bool filter = true;
     BOOST_LOG_TRIVIAL(debug) << "Launching " << op << " with params: " << p.tostring();
