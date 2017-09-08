@@ -19,6 +19,10 @@ class Feedback {
         uint64_t threshold = 0;
         uint32_t minFullEpochs = 0;
 
+        typedef std::unordered_map<uint64_t, QueryDetails>::iterator QueriesItr;
+        static bool _querySorter(const std::pair<uint32_t, QueriesItr>& a,
+                const std::pair<uint32_t, QueriesItr>& b);
+
     public:
         Feedback(uint64_t threshold, uint32_t minFullEpochs) :
             threshold(threshold),

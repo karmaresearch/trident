@@ -39,6 +39,11 @@ bool Feedback::shouldBeIncluded(long s, long p, long o) {
     return true;
 }
 
+bool Feedback::_querySorter(const std::pair<uint32_t, QueriesItr>& a,
+        const std::pair<uint32_t, QueriesItr>& b) {
+    return a.first > b.first;
+}
+
 void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
     BOOST_LOG_TRIVIAL(debug) << "Adding feedbacks ...";
     BOOST_LOG_TRIVIAL(debug) << "Excluded triples in a epoch so far: " << excluded;
@@ -59,6 +64,8 @@ void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
         }
         queries_po[key_po].positions.push_back(q.posS);
     }
+    std::vector<std::pair<uint32_t, QueriesItr>> sp;
+    std::vector<std::pair<uint32_t, QueriesItr>> po;
     //Calculate the average
     for(auto itr = queries_sp.begin(); itr != queries_sp.end(); ++itr) {
         uint64_t positions = 0;
@@ -66,6 +73,7 @@ void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
             positions += pos;
         }
         itr->second.avg = positions / (double) itr->second.positions.size();
+        sp.push_back(std::make_pair(itr->second.avg, itr));
     }
     for(auto itr = queries_po.begin(); itr != queries_po.end(); ++itr) {
         uint64_t positions = 0;
@@ -73,6 +81,13 @@ void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
             positions += pos;
         }
         itr->second.avg = positions / (double) itr->second.positions.size();
+        po.push_back(std::make_pair(itr->second.avg, itr));
     }
+    //Sort the queries by descending position
+    std::sort(sp.begin(), sp.end(), Feedback::_querySorter);
+    std::sort(po.begin(), po.end(), Feedback::_querySorter);
+
+    //Print them for debugging
+
     BOOST_LOG_TRIVIAL(debug) << "done.";
 }
