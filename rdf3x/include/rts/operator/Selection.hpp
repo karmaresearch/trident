@@ -74,6 +74,12 @@ public:
         /// Set to a string value
         void setIRI(const std::string& c);
     };
+
+    enum NumType { DECIMAL, INT, UNKNOWN };
+   static bool isNumericComparison(const Result &l, const Result &r);
+   static bool numLess(const Result &l, const Result &r);
+   static NumType getNumType(std::string s);
+
     /// Base for predicate evaluation
     class Predicate {
     protected:
