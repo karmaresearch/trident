@@ -1,7 +1,9 @@
 #include "rts/operator/Selection.hpp"
 #include "rts/operator/PlanPrinter.hpp"
-//#include "rts/database/Database.hpp"
+#include "rts/operator/ResultsPrinter.hpp"
 #include "rts/runtime/Runtime.hpp"
+#include "cts/codegen/CodeGen.hpp"
+#include "cts/plangen/PlanGen.hpp"
 //#include "rts/segment/DictionarySegment.hpp"
 #include <sstream>
 #include <cassert>
@@ -995,6 +997,47 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
     result += ")";
     return result;
 }
+//---------------------------------------------------------------------------
+void Selection::BuiltinNotExists::eval(Result& result)
+    // Evaluate the predicate
+{
+    Result p, c;
+    probe->eval(p); // The variable to be checked
+    if (!loaded) {
+        //Populate the set with the values of the subquery
+        PlanGen *plangen = new PlanGen();
+        Runtime run(runtime.getDatabase(), NULL, runtime.getQueryDict());
+        Plan* plan = plangen->translate(run.getDatabase(), *subquery.get(), false);
+        Operator* operatorTree = CodeGen().translate(run,
+                *subquery.get(),
+                plan,
+                false);
+        ResultsPrinter *p = (ResultsPrinter*) operatorTree;
+        //Exec the query and populate the set of excluded data
+        p->setSilent(true);
+        p->setSetOutput(&set, prjId);
+        if (p->first()) {
+            while (p->next());
+        }
+        delete operatorTree;
+        delete plangen;
+        loaded = true;
+    }
+    if (!set.count(p.id)) {
+        result.setBoolean(true);
+    } else {
+        result.setBoolean(false);
+    }
+}
+//---------------------------------------------------------------------------
+string Selection::BuiltinNotExists::print(PlanPrinter& out)
+    // Print the predicate (debugging only)
+{
+    string result = "not_exists(" + probe->print(out);
+    result += ",<subquery>)";
+    return result;
+}
+
 //---------------------------------------------------------------------------
 Selection::Selection(Operator* input, Runtime& runtime, Predicate* predicate, double expectedOutputCardinality)
     : Operator(expectedOutputCardinality), input(input), runtime(runtime), predicate(predicate)

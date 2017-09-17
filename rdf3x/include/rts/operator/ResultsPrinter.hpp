@@ -14,6 +14,7 @@
 #include <dblayer.hpp>
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -73,9 +74,12 @@ private:
     bool silent;
     /// Count the printed rows
     uint64_t nrows;
-    //Produce JSON output
+    //Used for JSON output
     boost::property_tree::ptree *jsonoutput;
     std::vector<std::string> jsonvars;
+    //Used for set output
+    std::unordered_set<uint64_t> *outputset;
+    unsigned prjId;
 
     void formatJSON(const std::vector<std::string> &columns,
                 std::vector<uint64_t> &results,
@@ -106,6 +110,11 @@ public:
             const std::vector<std::string> &jsonvars) {
         this->jsonoutput = jsonoutput;
         this->jsonvars = jsonvars;
+    }
+
+    void setSetOutput(std::unordered_set<uint64_t> *results, unsigned prjId) {
+        outputset = results;
+        this->prjId = prjId;
     }
 
     /// Produce the first tuple

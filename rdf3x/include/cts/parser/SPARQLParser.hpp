@@ -66,7 +66,7 @@ public:
             Or, And, Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual, Plus, Minus, Mul, Div,
             Not, UnaryPlus, UnaryMinus, Literal, Variable, IRI, Function, ArgumentList,
             Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
-            Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_contains,
+            Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_notexists, Builtin_contains,
             Builtin_xsddecimal
         };
 
@@ -80,6 +80,8 @@ public:
         std::string valueType;
         /// Possible subtypes or variable ids
         unsigned valueArg;
+        /// subqueries or anything else
+        std::shared_ptr<SPARQLParser> pointerToArg;
 
         /// Constructor
         Filter();

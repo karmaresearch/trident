@@ -38,17 +38,17 @@ struct PlanGen::JoinDescription {
 };
 //---------------------------------------------------------------------------
 PlanGen::PlanGen()
-// Constructor
+    // Constructor
 {
 }
 //---------------------------------------------------------------------------
 PlanGen::~PlanGen()
-// Destructor
+    // Destructor
 {
 }
 //---------------------------------------------------------------------------
 void PlanGen::addPlan(Problem* problem, Plan* plan)
-// Add a plan to a subproblem
+    // Add a plan to a subproblem
 {
     // Check for dominance
     if (~plan->ordering) {
@@ -117,7 +117,7 @@ static Plan *attachFiltersToPlan(PlanContainer &plans, QueryGraph::Filter *filte
 }
 //---------------------------------------------------------------------------
 static Plan* buildFilters(PlanContainer& plans, const QueryGraph::SubQuery& query, Plan* plan, uint64_t value1, uint64_t value2, uint64_t value3)
-// Apply filters to index scans
+    // Apply filters to index scans
 {
     // Collect variables
     set<unsigned> orderingOnly, allAttributes;
@@ -160,46 +160,46 @@ static Plan* buildFilters(PlanContainer& plans, const QueryGraph::SubQuery& quer
 }
 //---------------------------------------------------------------------------
 static void normalizePattern(DBLayer::DataOrder order, uint64_t& c1, uint64_t& c2, uint64_t& c3)
-// Extract subject/predicate/object order
+    // Extract subject/predicate/object order
 {
     uint64_t s = ~0lu, p = ~0lu, o = ~0lu;
     switch (order) {
-    case DBLayer::Order_No_Order_SPO:
-    case DBLayer::Order_Subject_Predicate_Object:
-        s = c1;
-        p = c2;
-        o = c3;
-        break;
-    case DBLayer::Order_No_Order_SOP:
-    case DBLayer::Order_Subject_Object_Predicate:
-        s = c1;
-        o = c2;
-        p = c3;
-        break;
-    case DBLayer::Order_No_Order_OPS:
-    case DBLayer::Order_Object_Predicate_Subject:
-        o = c1;
-        p = c2;
-        s = c3;
-        break;
-    case DBLayer::Order_No_Order_OSP:
-    case DBLayer::Order_Object_Subject_Predicate:
-        o = c1;
-        s = c2;
-        p = c3;
-        break;
-    case DBLayer::Order_No_Order_PSO:
-    case DBLayer::Order_Predicate_Subject_Object:
-        p = c1;
-        s = c2;
-        o = c3;
-        break;
-    case DBLayer::Order_No_Order_POS:
-    case DBLayer::Order_Predicate_Object_Subject:
-        p = c1;
-        o = c2;
-        s = c3;
-        break;
+        case DBLayer::Order_No_Order_SPO:
+        case DBLayer::Order_Subject_Predicate_Object:
+            s = c1;
+            p = c2;
+            o = c3;
+            break;
+        case DBLayer::Order_No_Order_SOP:
+        case DBLayer::Order_Subject_Object_Predicate:
+            s = c1;
+            o = c2;
+            p = c3;
+            break;
+        case DBLayer::Order_No_Order_OPS:
+        case DBLayer::Order_Object_Predicate_Subject:
+            o = c1;
+            p = c2;
+            s = c3;
+            break;
+        case DBLayer::Order_No_Order_OSP:
+        case DBLayer::Order_Object_Subject_Predicate:
+            o = c1;
+            s = c2;
+            p = c3;
+            break;
+        case DBLayer::Order_No_Order_PSO:
+        case DBLayer::Order_Predicate_Subject_Object:
+            p = c1;
+            s = c2;
+            o = c3;
+            break;
+        case DBLayer::Order_No_Order_POS:
+        case DBLayer::Order_Predicate_Object_Subject:
+            p = c1;
+            o = c2;
+            s = c3;
+            break;
     }
     c1 = s;
     c2 = p;
@@ -207,14 +207,14 @@ static void normalizePattern(DBLayer::DataOrder order, uint64_t& c1, uint64_t& c
 }
 //---------------------------------------------------------------------------
 static uint64_t getCardinality(DBLayer& db, DBLayer::DataOrder order, uint64_t c1, uint64_t c2, uint64_t c3)
-// Estimate the cardinality of a predicate
+    // Estimate the cardinality of a predicate
 {
     normalizePattern(order, c1, c2, c3);
     return db.getCardinality(c1, c2, c3);
 }
 //---------------------------------------------------------------------------
 void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrder order, Problem* result, uint64_t value1, uint64_t value1C, uint64_t value2, uint64_t value2C, uint64_t value3, uint64_t value3C)
-// Build an index scan
+    // Build an index scan
 {
     // Initialize a new plan
     Plan* plan = plans.alloc();
@@ -239,7 +239,7 @@ void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrd
         plan->ordering = value1;
     }
     /*unsigned pages = 1 + static_cast<unsigned>(db->getFacts(order).getPages() * (static_cast<double>(scanned) / static_cast<double>(db->getFacts(order).getCardinality())));
-    plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
+      plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
 
     if (order == DBLayer::DataOrder::Order_No_Order_SPO ||
             order == DBLayer::DataOrder::Order_No_Order_SOP ||
@@ -250,8 +250,8 @@ void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrd
         plan->ordering = ~0u;
 
     plan->costs = db->getScanCost(order, value1, value1C,
-                                  value2, value2C,
-                                  value3, value3C);
+            value2, value2C,
+            value3, value3C);
 
     // Apply filters
     plan = buildFilters(plans, query, plan, value1, value2, value3);
@@ -261,7 +261,7 @@ void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrd
 }
 //---------------------------------------------------------------------------
 void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrder order, Problem* result, uint64_t value1, uint64_t value1C, uint64_t value2, uint64_t value2C)
-// Build an aggregated index scan
+    // Build an aggregated index scan
 {
     // Refuse placing constants at the end
     // They should be pruned out anyway, but sometimes are not due to misestimations
@@ -290,7 +290,7 @@ void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLaye
     }
 
     /*unsigned pages = 1 + static_cast<unsigned>(db->getAggregatedFacts(order).getPages() * (static_cast<double>(scanned) / static_cast<double>(fullSize)));
-    plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
+      plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
     plan->costs = db->getScanCost(order, value1, value1C, value2, value2C);
 
     if (order == DBLayer::DataOrder::Order_No_Order_SPO ||
@@ -310,7 +310,7 @@ void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLaye
 }
 //---------------------------------------------------------------------------
 void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrder order, Problem* result, uint64_t value1, uint64_t value1C)
-// Build an fully aggregated index scan
+    // Build an fully aggregated index scan
 {
     // Initialize a new plan
     Plan* plan = plans.alloc();
@@ -333,7 +333,7 @@ void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, D
         plan->ordering = value1;
     }
     /*unsigned pages = 1 + static_cast<unsigned>(db->getFullyAggregatedFacts(order).getPages() * (static_cast<double>(scanned) / static_cast<double>(fullSize)));
-    plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
+      plan->costs = Costs::seekBtree() + Costs::scan(pages);*/
     plan->costs = db->getScanCost(order, value1, value1C);
 
     if (order == DBLayer::DataOrder::Order_No_Order_SPO ||
@@ -352,7 +352,7 @@ void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, D
 }
 //---------------------------------------------------------------------------
 static bool isUnused(const QueryGraph::Filter* filter, unsigned val)
-// Check if a variable is unused
+    // Check if a variable is unused
 {
     if (!filter)
         return true;
@@ -374,7 +374,7 @@ static bool isUnused(const QueryGraph::TableFunction* function, uint64_t val) {
 
 //---------------------------------------------------------------------------
 static bool isUnused(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t val)
-// Check if a variable is unused outside its primary pattern
+    // Check if a variable is unused outside its primary pattern
 {
     for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(), limit = query.filters.end(); iter != limit; ++iter)
         if (!isUnused(&(*iter), val))
@@ -401,13 +401,13 @@ static bool isUnused(const QueryGraph::SubQuery& query, const QueryGraph::Node& 
             if (!isUnused(*iter2, node, val))
                 return false;
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin(); itr != query.subqueries.end(); ++itr)
-	if (! isUnused((*itr)->getQuery(), node, val))
-	    return false;
+        if (! isUnused((*itr)->getQuery(), node, val))
+            return false;
     return true;
 }
 //---------------------------------------------------------------------------
 static bool isUnused(const QueryGraph& query, const QueryGraph::Node& node, unsigned val)
-// Check if a variable is unused outside its primary pattern
+    // Check if a variable is unused outside its primary pattern
 {
     for (QueryGraph::projection_iterator iter = query.projectionBegin(), limit = query.projectionEnd(); iter != limit; ++iter)
         if ((*iter) == val)
@@ -424,7 +424,7 @@ static bool isUnused(const QueryGraph& query, const QueryGraph::Node& node, unsi
 }
 //---------------------------------------------------------------------------
 PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id)
-// Generate base table accesses
+    // Generate base table accesses
 {
     // Create new problem instance
     Problem* result = problems.alloc();
@@ -512,7 +512,7 @@ PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const Qu
 }
 //---------------------------------------------------------------------------
 PlanGen::JoinDescription PlanGen::buildJoinInfo(const QueryGraph::SubQuery& query, const QueryGraph::Edge& edge)
-// Build the informaion about a join
+    // Build the informaion about a join
 {
     // Fill in the relations involved
     JoinDescription result;
@@ -546,7 +546,7 @@ PlanGen::JoinDescription PlanGen::buildJoinInfo(const QueryGraph::SubQuery& quer
 }
 //---------------------------------------------------------------------------
 PlanGen::Problem* PlanGen::buildOptional(const QueryGraph::SubQuery& query, uint64_t id, bool completeEstimate)
-// Generate an optional part
+    // Generate an optional part
 {
     // Solve the subproblem
     Plan* p = translate_int(query, completeEstimate);
@@ -563,7 +563,7 @@ PlanGen::Problem* PlanGen::buildOptional(const QueryGraph::SubQuery& query, uint
 }
 //---------------------------------------------------------------------------
 static void collectVariables(const QueryGraph::Filter* filter, set<unsigned>& vars, const void* except)
-// Collect all variables used in a filter
+    // Collect all variables used in a filter
 {
     if ((!filter) || (filter == except))
         return;
@@ -575,7 +575,7 @@ static void collectVariables(const QueryGraph::Filter* filter, set<unsigned>& va
 }
 //---------------------------------------------------------------------------
 static void collectVariables(const QueryGraph::SubQuery& query, set<unsigned>& vars, const void* except)
-// Collect all variables used in a subquery
+    // Collect all variables used in a subquery
 {
     for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(), limit = query.filters.end(); iter != limit; ++iter)
         collectVariables(&(*iter), vars, except);
@@ -598,7 +598,7 @@ static void collectVariables(const QueryGraph::SubQuery& query, set<unsigned>& v
 }
 //---------------------------------------------------------------------------
 static void collectVariables(const QueryGraph& query, set<unsigned>& vars, const void* except)
-// Collect all variables used in a query
+    // Collect all variables used in a query
 {
     for (QueryGraph::projection_iterator iter = query.projectionBegin(), limit = query.projectionEnd(); iter != limit; ++iter)
         vars.insert(*iter);
@@ -607,7 +607,7 @@ static void collectVariables(const QueryGraph& query, set<unsigned>& vars, const
 }
 //---------------------------------------------------------------------------
 static Plan* findOrdering(Plan* root, unsigned ordering)
-// Find a plan with a specific ordering
+    // Find a plan with a specific ordering
 {
     for (; root; root = root->next)
         if (root->ordering == ordering)
@@ -616,7 +616,7 @@ static Plan* findOrdering(Plan* root, unsigned ordering)
 }
 //---------------------------------------------------------------------------
 PlanGen::Problem* PlanGen::buildUnion(const vector<QueryGraph::SubQuery>& query, uint64_t id, bool completeEstimate)
-// Generate a union part
+    // Generate a union part
 {
     // Solve the subproblems
     vector<Plan*> parts, solutions;
@@ -721,7 +721,7 @@ PlanGen::Problem* PlanGen::buildUnion(const vector<QueryGraph::SubQuery>& query,
 }
 //---------------------------------------------------------------------------
 PlanGen::Problem* PlanGen::buildTableFunction(const QueryGraph::TableFunction& /*function*/, uint64_t id)
-// Generate a table function access
+    // Generate a table function access
 {
     // Create new problem instance
     Problem* result = problems.alloc();
@@ -734,40 +734,40 @@ PlanGen::Problem* PlanGen::buildTableFunction(const QueryGraph::TableFunction& /
 }
 //---------------------------------------------------------------------------
 static void findFilters(Plan* plan, set<const QueryGraph::Filter*>& filters)
-// Find all filters already applied in a plan
+    // Find all filters already applied in a plan
 {
     switch (plan->op) {
-    case Plan::Union:
-    case Plan::MergeUnion:
-        // A nested subquery starts here, stop
-        break;
-    case Plan::IndexScan:
-    case Plan::AggregatedIndexScan:
-    case Plan::FullyAggregatedIndexScan:
-    case Plan::Singleton:
-        // We reached a leaf.
-        break;
-    case Plan::Filter:
-        filters.insert(reinterpret_cast<QueryGraph::Filter*>(plan->right));
-        findFilters(plan->left, filters);
-        break;
-    case Plan::NestedLoopJoin:
-    case Plan::MergeJoin:
-    case Plan::HashJoin:
-        findFilters(plan->left, filters);
-        findFilters(plan->right, filters);
-        break;
-    case Plan::HashGroupify:
-    case Plan::TableFunction:
-        findFilters(plan->left, filters);
-        break;
-    case Plan::Subselect:
-        break;
+        case Plan::Union:
+        case Plan::MergeUnion:
+            // A nested subquery starts here, stop
+            break;
+        case Plan::IndexScan:
+        case Plan::AggregatedIndexScan:
+        case Plan::FullyAggregatedIndexScan:
+        case Plan::Singleton:
+            // We reached a leaf.
+            break;
+        case Plan::Filter:
+            filters.insert(reinterpret_cast<QueryGraph::Filter*>(plan->right));
+            findFilters(plan->left, filters);
+            break;
+        case Plan::NestedLoopJoin:
+        case Plan::MergeJoin:
+        case Plan::HashJoin:
+            findFilters(plan->left, filters);
+            findFilters(plan->right, filters);
+            break;
+        case Plan::HashGroupify:
+        case Plan::TableFunction:
+            findFilters(plan->left, filters);
+            break;
+        case Plan::Subselect:
+            break;
     }
 }
 //---------------------------------------------------------------------------
 Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEstimate)
-// Translate a query into an operator tree
+    // Translate a query into an operator tree
 {
     bool singletonNeeded = (!(query.nodes.size() + query.optional.size() + query.unions.size())) && query.tableFunctions.size();
 
@@ -784,7 +784,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
         plan->op = Plan::Subselect;
         plan->left = childPlan;
         plan->right = reinterpret_cast<Plan*>(
-                          const_cast<QueryGraph*>(itr->get()));
+                const_cast<QueryGraph*>(itr->get()));
         //Little tweak: if there is a limit, then this limits the cardinality
         plan->cardinality = childPlan->cardinality;
         if (plan->cardinality > (*itr)->getLimit()) {
@@ -825,13 +825,13 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     }
 
     for (unsigned i = 0; i < subqueryPlans.size(); ++i, ++id) {
-	Plan *subqueryPlan = subqueryPlans[i];
-	// Create new problem instance
-	Problem* p = problems.alloc();
-	p->next = 0;
-	p->plans = subqueryPlan;
-	p->relations = BitSet();
-	p->relations.set(id);
+        Plan *subqueryPlan = subqueryPlans[i];
+        // Create new problem instance
+        Problem* p = problems.alloc();
+        p->next = 0;
+        p->plans = subqueryPlan;
+        p->relations = BitSet();
+        p->relations.set(id);
         if (last)
             last->next = p;
         else
@@ -1044,7 +1044,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     // Apparently, dpTable has null entries at the end??? --Ceriel
     while (! dpTable.empty() && dpTable.back() == NULL) {
-	dpTable.pop_back();
+        dpTable.pop_back();
     }
 
     // Extract the bestplan
@@ -1074,70 +1074,70 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 }
 //---------------------------------------------------------------------------
 /*Plan* PlanGen::translate_noopt(DBLayer& db, const QueryGraph& query,
-                               const std::vector<int> &optimalOrder) {
-    fullQuery = &query;
-    unsigned id = 0;
-    auto q = query.getQuery();
-    std::vector<Problem*> problems(optimalOrder.size());
-    for (int i = 0; i < optimalOrder.size(); ++i) {
-        QueryGraph::Node n = q.nodes[optimalOrder[i]];
-        Problem* p = buildScan(q, n, id);
-        problems[i] = p;
-    }
+  const std::vector<int> &optimalOrder) {
+  fullQuery = &query;
+  unsigned id = 0;
+  auto q = query.getQuery();
+  std::vector<Problem*> problems(optimalOrder.size());
+  for (int i = 0; i < optimalOrder.size(); ++i) {
+  QueryGraph::Node n = q.nodes[optimalOrder[i]];
+  Problem* p = buildScan(q, n, id);
+  problems[i] = p;
+  }
 
-    // Construct the join info
-    vector<JoinDescription> joins;
-    for (vector<QueryGraph::Edge>::const_iterator iter = q.edges.begin(), limit = q.edges.end(); iter != limit; ++iter)
-        joins.push_back(buildJoinInfo(q, *iter));
+// Construct the join info
+vector<JoinDescription> joins;
+for (vector<QueryGraph::Edge>::const_iterator iter = q.edges.begin(), limit = q.edges.end(); iter != limit; ++iter)
+joins.push_back(buildJoinInfo(q, *iter));
 
-    for (unsigned index = 1; index < problems.size(); index++) {
-        //Must decide which join to make...
-        Problem* problem = this->problems.alloc();
-        for (Plan *p1 = problems[index - 1]->plans; p1; p1 = p1->next) {
-            for (Plan *p2 = problems[index]->plans; p2; p2 = p2->next) {
-                Plan* p = plans.alloc();
-                p->left = p1;
-                p->right = p2;
-                p->next = 0;
-                if ((p->cardinality = p1->cardinality * p2->cardinality) < 1) p->cardinality = 1;
-                if (p1->ordering == p2->ordering) {
-                    p->op = Plan::MergeJoin;
-                    p->opArg = p1->ordering;
-                    p->costs = p1->costs + p2->costs + Costs::mergeJoin(p1->cardinality, p2->cardinality);
-                    p->ordering = p1->ordering;
-                } else {
-                    p->op = Plan::HashJoin;
-                    if (p2->cardinality < p1->cardinality) {
-                        p->left = p2;
-                        p->right = p1;
-                    }
-                    p->opArg = 0;
-                    p->costs = p->left->costs + p->right->costs + Costs::hashJoin(p->left->cardinality, p->right->cardinality);
-                    p->ordering = ~0u;
-                }
-                addPlan(problem, p);
-            }
-        }
-        problems[index] = problem;
-    }
+for (unsigned index = 1; index < problems.size(); index++) {
+//Must decide which join to make...
+Problem* problem = this->problems.alloc();
+for (Plan *p1 = problems[index - 1]->plans; p1; p1 = p1->next) {
+for (Plan *p2 = problems[index]->plans; p2; p2 = p2->next) {
+Plan* p = plans.alloc();
+p->left = p1;
+p->right = p2;
+p->next = 0;
+if ((p->cardinality = p1->cardinality * p2->cardinality) < 1) p->cardinality = 1;
+if (p1->ordering == p2->ordering) {
+p->op = Plan::MergeJoin;
+p->opArg = p1->ordering;
+p->costs = p1->costs + p2->costs + Costs::mergeJoin(p1->cardinality, p2->cardinality);
+p->ordering = p1->ordering;
+} else {
+p->op = Plan::HashJoin;
+if (p2->cardinality < p1->cardinality) {
+p->left = p2;
+p->right = p1;
+}
+p->opArg = 0;
+p->costs = p->left->costs + p->right->costs + Costs::hashJoin(p->left->cardinality, p->right->cardinality);
+p->ordering = ~0u;
+}
+addPlan(problem, p);
+}
+}
+problems[index] = problem;
+}
 
-    //Get the best plan...
-    Plan *finalPlan = NULL;
-    if (problems.back()) {
-        Problem *p = problems.back();
-        //Get the plan with the smallest cost
-        for (Plan *plan = p->plans; plan; plan = plan->next) {
-            if (!finalPlan || plan->costs < finalPlan->costs) {
-                finalPlan = plan;
-            }
-        }
-    }
-    return finalPlan;
+//Get the best plan...
+Plan *finalPlan = NULL;
+if (problems.back()) {
+Problem *p = problems.back();
+//Get the plan with the smallest cost
+for (Plan *plan = p->plans; plan; plan = plan->next) {
+if (!finalPlan || plan->costs < finalPlan->costs) {
+finalPlan = plan;
+}
+}
+}
+return finalPlan;
 
 }*/
 //---------------------------------------------------------------------------
 Plan* PlanGen::translate(DBLayer& db, const QueryGraph& query, bool completeEstimate)
-// Translate a query into an operator tree
+    // Translate a query into an operator tree
 {
     // Reset the plan generator
     plans.clear();
