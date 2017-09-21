@@ -507,6 +507,15 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict, Different
         }
     }
 
+    // Encode minuses
+    for (auto it : group.minuses) {
+        std::shared_ptr<QueryGraph> q(new QueryGraph());
+        if (!transformSubquery(myself, dict, diffIndex, it, q->getQuery(), tempQueryDict)) {
+            continue;
+        }
+        output.minuses.push_back(q);
+    }
+
     return true;
 }
 //---------------------------------------------------------------------------

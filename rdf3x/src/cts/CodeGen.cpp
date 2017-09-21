@@ -20,6 +20,7 @@
 #include <rts/operator/Selection.hpp>
 #include <rts/operator/SingletonScan.hpp>
 #include <rts/operator/Sort.hpp>
+#include <rts/operator/Minus.hpp>
 #include <rts/operator/Assignment.hpp>
 #include <rts/operator/TableFunction.hpp>
 #include <rts/operator/Union.hpp>
@@ -175,6 +176,11 @@ static void collectVariables(const map<unsigned, Register*>& context, set<unsign
                                       break;
                                   }
         case Plan::Singleton:
+                                  break;
+        case Plan::Minus:
+                                  collectVariables(context, variables, plan->left);
+                                  collectVariables(context, variables, plan->right);
+                                  break;
         case Plan::Subselect:
                                   //Here I collect only the projected variables
                                   QueryGraph *graph = (QueryGraph*)plan->right;
@@ -617,6 +623,59 @@ static Operator* translateSubselect(Runtime& runtime, /*const map<unsigned, Regi
 
 }
 //---------------------------------------------------------------------------
+static Operator* translateMinus(Runtime& runtime,const map<unsigned, Register*>& context,
+        const set<unsigned>& projection, map<unsigned, Register*>& bindings,
+        const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
+
+{
+    if (!plan->right || !plan->right->subquery) {
+        throw 1;
+    }
+
+    std::set<unsigned> variablesMainPlan;
+    CodeGen::collectVariables(variablesMainPlan, plan->left);
+    std::set<unsigned> minusVariables;
+    CodeGen::collectVariables(minusVariables, plan->right);
+    //Find the variables that should be checked
+    std::set<unsigned> varsToCheck;
+    for(auto varId : minusVariables) {
+        if (variablesMainPlan.count(varId)) {
+            varsToCheck.insert(varId);
+        }
+    }
+
+    //Make sure that all the common variables are also projected in the main tree
+    auto newprojection = projection;
+    for(auto v : varsToCheck) newprojection.insert(v);
+
+    //Convert main query
+    Operator* mainTree = translatePlan(runtime,
+            context,
+            newprojection,
+            bindings, registers,
+            plan->left);
+
+    map<unsigned, Register*> minusBindings;
+    Operator* minusTree = translatePlan(runtime,
+            context,
+            varsToCheck,
+            minusBindings,
+            registers,
+            plan->right);
+
+    //Create pairs of registers to check
+    std::vector<std::pair<Register*, Register*>> regsToCheck;
+    for (auto v : varsToCheck) {
+        regsToCheck.push_back(make_pair(bindings.find(v)->second,
+                    minusBindings.find(v)->second));
+    }
+
+    Operator *result = new Minus(mainTree, minusTree, regsToCheck,
+            plan->left->cardinality);
+    return result;
+
+}
+//---------------------------------------------------------------------------
 static Operator* translateUnion(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
     // Translate a union into an operator tree
 {
@@ -793,6 +852,9 @@ static Operator* translatePlan(Runtime& runtime, const map<unsigned, Register*>&
         case Plan::Subselect:
             result = translateSubselect(runtime, /* context,*/ projection, bindings, registers, plan);
             break;
+        case Plan::Minus:
+            result = translateMinus(runtime, context, projection, bindings, registers, plan);
+            break;
         case Plan::MergeUnion:
             result = translateMergeUnion(runtime, context, projection, bindings, registers, plan);
             break;
@@ -820,11 +882,14 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
             registerClasses[node.object].insert(id + 2);
         id += 3;
     }
+
     for (vector<QueryGraph::SubQuery>::const_iterator iter = query.optional.begin(), limit = query.optional.end(); iter != limit; ++iter)
         id = allocateRegisters(registers, registerClasses, (*iter), id);
+
     for (vector<vector<QueryGraph::SubQuery> >::const_iterator iter = query.unions.begin(), limit = query.unions.end(); iter != limit; ++iter)
         for (vector<QueryGraph::SubQuery>::const_iterator iter2 = (*iter).begin(), limit2 = (*iter).end(); iter2 != limit2; ++iter2)
             id = allocateRegisters(registers, registerClasses, (*iter2), id);
+
     for (vector<QueryGraph::TableFunction>::const_iterator iter = query.tableFunctions.begin(), limit = query.tableFunctions.end(); iter != limit; ++iter) {
         registers[reinterpret_cast<const QueryGraph::Node*>(&(*iter))] = id;
         unsigned slot = 0;
@@ -832,16 +897,19 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
             registerClasses[*iter2].insert(id + slot);
         id += (*iter).output.size();
     }
+
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin();
             itr != query.subqueries.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        /*registers[reinterpret_cast<const QueryGraph::Node*>(subq)] = id;
-          for (QueryGraph::projection_iterator itr = subq->projectionBegin();
-          itr != subq->projectionEnd(); ++itr) {
-          registerClasses[*itr].insert(id++);
-          }*/
         id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
     }
+
+    for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.minuses.begin();
+            itr != query.minuses.end(); ++itr) {
+        QueryGraph* subq = itr->get();
+        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+    }
+
     return id;
 }
 //---------------------------------------------------------------------------
@@ -894,14 +962,13 @@ Operator* CodeGen::translateIntern(Runtime& runtime, const QueryGraph& query, Pl
     return tree;
 }
 //---------------------------------------------------------------------------
-Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* plan, bool silent)
-    // Perform a naive translation of a query into an operator tree
+
+void CodeGen::prepareRuntime(Runtime &runtime,
+        const QueryGraph::SubQuery& query,
+        std::map<const QueryGraph::Node*, unsigned> &registers)
 {
-
-
-    std::map<const QueryGraph::Node*, unsigned> registers;
     map<unsigned, set<unsigned> > registerClasses;
-    unsigned registerCount = allocateRegisters(registers, registerClasses, query.getQuery(), 0);
+    unsigned registerCount = allocateRegisters(registers, registerClasses, query, 0);
     runtime.allocateRegisters(registerCount + 1);
     // Prepare domain information for join attributes
     {
@@ -928,6 +995,13 @@ Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* pl
                 runtime.getRegister(*iter2)->domain = domain;
         }
     }
+}
+//---------------------------------------------------------------------------
+Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* plan, bool silent)
+    // Perform a naive translation of a query into an operator tree
+{
+    std::map<const QueryGraph::Node*, unsigned> registers;
+    prepareRuntime(runtime, query.getQuery(), registers);
 
     // Build the tree itself
     vector<Register*> output;

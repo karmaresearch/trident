@@ -1040,6 +1040,21 @@ SPARQLParser::Filter* SPARQLParser::parseConstraint(map<string, unsigned>& local
     throw ParserException("filter constraint expected");
 }
 //---------------------------------------------------------------------------
+void SPARQLParser::parseMinus(PatternGroup & group)
+    // Parse a filter condition
+{
+    //Can be a list of patterns or a subselect query
+    SPARQLLexer::Token token = lexer.getNext();
+    if (token == SPARQLLexer::LCurly) {
+        PatternGroup subgroup;
+        parseGroupGraphPattern(subgroup);
+        group.minuses.push_back(subgroup);
+    } else {
+        throw ParserException("expected {");
+    }
+
+}
+//---------------------------------------------------------------------------
 void SPARQLParser::parseFilter(PatternGroup & group, map<string, unsigned>& localVars)
     // Parse a filter condition
 {
@@ -1211,6 +1226,10 @@ void SPARQLParser::parseGraphPattern(PatternGroup & group)
                 parseFilter(group, localVars);
             } else if (lexer.isKeyword("bind")) {
                 parseAssignment(group);
+            }
+            else if (token == SPARQLLexer::Identifier
+                    && lexer.isKeyword("minus")) {
+                parseMinus(group);
             } else {
                 throw ParserException("Unexpected: " + lexer.getTokenValue());
             }
@@ -1312,6 +1331,9 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
                 group.optional.push_back(PatternGroup());
                 PatternGroup& optionalGroup = group.optional.back();
                 parseGroupGraphPattern(optionalGroup);
+            } else if (token == SPARQLLexer::Identifier
+                    && lexer.isKeyword("minus")) {
+                parseMinus(group);
             } else {
                 lexer.unget(token);
                 parseGraphPattern(group);

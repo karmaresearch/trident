@@ -112,6 +112,8 @@ public:
         std::vector<std::vector<PatternGroup> > unions;
         /// If it contains complete subqueries
         std::vector<SPARQLParser*> subqueries;
+        /// If it contains MINUS patterns
+        std::vector<PatternGroup> minuses;
     };
     /// The projection modifier
     enum ProjectionModifier { Modifier_None, Modifier_Distinct, Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
@@ -192,6 +194,8 @@ private:
     void parseGraphPattern(PatternGroup& group);
     // Parse an assignment (SPARQL 1.1)
     void parseAssignment(PatternGroup& group);
+    /// Parse the minus operator (SPARQL 1.1)
+    void parseMinus(PatternGroup& group);
     // Parse a group of patterns
     void parseGroupGraphPattern(PatternGroup& group);
 

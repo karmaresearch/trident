@@ -118,6 +118,8 @@ public:
         std::vector<TableFunction> tableFunctions;
         /// Possible query
         std::vector<std::shared_ptr<QueryGraph>> subqueries;
+        /// Possible Minuses
+        std::vector<std::shared_ptr<QueryGraph>> minuses;
     };
 /// Order by entry
     struct Order {

@@ -10,13 +10,14 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <cts/infra/QueryGraph.hpp>
 #include <infra/util/Pool.hpp>
 //---------------------------------------------------------------------------
 /// A plan fragment
 struct Plan
 {
    /// Possible operators
-   enum Op { IndexScan, AggregatedIndexScan, FullyAggregatedIndexScan, NestedLoopJoin, MergeJoin, HashJoin, HashGroupify, Filter, Union, MergeUnion, TableFunction, Singleton, Subselect };
+   enum Op { IndexScan, AggregatedIndexScan, FullyAggregatedIndexScan, NestedLoopJoin, MergeJoin, HashJoin, HashGroupify, Filter, Union, MergeUnion, TableFunction, Singleton, Subselect, Minus };
    /// The cardinalits type
    typedef double card_t;
    /// The cost type
@@ -36,6 +37,8 @@ struct Plan
    unsigned ordering;
    // is optional
    bool optional;
+   /// QueryGraph associated (used for minus)
+   std::shared_ptr<QueryGraph> subquery;
 
    /// The next plan in problem chaining
    Plan* next;
@@ -45,6 +48,7 @@ struct Plan
 
    void init() {
     optional = false;
+    subquery = NULL;
    }
 
    Plan() {
@@ -68,7 +72,7 @@ class PlanContainer
    /// Alloca a new plan
    Plan* alloc() { Plan *plan = pool.alloc(); plan->init(); return plan; }
    /// Release an allocate plan
-   void free(Plan* p) { pool.free(p); }
+   void free(Plan* p);
    /// Release all plans
    void clear();
 };
