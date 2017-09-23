@@ -1261,7 +1261,7 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
 
             SPARQLParser *newSubquery = new SPARQLParser(lexer, prefixes, &namedVariables, variableCount);
             newSubquery->parse(true);
-            group.subqueries.push_back(newSubquery);
+            group.subqueries.push_back(std::shared_ptr<SPARQLParser>(newSubquery));
             variableCount = newSubquery->variableCount;
             namedVariables = newSubquery->namedVariables;
 

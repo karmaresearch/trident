@@ -26,10 +26,15 @@ void PlanContainer::clear()
     // Release all plans
 {
     pool.freeAll();
+    poolFilterArgs.freeAll();
 }
 void PlanContainer::free(Plan *p)
 {
     pool.free(p);
+}
+void PlanContainer::freeFilterArgs(FilterArgs *p)
+{
+    poolFilterArgs.free(p);
 }
 //---------------------------------------------------------------------------
 void Plan::print(unsigned indent) const

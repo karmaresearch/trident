@@ -498,7 +498,7 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict, Different
     }
 
     // Encode entire subselects
-    for (std::vector<SPARQLParser*>::const_iterator itr = group.subqueries.begin();
+    for (auto itr = group.subqueries.begin();
             itr != group.subqueries.end(); ++itr) {
         //Create a child querygraph
         std::shared_ptr<QueryGraph> subquery(new QueryGraph());

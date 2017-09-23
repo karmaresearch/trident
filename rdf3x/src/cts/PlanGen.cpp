@@ -126,13 +126,15 @@ Plan *PlanGen::attachFiltersToPlan(QueryGraph::Filter *filter, Plan *plan) {
     p2->opArg = filter->id;
     p2->left = plan;
 
-    //TODO Register filters
     Plan *filterPlan = NULL;
     //If not exist, then there is a subgraph to build
     if (filter->type == QueryGraph::Filter::Builtin_notexists) {
         filterPlan = buildFilterPlan(filter);
     }
-    p2->right = reinterpret_cast<Plan*>(new FilterArgs(filter, filterPlan));
+    FilterArgs *fa = plans->allocFilterArgs();
+    fa->filter = filter;
+    fa->plan = filterPlan;
+    p2->right = reinterpret_cast<Plan*>(fa);
 
     p2->next = 0;
     p2->cardinality = plan->cardinality * 0.5;
@@ -166,8 +168,10 @@ Plan* PlanGen::buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint6
             if (iter->type == QueryGraph::Filter::Builtin_notexists) {
                 filterPlan = buildFilterPlan(&*iter);
             }
-            p2->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
-            //p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+            FilterArgs *fa = plans->allocFilterArgs();
+            fa->filter = &*iter;
+            fa->plan = filterPlan;
+            p2->right = reinterpret_cast<Plan*>(fa);
 
             p2->next = 0;
             p2->cardinality = plan->cardinality * 0.5;
@@ -187,8 +191,10 @@ Plan* PlanGen::buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint6
             if (iter->type == QueryGraph::Filter::Builtin_notexists) {
                 filterPlan = buildFilterPlan(&*iter);
             }
-            p2->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
-            //p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+            FilterArgs *fa = plans->allocFilterArgs();
+            fa->filter = &*iter;
+            fa->plan = filterPlan;
+            p2->right = reinterpret_cast<Plan*>(fa);
 
             p2->next = 0;
             p2->cardinality = plan->cardinality * 0.5;
@@ -485,6 +491,14 @@ PlanGen::Problem* PlanGen::buildValue(const QueryGraph::SubQuery& query,
     plan->left = reinterpret_cast<Plan*>(const_cast<QueryGraph::ValuesNode*>(&node));
     plan->right = 0;
     plan->next = 0;
+    plan->ordering = ~0u;
+
+    if (node.variables.size() > 0) {
+        plan->cardinality = node.values.size() / node.variables.size();
+        plan->costs = plan->cardinality;
+    } else {
+        plan->cardinality = plan->costs = 0;
+    }
 
     result->plans = plan;
     return result;
@@ -1151,8 +1165,10 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
             if (iter->type == QueryGraph::Filter::Builtin_notexists) {
                 filterPlan = buildFilterPlan(&*iter);
             }
-            p->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
-            //p->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+            FilterArgs *fa = plans->allocFilterArgs();
+            fa->filter = &*iter;
+            fa->plan = filterPlan;
+            p->right = reinterpret_cast<Plan*>(fa);
 
             p->next = 0;
             p->cardinality = plan->cardinality; // XXX real computation

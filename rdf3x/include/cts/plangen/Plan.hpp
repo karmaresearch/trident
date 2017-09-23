@@ -59,8 +59,6 @@ struct Plan
 struct FilterArgs {
     const QueryGraph::Filter *filter;
     Plan *plan;
-    FilterArgs(const QueryGraph::Filter *filter, Plan *plan) : filter(filter),
-    plan(plan) {}
 };
 
 //---------------------------------------------------------------------------
@@ -70,6 +68,7 @@ class PlanContainer
     private:
         /// The pool
         StructPool<Plan> pool;
+        StructPool<FilterArgs> poolFilterArgs;
 
     public:
         /// Constructor
@@ -79,8 +78,10 @@ class PlanContainer
 
         /// Alloca a new plan
         Plan* alloc() { Plan *plan = pool.alloc(); plan->init(); return plan; }
+        FilterArgs* allocFilterArgs() { FilterArgs *ag = poolFilterArgs.alloc(); return ag; }
         /// Release an allocate plan
         void free(Plan* p);
+        void freeFilterArgs(FilterArgs* p);
         /// Release all plans
         void clear();
 };

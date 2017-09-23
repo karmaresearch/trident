@@ -113,7 +113,7 @@ public:
         /// The union parts
         std::vector<std::vector<PatternGroup> > unions;
         /// If it contains complete subqueries
-        std::vector<SPARQLParser*> subqueries;
+        std::vector<std::shared_ptr<SPARQLParser>> subqueries;
         /// If it contains MINUS patterns
         std::vector<PatternGroup> minuses;
         /// Values passed by the directive VALUES
