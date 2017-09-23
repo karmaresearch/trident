@@ -97,7 +97,7 @@ public:
     };
     /// An assignment entry
     struct Assignment {
-        Filter *expression;
+        std::shared_ptr<Filter> expression;
         Element outputVar;
     };
     /// A group of patterns

@@ -1419,7 +1419,7 @@ void SPARQLParser::parseAssignment(PatternGroup & group) {
         throw ParserException("Expected (");
     }
 
-    assignment.expression = parseExpression(localVars);
+    assignment.expression = std::shared_ptr<Filter>(parseExpression(localVars));
 
     if (!lexer.isKeyword("AS")) {
         throw ParserException("Expected AS");

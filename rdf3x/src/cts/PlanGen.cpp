@@ -1048,7 +1048,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
                                     //Left plan must be enriched with the filtering operations
                                     if (iter3->tableFunction->associatedFilter != NULL) {
-                                        p->left = attachFiltersToPlan(iter3->tableFunction->associatedFilter, leftPlan);
+                                        p->left = attachFiltersToPlan(iter3->tableFunction->associatedFilter.get(), leftPlan);
                                     } else {
                                         p->left = leftPlan;
                                     }

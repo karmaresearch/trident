@@ -353,7 +353,7 @@ static bool encodeAssignment(SemanticAnalysis *myself, DBLayer& dict, Differenti
     encodeFilter(myself, dict, diffIndex, group, *input.expression, output, tempQueryDict);
 
     //Copy the filter
-    func.associatedFilter = new QueryGraph::Filter(output.filters.back());
+    func.associatedFilter = std::shared_ptr<QueryGraph::Filter>(new QueryGraph::Filter(output.filters.back()));
     output.filters.pop_back();
     std::set<std::pair<uint64_t, bool> > allVars = func.associatedFilter->allIdVarsAndLiterals();
     for (std::set<std::pair<uint64_t, bool> >::iterator itr = allVars.begin();

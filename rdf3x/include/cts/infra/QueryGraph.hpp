@@ -92,7 +92,7 @@ public:
     };
     /// A table function
     struct TableFunction {
-        Filter * associatedFilter;
+        std::shared_ptr<Filter> associatedFilter;
         /// An argument
         struct Argument {
             /// The variable id if any
