@@ -38,12 +38,12 @@ struct PlanGen::JoinDescription {
 };
 //---------------------------------------------------------------------------
 PlanGen::PlanGen() : plans(new PlanContainer())
-    // Constructor
+                     // Constructor
 {
 }
 //---------------------------------------------------------------------------
 PlanGen::PlanGen(std::shared_ptr<PlanContainer> plans) : plans(plans)
-    // Constructor
+                                                         // Constructor
 {
 }
 //---------------------------------------------------------------------------
@@ -105,23 +105,42 @@ void PlanGen::addPlan(Problem* problem, Plan* plan)
     plan->next = problem->plans;
     problem->plans = plan;
 }
+Plan *PlanGen::buildFilterPlan(const QueryGraph::Filter *filter) {
+    Plan* plan;
+    if (filter->subquery) {
+        plan = translate(*db, *filter->subquery.get(), false);
+    } else if (filter->subpattern) { //pattern
+        plan = translate_int(*filter->subpattern.get(), false);
+    } else {
+        throw; //should never happen
+    }
+    return plan;
+}
 //---------------------------------------------------------------------------
-static Plan *attachFiltersToPlan(PlanContainer &plans, QueryGraph::Filter *filter, Plan *plan) {
+Plan *PlanGen::attachFiltersToPlan(QueryGraph::Filter *filter, Plan *plan) {
     //Decompose the filter in many component
-    Plan* p2 = plans.alloc();
+    Plan* p2 = plans->alloc();
     double cost1 = plan->costs + Costs::filter(plan->cardinality);
     p2->op = Plan::Filter;
     p2->costs = cost1;
     p2->opArg = filter->id;
     p2->left = plan;
-    p2->right = reinterpret_cast<Plan*>(filter);
+
+    //TODO Register filters
+    Plan *filterPlan = NULL;
+    //If not exist, then there is a subgraph to build
+    if (filter->type == QueryGraph::Filter::Builtin_notexists) {
+        filterPlan = buildFilterPlan(filter);
+    }
+    p2->right = reinterpret_cast<Plan*>(new FilterArgs(filter, filterPlan));
+
     p2->next = 0;
     p2->cardinality = plan->cardinality * 0.5;
     p2->ordering = plan->ordering;
     return p2;
 }
 //---------------------------------------------------------------------------
-static Plan* buildFilters(PlanContainer& plans, const QueryGraph::SubQuery& query, Plan* plan, uint64_t value1, uint64_t value2, uint64_t value3)
+Plan* PlanGen::buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint64_t value1, uint64_t value2, uint64_t value3)
     // Apply filters to index scans
 {
     // Collect variables
@@ -135,13 +154,21 @@ static Plan* buildFilters(PlanContainer& plans, const QueryGraph::SubQuery& quer
     // Apply a filter on the ordering first
     for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(), limit = query.filters.end(); iter != limit; ++iter)
         if ((*iter).isApplicable(orderingOnly)) {
-            Plan* p2 = plans.alloc();
+            Plan* p2 = plans->alloc();
             double cost1 = plan->costs + Costs::filter(plan->cardinality);
             p2->op = Plan::Filter;
             p2->costs = cost1;
             p2->opArg = (*iter).id;
             p2->left = plan;
-            p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
+            Plan *filterPlan = NULL;
+            //If not exist, then there is a subgraph to build
+            if (iter->type == QueryGraph::Filter::Builtin_notexists) {
+                filterPlan = buildFilterPlan(&*iter);
+            }
+            p2->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
+            //p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
             p2->next = 0;
             p2->cardinality = plan->cardinality * 0.5;
             p2->ordering = plan->ordering;
@@ -150,11 +177,19 @@ static Plan* buildFilters(PlanContainer& plans, const QueryGraph::SubQuery& quer
     // Apply all other applicable filters
     for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(), limit = query.filters.end(); iter != limit; ++iter)
         if ((*iter).isApplicable(allAttributes) && (!(*iter).isApplicable(orderingOnly))) {
-            Plan* p2 = plans.alloc();
+            Plan* p2 = plans->alloc();
             p2->op = Plan::Filter;
             p2->opArg = (*iter).id;
             p2->left = plan;
-            p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
+            Plan *filterPlan = NULL;
+            //If not exist, then there is a subgraph to build
+            if (iter->type == QueryGraph::Filter::Builtin_notexists) {
+                filterPlan = buildFilterPlan(&*iter);
+            }
+            p2->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
+            //p2->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
             p2->next = 0;
             p2->cardinality = plan->cardinality * 0.5;
             p2->costs = plan->costs + Costs::filter(plan->cardinality);
@@ -259,7 +294,7 @@ void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrd
             value3, value3C);
 
     // Apply filters
-    plan = buildFilters(*plans.get(), query, plan, value1, value2, value3);
+    plan = buildFilters(query, plan, value1, value2, value3);
 
     // And store it
     addPlan(result, plan);
@@ -308,7 +343,7 @@ void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLaye
 
 
     // Apply filters
-    plan = buildFilters(*plans.get(), query, plan, value1, value2, ~0lu);
+    plan = buildFilters(query, plan, value1, value2, ~0lu);
 
     // And store it
     addPlan(result, plan);
@@ -350,7 +385,7 @@ void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, D
         plan->ordering = ~0u;
 
     // Apply filters
-    plan = buildFilters(*plans.get(), query, plan, value1, ~0lu, ~0lu);
+    plan = buildFilters(query, plan, value1, ~0lu, ~0lu);
 
     // And store it
     addPlan(result, plan);
@@ -398,6 +433,12 @@ static bool isUnused(const QueryGraph::SubQuery& query, const QueryGraph::Node& 
         if ((!n.constPredicate) && (val == n.predicate)) return false;
         if ((!n.constObject) && (val == n.object)) return false;
     }
+    for(auto iter : query.valueNodes) {
+        for(auto v : iter.variables) {
+            if (v == val)
+                return false;
+        }
+    }
     for (vector<QueryGraph::SubQuery>::const_iterator iter = query.optional.begin(), limit = query.optional.end(); iter != limit; ++iter)
         if (!isUnused(*iter, node, val))
             return false;
@@ -426,6 +467,27 @@ static bool isUnused(const QueryGraph& query, const QueryGraph::Node& node, unsi
     }
 
     return isUnused(query.getQuery(), node, val);
+}
+//---------------------------------------------------------------------------
+PlanGen::Problem* PlanGen::buildValue(const QueryGraph::SubQuery& query,
+        const QueryGraph::ValuesNode& node, uint64_t id)
+{
+    //Create a new problem
+    Problem* result = problems.alloc();
+    result->next = 0;
+    result->relations = BitSet();
+    result->relations.set(id);
+
+    //Create a new plan
+    Plan* plan = plans->alloc();
+    plan->op = Plan::ValuesScan;
+    plan->opArg = 0;
+    plan->left = reinterpret_cast<Plan*>(const_cast<QueryGraph::ValuesNode*>(&node));
+    plan->right = 0;
+    plan->next = 0;
+
+    result->plans = plan;
+    return result;
 }
 //---------------------------------------------------------------------------
 PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id)
@@ -753,7 +815,7 @@ static void findFilters(Plan* plan, set<const QueryGraph::Filter*>& filters)
             // We reached a leaf.
             break;
         case Plan::Filter:
-            filters.insert(reinterpret_cast<QueryGraph::Filter*>(plan->right));
+            filters.insert(reinterpret_cast<FilterArgs*>(plan->right)->filter);
             findFilters(plan->left, filters);
             break;
         case Plan::NestedLoopJoin:
@@ -767,6 +829,8 @@ static void findFilters(Plan* plan, set<const QueryGraph::Filter*>& filters)
             findFilters(plan->left, filters);
             break;
         case Plan::Subselect:
+            break;
+        case Plan::ValuesScan:
             break;
         case Plan::Minus:
             findFilters(plan->left, filters);
@@ -804,12 +868,21 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     // Seed the DP table with scans
     vector<Problem*> dpTable;
-    dpTable.resize(query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() +  query.tableFunctions.size() + singletonNeeded);
+    dpTable.resize(query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() +  query.tableFunctions.size() + query.valueNodes.size() + singletonNeeded);
     Problem* last = 0;
     unsigned id = 0;
     for (vector<QueryGraph::Node>::const_iterator iter = query.nodes.begin(), limit = query.nodes.end(); iter != limit; ++iter, ++id) {
         Problem* p;
         p = buildScan(query, *iter, id);
+        if (last)
+            last->next = p;
+        else
+            dpTable[0] = p;
+        last = p;
+    }
+    for(auto &iter : query.valueNodes) {
+        Problem* p;
+        p = buildValue(query, iter, id++);
         if (last)
             last->next = p;
         else
@@ -883,8 +956,10 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     // Construct the join info
     vector<JoinDescription> joins;
+
     for (vector<QueryGraph::Edge>::const_iterator iter = query.edges.begin(), limit = query.edges.end(); iter != limit; ++iter)
         joins.push_back(buildJoinInfo(query, *iter));
+
     id = functionIds;
     for (vector<QueryGraph::TableFunction>::const_iterator iter = query.tableFunctions.begin(), limit = query.tableFunctions.end(); iter != limit; ++iter, ++id) {
         JoinDescription join;
@@ -959,7 +1034,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
                                     //Left plan must be enriched with the filtering operations
                                     if (iter3->tableFunction->associatedFilter != NULL) {
-                                        p->left = attachFiltersToPlan(*plans.get(), iter3->tableFunction->associatedFilter, leftPlan);
+                                        p->left = attachFiltersToPlan(iter3->tableFunction->associatedFilter, leftPlan);
                                     } else {
                                         p->left = leftPlan;
                                     }
@@ -1070,7 +1145,15 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
             p->op = Plan::Filter;
             p->opArg = 0;
             p->left = plan;
-            p->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
+            Plan *filterPlan = NULL;
+            //If not exist, then there is a subgraph to build
+            if (iter->type == QueryGraph::Filter::Builtin_notexists) {
+                filterPlan = buildFilterPlan(&*iter);
+            }
+            p->right = reinterpret_cast<Plan*>(new FilterArgs(&*iter, filterPlan));
+            //p->right = reinterpret_cast<Plan*>(const_cast<QueryGraph::Filter*>(&(*iter)));
+
             p->next = 0;
             p->cardinality = plan->cardinality; // XXX real computation
             p->costs = plan->costs;

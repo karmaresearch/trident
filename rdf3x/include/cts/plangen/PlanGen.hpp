@@ -52,6 +52,7 @@ class PlanGen {
         /// Generate base table accesses
         Problem* buildAssignment(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id);
 
+        Problem* buildValue(const QueryGraph::SubQuery& query, const QueryGraph::ValuesNode& node, uint64_t id);
         Problem* buildScan(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id);
         /// Build the informaion about a join
         JoinDescription buildJoinInfo(const QueryGraph::SubQuery& query, const QueryGraph::Edge& edge);
@@ -62,8 +63,10 @@ class PlanGen {
         /// Generate a table function access
         Problem* buildTableFunction(const QueryGraph::TableFunction& function, uint64_t id);
 
-        /// Translate a query into an operator tree
-        Plan* translate_int(const QueryGraph::SubQuery& query, bool completeEstimate);
+        //Add a filter
+        Plan* buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint64_t value1, uint64_t value2, uint64_t value3);
+        Plan *attachFiltersToPlan(QueryGraph::Filter *filter, Plan *plan);
+        Plan *buildFilterPlan(const QueryGraph::Filter *filter);
 
     public:
         /// Constructor
@@ -75,9 +78,8 @@ class PlanGen {
         void init(DBLayer* db, const QueryGraph& query);
         /// Translate a query into an operator tree
         Plan* translate(DBLayer& db, const QueryGraph& query, bool completeEstimate = true);
-        //Same as before, but no DP query optimization
-        /*Plan* translate_noopt(DBLayer& db, const QueryGraph& query,
-          const std::vector<int> &optimalOrder);*/
+        /// Translate a query into an operator tree
+        Plan* translate_int(const QueryGraph::SubQuery& query, bool completeEstimate);
 };
 //---------------------------------------------------------------------------
 #endif

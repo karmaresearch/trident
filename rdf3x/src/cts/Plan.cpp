@@ -79,6 +79,8 @@ void Plan::print(unsigned indent) const
             break;
         case Minus:
             cout << "Minus";
+        case ValuesScan:
+            cout << "Values";
     }
     cout << " cardinality=" << cardinality << " costs=" << costs << endl;
     switch (op) {
@@ -114,6 +116,8 @@ void Plan::print(unsigned indent) const
             left->print(indent + 1);
             break;
         case Singleton:
+            break;
+        case ValuesScan:
             break;
     }
 }

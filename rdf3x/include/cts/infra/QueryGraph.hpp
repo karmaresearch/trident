@@ -33,6 +33,12 @@ public:
         /// Is there an implicit join edge to another node?
         bool canJoin(const Node& other) const;
     };
+    // A special node with a list of values (VALUES in SPARQL 1.1)
+    struct ValuesNode {
+        std::vector<unsigned> variables;
+        std::vector<uint64_t> values;
+    };
+
     /// The potential join edges
     struct Edge {
         /// The endpoints
@@ -46,6 +52,7 @@ public:
         ~Edge();
     };
     /// A value filter
+    struct SubQuery;
     struct Filter {
         /// Possible types
         enum Type {
@@ -66,6 +73,7 @@ public:
         std::string value;
         uint64_t valueid; //id of constants
         std::shared_ptr<QueryGraph> subquery;
+        std::shared_ptr<QueryGraph::SubQuery> subpattern;
 
         /// Constructor
         Filter();
@@ -120,6 +128,8 @@ public:
         std::vector<std::shared_ptr<QueryGraph>> subqueries;
         /// Possible Minuses
         std::vector<std::shared_ptr<QueryGraph>> minuses;
+        /// All VALUES patterns
+        std::vector<ValuesNode> valueNodes;
     };
 /// Order by entry
     struct Order {

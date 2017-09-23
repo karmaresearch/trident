@@ -16,65 +16,73 @@
 /// A plan fragment
 struct Plan
 {
-   /// Possible operators
-   enum Op { IndexScan, AggregatedIndexScan, FullyAggregatedIndexScan, NestedLoopJoin, MergeJoin, HashJoin, HashGroupify, Filter, Union, MergeUnion, TableFunction, Singleton, Subselect, Minus };
-   /// The cardinalits type
-   typedef double card_t;
-   /// The cost type
-   typedef double cost_t;
+    /// Possible operators
+    enum Op { IndexScan, AggregatedIndexScan, FullyAggregatedIndexScan, NestedLoopJoin, MergeJoin, HashJoin, HashGroupify, Filter, Union, MergeUnion, TableFunction, Singleton, Subselect, Minus, ValuesScan };
+    /// The cardinalits type
+    typedef double card_t;
+    /// The cost type
+    typedef double cost_t;
 
-   /// The root operator
-   Op op;
-   /// Operator argument
-   unsigned opArg;
-   /// Its input
-   Plan* left,*right;
-   /// The resulting cardinality
-   card_t cardinality;
-   /// The total costs
-   cost_t costs;
-   /// The ordering
-   unsigned ordering;
-   // is optional
-   bool optional;
-   /// QueryGraph associated (used for minus)
-   std::shared_ptr<QueryGraph> subquery;
+    /// The root operator
+    Op op;
+    /// Operator argument
+    unsigned opArg;
+    /// Its input
+    Plan* left,*right;
+    /// The resulting cardinality
+    card_t cardinality;
+    /// The total costs
+    cost_t costs;
+    /// The ordering
+    unsigned ordering;
+    // is optional
+    bool optional;
+    /// QueryGraph associated (used for minus)
+    std::shared_ptr<QueryGraph> subquery;
 
-   /// The next plan in problem chaining
-   Plan* next;
+    /// The next plan in problem chaining
+    Plan* next;
 
-   /// Print the plan
-   void print(unsigned indent) const;
+    /// Print the plan
+    void print(unsigned indent) const;
 
-   void init() {
-    optional = false;
-    subquery = NULL;
-   }
+    void init() {
+        optional = false;
+        subquery = NULL;
+    }
 
-   Plan() {
-    init();
-   }
+    Plan() {
+        init();
+    }
 };
+
+struct FilterArgs {
+    const QueryGraph::Filter *filter;
+    Plan *plan;
+    FilterArgs(const QueryGraph::Filter *filter, Plan *plan) : filter(filter),
+    plan(plan) {}
+};
+
 //---------------------------------------------------------------------------
 /// A container for plans. Encapsulates the memory management
 class PlanContainer
 {
-   private:
-   /// The pool
-   StructPool<Plan> pool;
+    private:
+        /// The pool
+        StructPool<Plan> pool;
 
-   public:
-   /// Constructor
-   PlanContainer();
-   /// Destructor
-   ~PlanContainer();
+    public:
+        /// Constructor
+        PlanContainer();
+        /// Destructor
+        ~PlanContainer();
 
-   /// Alloca a new plan
-   Plan* alloc() { Plan *plan = pool.alloc(); plan->init(); return plan; }
-   /// Release an allocate plan
-   void free(Plan* p);
-   /// Release all plans
-   void clear();
+        /// Alloca a new plan
+        Plan* alloc() { Plan *plan = pool.alloc(); plan->init(); return plan; }
+        /// Release an allocate plan
+        void free(Plan* p);
+        /// Release all plans
+        void clear();
 };
 //---------------------------------------------------------------------------
 #endif

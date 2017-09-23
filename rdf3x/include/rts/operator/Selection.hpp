@@ -576,37 +576,17 @@ class Selection : public Operator {
         class BuiltinNotExists : public Predicate {
             private:
                 /// The probe
-                Runtime &runtime;
                 std::unique_ptr<Predicate> probe;
                 std::unordered_set<uint64_t> set;
-                unsigned prjId;
+                std::unique_ptr<Operator> tree;
+                std::vector<Register *> regsToLoad;
+                std::vector<Register *> regsToCheck;
                 bool loaded;
-                std::shared_ptr<QueryGraph> subquery;
-
             public:
                 /// Constructor
-                BuiltinNotExists(Runtime &runtime,
-                        const std::map<unsigned, Register*>& bindings,
-                        std::shared_ptr<QueryGraph> subquery) : runtime(runtime),
-                loaded(false), subquery(subquery) {
-                    //Get all projected variables in the subquery
-                    Register *reg = NULL;
-                    prjId = 0; //For now, I assume you only get one variable
-                    for(auto itr = subquery->projectionBegin();
-                            itr != subquery->projectionEnd();
-                            ++itr) {
-                        if (!bindings.count(*itr)) {
-                            throw; //This should never happen
-                        }
-                        if (reg != NULL) {
-                            throw; //This is not supported yet
-                        }
-                        reg = bindings.find(*itr)->second;
-                    }
-                    //Create the predicate
-                    probe = std::unique_ptr<Predicate>(new Selection::Variable(reg));
-
-                }
+                BuiltinNotExists(Operator *tree,
+                        std::vector<Register *> regsToLoad,
+                        std::vector<Register *> regsToCheck);
                 /// Evaluate the predicate
                 void eval(Result& result);
                 /// Print the predicate (debugging only)

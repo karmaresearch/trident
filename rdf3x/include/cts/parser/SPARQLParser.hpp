@@ -60,6 +60,7 @@ public:
         ~Pattern();
     };
     /// A filter entry
+    struct PatternGroup;
     struct Filter {
         /// Possible types
         enum Type {
@@ -81,7 +82,8 @@ public:
         /// Possible subtypes or variable ids
         unsigned valueArg;
         /// subqueries or anything else
-        std::shared_ptr<SPARQLParser> pointerToArg;
+        std::shared_ptr<SPARQLParser> pointerToSubquery;
+        std::shared_ptr<PatternGroup> pointerToSubPattern;
 
         /// Constructor
         Filter();
@@ -114,9 +116,20 @@ public:
         std::vector<SPARQLParser*> subqueries;
         /// If it contains MINUS patterns
         std::vector<PatternGroup> minuses;
+        /// Values passed by the directive VALUES
+        struct ValueBindings {
+            std::vector<unsigned> variables;
+            std::vector<SPARQLParser::Element> values;
+            ValueBindings(std::vector<unsigned> variables
+                    , std::vector<SPARQLParser::Element> values) :
+            variables(variables), values(values) {
+            }
+        };
+        std::vector<ValueBindings> values;
     };
     /// The projection modifier
-    enum ProjectionModifier { Modifier_None, Modifier_Distinct, Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
+    enum ProjectionModifier { Modifier_None, Modifier_Distinct,
+        Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
     /// Sort order
     struct Order {
         /// Variable id
@@ -194,6 +207,8 @@ private:
     void parseGraphPattern(PatternGroup& group);
     // Parse an assignment (SPARQL 1.1)
     void parseAssignment(PatternGroup& group);
+    // Parse VALUES (SPARQL 1.1)
+    void parseValues(PatternGroup& group);
     /// Parse the minus operator (SPARQL 1.1)
     void parseMinus(PatternGroup& group);
     // Parse a group of patterns

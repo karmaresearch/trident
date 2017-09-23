@@ -998,31 +998,32 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
     return result;
 }
 //---------------------------------------------------------------------------
+Selection::BuiltinNotExists::BuiltinNotExists(Operator *tree,
+                        std::vector<Register *> regsToLoad,
+                        std::vector<Register *> regsToCheck) :
+    regsToLoad(regsToLoad), regsToCheck(regsToCheck), loaded(false)
+{
+    this->tree = std::unique_ptr<Operator>(tree);
+    probe = std::unique_ptr<Predicate>(new Selection::Variable(regsToCheck[0]));
+    if (regsToLoad.size() != 1)
+        throw;
+}
+//---------------------------------------------------------------------------
 void Selection::BuiltinNotExists::eval(Result& result)
     // Evaluate the predicate
 {
-    Result p, c;
-    probe->eval(p); // The variable to be checked
     if (!loaded) {
-        //Populate the set with the values of the subquery
-        PlanGen *plangen = new PlanGen();
-        Runtime run(runtime.getDatabase(), NULL, runtime.getQueryDict());
-        Plan* plan = plangen->translate(run.getDatabase(), *subquery.get(), false);
-        Operator* operatorTree = CodeGen().translate(run,
-                *subquery.get(),
-                plan,
-                false);
-        ResultsPrinter *p = (ResultsPrinter*) operatorTree;
-        //Exec the query and populate the set of excluded data
-        p->setSilent(true);
-        p->setSetOutput(&set, prjId);
-        if (p->first()) {
-            while (p->next());
+        if (tree->first()) {
+            do {
+                set.insert(regsToLoad[0]->value);
+            } while (tree->next());
         }
-        delete operatorTree;
-        delete plangen;
         loaded = true;
     }
+
+    Result p, c;
+    probe->eval(p); // The variable to be checked
+
     if (!set.count(p.id)) {
         result.setBoolean(true);
     } else {
@@ -1033,8 +1034,7 @@ void Selection::BuiltinNotExists::eval(Result& result)
 string Selection::BuiltinNotExists::print(PlanPrinter& out)
     // Print the predicate (debugging only)
 {
-    string result = "not_exists(" + probe->print(out);
-    result += ",<subquery>)";
+    string result = "not_exists(<subquery>)";
     return result;
 }
 

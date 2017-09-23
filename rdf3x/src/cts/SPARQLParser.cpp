@@ -48,13 +48,14 @@ SPARQLParser::Pattern::~Pattern()
 }
 //---------------------------------------------------------------------------
 SPARQLParser::Filter::Filter()
-    : arg1(0), arg2(0), arg3(0), arg4(0), valueArg(0), pointerToArg(0)
+    : arg1(0), arg2(0), arg3(0), arg4(0), valueArg(0), pointerToSubquery(0),
+    pointerToSubPattern(0)
       // Constructor
 {
 }
 //---------------------------------------------------------------------------
 SPARQLParser::Filter::Filter(const Filter& other)
-    : type(other.type), arg1(0), arg2(0), arg3(0), arg4(0), value(other.value), valueType(other.valueType), valueArg(other.valueArg), pointerToArg(other.pointerToArg)
+    : type(other.type), arg1(0), arg2(0), arg3(0), arg4(0), value(other.value), valueType(other.valueType), valueArg(other.valueArg), pointerToSubquery(other.pointerToSubquery), pointerToSubPattern(other.pointerToSubPattern)
       // Copy-Constructor
 {
     if (other.arg1)
@@ -587,47 +588,53 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
     } else if (lexer.isKeyword("NOT")) {
         if (lexer.getNext() == SPARQLLexer::Identifier && lexer.isKeyword("EXISTS")) {
             result->type = Filter::Builtin_notexists;
-            if (lexer.getNext() != SPARQLLexer::LCurly)
+            auto tkn1 = lexer.getNext();
+            if (tkn1 != SPARQLLexer::LCurly)
                 throw ParserException("'{' expected");
             auto tkn = lexer.getNext();
             if (lexer.isKeyword("select")) {
                 lexer.unget(tkn);
-                //std::map<std::string, unsigned> namedVariables;
-                //unsigned variableCount = 0;
                 SPARQLParser *newSubquery = new SPARQLParser(lexer, prefixes,
                         &namedVariables, variableCount);
                 newSubquery->parse(true);
                 variableCount = newSubquery->variableCount;
                 namedVariables = newSubquery->namedVariables;
-                result->pointerToArg = std::shared_ptr<SPARQLParser>(newSubquery);
-            } else {
-                throw ParserException("'SELECT' expected");
-            }
+                result->pointerToSubquery = std::shared_ptr<SPARQLParser>(newSubquery);
 
-
-            if (lexer.hasNext(SPARQLLexer::RCurly)) {
-                lexer.getNext();
-            } else {
-                if (lexer.getNext() != SPARQLLexer::Comma)
-                    throw ParserException("',' expected");
-                auto_ptr<Filter> args(new Filter);
-                Filter* tail = args.get();
-                tail->type = Filter::ArgumentList;
-                tail->arg1 = parseExpression(localVars);
-                while (true) {
-                    if (lexer.hasNext(SPARQLLexer::Comma)) {
-                        lexer.getNext();
-                        tail = tail->arg2 = new Filter;
-                        tail->type = Filter::ArgumentList;
-                        tail->arg1 = parseExpression(localVars);
-                    } else {
-                        if (lexer.getNext() != SPARQLLexer::RParen)
-                            throw ParserException("'}' expected");
-                        break;
+                if (lexer.hasNext(SPARQLLexer::RCurly)) {
+                    lexer.getNext();
+                } else {
+                    if (lexer.getNext() != SPARQLLexer::Comma)
+                        throw ParserException("',' expected");
+                    auto_ptr<Filter> args(new Filter);
+                    Filter* tail = args.get();
+                    tail->type = Filter::ArgumentList;
+                    tail->arg1 = parseExpression(localVars);
+                    while (true) {
+                        if (lexer.hasNext(SPARQLLexer::Comma)) {
+                            lexer.getNext();
+                            tail = tail->arg2 = new Filter;
+                            tail->type = Filter::ArgumentList;
+                            tail->arg1 = parseExpression(localVars);
+                        } else {
+                            if (lexer.getNext() != SPARQLLexer::RParen)
+                                throw ParserException("'}' expected");
+                            break;
+                        }
                     }
+                    result->arg2 = args.release();
                 }
-                result->arg2 = args.release();
+            } else {
+                //It's a series of triple patterns
+                lexer.unget(tkn);
+                std::shared_ptr<PatternGroup> group = std::shared_ptr<PatternGroup>(
+                        new PatternGroup);
+                parseGroupGraphPattern(*group.get());
+                result->pointerToSubPattern = group;
             }
+
+
+
         } else {
             throw ParserException("unknown function '" + lexer.getTokenValue() + "'");
         }
@@ -1226,6 +1233,8 @@ void SPARQLParser::parseGraphPattern(PatternGroup & group)
                 parseFilter(group, localVars);
             } else if (lexer.isKeyword("bind")) {
                 parseAssignment(group);
+            } else if (lexer.isKeyword("values")) {
+                parseValues(group);
             }
             else if (token == SPARQLLexer::Identifier
                     && lexer.isKeyword("minus")) {
@@ -1344,6 +1353,61 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
             throw ParserException("'}' expected");
         }
     }
+}
+//---------------------------------------------------------------------------
+void SPARQLParser::parseValues(PatternGroup & group) {
+    //Parse the variable(s)
+    map<string, unsigned> localVars;
+    std::vector<unsigned> variables;
+    std::vector<SPARQLParser::Element> values;
+    SPARQLLexer::Token token = lexer.getNext();
+    if (token == SPARQLLexer::Variable) {
+        //Parse only one variable
+        variables.push_back(nameVariable(lexer.getTokenValue()));
+    } else {
+        if (token != SPARQLLexer::LParen) {
+            throw ParserException("Expected (");
+        }
+        token = lexer.getNext();
+        while (token != SPARQLLexer::RParen) {
+            if (token != SPARQLLexer::Variable) {
+                throw ParserException("Expected a variable");
+            }
+            variables.push_back(nameVariable(lexer.getTokenValue()));
+            token = lexer.getNext();
+        }
+    }
+    //Parse the bindings
+    token = lexer.getNext();
+    if (token == SPARQLLexer::LCurly) {
+        //Read the values
+        SPARQLLexer::Token token = lexer.getNext();
+        while (token != SPARQLLexer::RCurly) {
+            if (token == SPARQLLexer::LParen) {
+                //Expect a RParen
+                unsigned id = 0;
+                while (id < variables.size()) {
+                    token = lexer.getNext();
+                    SPARQLParser::Element e = parsePatternElement(group, localVars);
+                    values.push_back(e);
+                    id += 1;
+                }
+                token = lexer.getNext();
+                if (token != SPARQLLexer::RParen) {
+                    throw ParserException("Expected )");
+                }
+                token = lexer.getNext();
+            } else {
+                lexer.unget(token);
+                SPARQLParser::Element e = parsePatternElement(group, localVars);
+                values.push_back(e);
+                token = lexer.getNext();
+            }
+        }
+    } else {
+        throw ParserException("'{' expected");
+    }
+    group.values.push_back(SPARQLParser::PatternGroup::ValueBindings(variables, values));
 }
 //---------------------------------------------------------------------------
 void SPARQLParser::parseAssignment(PatternGroup & group) {

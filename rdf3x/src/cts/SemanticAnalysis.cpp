@@ -27,6 +27,7 @@
 //---------------------------------------------------------------------------
 /// ID used for table functions
 static const char tableFunctionId[] = "http://www.mpi-inf.mpg.de/rdf3x/tableFunction";
+static bool encodeNotExistsFilter(SemanticAnalysis *myself, QueryGraph::Filter::Type type, DBLayer& dict, DifferentialIndex* diffIndex, const SPARQLParser::PatternGroup& group, const SPARQLParser::Filter& input, QueryGraph::Filter& output, QueryDict &tempDict);
 //---------------------------------------------------------------------------
 SemanticAnalysis::SemanticException::SemanticException(const std::string& message)
     : message(message)
@@ -160,20 +161,6 @@ static bool encodeUnaryFilter(QueryGraph::Filter::Type type, DBLayer& dict, Diff
     output.arg1 = new QueryGraph::Filter();
     return encodeFilter(dict, diffIndex, group, *input.arg1, *output.arg1, tempDict);
 }
-//---------------------------------------------------------------------------
-static bool encodeNotExistsFilter(SemanticAnalysis *myself, QueryGraph::Filter::Type type, DBLayer& dict, DifferentialIndex* diffIndex, const SPARQLParser::PatternGroup& group, const SPARQLParser::Filter& input, QueryGraph::Filter& output, QueryDict &tempDict)
-    // Encode a filter for not exists
-{
-    output.type = type;
-    //output.arg1 = new QueryGraph::Filter();
-    output.subquery = std::shared_ptr<QueryGraph>(new QueryGraph());
-    if (myself == NULL) {
-        throw SemanticAnalysis::SemanticException("Must implement it");
-    }
-    myself->transform(*input.pointerToArg.get(), *output.subquery.get());
-    return true;
-}
-
 //---------------------------------------------------------------------------
 static bool encodeBinaryFilter(QueryGraph::Filter::Type type, DBLayer& dict, DifferentialIndex* diffIndex, const SPARQLParser::PatternGroup& group, const SPARQLParser::Filter& input, QueryGraph::Filter& output, QueryDict &tempDict)
     // Encode a binary filter element
@@ -448,6 +435,21 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict, Different
         output.nodes.push_back(node);
     }
 
+    // Encode all VALUES patterns
+    for( auto iter : group.values) {
+        QueryGraph::ValuesNode n;
+        n.variables = iter.variables;
+        for (auto value : iter.values) {
+            bool constV;
+            uint64_t v;
+            if ((!encode(dict, diffIndex, value, v, constV))) {
+                return false;
+            }
+            n.values.push_back(v);
+        }
+        output.valueNodes.push_back(n);
+    }
+
     //Encode possible assignments as special table functions
     for (std::vector<SPARQLParser::Assignment>::const_iterator iter = group.assignments.begin();
             iter != group.assignments.end(); ++iter) {
@@ -517,6 +519,25 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict, Different
     }
 
     return true;
+}
+//---------------------------------------------------------------------------
+static bool encodeNotExistsFilter(SemanticAnalysis *myself, QueryGraph::Filter::Type type, DBLayer& dict, DifferentialIndex* diffIndex, const SPARQLParser::PatternGroup& group, const SPARQLParser::Filter& input, QueryGraph::Filter& output, QueryDict &tempDict)
+    // Encode a filter for not exists
+{
+    output.type = type;
+    if (myself == NULL) {
+        throw SemanticAnalysis::SemanticException("Must implement it");
+    }
+    if (input.pointerToSubquery != NULL) {
+        output.subquery = std::shared_ptr<QueryGraph>(new QueryGraph());
+        myself->transform(*input.pointerToSubquery.get(), *output.subquery.get());
+        return true;
+    } else { //It's a pattern
+        output.subpattern = std::shared_ptr<QueryGraph::SubQuery>(new QueryGraph::SubQuery());
+        bool res = transformSubquery(myself, dict, NULL, *input.pointerToSubPattern.get(),
+                *output.subpattern.get(), tempDict);
+        return res;
+    }
 }
 //---------------------------------------------------------------------------
 void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
