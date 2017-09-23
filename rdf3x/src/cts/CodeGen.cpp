@@ -976,6 +976,9 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
         if (itr->subpattern != NULL) {
             id = allocateRegisters(registers, registerClasses, *itr->subpattern.get(), id);
         }
+        if (itr->subquery != NULL) {
+            id = allocateRegisters(registers, registerClasses, itr->subquery->getQuery(), id);
+        }
     }
     return id;
 }

@@ -108,7 +108,11 @@ void PlanGen::addPlan(Problem* problem, Plan* plan)
 Plan *PlanGen::buildFilterPlan(const QueryGraph::Filter *filter) {
     Plan* plan;
     if (filter->subquery) {
-        plan = translate(*db, *filter->subquery.get(), false);
+        //Temporary set the subquery as full query
+        const QueryGraph *prevQ = fullQuery;
+        fullQuery = filter->subquery.get();
+        plan = translate_int(filter->subquery->getQuery(), false);
+        fullQuery = prevQ;
     } else if (filter->subpattern) { //pattern
         plan = translate_int(*filter->subpattern.get(), false);
     } else {
