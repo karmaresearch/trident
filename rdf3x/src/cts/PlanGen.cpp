@@ -635,7 +635,11 @@ PlanGen::Problem* PlanGen::buildOptional(const QueryGraph::SubQuery& query, uint
 {
     // Solve the subproblem
     Plan* p = translate_int(query, completeEstimate);
-    p->optional = true;
+    Plan *tmp = p;
+    while (tmp) {
+        tmp->optional = true;
+        tmp = tmp->next;
+    }
 
     // Create new problem instance
     Problem* result = problems.alloc();

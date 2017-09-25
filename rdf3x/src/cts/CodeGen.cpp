@@ -352,7 +352,7 @@ static Operator* translateMergeJoin(Runtime& runtime, const map<unsigned, Regist
             rightTail.push_back((*iter).second);
 
     // Build the operator
-    Operator* result = new MergeJoin(leftTree, leftBindings[joinOn], leftTail, rightTree, rightBindings[joinOn], rightTail, plan->cardinality);
+    Operator* result = new MergeJoin(leftTree, leftBindings[joinOn], leftTail, rightTree, rightBindings[joinOn], rightTail, plan->left->optional, plan->right->optional, plan->cardinality);
 
     // And apply additional selections if necessary
     result = addAdditionalSelections(runtime, result, joinVariables, leftBindings, rightBindings, joinOn);
