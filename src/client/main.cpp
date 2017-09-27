@@ -34,6 +34,7 @@
 #include <trident/server/server.h>
 #include <trident/ml/learner.h>
 #include <trident/ml/tester.h>
+#include <trident/ml/subgraphhandler.h>
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
 #include <trident/utils/batch.h>
@@ -660,6 +661,13 @@ void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport)
     miner.getFrequentPatterns(minLen, maxLen, minSupport);
 }
 
+void subgraphEval(KB &kb, po::variables_map &vm) {
+    SubgraphHandler sh;
+    sh.evaluate(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
+            "TODO", "TODO",
+            vm["nametest"].as<string>(), "python");
+}
+
 int main(int argc, const char** argv) {
     //Check some constraints
     if (!checkMachineConstraints()) {
@@ -696,9 +704,6 @@ int main(int argc, const char** argv) {
     if (cmd == "query") {
         KBConfig config;
         std::vector<string> locUpdates;
-        //string updatesDir = vm["updates"].as<string>();
-        //if (updatesDir.length() > 0)
-        //    locUpdates.push_back(updatesDir);
         KB kb(kbDir.c_str(), true, false, true, config, locUpdates);
         TridentLayer layer(kb);
         callRDF3X(layer, vm["query"].as<string>(), vm["explain"].as<bool>(),
@@ -841,6 +846,10 @@ int main(int argc, const char** argv) {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+    } else if (cmd == "subeval") {
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        subgraphEval(kb, vm);
     }
 
     //Print other stats

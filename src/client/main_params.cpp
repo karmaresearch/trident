@@ -73,7 +73,8 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
             && cmd != "server"
             && cmd != "dump"
             && cmd != "learn"
-            && cmd != "predict") {
+            && cmd != "predict"
+            && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
         return false;
@@ -403,8 +404,20 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             po::value<string>()->default_value(""),
             "Output directory to store the graph");
 
+    po::options_description subeval_options("Options for <subeval>");
+    subeval_options.add_options()("subeval_algo",
+            po::value<string>()->default_value(""),
+            "The algorithm used to create embeddings. This parameter is REQUIRED.");
+    subeval_options.add_options()("embdir",
+            po::value<string>()->default_value(""),
+            "The directory that contains the embeddings.");
+    subeval_options.add_options()("nametest",
+            po::value<string>()->default_value(""),
+            "The path (or name) of the dataset to use to test the performance.");
+
+
     po::options_description cmdline_options("Generic options");
-    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options).add(ml_options);
+    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options).add(ml_options).add(subeval_options);
 
     sections.insert(make_pair("query",query_options));
     sections.insert(make_pair("lookup",lookup_options));
