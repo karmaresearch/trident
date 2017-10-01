@@ -25,8 +25,6 @@
 #include <trident/kb/querier.h>
 #include <kognac/lz4io.h>
 
-#include <boost/chrono.hpp>
-
 void _test_createqueries(string inputfile, string queryfile) {
 
     // Load the entire KB in main memory

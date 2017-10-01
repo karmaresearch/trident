@@ -44,7 +44,6 @@
 #include <boost/log/trivial.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
-#include <boost/chrono.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <tbb/parallel_sort.h>
@@ -62,7 +61,6 @@
 
 namespace fs = boost::filesystem;
 namespace io = boost::iostreams;
-namespace timens = boost::chrono;
 
 bool _sorter_spo(const Triple &a, const Triple &b) {
     if (a.s < b.s) {
@@ -1476,7 +1474,7 @@ void Loader::monitorPerformance(SinkPtr logger, int seconds, std::condition_vari
 }
 
 void Loader::load(ParamsLoad p) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     BOOST_LOG_TRIVIAL(debug) << "Start loading ...";
 
     //Start a monitoring thread ...
@@ -1676,7 +1674,7 @@ void Loader::load(ParamsLoad p) {
     cv.notify_all();
     lck.unlock();
     monitor.join();
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(info) << "Loading is finished: Time (sec) " << sec.count();
 }
 

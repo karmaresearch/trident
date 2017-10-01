@@ -155,10 +155,10 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         std::unique_ptr<SPARQLLexer>(new SPARQLLexer(sparqlquery));
     std::unique_ptr<SPARQLParser> parser = std::unique_ptr<SPARQLParser>(
             new SPARQLParser(*lexer.get()));
-    boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     parseQuery(parsingOk, *parser.get(), *queryGraph.get(), *queryDict.get(), db);
     if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(info) << "Runtime query: 0ms.";
         BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
         BOOST_LOG_TRIVIAL(info) << "# rows = 0";
@@ -213,12 +213,12 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
             p->setJSONOutput(jsonresults, jsonnamevars);
         }
 
-        boost::chrono::system_clock::time_point startQ = boost::chrono::system_clock::now();
+        std::chrono::system_clock::time_point startQ = std::chrono::system_clock::now();
         if (operatorTree->first()) {
             while (operatorTree->next());
         }
-        boost::chrono::duration<double> durationQ = boost::chrono::system_clock::now() - startQ;
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(info) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
         BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
         if (jsonstats) {

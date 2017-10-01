@@ -22,8 +22,6 @@
 
 #include <trident/binarytables/storagestrat.h>
 
-#include <boost/chrono.hpp>
-
 /*unsigned StorageStrat::getStrat1() {
   unsigned output = 0;
   output = StorageStrat::setStorageType(output, CLUSTER_ITR);
@@ -213,10 +211,10 @@ size_t StorageStrat::getBinaryBreakingPoint() {
             idsToSearch.push_back(rand() % i);
         }
 
-        boost::chrono::duration<double> linearSec[31];
+        std::chrono::duration<double> linearSec[31];
         for (int m = 0; m < 31; ++m) {
             //Search linearly
-            boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             for (std::vector<size_t>::const_iterator itr = idsToSearch.begin();
                     itr != idsToSearch.end(); ++itr) {
                 std::vector<long>::const_iterator itrP = vector1.begin();
@@ -228,19 +226,19 @@ size_t StorageStrat::getBinaryBreakingPoint() {
                 }
                 fakeSum += m + ((itrP != vector1.end() && *itrP == vector1[*itr]) ? 1 : 0);
             }
-            linearSec[m] = boost::chrono::system_clock::now() - start;
+            linearSec[m] = std::chrono::system_clock::now() - start;
         }
 
         //Search with binary search
-        boost::chrono::duration<double> binarySec[31];
+        std::chrono::duration<double> binarySec[31];
         for (int m = 0; m < 31; ++m) {
-            boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             for (std::vector<size_t>::const_iterator itr = idsToSearch.begin();
                     itr != idsToSearch.end(); ++itr) {
                 fakeSum += m + ((std::binary_search(vector1.begin(), vector1.end(),
                                 vector1[*itr])) ? 1 : 0);
             }
-            binarySec[m] = boost::chrono::system_clock::now() - start;
+            binarySec[m] = std::chrono::system_clock::now() - start;
         }
 
         int linearWins = 0;

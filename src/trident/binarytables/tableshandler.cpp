@@ -21,12 +21,10 @@
 
 
 #include <trident/binarytables/tableshandler.h>
-//#include <trident/binarytables/binarytable.h>
 
 #include <kognac/utils.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/chrono.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -38,7 +36,6 @@
 
 using namespace std;
 namespace fs = boost::filesystem;
-namespace timens = boost::chrono;
 namespace bip = boost::interprocess;
 
 void FileMarks::parse(string path) {

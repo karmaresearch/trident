@@ -23,8 +23,8 @@
 #ifndef _TIMINGS_H
 #define _TIMINGS_H
 
-#include <boost/chrono.hpp>
 #include <string>
+#include <chrono>
 
 #define T_SPO 0
 #define T_OPS 1
@@ -42,7 +42,7 @@ public:
 
     virtual void init() = 0;
 
-    virtual boost::chrono::duration<double> launchQuery(const int perm,
+    virtual std::chrono::duration<double> launchQuery(const int perm,
             const long s,
             const long p,
             const long o,

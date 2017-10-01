@@ -24,7 +24,6 @@
 #include <kognac/utils.h>
 #include <kognac/compressor.h>
 
-#include <boost/chrono.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/thread.hpp>
 
@@ -33,8 +32,6 @@
 
 #include <thread>
 #include <functional>
-
-namespace timens = boost::chrono;
 
 struct __PermSorter_sorter {
     char *rawinput;
@@ -116,10 +113,10 @@ bool __PermSorter_triple_sorter(const __PermSorter_triple &a,
 void PermSorter::sortPermutation(char *start, char *end) {
     __PermSorter_triple *sstart = (__PermSorter_triple*) start;
     __PermSorter_triple *send = (__PermSorter_triple*) end;
-    timens::system_clock::time_point starttime = timens::system_clock::now();
+    std::chrono::system_clock::time_point starttime = std::chrono::system_clock::now();
     //std::sort(sstart, send, &__PermSorter_triple_sorter);
     tbb::parallel_sort(sstart, send, &__PermSorter_triple_sorter);
-    timens::duration<double> duration = timens::system_clock::now() - starttime;
+    std::chrono::duration<double> duration = std::chrono::system_clock::now() - starttime;
     BOOST_LOG_TRIVIAL(debug) << "Time sorting: " << duration.count() << "s.";
 }
 

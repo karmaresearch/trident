@@ -33,7 +33,6 @@
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/chrono.hpp>
 
 #include <string>
 
@@ -171,7 +170,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
     Utils::encode_short(supportbuffer.get(), 0);
     long supportlen = 0;
 
-    boost::chrono::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     std::vector<Triple> parsedtriples;
     {
         //Read the update and parse the strings
@@ -323,14 +322,14 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
 
     //Add triples that are either not existing (ADD) or existing (REMOVE) ...
     match(type, all_s, all_p, all_o, q, parsedtriples);
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime compressing and filtering the update = " << sec.count() * 1000;
 
 }
 
 void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
                                std::string updatedir) {
-    boost::chrono::system_clock::time_point startdiff = timens::system_clock::now();
+    std::chrono::system_clock::time_point startdiff = std::chrono::system_clock::now();
     std::vector<uint64_t> all_s;
     std::vector<uint64_t> all_p;
     std::vector<uint64_t> all_o;
@@ -349,7 +348,7 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
                    tmpdict, tmpdictsupport);
 
     if (!all_s.empty()) {
-        boost::chrono::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         //Get the location to store the update
         string locationupdate = getPathForUpdate(kbdir);
 
@@ -370,12 +369,12 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
         ofs.close();
 
 
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(debug) << "Runtime creating the diff index from the update = " << sec.count() * 1000;
     } else {
         BOOST_LOG_TRIVIAL(debug) << "The update is empty";
     }
-    boost::chrono::duration<double> secdiff = boost::chrono::system_clock::now() - startdiff;
+    std::chrono::duration<double> secdiff = std::chrono::system_clock::now() - startdiff;
     BOOST_LOG_TRIVIAL(info) << "Runtime update " << secdiff.count() * 1000 << " ms.";
 
     delete q;

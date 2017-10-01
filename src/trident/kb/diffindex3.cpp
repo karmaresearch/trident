@@ -31,16 +31,14 @@
 
 #include <kognac/lz4io.h>
 
-#include <boost/chrono.hpp>
 #include <cstdlib>
 
-namespace timens = boost::chrono;
 using namespace std;
 
 DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
                        KBConfig &config, TypeUpdate type) :
     DiffIndex(type, DiffIndex::DIFF3), dir(dir) {
-    timens::system_clock::time_point startDiff = timens::system_clock::now();
+    std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
     PropertyMap map;
     map.setBool(TEXT_KEYS, false);
     map.setBool(TEXT_VALUES, false);
@@ -71,7 +69,7 @@ DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
     roots[IDX_POS] = roots[IDX_PSO] = p.get();
     roots[IDX_OPS] = roots[IDX_OSP] = o.get();
     strat = NULL;
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - startDiff;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - startDiff;
     BOOST_LOG_TRIVIAL(debug) << "Load diff tree: " << sec.count() * 1000 << "ms.";
 
     if (fs::exists(dir + "/s/p0")) { //The update has its data locally stored
@@ -320,9 +318,9 @@ void _sort(std::vector <uint32_t> &idx1,
            std::vector<uint64_t> &thirdcolumn,
            const bool getsecondlevel,
            string file) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     std::sort(idx1.begin(), idx1.end(), _Sorter(firstcolumn));
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sorting = " << sec.count() * 1000 << " " << idx1.size();
 
     //Create file
@@ -336,7 +334,7 @@ void _sort(std::vector <uint32_t> &idx1,
     sink.open(file, sizetable);
     char *currentbuffer = sink.data();
 
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<std::pair<uint64_t, uint64_t>> secondlevel;
     secondlevel.reserve(idx1.size() / 2);
     uint64_t prevfirst = ~0lu;
@@ -401,7 +399,7 @@ void _sort(std::vector <uint32_t> &idx1,
         }
     }
     sink.close();
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sorting = " << sec.count() * 1000 << " nvalid=" << nvalid;
 }
 
@@ -465,7 +463,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
                config->getParamInt(TREE_NODE_KEYS_PREALL_FACTORY_SIZE));
 
     /**** Sort by SPO,SOP ****/
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     fs::create_directories(outputdir);
     string s_outputdir = outputdir + "/s";
     if (fs::exists(s_outputdir)) {
@@ -489,11 +487,11 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     validtriples = DiffIndex3::sortIndex(s_outputdir, s_diffdir, IDX_SPO, IDX_SOP, idx1,
                                          all_s, all_p, all_o, map, q, ufs.get(), shouldSort);
 
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create s* indices = " << sec.count() * 1000;
 
     /**** Sort by POS,PSO ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     string p_outputdir = outputdir + "/p";
     if (fs::exists(p_outputdir)) {
         fs::remove_all(fs::path(p_outputdir));
@@ -511,11 +509,11 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     DiffIndex3::sortIndex(p_outputdir, p_diffdir, IDX_POS, IDX_PSO,
                           idx1, all_p, all_o, all_s, map, q, ufp.get(), true);
 
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create p* indices = " << sec.count() * 1000;
 
     /**** Sort by OPS,OSP ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     string o_outputdir = outputdir + "/o";
     if (fs::exists(o_outputdir)) {
         fs::remove_all(fs::path(o_outputdir));
@@ -534,21 +532,21 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
                           idx1, all_o, all_p, all_s, map, q, ufo.get(), true);
 
 
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create o* indices = " << sec.count() * 1000;
 
     /**** Sort the inverted pairs ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<uint64_t> &invertedpairsOP = ufp->getInvertedPairs1();
     std::vector<uint64_t> &invertedpairsSP = ufp->getInvertedPairs2();
     std::vector<uint64_t> &invertedpairsSO = ufo->getInvertedPairs2();
     std::sort(invertedpairsOP.begin(), invertedpairsOP.end());
     std::sort(invertedpairsSP.begin(), invertedpairsSP.end());
     std::sort(invertedpairsSO.begin(), invertedpairsSO.end());
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime sort unique pairs = " << sec.count() * 1000;
 
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<UpdateStats::KeyInfo> &keysS = ufs->getAllKeys();
     std::vector<UpdateStats::KeyInfo> &keysP = ufp->getAllKeys();
     std::vector<UpdateStats::KeyInfo> &keysO = ufo->getAllKeys();
@@ -608,10 +606,10 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             keysS[idxKeysS].nfirsts2 = count;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Copying the S* unique pair counts = " << sec.count() * 1000;
     //OP
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     if (invertedpairsOP.size() > 0) {
         size_t idxOP = 0;
         long prevkey = invertedpairsOP[0];
@@ -638,11 +636,11 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             keysO[idxKeysO].nfirsts1 = count;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Copying the O* unique pair counts = " << sec.count() * 1000;
 
     //Writing the trees on disk
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     {
         TermCoordinates coord;
         coord.clear();
@@ -691,7 +689,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             root.append(keysO[i].key, &coord);
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime to write the B+Trees on disk = " << sec.count() * 1000;
 
     //Write some general statistics for the S* indices
@@ -1371,11 +1369,11 @@ size_t DiffIndex3::sortIndex(string outputdir,
                              Querier * q,
                              UpdateStats *statsFirstTerms,
                              const bool sort) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     if (sort) {
         std::sort(idx1.begin(), idx1.end(), _Sorter(firstcolumn));
     }
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Sort by first column " << sec.count() * 1000;
 
     //Init the tree and tmp arrays
@@ -1550,7 +1548,7 @@ DiffIndex3::~DiffIndex3() {
 }
 
 RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     spaceleft = initialsize;
     if (!fs::exists(file)) {
         currentposition = 0;
@@ -1568,13 +1566,13 @@ RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
     const size_t offset = currentposition % alignment;
     sink.open(file, spaceleft + offset, currentposition - offset);
     currentbuffer = sink.data() + offset;
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime init file = " << sec.count() * 1000;
 }
 
 RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
     if (maxTableSize > spaceleft) {
-        timens::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         sink.close();
         size_t incr = max((size_t)64 * 1014 * 1024, maxTableSize);
         fs::resize_file(file, currentposition + incr);
@@ -1583,7 +1581,7 @@ RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
         const size_t offset = currentposition % alignment;
         sink.open(file, spaceleft + offset, currentposition - offset);
         currentbuffer = sink.data() + offset;
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(debug) << "Runtime resize file = " << sec.count() * 1000;
     }
     Block b;
@@ -1593,11 +1591,11 @@ RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
 }
 
 RWMappedFile::~RWMappedFile() {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     currentbuffer = NULL;
     sink.close();
     fs::resize_file(file, currentposition);
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     BOOST_LOG_TRIVIAL(debug) << "Runtime close file = " << sec.count() * 1000;
 }
 

@@ -37,6 +37,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <cmath>
+#include <chrono>
 
 using namespace std;
 
@@ -58,7 +59,7 @@ KB::KB(const char *path,
             throw 10;
         }
 
-        timens::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
         //Get statistics and configuration
         string fileConf = path + string("/kbstats");
@@ -157,14 +158,14 @@ KB::KB(const char *path,
 
         tree = new Root(fileTree, NULL, readOnly, map);
 
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+        std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
         BOOST_LOG_TRIVIAL(debug) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
 
         //Initialize the dictionaries
         if (dictEnabled) {
             loadDict(&config);
-            sec = boost::chrono::system_clock::now() - start;
+            sec = std::chrono::system_clock::now() - start;
             BOOST_LOG_TRIVIAL(debug) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
@@ -282,9 +283,9 @@ KB::KB(const char *path,
                 //Sort them by numeric value
                 sort(childrenupdates.begin(), childrenupdates.end(), _sort_by_number);
                 for (int i = 0; i < childrenupdates.size(); ++i) {
-                    timens::system_clock::time_point startDiff = timens::system_clock::now();
+                    std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
                     addDiffIndex(childrenupdates[i], &globalbuffers[0], NULL);
-                    sec = boost::chrono::system_clock::now() - startDiff;
+                    sec = std::chrono::system_clock::now() - startDiff;
                     BOOST_LOG_TRIVIAL(debug) << "Time loading diff index " << sec.count() * 1000 << "ms.";
                 }
             }
@@ -301,7 +302,7 @@ KB::KB(const char *path,
             nextID = max(nextID, (long)dictManager->getLargestGUDTerm() + 1);
         }
 
-        sec = boost::chrono::system_clock::now() - start;
+        sec = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(debug) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
     }
 

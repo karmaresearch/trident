@@ -29,8 +29,6 @@
 
 #include <kognac/factory.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <inttypes.h>
 #include <cmath>

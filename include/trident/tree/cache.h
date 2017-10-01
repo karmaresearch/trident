@@ -28,7 +28,6 @@
 #include <trident/tree/leaffactory.h>
 #include <trident/kb/consts.h>
 
-#include <boost/chrono.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -37,8 +36,6 @@
 
 class Node;
 class TreeContext;
-
-namespace timens = boost::chrono;
 
 class Cache {
 

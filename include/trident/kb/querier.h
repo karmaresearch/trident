@@ -44,11 +44,7 @@
 
 #include <kognac/factory.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
-
-namespace timens = boost::chrono;
 
 class TableStorage;
 class ListPairHandler;

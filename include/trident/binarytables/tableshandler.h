@@ -31,7 +31,6 @@
 #include <trident/files/filemanager.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/chrono.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -41,7 +40,6 @@
 
 namespace fs = boost::filesystem;
 namespace bip = boost::interprocess;
-namespace timens = boost::chrono;
 
 #define MAX_LENGTH_PATHFILE 1024
 #define MAX_N_SECTORS 10000

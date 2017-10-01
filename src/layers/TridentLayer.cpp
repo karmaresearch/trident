@@ -586,7 +586,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
     BOOST_LOG_TRIVIAL(debug) << "Exec join selectivity: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
                              value3CL << "-" << value1R << " " <<  value1CR << " " << value2R << " " << value2CR << " " << value3R << " " << value3CR;
 
-    boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     std::shared_ptr<TupleTable> t1;
     const long card1 = getCardinality(!valueL1 ? (uint64_t)~0lu : value1CL,
@@ -624,7 +624,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
                                       value3CR,
                                       card1,
                                       card2);
-        boost::chrono::duration<double> dur = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> dur = std::chrono::system_clock::now() - start;
         BOOST_LOG_TRIVIAL(debug) << "Time bifocal sampling between: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
                                  value3CL << "-" << value1R << " " <<  value1CR << " " << value2R << " " << value2CR << " " << value3R << " " << value3CR << ": " << dur.count() * 1000 << "retval=" << cost;
         return cost;

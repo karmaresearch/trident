@@ -31,13 +31,11 @@
 #include <lz4.h>
 #include <boost/thread.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/chrono.hpp>
 
 #include <iostream>
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
     hash(hash) {
@@ -58,7 +56,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
         gud_idtext.set_deleted_key(~0lu - 1);
         //load gud
         if (fs::exists(dirToStoreGUD + "/gud")) {
-            boost::chrono::system_clock::time_point start = timens::system_clock::now();
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             ifstream ifs;
             ifs.open(dirToStoreGUD + "/gud");
             ifs >> gud_largestID;
@@ -73,7 +71,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
                 }
             }
             ifs.close();
-            boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+            std::chrono::duration<double> sec = std::chrono::system_clock::now()
                 - start;
             BOOST_LOG_TRIVIAL(debug) << "Time loading GUD " << sec.count() * 1000;
         }
@@ -266,7 +264,7 @@ DictMgmt::~DictMgmt() {
     delete[] insertedNewTerms;
     if (gud_modified && !gud_idtext.empty()) {
         //Write down the new version
-        boost::chrono::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         ofstream os;
         os.open(gudLocation + "/gud", ios_base::trunc);
         os << gud_largestID << endl;
@@ -274,7 +272,7 @@ DictMgmt::~DictMgmt() {
             os << it->first << '\t' << it->second << endl;
         }
         os.close();
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+        std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
         BOOST_LOG_TRIVIAL(debug) << "Time writing GUD " << sec.count() * 1000;
     }

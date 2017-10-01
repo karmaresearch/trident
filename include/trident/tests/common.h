@@ -71,7 +71,7 @@ public:
 
     void init();
 
-    boost::chrono::duration<double> launchQuery(const int perm,
+    std::chrono::duration<double> launchQuery(const int perm,
             const long s,
             const long p,
             const long o,

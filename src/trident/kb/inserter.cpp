@@ -25,7 +25,6 @@
 #include <trident/binarytables/tableshandler.h>
 #include <trident/binarytables/binarytableinserter.h>
 
-#include <boost/chrono.hpp>
 #include <boost/log/trivial.hpp>
 
 //means: newrow layout with 8 bytes + 8 bytes

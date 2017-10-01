@@ -20,7 +20,6 @@
 **/
 
 
-#include <boost/chrono.hpp>
 #include <boost/foreach.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -30,21 +29,22 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
 
 void Timings::launchTests() {
 
     //statistics
-    boost::chrono::duration<double> durationsC[6 * 5];
-    boost::chrono::duration<double> durationsW[6 * 5];
+    std::chrono::duration<double> durationsC[6 * 5];
+    std::chrono::duration<double> durationsW[6 * 5];
     std::vector<double> medianC[6 * 5];
     std::vector<double> medianW[6 * 5];
     long nqueries[6 * 5];
     long totalResults[6 * 5];
     for (int i = 0; i < 6 * 5; ++i) {
-        durationsC[i] =  boost::chrono::duration<double>::zero();
-        durationsW[i] =  boost::chrono::duration<double>::zero();
+        durationsC[i] =  std::chrono::duration<double>::zero();
+        durationsW[i] =  std::chrono::duration<double>::zero();
         nqueries[i] = 0;
         totalResults[i] = 0;
     }
@@ -132,8 +132,8 @@ void Timings::launchTests() {
         }
 
         //launch the query
-        boost::chrono::duration<double> durC;
-        boost::chrono::duration<double> durW;
+        std::chrono::duration<double> durC;
+        std::chrono::duration<double> durW;
 
         long c = 0;
         //Cold run
