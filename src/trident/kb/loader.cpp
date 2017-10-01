@@ -441,8 +441,41 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     *output = processedtriples;
 }
 
+void _convertDictFile(std::vector<string> ins, string out) {
+    char *support = new char[MAX_TERM_SIZE + 2];
+    ifstream rawFile;
+    LZ4Writer outputDict(out);
+    for (auto f : ins) {
+        BOOST_LOG_TRIVIAL(debug) << "Converting " << f;
+        rawFile.open(f);
+        boost::iostreams::filtering_istream compressedFile;
+        compressedFile.push(io::gzip_decompressor());
+        compressedFile.push(rawFile);
+        string line;
+        while (std::getline(compressedFile,line)) {
+            int pos = line.find(' ');
+            string sId = line.substr(0, pos);
+            long id = stol(sId);
+            line = line.substr(pos + 1);
+            pos = line.find(' ');
+            string sLen = line.substr(0, pos);
+            int len = stoi(sLen);
+            line = line.substr(pos + 1);
+            outputDict.writeLong(id);
+
+            Utils::encode_short(support, len);
+            memcpy(support + 2, line.c_str(), len);
+            outputDict.writeString(support, len + 2);
+        }
+        rawFile.close();
+    }
+    delete[] support;
+}
+
 long Loader::createPermsAndDictsFromFiles(string inputtriples,
+        bool separateDictEntRels,
         string inputdict,
+        string inputdictr,
         string *permDirs,
         int nperms,
         int signaturePerm,
@@ -466,34 +499,28 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
             }
         }
 
-        char *support = new char[MAX_TERM_SIZE + 2];
-        ifstream rawFile;
-        LZ4Writer outputDict(fileNameDictionaries);
-        for (auto f : inputfiles) {
-            BOOST_LOG_TRIVIAL(debug) << "Converting " << f;
-            rawFile.open(f);
-            boost::iostreams::filtering_istream compressedFile;
-            compressedFile.push(io::gzip_decompressor());
-            compressedFile.push(rawFile);
-            string line;
-            while (std::getline(compressedFile,line)) {
-                int pos = line.find(' ');
-                string sId = line.substr(0, pos);
-                long id = stol(sId);
-                line = line.substr(pos + 1);
-                pos = line.find(' ');
-                string sLen = line.substr(0, pos);
-                int len = stoi(sLen);
-                line = line.substr(pos + 1);
-                outputDict.writeLong(id);
-
-                Utils::encode_short(support, len);
-                memcpy(support + 2, line.c_str(), len);
-                outputDict.writeString(support, len + 2);
+        if (separateDictEntRels) {
+            string outputDictFile = fileNameDictionaries;
+            outputDictFile = fileNameDictionaries; //The entities are stored in the normal dictionary. The relations will be stored in a in-memory data structure
+            _convertDictFile(inputfiles, outputDictFile);
+            outputDictFile = fileNameDictionaries + "_r";
+            //Convert the relation files
+            inputfiles.clear();
+            if (fs::exists(inputdictr)) {
+                inputfiles.push_back(inputdictr);
+            } else {
+                fs::path path(inputdictr);
+                inputfiles = Utils::getFilesWithPrefix(path.parent_path().string(), path.filename().string());
+                std::sort(inputfiles.begin(), inputfiles.end());
+                for(int i = 0; i < inputfiles.size(); ++i) {
+                    inputfiles[i] = path.parent_path().string() + string("/") + inputfiles[i];
+                }
             }
-            rawFile.close();
+            _convertDictFile(inputfiles, outputDictFile);
+        } else {
+            _convertDictFile(inputfiles, fileNameDictionaries);
         }
-        delete[] support;
+
     } else {
         BOOST_LOG_TRIVIAL(debug) << "No dict file was provided";
     }
@@ -1632,7 +1659,9 @@ void Loader::load(ParamsLoad p) {
             }
         } else {
             totalCount = createPermsAndDictsFromFiles(p.triplesInputDir,
+                    p.relsOwnIDs,
                     p.dictDir,
+                    p.dictDir_rel,
                     p.graphTransformation != "" ? permDirs + 3 : permDirs, //Use only the first dir
                     1,
                     signaturePerm, //Ignored
@@ -1747,14 +1776,15 @@ void Loader::loadKB(KB &kb,
         threads = new boost::thread[dictionaries - 1];
         nTerm *maxValues = new nTerm[dictionaries];
         if (dictMethod != DICT_SMART) {
-            for (int i = 1; i < dictionaries; ++i) {
+            /*for (int i = 1; i < dictionaries; ++i) {
                 threads[i - 1] = boost::thread(
                         boost::bind(&Loader::insertDictionary, i,
                             kb.getDictMgmt(),
                             fileNameDictionaries[i],
                             dictMethod != DICT_HASH,
                             true, false, maxValues + i));
-            }
+            }*/
+            if (dictionaries > 1) throw 10;
             insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0],
                     dictMethod != DICT_HASH, true, false, maxValues);
             for (int i = 1; i < dictionaries; ++i) {

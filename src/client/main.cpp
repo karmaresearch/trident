@@ -382,6 +382,7 @@ void testkb(string kbDir, po::variables_map &vm) {
         p.inputCompressed = false;
         p.triplesInputDir = vm["tripleFiles"].as<string>();
         p.dictDir = "";
+        p.dictDir_rel = "";
         p.tmpDir = kbDir;
         p.kbDir = kbDir;
         p.dictMethod = dictMethod;
@@ -765,10 +766,12 @@ int main(int argc, const char** argv) {
 
         string inputDir;
         string dictDir = "";
+        string dictDir_rel = "";
         bool inputCompressed = false;
         if (!vm["comprinput"].empty()) {
             inputDir = vm["comprinput"].as<string>();
             dictDir = vm["comprdict"].as<string>();
+            dictDir_rel = vm["comprdict_rel"].as<string>();
             inputCompressed = true;
         } else {
             inputDir = vm["tripleFiles"].as<string>();
@@ -780,6 +783,7 @@ int main(int argc, const char** argv) {
         p.inputCompressed = inputCompressed;
         p.triplesInputDir = inputDir;
         p.dictDir = dictDir;
+        p.dictDir_rel = dictDir_rel;
         p.tmpDir = tmpDir;
         p.kbDir = kbDir;
         p.dictMethod = dictMethod;

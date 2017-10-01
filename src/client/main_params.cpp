@@ -270,6 +270,8 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
             "Path to a file that contains a list of compressed triples.");
     load_options.add_options()("comprdict", po::value<string>()->default_value(""),
             "Path to a file that contains the dictionary for the compressed triples.");
+    load_options.add_options()("comprdict_rel", po::value<string>()->default_value(""),
+            "Path to a file that contains the dictionary for the relations used in compressed triples (used only if relsOwnIDs is set to true).");
 
     load_options.add_options()("tripleFiles,f", po::value<string>(),
             "Path to the files that contain the compressed triples. This parameter is REQUIRED.");

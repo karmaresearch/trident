@@ -26,7 +26,6 @@
 //#include <trident/iterators/pairitr.h>
 #include <trident/binarytables/newtable.h>
 #include <trident/kb/consts.h>
-
 #include <kognac/utils.h>
 
 class SequenceWriter {

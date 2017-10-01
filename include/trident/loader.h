@@ -406,6 +406,7 @@ struct ParamsLoad {
     bool inputCompressed;
     string triplesInputDir;
     string dictDir;
+    string dictDir_rel;
     string tmpDir;
     string kbDir;
     string dictMethod;
@@ -606,7 +607,9 @@ class Loader {
 
         static long createPermsAndDictsFromFiles(
                 string inputtriples,
+                bool separateDictEntRels,
                 string inputdict,
+                string inputdictr,
                 string *permDirs,
                 int nperms,
                 int signaturePerm,
