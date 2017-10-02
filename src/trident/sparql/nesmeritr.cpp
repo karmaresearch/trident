@@ -21,7 +21,6 @@
 
 
 #include <trident/sparql/joins.h>
-#include <boost/log/trivial.hpp>
 
 #include <iostream>
 

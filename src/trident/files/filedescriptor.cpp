@@ -33,7 +33,6 @@
 #include <cmath>
 
 #include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <unistd.h>
 
@@ -51,7 +50,6 @@ void FileDescriptor::mapFile(uint64_t requiredIncrement) {
                                         readOnly ? bip::read_only : bip::read_write);
     buffer = static_cast<char*>(mapped_rgn->get_address());
     sizeFile = (uint64_t)mapped_rgn->get_size();
-    //BOOST_LOG_TRIVIAL(debug) << "FileDescriptor: buffer = 0x" << std::hex << (long) ((void *) buffer) << std::dec << ", size = " << sizeFile;
 
     if (tracker) {
         if (memoryTrackerId != -1) {
@@ -217,7 +215,6 @@ FileDescriptor::~FileDescriptor() {
         tracker->removeBlockWithoutDeallocation(memoryTrackerId);
     }
 
-    //BOOST_LOG_TRIVIAL(debug) << "FileDescriptor: deleting buffer = 0x" << std::hex << (long) ((void *) buffer) << std::dec;
     buffer = NULL;
     if (mapped_rgn != NULL) {
         mapped_rgn->flush(0, size);

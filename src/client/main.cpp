@@ -60,13 +60,6 @@
 #include <rts/operator/ResultsPrinter.hpp>
 //END RDF3x dependencies
 
-#include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
@@ -78,11 +71,10 @@
 #include <chrono>
 
 using namespace std;
-namespace logging = boost::log;
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
-SinkPtr initLogging(
+/*SinkPtr initLogging(
         logging::trivial::severity_level level,
         bool consoleActive,
         bool fileActive,
@@ -120,7 +112,7 @@ SinkPtr initLogging(
     boost::shared_ptr<logging::core> core = logging::core::get();
     core->set_filter(logging::trivial::severity >= level);
     return sink;
-}
+}*/
 
 void printHelp(const char *programName, string section,
         po::options_description &desc,
@@ -486,12 +478,12 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     sections.insert(make_pair("server",server_options));
 
     cmdline_options.add_options()("input,i", po::value<string>(),
-            "The path of the KB directory. This parameter is REQUIRED.")(
-                "logLevel,l", po::value<logging::trivial::severity_level>(),
-                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");
-    cmdline_options.add_options()("logfile",
-            po::value<string>()->default_value(""),
-            "Set if you want to store the logs in a file");
+            "The path of the KB directory. This parameter is REQUIRED.");
+    //("logLevel,l", po::value<logging::trivial::severity_level>(),
+    //            "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");
+    //cmdline_options.add_options()("logfile",
+    //        po::value<string>()->default_value(""),
+    //        "Set if you want to store the logs in a file");
 
     po::store(
             po::command_line_parser(argc, argv).options(cmdline_options).run(),
@@ -524,7 +516,7 @@ void lookup(DictMgmt *dict, po::variables_map &vm) {
 
 void dump(KB *kb, string outputdir) {
     if (fs::exists(outputdir)) {
-        BOOST_LOG_TRIVIAL(info) << "Removing the output directory ... " << outputdir;
+        LOG(INFO) << "Removing the output directory ... " << outputdir;
         fs::remove_all(outputdir);
     }
     fs::create_directories(outputdir);
@@ -572,7 +564,7 @@ void dump(KB *kb, string outputdir) {
         }
         out << std::endl;
     }
-    BOOST_LOG_TRIVIAL(info) << "Finished dumping";
+    LOG(INFO) << "Finished dumping";
     q->releaseItr(itr);
     delete q;
 }
@@ -680,10 +672,10 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
             queryDict, db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = 0";
+        LOG(INFO) << "Runtime queryopti: 0ms.";
+        LOG(INFO) << "Runtime queryexec: 0ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = 0";
         return;
     }
 
@@ -719,12 +711,12 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         }
         std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         ResultsPrinter *p = (ResultsPrinter*) operatorTree;
         long nElements = p->getPrintedRows();
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+        LOG(INFO) << "# rows = " << nElements;
         delete operatorTree;
     }
 }
@@ -763,7 +755,7 @@ void testkb(string kbDir, po::variables_map &vm) {
         p.sample = vm["sample"].as<bool>();
         p.sampleRate = vm["sampleRate"].as<double>();
         p.thresholdSkipTable = vm["thresholdSkipTable"].as<int>();
-        p.logPtr = NULL;
+        //p.logPtr = NULL;
         p.timeoutStats = -1;
         p.remoteLocation = "";
         p.limitSpace = 0;
@@ -832,33 +824,33 @@ void startServer(KB &kb, int port) {
     webint = std::unique_ptr<TridentServer>(
             new TridentServer(kb, full_path.string() + "/../webinterface"));
     webint->start("0.0.0.0", to_string(port));
-    BOOST_LOG_TRIVIAL(info) << "Server is launched at 0.0.0.0:" << to_string(port);
+    LOG(INFO) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
 }
 
 void printStats(KB &kb, Querier *q) {
-    BOOST_LOG_TRIVIAL(debug) << "Max mem (MB) " << Utils::get_max_mem();
-    BOOST_LOG_TRIVIAL(debug) << "# Read Index Blocks = " << kb.getStats().getNReadIndexBlocks();
-    BOOST_LOG_TRIVIAL(debug) << " Read Index Bytes from disk = " << kb.getStats().getNReadIndexBytes();
+    LOG(DEBUG) << "Max mem (MB) " << Utils::get_max_mem();
+    LOG(DEBUG) << "# Read Index Blocks = " << kb.getStats().getNReadIndexBlocks();
+    LOG(DEBUG) << " Read Index Bytes from disk = " << kb.getStats().getNReadIndexBytes();
     Querier::Counters c = q->getCounters();
-    BOOST_LOG_TRIVIAL(debug) << "RowLayouts: " << c.statsRow << " ClusterLayouts: " << c.statsCluster << " ColumnLayouts: " << c.statsColumn;
-    BOOST_LOG_TRIVIAL(debug) << "AggrIndices: " << c.aggrIndices << " NotAggrIndices: " << c.notAggrIndices << " CacheIndices: " << c.cacheIndices;
-    BOOST_LOG_TRIVIAL(debug) << "Permutations: spo " << c.spo << " ops " << c.ops << " pos " << c.pos << " sop " << c.sop << " osp " << c.osp << " pso " << c.pso;
+    LOG(DEBUG) << "RowLayouts: " << c.statsRow << " ClusterLayouts: " << c.statsCluster << " ColumnLayouts: " << c.statsColumn;
+    LOG(DEBUG) << "AggrIndices: " << c.aggrIndices << " NotAggrIndices: " << c.notAggrIndices << " CacheIndices: " << c.cacheIndices;
+    LOG(DEBUG) << "Permutations: spo " << c.spo << " ops " << c.ops << " pos " << c.pos << " sop " << c.sop << " osp " << c.osp << " pso " << c.pso;
     long nblocks = 0;
     long nbytes = 0;
     for (int i = 0; i < kb.getNDictionaries(); ++i) {
         nblocks = kb.getStatsDict()[i].getNReadIndexBlocks();
         nbytes = kb.getStatsDict()[i].getNReadIndexBytes();
     }
-    BOOST_LOG_TRIVIAL(debug) << "# Read Dictionary Blocks = " << nblocks;
-    BOOST_LOG_TRIVIAL(debug) << "# Read Dictionary Bytes from disk = " << nbytes;
-    BOOST_LOG_TRIVIAL(debug) << "Process IO Read bytes = " << Utils::getIOReadBytes();
-    BOOST_LOG_TRIVIAL(debug) << "Process IO Read char = " << Utils::getIOReadChars();
+    LOG(DEBUG) << "# Read Dictionary Blocks = " << nblocks;
+    LOG(DEBUG) << "# Read Dictionary Bytes from disk = " << nbytes;
+    LOG(DEBUG) << "Process IO Read bytes = " << Utils::getIOReadBytes();
+    LOG(DEBUG) << "Process IO Read char = " << Utils::getIOReadChars();
 }
 
 void launchAnalytics(KB &kb, string op, string param1, string param2) {
     if (!AnalyticsTasks::getInstance().isValidTask(op)) {
-        BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
+        LOG(ERROR) << "Task " << op << " not recognized";
         throw 10;
     }
     AnalyticsTasks::getInstance().load(op, param2);
@@ -866,7 +858,7 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
 }
 
 void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
-    BOOST_LOG_TRIVIAL(info) << "Mining frequent graphs";
+    LOG(INFO) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
     miner.getFrequentPatterns(minLen, maxLen, minSupport);
@@ -874,21 +866,21 @@ void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport)
 
 bool checkMachineConstraints() {
     if (sizeof(long) != 8) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'long' to be 8 bytes";
+        LOG(ERROR) << "Trident expects a 'long' to be 8 bytes";
         return false;
     }
     if (sizeof(int) != 4) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'int' to be 4 bytes";
+        LOG(ERROR) << "Trident expects a 'int' to be 4 bytes";
         return false;
     }
     if (sizeof(short) != 2) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'short' to be 2 bytes";
+        LOG(ERROR) << "Trident expects a 'short' to be 2 bytes";
         return false;
     }
     int n = 1;
     // big endian if true
     if(*(char *)&n != 1) {
-        BOOST_LOG_TRIVIAL(error) << "Some features of Trident rely on little endianness. Change machine ...sorry";
+        LOG(ERROR) << "Some features of Trident rely on little endianness. Change machine ...sorry";
         return false;
     }
     return true;
@@ -907,7 +899,7 @@ int main(int argc, const char** argv) {
     }
 
     //Init logging system
-    logging::trivial::severity_level level =
+    /*logging::trivial::severity_level level =
         vm.count("logLevel") ?
         vm["logLevel"].as<logging::trivial::severity_level>() :
         logging::trivial::warning;
@@ -920,8 +912,8 @@ int main(int argc, const char** argv) {
         for(int i = 0; i < argc; ++i) {
             params += string(argv[i]) + " ";
         }
-        BOOST_LOG_TRIVIAL(debug) << "PARAMS: " << params;
-    }
+        LOG(DEBUG) << "PARAMS: " << params;
+    }*/
 
     //Init the knowledge base
     string cmd = string(argv[1]);
@@ -1027,7 +1019,7 @@ int main(int argc, const char** argv) {
         p.sample = vm["sample"].as<bool>();
         p.sampleRate = vm["sampleRate"].as<double>();
         p.thresholdSkipTable = vm["thresholdSkipTable"].as<int>();
-        p.logPtr = logptr;
+        //p.logPtr = logptr;
         p.timeoutStats = vm["timeoutStats"].as<int>();
         p.remoteLocation = vm["remoteLoc"].as<string>();
         p.limitSpace = vm["limitSpace"].as<long>();
@@ -1070,7 +1062,7 @@ int main(int argc, const char** argv) {
     }
 
     //Print other stats
-    BOOST_LOG_TRIVIAL(info) << "Max memory used: " << Utils::get_max_mem() << " MB";
+    LOG(INFO) << "Max memory used: " << Utils::get_max_mem() << " MB";
     return EXIT_SUCCESS;
 }
 
@@ -1098,9 +1090,9 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
     parseQuery(parsingOk, parser, queryGraph, queryDict, db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryopti: 0ms.";
+        LOG(INFO) << "Runtime queryexec: 0ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         return;
     }
 
@@ -1112,7 +1104,7 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
 
     //Output plan
 #ifdef DEBUG
-    BOOST_LOG_TRIVIAL(debug) << "Translated plan:";
+    LOG(DEBUG) << "Translated plan:";
     plan.print();
 #endif
 
@@ -1138,10 +1130,10 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
         std::chrono::duration<double> secT = std::chrono::system_clock::now()
             - start;
         //Print stats
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = " << nElements;
         plan.releaseIterator(root);
     }
     //Print stats dictionary

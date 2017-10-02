@@ -25,10 +25,11 @@
 
 #include <trident/iterators/tupleiterators.h>
 
-#include <boost/log/trivial.hpp>
+#include <kognac/logs.h>
 
 #include <vector>
 #include <iostream>
+#include <assert.h>
 
 class TupleTable {
 private:
@@ -43,7 +44,7 @@ private:
 
         Sorter(std::vector<uint8_t> &f) : nfields((uint8_t) f.size()) {
             if (f.size() > 8) {
-                BOOST_LOG_TRIVIAL(error) << "Sorting works on at most 8 fields";
+                LOG(ERROR) << "Sorting works on at most 8 fields";
                 throw 10;
             }
 

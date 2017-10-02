@@ -53,14 +53,14 @@ void TridentServer::start(string address, string port) {
 }
 
 void TridentServer::stop() {
-    BOOST_LOG_TRIVIAL(info) << "Stopping server ...";
+    LOG(INFO) << "Stopping server ...";
     while (isActive) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
     }
     acceptor.cancel();
     acceptor.close();
     io.stop();
-    BOOST_LOG_TRIVIAL(info) << "Done";
+    LOG(INFO) << "Done";
 }
 
 void TridentServer::connect() {
@@ -159,9 +159,9 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
     parseQuery(parsingOk, *parser.get(), *queryGraph.get(), *queryDict.get(), db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime query: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = 0";
+        LOG(INFO) << "Runtime query: 0ms.";
+        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = 0";
         return;
     }
 
@@ -219,8 +219,8 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         }
         std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
         if (jsonstats) {
             jsonstats->put("runtime", to_string(durationQ.count()));
             jsonstats->put("nresults", to_string(p->getPrintedRows()));
@@ -228,7 +228,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         }
         if (printstdout) {
             long nElements = p->getPrintedRows();
-            BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+            LOG(INFO) << "# rows = " << nElements;
         }
         delete operatorTree;
     }
@@ -369,7 +369,7 @@ string TridentServer::getPage(string f) {
     string pathfile = dirhtmlfiles + "/" + f;
     if (boost::filesystem::exists(boost::filesystem::path(pathfile))) {
         //Read the content of the file
-        BOOST_LOG_TRIVIAL(debug) << "Reading the content of " << pathfile;
+        LOG(DEBUG) << "Reading the content of " << pathfile;
         ifstream ifs(pathfile);
         stringstream sstr;
         sstr << ifs.rdbuf();

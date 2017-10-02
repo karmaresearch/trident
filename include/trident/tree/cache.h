@@ -29,7 +29,6 @@
 #include <trident/kb/consts.h>
 
 #include <boost/circular_buffer.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <list>
 #include <string>
@@ -56,7 +55,7 @@ public:
 
     Cache(int maxNodesInCache, bool compressedNodes) :
         compressedNodes(compressedNodes), registeredNodes(maxNodesInCache) {
-//      BOOST_LOG_TRIVIAL(debug)<< "Init cache: maxNodesInCache=" << maxNodesInCache << " compressed? " << compressedNodes;
+//      LOG(DEBUG)<< "Init cache: maxNodesInCache=" << maxNodesInCache << " compressed? " << compressedNodes;
         context = NULL;
         factory = NULL;
         manager = NULL;

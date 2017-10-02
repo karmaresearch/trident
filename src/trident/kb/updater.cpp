@@ -30,7 +30,6 @@
 
 #include <kognac/filereader.h>
 
-#include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -91,7 +90,7 @@ void Updater::parseUpdate(std::string update,
             }
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << "Parsed " << validtriples << " invalid " << invalidtriples;
+    LOG(DEBUG) << "Parsed " << validtriples << " invalid " << invalidtriples;
 }
 
 void Updater::writeDict(DictMgmt *dictmgmt,
@@ -323,7 +322,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
     //Add triples that are either not existing (ADD) or existing (REMOVE) ...
     match(type, all_s, all_p, all_o, q, parsedtriples);
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime compressing and filtering the update = " << sec.count() * 1000;
+    LOG(DEBUG) << "Runtime compressing and filtering the update = " << sec.count() * 1000;
 
 }
 
@@ -370,12 +369,12 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
 
 
         std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(debug) << "Runtime creating the diff index from the update = " << sec.count() * 1000;
+        LOG(DEBUG) << "Runtime creating the diff index from the update = " << sec.count() * 1000;
     } else {
-        BOOST_LOG_TRIVIAL(debug) << "The update is empty";
+        LOG(DEBUG) << "The update is empty";
     }
     std::chrono::duration<double> secdiff = std::chrono::system_clock::now() - startdiff;
-    BOOST_LOG_TRIVIAL(info) << "Runtime update " << secdiff.count() * 1000 << " ms.";
+    LOG(INFO) << "Runtime update " << secdiff.count() * 1000 << " ms.";
 
     delete q;
 }

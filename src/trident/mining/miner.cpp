@@ -94,7 +94,7 @@ void Miner::mine() {
     //First count the popularity of the rules
     PairItr *itr = q->get(IDX_POS, -1, -1, -1);
 
-    BOOST_LOG_TRIVIAL(info) << "Reading the input ...";
+    LOG(INFO) << "Reading the input ...";
     //Collect all pairs in main memory
     std::vector<Tripl> triples;
     while (itr->hasNext()) {
@@ -120,7 +120,7 @@ void Miner::mine() {
     triples.erase(last, triples.end());
 
     //Now we can count the frequencies
-    BOOST_LOG_TRIVIAL(info) << "Counting the frequencies ...";
+    LOG(INFO) << "Counting the frequencies ...";
     std::pair<uint64_t, uint64_t> prevPair = std::make_pair(0, 0);
     long count = 0;
     size_t prevIdx = 0;
@@ -143,9 +143,9 @@ void Miner::mine() {
     }
 
     //Sort all the triples by SPO
-    BOOST_LOG_TRIVIAL(info) << "Sorting the triples by S,count ...";
+    LOG(INFO) << "Sorting the triples by S,count ...";
     sort(triples.begin(), triples.end(), sortSPO);
-    BOOST_LOG_TRIVIAL(info) << "Done.";
+    LOG(INFO) << "Done.";
 
     //Create a buffer of pairs
     std::vector<PatternElement> buffer;
@@ -155,7 +155,7 @@ void Miner::mine() {
     long currentS = -1;
     long counter = 0;
     for (const auto &triple : triples) {
-        //BOOST_LOG_TRIVIAL(info) << triple.s << " " << triple.p << " " << triple.o << " " << triple.count;
+        //LOG(INFO) << triple.s << " " << triple.p << " " << triple.o << " " << triple.count;
         if (triple.s != currentS) {
             if (!buffer.empty()) {
                 processPattern(buffer);
@@ -166,7 +166,7 @@ void Miner::mine() {
         buffer.push_back(make_pair(triple.p, triple.o));
         counter++;
         if (counter % 1000000 == 0) {
-            BOOST_LOG_TRIVIAL(info) << "Processed " << counter << " pairs";
+            LOG(INFO) << "Processed " << counter << " pairs";
         }
     }
 

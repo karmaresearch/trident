@@ -27,7 +27,8 @@
 #include <trident/kb/consts.h>
 #include <trident/kb/statistics.h>
 
-#include <boost/log/trivial.hpp>
+#include <kognac/logs.h>
+#include <kognac/logs.h>
 
 #include <list>
 #include <string>
@@ -35,6 +36,7 @@
 #include <vector>
 #include <iostream>
 #include <mutex>
+#include <assert.h>
 
 using namespace std;
 
@@ -107,7 +109,7 @@ class FileManager {
                             }
                         }
                         if (rem) {
-                            //BOOST_LOG_TRIVIAL(debug) << "Deleting map for file " << idxFileToRemove;
+                            //LOG(DEBUG) << "Deleting map for file " << idxFileToRemove;
                             delete openedFiles[idxFileToRemove];
                             openedFiles[idxFileToRemove] = NULL;
                             nOpenedFiles--;
@@ -182,14 +184,14 @@ class FileManager {
                 lastSession = (lastSession + 1) % MAX_SESSIONS;
                 cnt++;
                 if (cnt > MAX_SESSIONS) {
-                    BOOST_LOG_TRIVIAL(error) << "Max number of sessions is reached";
+                    LOG(ERROR) << "Max number of sessions is reached";
                     throw 10;
                 }
             }
             sessions[lastSession] = EMPTY_SESSION;
             cnt = lastSession;
             lastSession = (lastSession + 1) % MAX_SESSIONS;
-            // BOOST_LOG_TRIVIAL(debug) << "This = " << this << ", Open session " << cnt;
+            // LOG(DEBUG) << "This = " << this << ", Open session " << cnt;
             return cnt;
         }
 
@@ -198,7 +200,7 @@ class FileManager {
             if (sessions[idx] >= 0) {
                 bytesTracker->releaseLock(sessions[idx]);
             }
-            // BOOST_LOG_TRIVIAL(debug) << "This = " << this << ", Close session " << idx;
+            // LOG(DEBUG) << "This = " << this << ", Close session " << idx;
             sessions[idx] = FREE_SESSION;
         }
 
@@ -244,7 +246,7 @@ class FileManager {
         short createNewFile() {
             lastFileId++;
             if (lastFileId == MAX_N_FILES) {
-                BOOST_LOG_TRIVIAL(error) << "Max number of files is reached";
+                LOG(ERROR) << "Max number of files is reached";
                 throw 10;
             }
             load_file(lastFileId);

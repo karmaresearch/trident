@@ -298,7 +298,7 @@ class Querier {
 
         Querier &getSampler() {
             if (sampler == NULL) {
-                BOOST_LOG_TRIVIAL(error) << "No sampler available";
+                LOG(ERROR) << "No sampler available";
                 throw 10;
             } else {
                 return *sampler;

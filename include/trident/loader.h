@@ -424,7 +424,7 @@ struct ParamsLoad {
     bool sample;
     double sampleRate;
     int thresholdSkipTable;
-    SinkPtr logPtr;
+    //SinkPtr logPtr;
     string remoteLocation;
     long limitSpace;
     string graphTransformation;

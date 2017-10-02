@@ -23,8 +23,6 @@
 #ifndef PM_H_
 #define PM_H_
 
-#include <boost/log/trivial.hpp>
-
 #include <string>
 #include <map>
 #include <cstring>

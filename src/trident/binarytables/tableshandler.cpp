@@ -40,7 +40,7 @@ namespace bip = boost::interprocess;
 
 void FileMarks::parse(string path) {
     if (!fs::exists(path)) {
-        BOOST_LOG_TRIVIAL(error) << "File non-existent: " << path;
+        LOG(ERROR) << "File non-existent: " << path;
         throw 10;
     }
 

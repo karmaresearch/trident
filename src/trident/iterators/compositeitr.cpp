@@ -22,9 +22,8 @@
 
 #include <trident/iterators/compositeitr.h>
 
-#include <boost/log/trivial.hpp>
-
 #include <vector>
+#include <assert.h>
 
 bool CompositeItr::hasNext() {
     if (!hnc) {

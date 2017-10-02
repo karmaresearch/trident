@@ -24,8 +24,6 @@
 #include <iostream>
 #include <vector>
 
-#include <boost/log/trivial.hpp>
-
 #include <numpy/arrayobject.h>
 
 #include <python/trident.h>
@@ -33,8 +31,9 @@
 #include <trident/kb/querier.h>
 #include <trident/tree/stringbuffer.h>
 
+#include <kognac/logs.h>
+
 using namespace std;
-namespace logging = boost::log;
 
 typedef struct {
     PyObject_HEAD
@@ -734,9 +733,6 @@ PyMODINIT_FUNC PyInit_trident(void) {
     m = PyModule_Create(&tridentmodule);
     if (m == NULL)
         return NULL;
-
-    boost::shared_ptr<logging::core> core = logging::core::get();
-    core->set_filter(logging::trivial::severity >= logging::trivial::info);
 
     trident_DbType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&trident_DbType) < 0)

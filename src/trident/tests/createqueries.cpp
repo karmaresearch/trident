@@ -44,7 +44,7 @@ void _test_createqueries(string inputfile, string queryfile) {
     //Sort the triples and launch the queries
     ofstream ofile(queryfile);
     for (int perm = 0; perm < 6; ++perm) {
-        BOOST_LOG_TRIVIAL(info) << "Testing permutation " << perm;
+        LOG(INFO) << "Testing permutation " << perm;
         if (perm != IDX_SPO) {
             //Sort the vector
             if (perm == IDX_SOP) {
@@ -62,7 +62,7 @@ void _test_createqueries(string inputfile, string queryfile) {
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << "Scan query...";
+        LOG(INFO) << "Scan query...";
         ofile << perm << " " << -1 << " " << -1 << " " << -1 << " " << triples.size() << " " << 0 << endl;
         long prevEl = -1;
         long countDistinct = 0;
@@ -96,7 +96,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         ofile << perm << " " << -1 << " " << -2 << " " << -2 << " " << countDistinct << " " << 1 << endl;
 
         //Test a scan without the second and third columns
-        BOOST_LOG_TRIVIAL(info) << "Create detailed queries...";
+        LOG(INFO) << "Create detailed queries...";
         long currentFirst = -1;
         long currentSecond = -1;
 

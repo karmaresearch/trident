@@ -28,10 +28,10 @@
 
 #include <kognac/hashfunctions.h>
 #include <kognac/utils.h>
+#include <kognac/logs.h>
 
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <sparsehash/sparse_hash_map>
 #include <sparsehash/dense_hash_map>
@@ -98,13 +98,13 @@ public:
         }
 
         ~Dict() {
-            BOOST_LOG_TRIVIAL(debug) << "Deallocating dict ...";
+            LOG(DEBUG) << "Deallocating dict ...";
             dict = std::shared_ptr<Root>();
-            BOOST_LOG_TRIVIAL(debug) << "Deallocating invdict ...";
+            LOG(DEBUG) << "Deallocating invdict ...";
             invdict = std::shared_ptr<Root>();
-            BOOST_LOG_TRIVIAL(debug) << "Deallocating sb ...";
+            LOG(DEBUG) << "Deallocating sb ...";
             sb = std::shared_ptr<StringBuffer>();
-            BOOST_LOG_TRIVIAL(debug) << "Deallocating stats ...";
+            LOG(DEBUG) << "Deallocating stats ...";
             stats = std::shared_ptr<Stats>();
         }
     };

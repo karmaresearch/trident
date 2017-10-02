@@ -21,7 +21,6 @@
 
 
 #include <boost/foreach.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <trident/tests/timings.h>
 
@@ -30,6 +29,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <sstream>
 
 using namespace std;
 
@@ -59,9 +59,6 @@ void Timings::launchTests() {
     string line;
     long succ = 0;
     while (std::getline(infile, line)) {
-        /*if (succ % 10000 == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "Processed " << succ << " queries";
-        }*/
         //Parse the line
         std::stringstream ls(line);
         long tokens[6];

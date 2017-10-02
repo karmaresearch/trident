@@ -26,8 +26,6 @@
 
 #include <python/trident.h>
 
-#include <boost/log/trivial.hpp>
-
 static PyObject *Itr_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     trident_Itr *self;
     self = (trident_Itr*)type->tp_alloc(type, 0);

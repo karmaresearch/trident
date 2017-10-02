@@ -41,7 +41,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/timer.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/algorithm/string.hpp>
@@ -235,7 +234,7 @@ long Loader::parseSnapFile(string inputtriples,
         int parallelProcesses) {
     long counter = 0;
     std::map<long, long> dictionary;
-    BOOST_LOG_TRIVIAL(debug) << "Loading input graph from " << inputtriples;
+    LOG(DEBUG) << "Loading input graph from " << inputtriples;
 
     //Create the permutations
     std::vector<Triple> triples;
@@ -259,7 +258,7 @@ long Loader::parseSnapFile(string inputtriples,
                     delim = ' ';
                     pos = line.find(delim);
                     if (pos == string::npos) {
-                        BOOST_LOG_TRIVIAL(error) << "Failed parsing the SNAP file (no delim)";
+                        LOG(ERROR) << "Failed parsing the SNAP file (no delim)";
                         throw 10;
                     }
                 }
@@ -285,7 +284,7 @@ long Loader::parseSnapFile(string inputtriples,
             triples.push_back(Triple(s, 0, o));
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << "Loaded a vocabulary of " << dictionary.size();
+    LOG(DEBUG) << "Loaded a vocabulary of " << dictionary.size();
     int detailPerms[6];
     Compressor::parsePermutationSignature(signaturePerm, detailPerms);
     for(int i = 0; i < nperms; ++i) {
@@ -358,7 +357,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         char *input = NULL;
         size_t sizeinput = 0;
         if (gzipped) {
-            //BOOST_LOG_TRIVIAL(debug) << "Uncompressing buffer ...";
+            //LOG(DEBUG) << "Uncompressing buffer ...";
             io::filtering_ostream os;
             os.push(io::gzip_decompressor());
             os.push(io::back_inserter(uncompressedByteArray));
@@ -366,13 +365,13 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
             os.flush();
             input = &(uncompressedByteArray[0]);
             sizeinput = uncompressedByteArray.size();
-            //BOOST_LOG_TRIVIAL(debug) << "Uncompressing buffer (done)";
+            //LOG(DEBUG) << "Uncompressing buffer (done)";
         } else {
             input = buffer;
             sizeinput = sizebuffer;
         }
         if (sizeinput == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "This should not happen";
+            LOG(DEBUG) << "This should not happen";
             throw 10;
         }
 
@@ -402,12 +401,12 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
                         writer->writeLong(id, triple[2]);
                     }
                 } else {
-                    BOOST_LOG_TRIVIAL(error) << "Strange, should not happen... " << pos;
+                    LOG(ERROR) << "Strange, should not happen... " << pos;
                 }
                 pos = 0;
                 processedtriples++;
                 if (processedtriples % 1000000000 == 0) {
-                    BOOST_LOG_TRIVIAL(debug) << "Processed " << processedtriples;
+                    LOG(DEBUG) << "Processed " << processedtriples;
                 }
             }
             start++;
@@ -450,7 +449,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
 
     //Create the dictionary output file
     if (inputdict != "") {
-        BOOST_LOG_TRIVIAL(debug) << "Start converting dictionary file(s)";
+        LOG(DEBUG) << "Start converting dictionary file(s)";
         //Check whether it is a file or a sequence of files...
         std::vector<string> inputfiles;
         if (fs::exists(inputdict)) {
@@ -468,7 +467,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         ifstream rawFile;
         LZ4Writer outputDict(fileNameDictionaries);
         for (auto f : inputfiles) {
-            BOOST_LOG_TRIVIAL(debug) << "Converting " << f;
+            LOG(DEBUG) << "Converting " << f;
             rawFile.open(f);
             boost::iostreams::filtering_istream compressedFile;
             compressedFile.push(io::gzip_decompressor());
@@ -493,7 +492,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         }
         delete[] support;
     } else {
-        BOOST_LOG_TRIVIAL(debug) << "No dict file was provided";
+        LOG(DEBUG) << "No dict file was provided";
     }
 
     //Create the permutations
@@ -505,7 +504,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         compressedFile2.push(io::gzip_decompressor());
         compressedFile2.push(rawFile2);
         string line;
-        BOOST_LOG_TRIVIAL(debug) << "Start converting triple file";
+        LOG(DEBUG) << "Start converting triple file";
         LZ4Writer writer(permDirs[0] + "/input-0");
         while(std::getline(compressedFile2, line)) {
             long s,p,o;
@@ -622,7 +621,7 @@ void Loader::parallelmerge(FileMerger<Triple> *merger,
         buffer[i++] = t.count;
 
         if (t.s < prevKey && prevKey != -1) {
-            BOOST_LOG_TRIVIAL(error) << "PMERGE: KEY: " << t.s << " PREVKEY: " << prevKey;
+            LOG(ERROR) << "PMERGE: KEY: " << t.s << " PREVKEY: " << prevKey;
         }
         prevKey = t.s;
     }
@@ -716,7 +715,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
         string out,
         char sorter) {
     tbb::task_scheduler_init init(parallelProcesses);
-    BOOST_LOG_TRIVIAL(debug) << "Start sorting";
+    LOG(DEBUG) << "Start sorting";
     switch (sorter) {
         case IDX_SPO:
             tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess);
@@ -739,7 +738,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
         default:
             throw 10;
     }
-    BOOST_LOG_TRIVIAL(debug) << "End sorting. Start dumping";
+    LOG(DEBUG) << "End sorting. Start dumping";
 
     //Set up the multidiskwriters...
     MultiDiskLZ4Writer **writers = new MultiDiskLZ4Writer*[maxReadingThreads];
@@ -763,7 +762,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
             break;
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << "MaxSize=" << maxValue << " realSize=" << realSize;
+    LOG(DEBUG) << "MaxSize=" << maxValue << " realSize=" << realSize;
 
     K *rawInput = NULL;
     if (input.size() > 0)
@@ -803,7 +802,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
     }
     delete[] writers;
     delete[] threads;
-    BOOST_LOG_TRIVIAL(debug) << "Finished dumping";
+    LOG(DEBUG) << "Finished dumping";
 }
 
 template<class K>
@@ -831,7 +830,7 @@ void Loader::sortPermutation_seq(
         currentIdx++;
         i++;
         if (i % 100000000 == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "Processed " << i << " triples";
+            LOG(DEBUG) << "Processed " << i << " triples";
         }
     }
     *count = i;
@@ -843,7 +842,7 @@ void Loader::sortPermutation_seq(
         i++;
         currentIdx++;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Finished";
+    LOG(DEBUG) << "Finished";
 }
 
 template<class K>
@@ -877,9 +876,9 @@ void Loader::sortPermutation(string inputDir,
             readers[i]->start();
             for(int j = 0; j < filesPerReader; ++j) {
                 if (itr->empty()) {
-                    BOOST_LOG_TRIVIAL(debug) << "Part " << j << " is empty";
+                    LOG(DEBUG) << "Part " << j << " is empty";
                 } else {
-                    BOOST_LOG_TRIVIAL(debug) << "Part " << i << " " << j << " " << itr->at(0);
+                    LOG(DEBUG) << "Part " << i << " " << j << " " << itr->at(0);
                 }
                 if (itr != inputsReaders.end()) {
                     readers[i]->addInput(j, *itr);
@@ -908,9 +907,9 @@ void Loader::sortPermutation(string inputDir,
 
         elementsMainMem = max((long)parallelProcesses,
                 min(elementsMainMem, (long)(estimatedSize * 1.2)));
-        BOOST_LOG_TRIVIAL(debug) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
+        LOG(DEBUG) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
         std::vector<K> triples(elementsMainMem);
-        BOOST_LOG_TRIVIAL(debug) << "Creating a vector of " << elementsMainMem << ". done";
+        LOG(DEBUG) << "Creating a vector of " << elementsMainMem << ". done";
 
         K *rawTriples = NULL;
         if (triples.size() > 0) {
@@ -920,7 +919,7 @@ void Loader::sortPermutation(string inputDir,
         bool isFinished = false;
         int iter = 0;
 
-        BOOST_LOG_TRIVIAL(debug) << "Start loop";
+        LOG(DEBUG) << "Start loop";
         while (!isFinished) {
             //Load in parallel all the triples from disk to the main memory
             std::vector<long> counts(parallelProcesses);
@@ -936,7 +935,7 @@ void Loader::sortPermutation(string inputDir,
                 threads[i].join();
             }
 
-            BOOST_LOG_TRIVIAL(debug) << "Fill the empty holes with new data";
+            LOG(DEBUG) << "Fill the empty holes with new data";
             int curPart = 0;
             std::vector<std::pair<int, int>> openedStreams;
             for(int i = 0; i < parallelProcesses; ++i) {
@@ -969,7 +968,7 @@ void Loader::sortPermutation(string inputDir,
                     curPart++;
                 }
             }
-            BOOST_LOG_TRIVIAL(debug) << "Finished filling holes";
+            LOG(DEBUG) << "Finished filling holes";
 
             //Sort and dump the results to disk
             long maxValue = maxInserts * parallelProcesses;
@@ -995,7 +994,7 @@ void Loader::sortPermutation(string inputDir,
             }
             isFinished = i == parallelProcesses;
             if (!isFinished) {
-                BOOST_LOG_TRIVIAL(debug) << "One round is not enough";
+                LOG(DEBUG) << "One round is not enough";
             }
         }
 
@@ -1040,11 +1039,11 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     }
 
     //Sort the triples and store them into files.
-    BOOST_LOG_TRIVIAL(debug) << "Start sorting...";
+    LOG(DEBUG) << "Start sorting...";
     //Calculate the maximum amount of main memory I can use
     long mem = Utils::getSystemMemory() * 0.7 / nindices;
     long nelements = mem / sizeof(L_Triple);
-    BOOST_LOG_TRIVIAL(debug) << "Triples I can store in main memory: " << nelements <<
+    LOG(DEBUG) << "Triples I can store in main memory: " << nelements <<
         " size triple " << sizeof(L_Triple);
     std::vector<std::pair<string, char>> additionalPermutations; //This parameter is unused here. I use it somewhere else
     if (!aggregated) {
@@ -1056,9 +1055,9 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
                 !inputSorted, estimatedSize, nelements, 16, true,
                 additionalPermutations);
     }
-    BOOST_LOG_TRIVIAL(debug) << "...completed.";
+    LOG(DEBUG) << "...completed.";
 
-    BOOST_LOG_TRIVIAL(debug) << "Start inserting...";
+    LOG(DEBUG) << "Start inserting...";
     long ps, pp, po; //Previous values. Used to remove duplicates.
     ps = pp = po = -1;
     long count = 0;
@@ -1076,7 +1075,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     bool first = true;
 
     if (parallelProcesses > 6) {
-        BOOST_LOG_TRIVIAL(debug) << "Parallel insert";
+        LOG(DEBUG) << "Parallel insert";
         std::mutex m_buffers;
         std::condition_variable cond_buffers;
         std::vector<long*> buffers;
@@ -1125,7 +1124,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
                 const long o = buf[i + 2];
                 const long countt = buf[i + 3];
                 if (count % 5000000000 == 0) {
-                    BOOST_LOG_TRIVIAL(debug) << "..." << count << "...";
+                    LOG(DEBUG) << "..." << count << "...";
                 }
 
                 if (o != po || p != pp || s != ps) {
@@ -1175,12 +1174,12 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         }
 
     } else {
-        BOOST_LOG_TRIVIAL(debug) << "Sequential insert";
+        LOG(DEBUG) << "Sequential insert";
         while (!merger.isEmpty()) {
             Triple t = merger.get();
             countInput++;
             if (count % 1000000000 == 0) {
-                BOOST_LOG_TRIVIAL(debug) << "..." << count << "...";
+                LOG(DEBUG) << "..." << count << "...";
             }
 
             if (t.o != po || t.p != pp || t.s != ps) {
@@ -1218,14 +1217,14 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     if (printstats) {
         Statistics *stat = ins->getStats(permutation);
         if (stat != NULL) {
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": RowLayout" << stat->nListStrategies << " ClusterLayout " << stat->nGroupStrategies << " ColumnLayout " << stat->nList2Strategies;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": Exact " << stat->exact << " Approx " << stat->approximate;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": FirstElemCompr1 " << stat->nFirstCompr1 << " FirstElemCompr2 " << stat->nFirstCompr2;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": SecondElemCompr1 " << stat->nSecondCompr1 << " SecondElemCompr2 " << stat->nSecondCompr2;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": Diff " << stat->diff << " Nodiff " << stat->nodiff;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": Aggregated " << stat->aggregated << " NotAggr " << stat->notAggregated;
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": NTables " << ins->getNTablesPerPartition(permutation);
-            BOOST_LOG_TRIVIAL(debug) << "Perm " << permutation << ": NSkippedTables " << ins->getNSkippedTables(permutation);
+            LOG(DEBUG) << "Perm " << permutation << ": RowLayout" << stat->nListStrategies << " ClusterLayout " << stat->nGroupStrategies << " ColumnLayout " << stat->nList2Strategies;
+            LOG(DEBUG) << "Perm " << permutation << ": Exact " << stat->exact << " Approx " << stat->approximate;
+            LOG(DEBUG) << "Perm " << permutation << ": FirstElemCompr1 " << stat->nFirstCompr1 << " FirstElemCompr2 " << stat->nFirstCompr2;
+            LOG(DEBUG) << "Perm " << permutation << ": SecondElemCompr1 " << stat->nSecondCompr1 << " SecondElemCompr2 " << stat->nSecondCompr2;
+            LOG(DEBUG) << "Perm " << permutation << ": Diff " << stat->diff << " Nodiff " << stat->nodiff;
+            LOG(DEBUG) << "Perm " << permutation << ": Aggregated " << stat->aggregated << " NotAggr " << stat->notAggregated;
+            LOG(DEBUG) << "Perm " << permutation << ": NTables " << ins->getNTablesPerPartition(permutation);
+            LOG(DEBUG) << "Perm " << permutation << ": NSkippedTables " << ins->getNSkippedTables(permutation);
         }
     }
 
@@ -1235,10 +1234,10 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
 
     //Remove the files
     if (removeInput) {
-        BOOST_LOG_TRIVIAL(debug) << "Removing " << inputDir;
+        LOG(DEBUG) << "Removing " << inputDir;
         fs::remove_all(fs::path(inputDir));
     }
-    BOOST_LOG_TRIVIAL(debug) << "...completed. Added " << count << " triples out of " << countInput;
+    LOG(DEBUG) << "...completed. Added " << count << " triples out of " << countInput;
 }
 
 void Loader::insertDictionary(const int part, DictMgmt *dict, string
@@ -1267,7 +1266,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
 
     for (auto dictfile = alldictfiles.begin(); dictfile != alldictfiles.end(); ++dictfile) {
         LZ4Reader in(*dictfile);
-        BOOST_LOG_TRIVIAL(debug) << "Parsing " << *dictfile;
+        LOG(DEBUG) << "Parsing " << *dictfile;
         while (!in.isEof()) {
             //The key in the files is continuosly resetted. I cannot use it.
             //I use key instead.
@@ -1293,7 +1292,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
             }
 
             if (!resp) {
-                BOOST_LOG_TRIVIAL(error) << "This should not happen. Term " <<
+                LOG(ERROR) << "This should not happen. Term " <<
                     string(value, size) << "-" << key << " is already inserted.";
             }
             key++;
@@ -1304,7 +1303,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
     /*** I can now add the common terms. They are not in lex. ordering so I cannot append ***/
     if (fs::exists(dictFileInput)) {
         LZ4Reader in(dictFileInput);
-        BOOST_LOG_TRIVIAL(debug) << "Parsing " << dictFileInput;
+        LOG(DEBUG) << "Parsing " << dictFileInput;
         key = 0;
         //key = ((long)1 << 40);
         while (!in.isEof()) {
@@ -1333,7 +1332,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
             }
 
             if (!resp) {
-                BOOST_LOG_TRIVIAL(error) << "This should not happen. Term " <<
+                LOG(ERROR) << "This should not happen. Term " <<
                     string(value + 2, size - 2) << "-" << key << " is already inserted.";
             }
             key++;
@@ -1341,7 +1340,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
     }
     *maxValueCounter = max(key - 1, *maxValueCounter);
 
-    BOOST_LOG_TRIVIAL(debug) << "Added " << key << " dictionary terms";
+    LOG(DEBUG) << "Added " << key << " dictionary terms";
 
     //Sort the pairs <term,coordinates> by term and add them into the invdict
     //dictionaries
@@ -1388,7 +1387,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
 void Loader::exportFiles(string tripleDir, string* dictFiles,
         const int ndicts, string outputFileTriple, string outputFileDict) {
     //Export the triples
-    BOOST_LOG_TRIVIAL(debug) << "Start procedure exporting files";
+    LOG(DEBUG) << "Start procedure exporting files";
 
     Kognac::sortCompressedGraph(tripleDir, outputFileTriple, 2);
 
@@ -1400,7 +1399,7 @@ void Loader::exportFiles(string tripleDir, string* dictFiles,
 
         for (int i = 0; i < ndicts; ++i) {
             string dictFile = dictFiles[i];
-            BOOST_LOG_TRIVIAL(debug) << "Exporting dict file " << dictFile;
+            LOG(DEBUG) << "Exporting dict file " << dictFile;
             LZ4Reader reader(dictFile);
             long counter = 0;
             while (!reader.isEof()) {
@@ -1436,7 +1435,7 @@ void Loader::exportFiles(string tripleDir, string* dictFiles,
 
 void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictMgmt *dict) {
     if (dictPartitions != 1) {
-        BOOST_LOG_TRIVIAL(error) << "The addition of schema terms is supported only the dictionary is stored on one partition";
+        LOG(ERROR) << "The addition of schema terms is supported only the dictionary is stored on one partition";
         throw 10;
     }
     vector<string> schemaTerms = Schema::getAllSchemaTerms();
@@ -1444,10 +1443,10 @@ void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictM
         nTerm key;
         if (!dict->getNumber(itr->c_str(), itr->size(), &key)) {
             //Add it in the dictionary
-            BOOST_LOG_TRIVIAL(debug) << "Add in the dictionary the entry " << *itr << " with number " << (highestNumber + 1);
+            LOG(DEBUG) << "Add in the dictionary the entry " << *itr << " with number " << (highestNumber + 1);
             dict->putPair(itr->c_str(), itr->size(), ++highestNumber);
         } else {
-            BOOST_LOG_TRIVIAL(debug) << "The schema entry " << *itr << " was already in the input with the id " << key;
+            LOG(DEBUG) << "The schema entry " << *itr << " was already in the input with the id " << key;
         }
     }
 }
@@ -1468,21 +1467,21 @@ void Loader::monitorPerformance(SinkPtr logger, int seconds, std::condition_vari
         long diskwrite = TridentUtils::diskwrite();
         long phy_diskread = TridentUtils::phy_diskread();
         long phy_diskwrite = TridentUtils::phy_diskwrite();
-        BOOST_LOG_TRIVIAL(debug) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes=" << diskwrite << "\tphydiskread_bytes=" << phy_diskread << "\tphydiskwrite_bytes=" << phy_diskwrite;
+        LOG(DEBUG) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes=" << diskwrite << "\tphydiskread_bytes=" << phy_diskread << "\tphydiskwrite_bytes=" << phy_diskwrite;
         logger->flush();
     }
 }
 
 void Loader::load(ParamsLoad p) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    BOOST_LOG_TRIVIAL(debug) << "Start loading ...";
+    LOG(DEBUG) << "Start loading ...";
 
     //Start a monitoring thread ...
     boost::thread monitor;
     std::mutex mtx;
     std::condition_variable cv;
     bool isFinished = false;
-    if (p.logPtr != NULL && p.timeoutStats != -1) {
+    if (/*p.logPtr != NULL &&*/ p.timeoutStats != -1) {
         //Activate it only for Linux systems
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
         monitor = boost::thread(boost::bind(Loader::monitorPerformance, p.logPtr, p.timeoutStats, &cv, &mtx, &isFinished));
@@ -1505,21 +1504,21 @@ void Loader::load(ParamsLoad p) {
     //How many to use dictionaries?
     int ncores = Utils::getNumberPhysicalCores();
     if (p.parallelThreads > ncores) {
-        BOOST_LOG_TRIVIAL(warning) << "The parallelThreads parameter is above the number pf physical cores. I set it to " << ncores;
+        LOG(WARN) << "The parallelThreads parameter is above the number pf physical cores. I set it to " << ncores;
         p.parallelThreads = ncores;
     }
 
     if (p.maxReadingThreads > p.parallelThreads) {
-        BOOST_LOG_TRIVIAL(warning) << "I cannot read with more threads than the available ones. I set it to = " << p.parallelThreads;
+        LOG(WARN) << "I cannot read with more threads than the available ones. I set it to = " << p.parallelThreads;
         p.maxReadingThreads = p.parallelThreads;
     }
 
     if (p.dictionaries > p.parallelThreads) {
-        BOOST_LOG_TRIVIAL(warning) << "The dictionary partitions cannot be higher than the maximum number of threads. I set it to = " << p.parallelThreads;
+        LOG(WARN) << "The dictionary partitions cannot be higher than the maximum number of threads. I set it to = " << p.parallelThreads;
         p.dictionaries = p.parallelThreads;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Set number of dictionaries to " << p.dictionaries << " parallel threads=" << p.parallelThreads << " readingThreads=" << p.maxReadingThreads;
+    LOG(DEBUG) << "Set number of dictionaries to " << p.dictionaries << " parallel threads=" << p.parallelThreads << " readingThreads=" << p.maxReadingThreads;
 
     //Create data structures to compress the input
     int nperms = 1;
@@ -1599,7 +1598,7 @@ void Loader::load(ParamsLoad p) {
                     p.parallelThreads, p.maxReadingThreads, false, NULL, false,
                     p.graphTransformation != "");
             //Compress it
-            BOOST_LOG_TRIVIAL(debug) << "For now I create only one permutation";
+            LOG(DEBUG) << "For now I create only one permutation";
             int tmpsig = 0;
             Compressor::addPermutation(IDX_SPO, tmpsig);
             comp.compress(p.graphTransformation != "" ? permDirs + 3 : permDirs,
@@ -1607,7 +1606,7 @@ void Loader::load(ParamsLoad p) {
                     p.dictionaries, p.parallelThreads, p.maxReadingThreads,
                     p.graphTransformation != "");
             totalCount = comp.getTotalCount();
-            BOOST_LOG_TRIVIAL(info) << "Compression is finished. Starting the loading ...";
+            LOG(INFO) << "Compression is finished. Starting the loading ...";
             if (p.onlyCompress) {
                 //Convert the triple files and the dictionary files in gzipped files
                 string outputTriples = p.kbDir + string("/triples.gz");
@@ -1647,7 +1646,7 @@ void Loader::load(ParamsLoad p) {
     config.setParamBool(USEFIXEDSTRAT, p.enableFixedStrat);
     config.setParamInt(FIXEDSTRAT, p.fixedStrat);
     config.setParamInt(THRESHOLD_SKIP_TABLE, p.thresholdSkipTable);
-    BOOST_LOG_TRIVIAL(debug) << "Optimizing memory management for " << totalCount << " triples";
+    LOG(DEBUG) << "Optimizing memory management for " << totalCount << " triples";
     MemoryOptimizer::optimizeForWriting(totalCount, config);
     if (p.dictMethod == DICT_HASH) {
         config.setParamBool(DICTHASH, true);
@@ -1675,7 +1674,7 @@ void Loader::load(ParamsLoad p) {
     lck.unlock();
     monitor.join();
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(info) << "Loading is finished: Time (sec) " << sec.count();
+    LOG(INFO) << "Loading is finished: Time (sec) " << sec.count();
 }
 
 void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
@@ -1686,7 +1685,7 @@ void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
         {
             LZ4Reader reader(pathfile);
             LZ4Writer writer(pathfile + "-new");
-            BOOST_LOG_TRIVIAL(debug) << "Converting " << pathfile;
+            LOG(DEBUG) << "Converting " << pathfile;
             while (!reader.isEof()) {
                 long s = reader.parseLong();
                 long p = reader.parseLong();
@@ -1730,7 +1729,7 @@ void Loader::loadKB(KB &kb,
     bool sample = p.sample;
     double sampleRate = p.sampleRate;
     bool storePlainList = p.storePlainList;
-    SinkPtr logPtr = p.logPtr;
+    //SinkPtr logPtr = p.logPtr;
     string remoteLocation = p.remoteLocation;
     long limitSpace = p.limitSpace;
     int parallelProcesses = p.parallelThreads;
@@ -1741,7 +1740,7 @@ void Loader::loadKB(KB &kb,
 
     boost::thread *threads;
     if (storeDicts) {
-        BOOST_LOG_TRIVIAL(debug) << "Insert the dictionary in the trees";
+        LOG(DEBUG) << "Insert the dictionary in the trees";
         threads = new boost::thread[dictionaries - 1];
         nTerm *maxValues = new nTerm[dictionaries];
         if (dictMethod != DICT_SMART) {
@@ -1768,11 +1767,11 @@ void Loader::loadKB(KB &kb,
         delete[] maxValues;
         delete[] threads;
         /*** Close the dictionaries ***/
-        BOOST_LOG_TRIVIAL(debug) << "Closing dict...";
+        LOG(DEBUG) << "Closing dict...";
         kb.closeMainDict();
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Insert the triples in the indices...";
+    LOG(DEBUG) << "Insert the triples in the indices...";
     string *sTreeWriters = new string[nindices];
     TreeWriter **treeWriters = new TreeWriter*[nindices];
     for (int i = 0; i < nindices; ++i) {
@@ -1799,10 +1798,10 @@ void Loader::loadKB(KB &kb,
 
     //Create n threads where the triples are sorted and inserted in the knowledge base
     Inserter *ins = kb.insert();
-    BOOST_LOG_TRIVIAL(debug) << "Start sortAndInsert";
+    LOG(DEBUG) << "Start sortAndInsert";
 
     if (nindices != 6) {
-        BOOST_LOG_TRIVIAL(error) << "Support only 6 indices (for now)";
+        LOG(ERROR) << "Support only 6 indices (for now)";
         throw 1;
     }
 
@@ -1815,13 +1814,13 @@ void Loader::loadKB(KB &kb,
         kb.setGraphType(GraphType::DIRECTED);
     }
     if (graphTransformation == "undirected") {
-        BOOST_LOG_TRIVIAL(debug) << "Transforming the graph in 'undirected'";
+        LOG(DEBUG) << "Transforming the graph in 'undirected'";
         string input = permDirs[3];
         string output = input + "_tmp";
         fs::create_directories(output);
         std::vector<string> files = Utils::getFiles(input);
         for(auto file : files) {
-            BOOST_LOG_TRIVIAL(debug) << "Transforming file " << file;
+            LOG(DEBUG) << "Transforming file " << file;
             fs::path pfile = fs::path(file);
             LZ4Reader reader(file);
             string fileout = output + string("/") + pfile.filename().string();
@@ -1842,7 +1841,7 @@ void Loader::loadKB(KB &kb,
         }
         fs::remove_all(input);
         fs::rename(fs::path(output), input);
-        BOOST_LOG_TRIVIAL(debug) << "End transformation";
+        LOG(DEBUG) << "End transformation";
         kb.setGraphType(GraphType::UNDIRECTED);
     }
 
@@ -1860,7 +1859,7 @@ void Loader::loadKB(KB &kb,
         //graph storing an additional map with the IDs of the relations
         if (relsOwnIDs) {
             if (!storeDicts) {
-                BOOST_LOG_TRIVIAL(error) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
+                LOG(ERROR) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
                 throw 10;
             }
             std::unordered_map<long,long> ent2rel;
@@ -1893,14 +1892,14 @@ void Loader::loadKB(KB &kb,
     }
 
     threads = new boost::thread[dictionaries + 1];
-    BOOST_LOG_TRIVIAL(debug) << "Compress the dictionary nodes...";
+    LOG(DEBUG) << "Compress the dictionary nodes...";
     for (int i = 0; i < dictionaries && storeDicts; ++i) {
         threads[i + 1] = boost::thread(
                 boost::bind(&NodeManager::compressSpace,
                     kb.getDictPath(i)));
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Start creating the tree...";
+    LOG(DEBUG) << "Start creating the tree...";
     SharedStructs structs;
     structs.bufferToFill = structs.bufferToReturn = &structs.buffer1;
     structs.isFinished = false;
@@ -1934,7 +1933,7 @@ void Loader::loadKB(KB &kb,
     delete[] threads;
 
     if (graphTransformation != "") {
-        BOOST_LOG_TRIVIAL(debug) << "Load flat representation ...";
+        LOG(DEBUG) << "Load flat representation ...";
         kb.close();
         string flatfile = kbDir + "/tree/flat";
         //Create a tree itr to go through the tree
@@ -1945,7 +1944,7 @@ void Loader::loadKB(KB &kb,
     }
 
     if (sample) {
-        BOOST_LOG_TRIVIAL(debug) << "Creating a sample dataset";
+        LOG(DEBUG) << "Creating a sample dataset";
         delete sampleWriter;
         string sampleKB = kbDir + string("/_sample");
 
@@ -1972,7 +1971,7 @@ void Loader::loadKB(KB &kb,
         ParamsLoad samplep = p;
         samplep.kbDir = sampleKB;
         samplep.tmpDir = sampleKB;
-        samplep.logPtr = NULL;
+        //samplep.logPtr = NULL;
         samplep.limitSpace = 0;
         samplep.remoteLocation = "";
         samplep.sample = false;
@@ -1990,7 +1989,7 @@ void Loader::loadKB(KB &kb,
         delete[] samplePermDirs;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "...completed.";
+    LOG(DEBUG) << "...completed.";
 }
 
 void Loader::generateNewPermutation_seq(MultiDiskLZ4Reader *reader,
@@ -2021,7 +2020,7 @@ void Loader::generateNewPermutation(string outputdir,
         int parallelProcesses,
         int maxReadingThreads) {
     //Read all files in the the directory.
-    BOOST_LOG_TRIVIAL(debug) << "Start process generating new permutation";
+    LOG(DEBUG) << "Start process generating new permutation";
     fs::path pInput(inputdir);
     if (fs::is_directory(pInput)) {
         auto files = Utils::getFiles(pInput.string());
@@ -2080,27 +2079,27 @@ void Loader::generateNewPermutation(string outputdir,
         delete[] writers;
         delete[] threads;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Finished";
+    LOG(DEBUG) << "Finished";
 }
 
 void Loader::moveData(string remoteLocation, string inputDir, long limitSpace) {
     //If the space of the device where the inputDir is located is less than limitSpace,
     //then I will move it to remoteLocation
-    BOOST_LOG_TRIVIAL(debug) << "Check whether I should move " << inputDir << " to " << remoteLocation << " limit " << limitSpace;
+    LOG(DEBUG) << "Check whether I should move " << inputDir << " to " << remoteLocation << " limit " << limitSpace;
     if (remoteLocation != "") {
-        BOOST_LOG_TRIVIAL(debug) << "Check if the space is less than " << limitSpace;
+        LOG(DEBUG) << "Check if the space is less than " << limitSpace;
         fs::space_info info = fs::space(inputDir);
-        BOOST_LOG_TRIVIAL(debug) << "Space is " << info.available << " bytes";
+        LOG(DEBUG) << "Space is " << info.available << " bytes";
         if (info.available < limitSpace) {
             //Copy the input dir in a certain location with scp
             string cmd = string("scp -r ") + inputDir + string(" ") + remoteLocation;
-            BOOST_LOG_TRIVIAL(debug) << "Executing the command " << cmd;
+            LOG(DEBUG) << "Executing the command " << cmd;
             auto exitcode = system(cmd.c_str());
             if (exitcode == 0) {
-                BOOST_LOG_TRIVIAL(debug) << "Program exited";
+                LOG(DEBUG) << "Program exited";
                 fs::remove_all(fs::path(inputDir));
             } else {
-                BOOST_LOG_TRIVIAL(debug) << "Something went wrong in the execution of the program. Do nothing.";
+                LOG(DEBUG) << "Something went wrong in the execution of the program. Do nothing.";
             }
         }
     }
@@ -2150,7 +2149,7 @@ void Loader::parallel_createIndices(
         int nindices) {
 
     if (aggrIndices && nindices != 6) {
-        BOOST_LOG_TRIVIAL(error) << "Inconsistency on the input parameters. AggrIndices=true but set less than 6 permutations...";
+        LOG(ERROR) << "Inconsistency on the input parameters. AggrIndices=true but set less than 6 permutations...";
         throw 10;
     }
 
@@ -2382,7 +2381,7 @@ void Loader::seq_createIndices(
         long limitSpace,
         long estimatedSize) {
 
-    BOOST_LOG_TRIVIAL(debug) << "SortAndIndex one-by-one";
+    LOG(DEBUG) << "SortAndIndex one-by-one";
 
     ParamSortAndInsert params;
     params.parallelProcesses = parallelProcesses;
@@ -2413,7 +2412,7 @@ void Loader::seq_createIndices(
     fs::remove_all(fs::path(lastInput));
     ins->stopInserts(0);
     moveData(remotePath, outputDirs[0], limitSpace);
-    BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+    LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 1;
     params.nindices = 1;
@@ -2440,7 +2439,7 @@ void Loader::seq_createIndices(
     fs::remove_all(fs::path(lastInput));
     ins->stopInserts(1);
     moveData(remotePath, outputDirs[1], limitSpace);
-    BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+    LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 3;
     params.nindices = 1;
@@ -2467,7 +2466,7 @@ void Loader::seq_createIndices(
     fs::remove_all(fs::path(lastInput));
     ins->stopInserts(3);
     moveData(remotePath, outputDirs[3], limitSpace);
-    BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+    LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 4;
     params.nindices = 1;
@@ -2489,7 +2488,7 @@ void Loader::seq_createIndices(
 
     ins->stopInserts(4);
     moveData(remotePath, outputDirs[4], limitSpace);
-    BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+    LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
     lastInput = aggrIndices ? permDirs[3] : permDirs[4];
 
@@ -2520,7 +2519,7 @@ void Loader::seq_createIndices(
         params.deletePreviousExt = false;
 
         sortAndInsert(params);
-        BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+        LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
     } else {
 
         ParamSortAndInsert params;
@@ -2545,7 +2544,7 @@ void Loader::seq_createIndices(
         params.deletePreviousExt = false;
 
         sortAndInsert(params);
-        BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+        LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
     }
     fs::remove_all(fs::path(lastInput));
 
@@ -2578,7 +2577,7 @@ void Loader::seq_createIndices(
         params.deletePreviousExt = false;
 
         sortAndInsert(params);
-        BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+        LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
         lastInput = permDirs[5];
         fs::remove_all(fs::path(lastInput));
@@ -2605,7 +2604,7 @@ void Loader::seq_createIndices(
         params.deletePreviousExt = false;
 
         sortAndInsert(params);
-        BOOST_LOG_TRIVIAL(debug) << "Memory used so far: " << Utils::getUsedMemory();
+        LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
     }
 }
 
@@ -2729,7 +2728,7 @@ void Loader::createPermutations(string inputDir, int nperms, int signaturePerms,
         }
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Created permutation for " << count;
+    LOG(DEBUG) << "Created permutation for " << count;
     for (int i = 0; i < nperms; ++i) {
         for(int j = 0; j < maxReadingThreads; ++j) {
             delete permWriters[i][j];
@@ -2772,7 +2771,7 @@ void Loader::loadFlatTree(string sop,
 
     for (int i = 0; i < maxPossibleIdx; ++i) {
         if (i > std::numeric_limits<short>::max()) {
-            BOOST_LOG_TRIVIAL(debug) << "Too many idx files in sop. Cannot create a flat tree";
+            LOG(DEBUG) << "Too many idx files in sop. Cannot create a flat tree";
             throw 10;
         }
         string fidx = sop + "/" + to_string(i) + ".idx";
@@ -2808,12 +2807,12 @@ void Loader::loadFlatTree(string sop,
                 long ntree_osp = -1;
                 while (true) {
                     if(!itr->hasNext()) {
-                        BOOST_LOG_TRIVIAL(debug) << "Cannot happen. (loadFlatTree)";
+                        LOG(DEBUG) << "Cannot happen. (loadFlatTree)";
                         throw 10;
                     }
                     const long treeKey = itr->next(&coord);
                     if (treeKey > key) {
-                        BOOST_LOG_TRIVIAL(debug) << "Cannot happen (2). (loadFlatTree)";
+                        LOG(DEBUG) << "Cannot happen (2). (loadFlatTree)";
                         throw 10;
                     }
                     if (coord.exists(IDX_SOP)) {
@@ -2827,7 +2826,7 @@ void Loader::loadFlatTree(string sop,
                         ntree_osp = 0;
                     }
                     if (ntree_osp == 0 && ntree_sop == 0) {
-                        BOOST_LOG_TRIVIAL(debug) << "Cannot happen (3). (loadFlatTree)";
+                        LOG(DEBUG) << "Cannot happen (3). (loadFlatTree)";
                         throw 10;
                     }
 
@@ -2836,7 +2835,7 @@ void Loader::loadFlatTree(string sop,
                         ftw->write(keyToAdd, 0, 0, 0, 0, 0, 0, 0, 0);
                     }
                     if (keyToAdd != treeKey) {
-                        BOOST_LOG_TRIVIAL(debug) << "Cannot happen (10). (loadFlatTree)";
+                        LOG(DEBUG) << "Cannot happen (10). (loadFlatTree)";
                         throw 10;
                     }
 
@@ -2858,14 +2857,14 @@ void Loader::loadFlatTree(string sop,
     while (itr->hasNext()) {
         const long treeKey = itr->next(&coord);
         if (coord.exists(IDX_SOP)) {
-            BOOST_LOG_TRIVIAL(debug) << "Cannot happen (4). (loadFlatTree)";
+            LOG(DEBUG) << "Cannot happen (4). (loadFlatTree)";
             throw 10;
         }
         long ntree_osp = 0;
         if (coord.exists(IDX_OSP)) {
             ntree_osp = coord.getNElements(IDX_OSP);
         } else {
-            BOOST_LOG_TRIVIAL(debug) << "Cannot happen (5). (loadFlatTree)";
+            LOG(DEBUG) << "Cannot happen (5). (loadFlatTree)";
             throw 10;
         }
         //First make sure we have a contiguous array (graph can be disconnected)
@@ -2883,7 +2882,7 @@ void Loader::loadFlatTree(string sop,
 
     for (int i = 0; i < maxPossibleIdx; ++i) {
         if (i > std::numeric_limits<short>::max()) {
-            BOOST_LOG_TRIVIAL(debug) << "Too many idx files in sop. Cannot create a flat tree";
+            LOG(DEBUG) << "Too many idx files in sop. Cannot create a flat tree";
             throw 10;
         }
         string fidx = osp + "/" + to_string(i) + ".idx";
@@ -2950,11 +2949,11 @@ char Loader::rewriteNewColumnStrategy(const char *table) {
     const uint8_t bytesPerCount = (header2 >> 3) & 7;
     const uint8_t remBytes = bytesPerCount + bytesPerStartingPoint;
     if (bytesPerFirstEntry < 1 || bytesPerFirstEntry > 5) {
-        BOOST_LOG_TRIVIAL(error) << "I calculated a maximum of 5 bytes per first entry" << (int) bytesPerFirstEntry;
+        LOG(ERROR) << "I calculated a maximum of 5 bytes per first entry" << (int) bytesPerFirstEntry;
         throw 10;
     }
     if (remBytes > 16 || remBytes < 2) {
-        BOOST_LOG_TRIVIAL(error) << "remBytes range wrong " << (int) remBytes;
+        LOG(ERROR) << "remBytes range wrong " << (int) remBytes;
         throw 10;
     }
     char out = 0;

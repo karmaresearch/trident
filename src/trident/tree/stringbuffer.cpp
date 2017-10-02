@@ -22,10 +22,11 @@
 
 #include <trident/tree/stringbuffer.h>
 
+#include <kognac/logs.h>
+
 #include <lz4.h>
 #include <lz4hc.h>
 #include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
 #include <string>
 #include <cstring>
 #include <algorithm>
@@ -163,7 +164,7 @@ void StringBuffer::addCache(int idx) {
             f = cacheVector[f].second;
             c++;
         }
-        BOOST_LOG_TRIVIAL(error) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
+        LOG(ERROR) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
 }
 
 void StringBuffer::compressBlocks() {
@@ -356,7 +357,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            BOOST_LOG_TRIVIAL(error) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
         }
         fileLock.unlock();
     } else {
@@ -368,7 +369,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            BOOST_LOG_TRIVIAL(error) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
         }
     }
 
@@ -383,7 +384,7 @@ void StringBuffer::uncompressBlock(int b) {
     stats->incrNReadIndexBlocks();
     stats->addNReadIndexBytes(length);
     if (bytesUncompressed < 0) {
-        BOOST_LOG_TRIVIAL(error) << "Decompression of block "
+        LOG(ERROR) << "Decompression of block "
                                  << b
                                  << " has failed. Read at pos "
                                  << start

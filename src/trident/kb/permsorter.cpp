@@ -24,7 +24,6 @@
 #include <kognac/utils.h>
 #include <kognac/compressor.h>
 
-#include <boost/log/trivial.hpp>
 #include <boost/thread.hpp>
 
 #include <tbb/parallel_sort.h>
@@ -117,7 +116,7 @@ void PermSorter::sortPermutation(char *start, char *end) {
     //std::sort(sstart, send, &__PermSorter_triple_sorter);
     tbb::parallel_sort(sstart, send, &__PermSorter_triple_sorter);
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - starttime;
-    BOOST_LOG_TRIVIAL(debug) << "Time sorting: " << duration.count() << "s.";
+    LOG(DEBUG) << "Time sorting: " << duration.count() << "s.";
 }
 
 void PermSorter::writeTermInBuffer(char *buffer, const long n) {
@@ -254,7 +253,7 @@ void PermSorter::dumpPermutation_old(char *input, long end,
             break;
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << "MaxSize=" << idx.size() << " realSize=" << realSize;
+    LOG(DEBUG) << "MaxSize=" << idx.size() << " realSize=" << realSize;
     long *rawidx = NULL;
     if (idx.size() > 0)
         rawidx = &(idx[0]);
@@ -374,11 +373,11 @@ void PermSorter::sortChunks_seq_old(const int idReader,
         start += 15;
         i++;
         if (i % 1000000000 == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "Processed " << i << " triples";
+            LOG(DEBUG) << "Processed " << i << " triples";
         }
     }
     *count = i;
-    BOOST_LOG_TRIVIAL(debug) << "Loaded " << i << " triples";
+    LOG(DEBUG) << "Loaded " << i << " triples";
     memset(start, 0xFF, end - start);
 }
 
@@ -406,7 +405,7 @@ void PermSorter::sortChunks_seq(const int idReader,
             current += 15;
             i++;
             if (i % 1000000000 == 0) {
-                BOOST_LOG_TRIVIAL(debug) << "Processed " << i << " triples";
+                LOG(DEBUG) << "Processed " << i << " triples";
             }
         }
     } else {
@@ -420,13 +419,13 @@ void PermSorter::sortChunks_seq(const int idReader,
             current += 15;
             i++;
             if (i % 1000000000 == 0) {
-                BOOST_LOG_TRIVIAL(debug) << "Processed " << i << " triples";
+                LOG(DEBUG) << "Processed " << i << " triples";
             }
         }
     }
     *count = i;
     memset(current, 0xFF, end - current);
-    BOOST_LOG_TRIVIAL(debug) << "Loaded " << i << " triples. Now creating other permutations";
+    LOG(DEBUG) << "Loaded " << i << " triples. Now creating other permutations";
     /************* SOP ************/
     int idxSOP = 0;
     for(auto p : additionalPermutations) {
@@ -502,7 +501,7 @@ void PermSorter::sortChunks_seq(const int idReader,
     }
     if (idxPOS < additionalPermutations.size()) { //Found POS
         if (idxPSO >= additionalPermutations.size()) {
-            BOOST_LOG_TRIVIAL(error) << "I require also PSO";
+            LOG(ERROR) << "I require also PSO";
             throw 10;
         }
         char *startPSO = rawTriples->at(idxPSO + 1).get() + startIdx;
@@ -573,7 +572,7 @@ void PermSorter::sortChunks_seq(const int idReader,
         }
         if (idxOSP < additionalPermutations.size()) { //Found OSP
             if (idxOPS >= additionalPermutations.size()) {
-                BOOST_LOG_TRIVIAL(error) << "I require also OPS";
+                LOG(ERROR) << "I require also OPS";
                 throw 10;
             }
             char *startOPS = rawTriples->at(idxOPS + 1).get() + startIdx;
@@ -642,7 +641,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         long estimatedSize,
         std::vector<std::pair<string, char>> &additionalPermutations) {
 
-    BOOST_LOG_TRIVIAL(debug) << "Start sortChunks";
+    LOG(DEBUG) << "Start sortChunks";
     //calculate the number of elements
     long mem = Utils::getSystemMemory() * 0.8;
     long nelements = mem / (15 + 8 * (additionalPermutations.size() + 1)); // 5 bytes per 3 triple elements + 8 * additionalPermutations.size()
@@ -670,9 +669,9 @@ void PermSorter::sortChunks_Old(string inputdir,
         readers[i]->start();
         for(int j = 0; j < filesPerReader; ++j) {
             if (itr->empty()) {
-                BOOST_LOG_TRIVIAL(debug) << "Part " << j << " is empty";
+                LOG(DEBUG) << "Part " << j << " is empty";
             } else {
-                BOOST_LOG_TRIVIAL(debug) << "Part " << i << " " << j << " " << itr->at(0);
+                LOG(DEBUG) << "Part " << i << " " << j << " " << itr->at(0);
             }
             if (itr != inputsReaders.end()) {
                 readers[i]->addInput(j, *itr);
@@ -684,7 +683,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         }
     }
     boost::thread *threads = new boost::thread[parallelProcesses];
-    BOOST_LOG_TRIVIAL(debug) << "Creating vectors of " << elementsMainMem << " elements. Each el is 15 bytes";
+    LOG(DEBUG) << "Creating vectors of " << elementsMainMem << " elements. Each el is 15 bytes";
     char *rawTriples = new char[elementsMainMem * 15];
     std::vector<long> idx0(elementsMainMem);
     for(long i = 0; i < elementsMainMem; ++i) {
@@ -694,13 +693,13 @@ void PermSorter::sortChunks_Old(string inputdir,
     for(int i = 0; i < additionalPermutations.size(); ++i) {
         additionalIdxs[i] = idx0;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Creating vectors of " << elementsMainMem << ". done";
+    LOG(DEBUG) << "Creating vectors of " << elementsMainMem << ". done";
     long maxInserts = max((long)1, (long)(elementsMainMem / parallelProcesses));
     bool isFinished = false;
     int iter = 0;
 
     while (!isFinished) {
-        BOOST_LOG_TRIVIAL(debug) << "Load in parallel all the triples from disk to the main memory";
+        LOG(DEBUG) << "Load in parallel all the triples from disk to the main memory";
         std::vector<long> counts(parallelProcesses);
         for (int i = 0; i < parallelProcesses; ++i) {
             MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
@@ -715,7 +714,7 @@ void PermSorter::sortChunks_Old(string inputdir,
             threads[i].join();
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "Fill the empty holes with new data";
+        LOG(DEBUG) << "Fill the empty holes with new data";
         int curPart = 0;
         std::vector<std::pair<int, int>> openedStreams;
         for(int i = 0; i < parallelProcesses; ++i) {
@@ -754,9 +753,9 @@ void PermSorter::sortChunks_Old(string inputdir,
                 curPart++;
             }
         }
-        BOOST_LOG_TRIVIAL(debug) << "Finished filling holes";
+        LOG(DEBUG) << "Finished filling holes";
 
-        BOOST_LOG_TRIVIAL(debug) << "Start sorting";
+        LOG(DEBUG) << "Start sorting";
         tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / 6)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
@@ -771,9 +770,9 @@ void PermSorter::sortChunks_Old(string inputdir,
             threads[i].join();
         }
         delete[] threads;
-        BOOST_LOG_TRIVIAL(debug) << "End sorting";
+        LOG(DEBUG) << "End sorting";
 
-        BOOST_LOG_TRIVIAL(debug) << "Start dumping";
+        LOG(DEBUG) << "Start dumping";
         long maxValue = maxInserts * 15 * parallelProcesses;
         int addPermIdx = 0;
         for(auto perm : additionalPermutations) {
@@ -794,7 +793,7 @@ void PermSorter::sortChunks_Old(string inputdir,
                 outputFile,
                 idx0,
                 IDX_SPO);
-        BOOST_LOG_TRIVIAL(debug) << "End dumping";
+        LOG(DEBUG) << "End dumping";
 
         //Are all files read?
         int i = 0;
@@ -805,7 +804,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         }
         isFinished = i == parallelProcesses;
         if (!isFinished) {
-            BOOST_LOG_TRIVIAL(debug) << "One round is not enough";
+            LOG(DEBUG) << "One round is not enough";
         }
     }
 
@@ -832,7 +831,7 @@ void PermSorter::sortChunks(string inputdir,
         bool outputSPO,
         std::vector<std::pair<string, char>> &additionalPermutations) {
 
-    BOOST_LOG_TRIVIAL(debug) << "Start sortChunks";
+    LOG(DEBUG) << "Start sortChunks";
     //calculate the number of elements
     long mem = Utils::getSystemMemory() * 0.8;
     int nperms = additionalPermutations.size() + 1;
@@ -861,9 +860,9 @@ void PermSorter::sortChunks(string inputdir,
         readers[i]->start();
         for(int j = 0; j < filesPerReader; ++j) {
             if (itr->empty()) {
-                BOOST_LOG_TRIVIAL(debug) << "Part " << j << " is empty";
+                LOG(DEBUG) << "Part " << j << " is empty";
             } else {
-                BOOST_LOG_TRIVIAL(debug) << "Part " << i << " " << j << " " << itr->at(0);
+                LOG(DEBUG) << "Part " << i << " " << j << " " << itr->at(0);
             }
             if (itr != inputsReaders.end()) {
                 readers[i]->addInput(j, *itr);
@@ -875,7 +874,7 @@ void PermSorter::sortChunks(string inputdir,
         }
     }
     boost::thread *threads = new boost::thread[parallelProcesses];
-    BOOST_LOG_TRIVIAL(debug) << "Creating vectors of "
+    LOG(DEBUG) << "Creating vectors of "
         << elementsMainMem << " elements. Each el is 15 bytes";
 
     std::vector<std::unique_ptr<char[]>> rawTriples;
@@ -884,13 +883,13 @@ void PermSorter::sortChunks(string inputdir,
         rawTriples.push_back(std::unique_ptr<char[]>(new char[elementsMainMem * 15]));
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Creating vectors of " << elementsMainMem << ". done";
+    LOG(DEBUG) << "Creating vectors of " << elementsMainMem << ". done";
     long maxInserts = max((long)1, (long)(elementsMainMem / parallelProcesses));
     bool isFinished = false;
     int iter = 0;
 
     while (!isFinished) {
-        BOOST_LOG_TRIVIAL(debug) << "Load in parallel all the triples from disk to the main memory";
+        LOG(DEBUG) << "Load in parallel all the triples from disk to the main memory";
         std::vector<long> counts(parallelProcesses);
         for (int i = 0; i < parallelProcesses; ++i) {
             MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
@@ -908,7 +907,7 @@ void PermSorter::sortChunks(string inputdir,
             threads[i].join();
         }
 
-        BOOST_LOG_TRIVIAL(debug) << "Fill the empty holes with new data";
+        LOG(DEBUG) << "Fill the empty holes with new data";
         int curPart = 0;
         std::vector<std::pair<int, int>> openedStreams;
         for(int i = 0; i < parallelProcesses; ++i) {
@@ -999,9 +998,9 @@ void PermSorter::sortChunks(string inputdir,
                 curPart++;
             }
         }
-        BOOST_LOG_TRIVIAL(debug) << "Finished filling holes";
+        LOG(DEBUG) << "Finished filling holes";
 
-        BOOST_LOG_TRIVIAL(debug) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
+        LOG(DEBUG) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
         tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / nperms)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
@@ -1014,9 +1013,9 @@ void PermSorter::sortChunks(string inputdir,
             threads[i].join();
         }
         delete[] threads;
-        BOOST_LOG_TRIVIAL(debug) << "End sorting";
+        LOG(DEBUG) << "End sorting";
 
-        BOOST_LOG_TRIVIAL(debug) << "Start dumping";
+        LOG(DEBUG) << "Start dumping";
         long maxValue = maxInserts * parallelProcesses;
         int j = 1;
         for(auto perm : additionalPermutations) {
@@ -1033,7 +1032,7 @@ void PermSorter::sortChunks(string inputdir,
                 parallelProcesses,
                 maxReadingThreads,
                 outputFile);
-        BOOST_LOG_TRIVIAL(debug) << "End dumping";
+        LOG(DEBUG) << "End dumping";
 
         //Are all files read?
         int i = 0;
@@ -1044,7 +1043,7 @@ void PermSorter::sortChunks(string inputdir,
         }
         isFinished = i == parallelProcesses;
         if (!isFinished) {
-            BOOST_LOG_TRIVIAL(debug) << "One round is not enough";
+            LOG(DEBUG) << "One round is not enough";
         }
     }
 

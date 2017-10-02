@@ -662,7 +662,7 @@ PairItr *Querier::getPermuted(const int idx, const long el1, const long el2,
         case IDX_OPS:
             return get(idx, el3, el2, el1, constrain);
     }
-    BOOST_LOG_TRIVIAL(error) << "Idx " << idx << " not known";
+    LOG(ERROR) << "Idx " << idx << " not known";
     throw 10;
 }
 
@@ -881,7 +881,7 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
     if (!diffIndices.empty()) {
 
 #ifdef MT
-        BOOST_LOG_TRIVIAL(warning) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
+        LOG(WARN) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
 #endif
 
         std::vector<PairItr*> iterators;

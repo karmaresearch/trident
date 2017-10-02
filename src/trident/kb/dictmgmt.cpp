@@ -30,7 +30,6 @@
 
 #include <lz4.h>
 #include <boost/thread.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -73,11 +72,11 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
             ifs.close();
             std::chrono::duration<double> sec = std::chrono::system_clock::now()
                 - start;
-            BOOST_LOG_TRIVIAL(debug) << "Time loading GUD " << sec.count() * 1000;
+            LOG(DEBUG) << "Time loading GUD " << sec.count() * 1000;
         }
 
         if (fs::exists(e2r)) {
-            BOOST_LOG_TRIVIAL(debug) << "Load the mappings rel->ent from " << e2r;
+            LOG(DEBUG) << "Load the mappings rel->ent from " << e2r;
             //Load the mappings from the relation IDs to the entity IDs
             r2e.set_deleted_key(~0lu);
             LZ4Reader reader(e2r);
@@ -274,6 +273,6 @@ DictMgmt::~DictMgmt() {
         os.close();
         std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time writing GUD " << sec.count() * 1000;
+        LOG(DEBUG) << "Time writing GUD " << sec.count() * 1000;
     }
 }

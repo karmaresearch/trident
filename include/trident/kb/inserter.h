@@ -145,7 +145,7 @@ class Inserter {
                 coordinatesLastFirstTerm[i] = 0;
                 skippedTables[i] = 0;
             }
-            BOOST_LOG_TRIVIAL(debug) << "Threshold for column layout is " << thresholdForColumnStorage;
+            LOG(DEBUG) << "Threshold for column layout is " << thresholdForColumnStorage;
         }
 
         void disableColumnStorage() {

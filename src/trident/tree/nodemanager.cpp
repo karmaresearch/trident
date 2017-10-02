@@ -160,7 +160,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
     CachedNode *cn = getCachedNode(node->getId());
     if (cn != NULL) {
         if (sizeBuffer > cn->availableSize) {
-            BOOST_LOG_TRIVIAL(debug) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
+            LOG(DEBUG) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
             int diff = sizeBuffer - cn->availableSize;
             //Enlarge the file
             manager->shiftRemainingFile(cn->fileIndex, cn->posIndex, diff);
@@ -298,7 +298,7 @@ void NodeManager::compressSpace(string path) {
         long newSize = fs::file_size(pNewFile);
         fs::rename(pNewFile, pOldFile);
 
-        BOOST_LOG_TRIVIAL(debug) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
+        LOG(DEBUG) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
     }
     fileIdx.seekp(4);
     fileIdx.write(coordinatesSpace, sizeCoordinates);
@@ -353,7 +353,7 @@ NodeManager::~NodeManager() {
         out.write(coordinatesSpace, sizeCoordinates);
         delete[] coordinatesSpace;
 
-        BOOST_LOG_TRIVIAL(debug) << "Wasted space to store the nodes: " << wastedSpace;
+        LOG(DEBUG) << "Wasted space to store the nodes: " << wastedSpace;
         out.close();
 
         //Clean the stored nodes

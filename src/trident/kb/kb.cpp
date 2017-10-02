@@ -30,8 +30,6 @@
 #include <trident/tree/stringbuffer.h>
 #include <trident/binarytables/tableshandler.h>
 
-#include <boost/log/trivial.hpp>
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -55,7 +53,7 @@ KB::KB(const char *path,
     dictEnabled(dictEnabled), config(config) {
 
         if (readOnly && !fs::exists(string(path) + "/tree")) {
-            BOOST_LOG_TRIVIAL(error) << "The input path does not seem to be a valid KB";
+            LOG(ERROR) << "The input path does not seem to be a valid KB";
             throw 10;
         }
 
@@ -160,13 +158,13 @@ KB::KB(const char *path,
 
         std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        LOG(DEBUG) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
 
         //Initialize the dictionaries
         if (dictEnabled) {
             loadDict(&config);
             sec = std::chrono::system_clock::now() - start;
-            BOOST_LOG_TRIVIAL(debug) << "Time init dictionaries KB = " <<
+            LOG(DEBUG) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
             dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
@@ -286,7 +284,7 @@ KB::KB(const char *path,
                     std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
                     addDiffIndex(childrenupdates[i], &globalbuffers[0], NULL);
                     sec = std::chrono::system_clock::now() - startDiff;
-                    BOOST_LOG_TRIVIAL(debug) << "Time loading diff index " << sec.count() * 1000 << "ms.";
+                    LOG(DEBUG) << "Time loading diff index " << sec.count() * 1000 << "ms.";
                 }
             }
             if (!dictUpdates.empty()) {
@@ -303,7 +301,7 @@ KB::KB(const char *path,
         }
 
         sec = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        LOG(DEBUG) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
     }
 
 Root *KB::getRootTree() {
@@ -398,7 +396,7 @@ Querier *KB::query() {
 
 Inserter *KB::insert() {
     if (readOnly) {
-        BOOST_LOG_TRIVIAL(error) << "Insert() is not available if the knowledge base is opened in read_only mode.";
+        LOG(ERROR) << "Insert() is not available if the knowledge base is opened in read_only mode.";
     }
 
     return new Inserter(tree,

@@ -2,7 +2,7 @@
 #include "rts/operator/PlanPrinter.hpp"
 #include "rts/runtime/Runtime.hpp"
 
-#include <boost/log/trivial.hpp>
+#include <kognac/logs.h>
 
 #include <iostream>
 //---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ void HashJoin::BuildHashTable::run()
         // Compute the slots
         uint64_t leftKey = leftValue->value;
         uint64_t slot1 = hash1(leftKey, hashTableSize), slot2 = hash2(leftKey, hashTableSize);
-        // BOOST_LOG_TRIVIAL(debug) << "leftKey = " << leftKey;
+        // LOG(DEBUG) << "leftKey = " << leftKey;
 
         // Scan if the entry already exists
         Entry* e = join.hashTable[slot1];
@@ -195,8 +195,7 @@ uint64_t HashJoin::first()
     buildHashTableTask.run();
     std::chrono::duration<double> sec = std::chrono::system_clock::now()
         - start;
-    BOOST_LOG_TRIVIAL(info) << "Runtime building hashtable = " <<
-        sec.count() * 1000 << " milliseconds";
+    LOG(INFO) << "Runtime building hashtable = " << sec.count() * 1000 << " milliseconds";
 
     // Read the first tuple from the right side
     probePeekTask.run();

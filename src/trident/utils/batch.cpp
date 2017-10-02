@@ -19,7 +19,7 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
 
 void BatchCreator::createInputForBatch() {
     //Create a file called '_batch' in the maindir with a fixed-length record size
-    BOOST_LOG_TRIVIAL(info) << "Store the input for the batch process in " << kbdir + "/_batch ...";
+    LOG(INFO) << "Store the input for the batch process in " << kbdir + "/_batch ...";
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
@@ -42,14 +42,14 @@ void BatchCreator::createInputForBatch() {
     q->releaseItr(itr);
     ofs.close();
     delete q;
-    BOOST_LOG_TRIVIAL(info) << "Done";
+    LOG(INFO) << "Done";
 }
 
 void BatchCreator::start() {
     //First check if the file exists
     string fin = this->kbdir + "/_batch";
     if (!fs::exists(fin)) {
-        BOOST_LOG_TRIVIAL(info) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
+        LOG(INFO) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
         createInputForBatch();
     }
 
@@ -59,17 +59,17 @@ void BatchCreator::start() {
     this->rawtriples = static_cast<char*>(this->mapped_rgn.get_address());
     this->ntriples = (uint64_t)this->mapped_rgn.get_size() / 15; //triples
 
-    BOOST_LOG_TRIVIAL(debug) << "Creating index array ...";
+    LOG(DEBUG) << "Creating index array ...";
     this->indices.resize(this->ntriples);
     for(long i = 0; i < this->ntriples; ++i) {
         this->indices[i] = i;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "Shuffling array ...";
+    LOG(DEBUG) << "Shuffling array ...";
     auto engine = std::default_random_engine{};
     std::shuffle(this->indices.begin(), this->indices.end(), engine);
     this->currentidx = 0;
-    BOOST_LOG_TRIVIAL(debug) << "Done";
+    LOG(DEBUG) << "Done";
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {

@@ -21,8 +21,9 @@
 
 #include <trident/utils/tridentutils.h>
 
+#include <kognac/logs.h>
+
 #include <boost/lexical_cast.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -150,7 +151,7 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
         try {
             value = boost::lexical_cast<long>(line);
         } catch (boost::bad_lexical_cast &) {
-            BOOST_LOG_TRIVIAL(error) << "Failed conversion of " << line;
+            LOG(ERROR) << "Failed conversion of " << line;
             throw 10;
         }
         values.push_back(value);
@@ -169,7 +170,7 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
             v1 = boost::lexical_cast<long>(line.substr(0, pos));
             v2 = boost::lexical_cast<long>(line.substr(pos+1, line.size()));
         } catch (boost::bad_lexical_cast &) {
-            BOOST_LOG_TRIVIAL(error) << "Failed conversion of " << line;
+            LOG(ERROR) << "Failed conversion of " << line;
             throw 10;
         }
         values.push_back(std::make_pair(v1, v2));

@@ -27,7 +27,6 @@
 #include <trident/model/table.h>
 #include <layers/TridentLayer.hpp>
 #include <infra/util/Type.hpp>
-#include <boost/log/trivial.hpp>
 #include <string>
 #include <map>
 #include <limits>
@@ -272,7 +271,7 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         cost = q->getCardOnIndex(idx, -1, -1, v1, true);
         break;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Get cost for " << v1 << " " << v2 << " on index " << order << " is " << cost;
+    LOG(DEBUG) << "Get cost for " << v1 << " " << v2 << " on index " << order << " is " << cost;
     return cost;
 }
 
@@ -583,7 +582,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
                                         bool value3R,
                                         uint64_t value3CR) {
 
-    BOOST_LOG_TRIVIAL(debug) << "Exec join selectivity: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
+    LOG(DEBUG) << "Exec join selectivity: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
                              value3CL << "-" << value1R << " " <<  value1CR << " " << value2R << " " << value2CR << " " << value3R << " " << value3CR;
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -625,19 +624,19 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
                                       card1,
                                       card2);
         std::chrono::duration<double> dur = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time bifocal sampling between: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
+        LOG(DEBUG) << "Time bifocal sampling between: " << valueL1 << " " << value1CL << " " << value2L << " " << value2CL << " " << value3L << " " <<
                                  value3CL << "-" << value1R << " " <<  value1CR << " " << value2R << " " << value2CR << " " << value3R << " " << value3CR << ": " << dur.count() * 1000 << "retval=" << cost;
         return cost;
     } else {
         //One of the two tables is small enough. Do the computation
-        //BOOST_LOG_TRIVIAL(debug) << "Exact estimation " << card1 << " " << card2;
+        //LOG(DEBUG) << "Exact estimation " << card1 << " " << card2;
         if (!sampleT1 && !sampleT2) {
             t1 = query(valueL1, value1CL, value2L, value2CL,
                        value3L, value3CL);
             t2 = query(value1R, value1CR, value2R, value2CR,
                        value3R, value3CR);
             TupleTable::JoinHitStats estimates = t1->joinHitRates(t2.get());
-            BOOST_LOG_TRIVIAL(debug) << "Exact cost between " << value1CL << " "
+            LOG(DEBUG) << "Exact cost between " << value1CL << " "
                                      << value2CL << " " << value3CL << " "
                                      << value1CR << " " << value2CR << " "
                                      << value3CR << " is " << estimates.ratio;
@@ -657,7 +656,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
             } else {
                 estimates.ratio = estimates.ratio / (samplePerc1 * kb.getSampleRate());
             }
-            BOOST_LOG_TRIVIAL(debug) << "Exact cost between " << value1CL
+            LOG(DEBUG) << "Exact cost between " << value1CL
                                      << " " << value2CL << " " << value3CL << " " << value1CR
                                      << " " << value2CR << " " << value3CR << " is "
                                      << estimates.ratio;
@@ -676,7 +675,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
             } else {
                 estimates.ratio = estimates.ratio / (kb.getSampleRate() * samplePerc2);
             }
-            BOOST_LOG_TRIVIAL(debug) << "Exact cost between " << value1CL
+            LOG(DEBUG) << "Exact cost between " << value1CL
                                      << " " << value2CL << " " << value3CL << " " << value1CR
                                      << " " << value2CR << " " << value3CR << " is "
                                      << estimates.ratio;
@@ -814,9 +813,9 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
         const long card = querier->estCard(s, p, o);
         //boost::chrono::duration<double> dur = boost::chrono::system_clock::now() - start;
         sample = (double) limit / card;
-        //BOOST_LOG_TRIVIAL(debug) << "Sample " << sample << " card=" << card << " " << limit << " time=" << dur.count() * 1000;
+        //LOG(DEBUG) << "Sample " << sample << " card=" << card << " " << limit << " time=" << dur.count() * 1000;
     } else {
-        //BOOST_LOG_TRIVIAL(debug) << "No sampling" << i;
+        //LOG(DEBUG) << "No sampling" << i;
         sample = 1.0;
     }
     querier->releaseItr(itr);
@@ -826,7 +825,7 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
 long TridentLayer::getSizeOutput(long s, long p, long o,
                                  std::vector<uint8_t> *posToFilter,
                                  std::vector<uint64_t> *valuesToFilter) {
-    //BOOST_LOG_TRIVIAL(debug) << "Start getSizeOutput " << valuesToFilter->size();
+    //LOG(DEBUG) << "Start getSizeOutput " << valuesToFilter->size();
     assert(posToFilter);
     long count = 0;
     int nvars = 0;

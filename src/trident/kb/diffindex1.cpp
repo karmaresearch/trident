@@ -626,7 +626,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     f.close();
     std::chrono::duration<double> sec = std::chrono::system_clock::now()
                                           - start;
-    BOOST_LOG_TRIVIAL(info) << "Runtime creating indices one column = " << sec.count() * 1000;
+    LOG(INFO) << "Runtime creating indices one column = " << sec.count() * 1000;
 }
 
 long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string fout) {
@@ -661,6 +661,6 @@ long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string f
     }
     std::chrono::duration<double> sec = std::chrono::system_clock::now()
                                           - start;
-    BOOST_LOG_TRIVIAL(info) << "Runtime checking first pairs = " << sec.count() * 1000;
+    LOG(INFO) << "Runtime checking first pairs = " << sec.count() * 1000;
     return out;
 }
