@@ -1776,14 +1776,6 @@ void Loader::loadKB(KB &kb,
         threads = new boost::thread[dictionaries - 1];
         nTerm *maxValues = new nTerm[dictionaries];
         if (dictMethod != DICT_SMART) {
-            /*for (int i = 1; i < dictionaries; ++i) {
-                threads[i - 1] = boost::thread(
-                        boost::bind(&Loader::insertDictionary, i,
-                            kb.getDictMgmt(),
-                            fileNameDictionaries[i],
-                            dictMethod != DICT_HASH,
-                            true, false, maxValues + i));
-            }*/
             if (dictionaries > 1) throw 10;
             insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0],
                     dictMethod != DICT_HASH, true, false, maxValues);
@@ -1891,18 +1883,36 @@ void Loader::loadKB(KB &kb,
         //If the relations should have their own IDs, I rewrite the compressed
         //graph storing an additional map with the IDs of the relations
         if (relsOwnIDs) {
-            if (!storeDicts) {
-                BOOST_LOG_TRIVIAL(error) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
-                throw 10;
-            }
-            std::unordered_map<long,long> ent2rel;
-            //The input is on the form SPO
-            rewriteKG(permDirs[0], ent2rel);
-            //Store the map in a file
-            LZ4Writer writer(kbDir + "/e2r");
-            for (auto pair : ent2rel) {
-                writer.writeLong(pair.first);
-                writer.writeLong(pair.second);
+            if (!fs::exists(kbDir + "/dict-0_r")) {
+                if (!storeDicts) {
+                    BOOST_LOG_TRIVIAL(error) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
+                    throw 10;
+                }
+                std::unordered_map<long,long> ent2rel;
+                //The input is on the form SPO
+                rewriteKG(permDirs[0], ent2rel);
+                //Store the map in a file
+                LZ4Writer writer(kbDir + "/e2r");
+                for (auto pair : ent2rel) {
+                    writer.writeLong(pair.first);
+                    writer.writeLong(pair.second);
+                }
+            } else {
+                //The graph is already translated. Just load the mappings
+                LZ4Writer writer(kbDir + "/e2s");
+                string fin = kbDir + "/dict-0_r";
+                {
+                    LZ4Reader in(fin);
+                    BOOST_LOG_TRIVIAL(debug) << "Parsing " << fin;
+                    while (!in.isEof()) {
+                        long k = in.parseLong();
+                        int size;
+                        const char *value = in.parseString(size);
+                        writer.writeLong(k);
+                        writer.writeString(value, size);
+                    }
+                }
+                fs::remove(fin);
             }
         }
     }

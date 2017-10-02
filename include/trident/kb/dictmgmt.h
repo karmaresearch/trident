@@ -132,13 +132,15 @@ private:
     google::dense_hash_map<uint64_t, string> gud_idtext;
     google::sparse_hash_map<string, uint64_t> gud_textid;
     google::sparse_hash_map<uint64_t, uint64_t> r2e;
+    google::sparse_hash_map<uint64_t, string> r2s;
     bool gud_modified;
     uint64_t gud_largestID;
     string gudLocation;
 
 public:
 
-    DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r);
+    DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
+            string e2s);
 
     void addUpdates(std::vector<Dict> &updates);
 

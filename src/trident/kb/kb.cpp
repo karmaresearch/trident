@@ -169,7 +169,7 @@ KB::KB(const char *path,
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
             dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
-                    dictHash, string(path) + "/e2r");
+                    dictHash, string(path) + "/e2r", string(path) + "/e2s");
         }
 
         //Initialize the memory tracker for the storage partitions

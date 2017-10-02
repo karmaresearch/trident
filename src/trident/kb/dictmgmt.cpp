@@ -39,7 +39,8 @@
 using namespace std;
 namespace timens = boost::chrono;
 
-DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
+DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
+        string e2s) :
     hash(hash) {
         nTuples = 0;
         printTuples = false;
@@ -88,6 +89,17 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
                 long r = reader.parseLong();
                 r2e.insert(std::make_pair(r,e));
             }
+        } else if (fs::exists(e2s)) {
+            BOOST_LOG_TRIVIAL(debug) << "Load the mappings rel->ent (string) from " << e2s;
+            r2e.set_deleted_key(~0lu);
+            LZ4Reader reader(e2s);
+            while (!reader.isEof()) {
+                long r = reader.parseLong();
+                int size;
+                const char *t = reader.parseString(size);
+                r2s.insert(std::make_pair(r,string(t, size)));
+            }
+
         }
     }
 
@@ -114,10 +126,17 @@ void DictMgmt::putInUpdateDict(const uint64_t id,
 }
 
 bool DictMgmt::getTextRel(nTerm key, char *value, int &size) {
-    if (r2e.count(key)) {
-        return getText(r2e[key], value, size);
+    if (r2s.count(key)) {
+        auto f = r2s.find(key);
+        size = f->second.size();
+        memcpy(value, f->second.c_str(), f->second.size());
+        return true;
     } else {
-        return false;
+        if (r2e.count(key)) {
+            return getText(r2e[key], value, size);
+        } else {
+            return false;
+        }
     }
 }
 
