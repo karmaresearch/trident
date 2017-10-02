@@ -1027,7 +1027,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     SimpleTripleWriter *sampleWriter = params.sampleWriter;
     double sampleRate = params.sampleRate;
     bool printstats = params.printstats;
-    SinkPtr logPtr = params.logPtr;
+    //SinkPtr logPtr = params.logPtr;
     bool removeInput = params.removeInput;
     long estimatedSize = params.estimatedSize;
     bool deletePreviousExt = params.deletePreviousExt;
@@ -1451,7 +1451,7 @@ void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictM
     }
 }
 
-void Loader::monitorPerformance(SinkPtr logger, int seconds, std::condition_variable *cv, std::mutex *mtx,  bool *isFinished) {
+void Loader::monitorPerformance(/*SinkPtr logger,*/ int seconds, std::condition_variable *cv, std::mutex *mtx,  bool *isFinished) {
     //Monitor CPU usage, memory usage and disk I/O
 
     while (true) {
@@ -1468,7 +1468,7 @@ void Loader::monitorPerformance(SinkPtr logger, int seconds, std::condition_vari
         long phy_diskread = TridentUtils::phy_diskread();
         long phy_diskwrite = TridentUtils::phy_diskwrite();
         LOG(DEBUG) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes=" << diskwrite << "\tphydiskread_bytes=" << phy_diskread << "\tphydiskwrite_bytes=" << phy_diskwrite;
-        logger->flush();
+        //logger->flush();
     }
 }
 
@@ -1735,7 +1735,7 @@ void Loader::loadKB(KB &kb,
     int parallelProcesses = p.parallelThreads;
     int maxReadingThreads = p.maxReadingThreads;
     string graphTransformation = p.graphTransformation;
-    this->logPtr = logPtr;
+    //this->logPtr = logPtr;
     //End init params
 
     boost::thread *threads;
@@ -2204,7 +2204,7 @@ void Loader::parallel_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.aggregated = false;
-        params.logPtr = NULL;
+        //params.logPtr = NULL;
         params.removeInput = true;
         params.printstats = printStats;
         params.POSoutputDir = NULL;
@@ -2261,7 +2261,7 @@ void Loader::parallel_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.aggregated = false;
-        params.logPtr = NULL;
+        //params.logPtr = NULL;
         params.removeInput = true;
         params.printstats = printStats;
         params.estimatedSize = estimatedSize;
@@ -2311,7 +2311,7 @@ void Loader::parallel_createIndices(
     params.sampleWriter = sampleWriter;
     params.sampleRate = sampleRate;
     params.printstats = printStats;
-    params.logPtr = logPtr;
+    //params.logPtr = logPtr;
     params.removeInput = true;
     params.estimatedSize = estimatedSize;
     params.deletePreviousExt = true;
@@ -2334,7 +2334,7 @@ void Loader::parallel_createIndices(
         params.storeRaw = false;
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
-        params.logPtr = NULL;
+        //params.logPtr = NULL;
         params.removeInput = true;
         params.aggregated = true;
         params.printstats = printStats;
@@ -2399,7 +2399,7 @@ void Loader::seq_createIndices(
     params.sampleWriter = sampleWriter;
     params.sampleRate = sampleRate;
     params.printstats = printStats;
-    params.logPtr = logPtr;
+    //params.logPtr = logPtr;
     params.removeInput = false;
     params.estimatedSize = estimatedSize;
     params.deletePreviousExt = false;
@@ -2427,7 +2427,7 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    params.logPtr = logPtr;
+    //params.logPtr = logPtr;
     params.removeInput = false;
 
     sortAndInsert(params);
@@ -2454,7 +2454,7 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    params.logPtr = logPtr;
+    //params.logPtr = logPtr;
     params.removeInput = false;
 
     sortAndInsert(params);
@@ -2481,7 +2481,7 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    params.logPtr = logPtr;
+    //params.logPtr = logPtr;
     params.removeInput = false;
 
     sortAndInsert(params);
@@ -2513,7 +2513,7 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        params.logPtr = logPtr;
+        //params.logPtr = logPtr;
         params.removeInput = false;
         params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
@@ -2538,7 +2538,7 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        params.logPtr = logPtr;
+        //params.logPtr = logPtr;
         params.removeInput = true;
         params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
@@ -2571,7 +2571,7 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        params.logPtr = logPtr;
+        //params.logPtr = logPtr;
         params.removeInput = false;
         params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
@@ -2598,7 +2598,7 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        params.logPtr = logPtr;
+        //params.logPtr = logPtr;
         params.removeInput = true;
         params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;

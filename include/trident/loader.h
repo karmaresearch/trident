@@ -245,7 +245,7 @@ struct ParamSortAndInsert {
     SimpleTripleWriter *sampleWriter;
     double sampleRate;
     bool printstats;
-    SinkPtr logPtr;
+    //SinkPtr logPtr;
     bool removeInput;
     long estimatedSize;
     bool deletePreviousExt;
@@ -436,7 +436,7 @@ struct ParamsLoad {
 class Loader {
     private:
         bool printStats;
-        SinkPtr logPtr;
+        //SinkPtr logPtr;
 
     public:
         static void generateNewPermutation(string outputdir,
@@ -631,7 +631,7 @@ class Loader {
                 int pos1,
                 int pos2);
 
-        static void monitorPerformance(SinkPtr logger, int seconds,
+        static void monitorPerformance(/*SinkPtr logger, */int seconds,
                 std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
 
         static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);
