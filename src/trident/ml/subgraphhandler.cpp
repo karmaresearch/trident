@@ -17,9 +17,37 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
     }
 }
 
-void SubgraphHandler::selectRelevantSubGraphs(TYPEQUERY t, uint64_t v1, uint64_t v2,
+void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
+        Querier *q,
+        string algo,
+        TYPEQUERY t, uint64_t rel, uint64_t ent,
         std::vector<uint64_t> &output) {
-    //TODO
+    //Get embedding for ent
+    double *embe = E->get(ent);
+    uint16_t dime = E->getDim();
+    //Get embedding for rel
+    double *embr = R->get(ent);
+
+    //Combine them (depends on the algo)
+    uint16_t dim = 0;
+    std::unique_ptr<double> emb = NULL;
+    if (algo == "transe") {
+        dim = dime;
+        emb = std::unique_ptr<double>(new double[dim]);
+        if (t == PO) {
+            sub(emb.get(), embe, embr, dim);
+        } else {
+            add(emb.get(), embe, embr, dim);
+        }
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "Algo not recognized";
+        throw 10;
+    }
+
+    //Get all the distances
+    std::vector<double> distances;
+    subgraphs->getDistanceToAllSubgraphs(dist, q, distances, emb.get(), dim);
+    //TODO: pick the top and copy them to output
 }
 
 bool SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
@@ -75,21 +103,29 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     /*** TEST ***/
-    if (algo == "transe") {
-        //Select most promising subgraphs to do the search
-        std::vector<uint64_t> relevantSubgraphs;
-        for(uint64_t i = 0; i < testTriples.size(); i+=3) {
-            uint64_t h, t, r;
-            h = testTriples[i];
-            t = testTriples[i + 1];
-            r = testTriples[i + 2];
-            selectRelevantSubGraphs(PO, r, t, relevantSubgraphs);
-            bool foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
-            selectRelevantSubGraphs(SP, r, t, relevantSubgraphs);
-            bool foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
-            //TODO: Now I have the list of relevant subgraphs. It the answer in one of these?
-        }
-    } else {
-        BOOST_LOG_TRIVIAL(error) << "Algo not yet supported";
+    //Select most promising subgraphs to do the search
+    std::vector<uint64_t> relevantSubgraphs;
+    for(uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        t = testTriples[i + 1];
+        r = testTriples[i + 2];
+        selectRelevantSubGraphs(L1, q.get(), algo, PO, r, t, relevantSubgraphs);
+        bool foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
+        selectRelevantSubGraphs(L1, q.get(), algo, SP, r, h, relevantSubgraphs);
+        bool foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
+        //TODO: Now I have the list of relevant subgraphs. It the answer in one of these?
+    }
+}
+
+void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
+    for(uint16_t i = 0; i < dim; ++i) {
+        dest[i] = v1[i] + v2[i];
+    }
+}
+
+void SubgraphHandler::sub(double *dest, double *v1, double *v2, uint16_t dim) {
+    for(uint16_t i = 0; i < dim; ++i) {
+        dest[i] = v1[i] - v2[i];
     }
 }

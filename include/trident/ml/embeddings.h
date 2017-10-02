@@ -22,6 +22,8 @@
 #include <mutex>
 #include <fstream>
 
+typedef enum { L1, L2, COSINE, KG } DIST;
+
 template<typename K>
 class Embeddings {
     private:

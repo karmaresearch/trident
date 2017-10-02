@@ -36,6 +36,28 @@ class Subgraphs {
                 std::shared_ptr<Embeddings<K>> R) = 0;
 
         virtual void loadFromFile(string file) = 0;
+
+        virtual double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            BOOST_LOG_TRIVIAL(error) << "Not implemented";
+            throw 10;
+        }
+
+        void getDistanceToAllSubgraphs(DIST dist,
+                Querier *q,
+                std::vector<double> &distances,
+                K* emb,
+                uint16_t dim) {
+            for(size_t i = 0; i < subgraphs.size(); ++i) {
+            switch (dist) {
+                case L1:
+                    distances.push_back(l1(q, i, emb, dim));
+                    break;
+                default:
+                    BOOST_LOG_TRIVIAL(error) << "Not implemented";
+                    throw 10;
+            };
+            }
+        }
 };
 
 template<typename K>
