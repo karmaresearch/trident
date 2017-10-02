@@ -30,6 +30,7 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#include <sys/statvfs.h>
 
 
 using namespace std;
@@ -176,5 +177,11 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
         values.push_back(std::make_pair(v1, v2));
     }
     ifs.close();
+}
 
+uint64_t TridentUtils::spaceLeft(std::string location) {
+    struct statvfs stat;
+    statvfs(location.c_str(), &stat);
+    return stat.f_bsize * stat.f_bfree;
+    //TODO: does it work on the mac?
 }

@@ -655,7 +655,7 @@ void PermSorter::sortChunks_Old(string inputdir,
     std::vector<std::vector<string>> inputsReaders(parallelProcesses);
     int currentPart = 0;
     for(int i = 0; i < unsortedFiles.size(); ++i) {
-        if (fs::exists(fs::path(unsortedFiles[i]))) {
+        if (Utils::exists(unsortedFiles[i])) {
             inputsReaders[currentPart].push_back(unsortedFiles[i]);
             currentPart = (currentPart + 1) % parallelProcesses;
         }
@@ -812,7 +812,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         delete readers[i];
     }
     for(auto inputFile : unsortedFiles)
-        fs::remove(fs::path(inputFile));
+        Utils::remove(inputFile);
     delete[] readers;
     delete[] threads;
 }
@@ -846,7 +846,7 @@ void PermSorter::sortChunks(string inputdir,
     std::vector<std::vector<string>> inputsReaders(parallelProcesses);
     int currentPart = 0;
     for(int i = 0; i < unsortedFiles.size(); ++i) {
-        if (fs::exists(fs::path(unsortedFiles[i]))) {
+        if (Utils::exists(unsortedFiles[i])) {
             inputsReaders[currentPart].push_back(unsortedFiles[i]);
             currentPart = (currentPart + 1) % parallelProcesses;
         }
@@ -1050,7 +1050,7 @@ void PermSorter::sortChunks(string inputdir,
         delete readers[i];
     }
     for(auto inputFile : unsortedFiles)
-        fs::remove(fs::path(inputFile));
+        Utils::remove(inputFile);
     delete[] readers;
     delete[] threads;
 }

@@ -31,14 +31,11 @@
 
 #include <kognac/utils.h>
 
-#include <boost/filesystem.hpp>
-
 #include <iostream>
 #include <string>
 #include <fstream>
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) :
     readOnly(readOnly), path(path) {
@@ -101,8 +98,8 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
         cache->registerNode(rootNode);
 
         //Create the directory if it does not exist
-        if (!readOnly && !fs::exists(path)) {
-            fs::create_directories(path);
+        if (!readOnly && !Utils::exists(path)) {
+            Utils::create_directories(path);
         }
     }
 }

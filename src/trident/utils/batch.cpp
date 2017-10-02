@@ -2,13 +2,9 @@
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 
-#include <boost/filesystem.hpp>
-
 #include <fstream>
 #include <algorithm>
 #include <random>
-
-namespace fs = boost::filesystem;
 
 BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         uint16_t nthreads) : kbdir(kbdir), batchsize(batchsize), nthreads(nthreads) {
@@ -48,7 +44,7 @@ void BatchCreator::createInputForBatch() {
 void BatchCreator::start() {
     //First check if the file exists
     string fin = this->kbdir + "/_batch";
-    if (!fs::exists(fin)) {
+    if (!Utils::exists(fin)) {
         LOG(INFO) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
         createInputForBatch();
     }

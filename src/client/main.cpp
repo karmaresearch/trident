@@ -60,8 +60,6 @@
 #include <rts/operator/ResultsPrinter.hpp>
 //END RDF3x dependencies
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 
 #include <iostream>
@@ -71,7 +69,6 @@
 #include <chrono>
 
 using namespace std;
-namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 /*SinkPtr initLogging(
@@ -191,7 +188,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
         //Check if the directory exists
         string kbDir = vm["input"].as<string>();
-        if ((cmd == "query" || cmd == "lookup") && !fs::is_directory(kbDir)) {
+        if ((cmd == "query" || cmd == "lookup") && !Utils::isDirectory(kbDir)) {
             printErrorMsg(
                     (string("The directory ") + kbDir
                      + string(" does not exist.")).c_str());
@@ -200,7 +197,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
         //Check if the directory is not empty
         if (cmd == "query" || cmd == "lookup" || cmd == "query_native") {
-            if (fs::is_empty(kbDir)) {
+            if (Utils::isEmpty(kbDir)) {
                 printErrorMsg(
                         (string("The directory ") + kbDir + string(" is empty.")).c_str());
                 return false;
@@ -209,7 +206,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
         /*** Check specific parameters ***/
         if (cmd == "query") {
             string queryFile = vm["query"].as<string>();
-            if (queryFile != "" && !fs::exists(queryFile)) {
+            if (queryFile != "" && !Utils::exists(queryFile)) {
                 printErrorMsg(
                         (string("The file ") + queryFile
                          + string(" doesn't exist.")).c_str());
@@ -235,7 +232,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
             if (!vm.count("comprinput")) {
                 string tripleDir = vm["tripleFiles"].as<string>();
-                if (!fs::exists(tripleDir)) {
+                if (!Utils::exists(tripleDir)) {
                     printErrorMsg(
                             (string("The path ") + tripleDir
                              + string(" does not exist.")).c_str());
@@ -295,7 +292,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
                 return false;
             }
             string updatedir = vm["update"].as<string>();
-            if (!fs::exists(updatedir)) {
+            if (!Utils::exists(updatedir)) {
                 string msgerror = string("The path specified (") + updatedir + string(") does not exist");
                 printErrorMsg(msgerror.c_str());
                 return false;
@@ -515,11 +512,11 @@ void lookup(DictMgmt *dict, po::variables_map &vm) {
 }
 
 void dump(KB *kb, string outputdir) {
-    if (fs::exists(outputdir)) {
+    if (Utils::exists(outputdir)) {
         LOG(INFO) << "Removing the output directory ... " << outputdir;
-        fs::remove_all(outputdir);
+        Utils::remove_all(outputdir);
     }
-    fs::create_directories(outputdir);
+    Utils::create_directories(outputdir);
 
     //Create output file
     string filename = outputdir + "/graph.gz";
@@ -725,7 +722,7 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
 extern bool _sort_by_number(const string &s1, const string &s2);
 
 void testkb(string kbDir, po::variables_map &vm) {
-    if (!fs::exists(fs::path(kbDir))) {
+    if (!Utils::exists(kbDir)) {
         //Load the KB
         Loader loader;
         int sampleMethod = PARSE_COUNTMIN;
@@ -782,12 +779,12 @@ void testkb(string kbDir, po::variables_map &vm) {
     }
     TestTrident test(&kb);
     //Check whether there is a _diff dir
-    if (fs::exists(kbDir + "/_diff")) {
+    if (Utils::exists(kbDir + "/_diff")) {
         std::vector<string> ups = Utils::getSubdirs(kbDir + "/_diff");
         std::vector<string> childrenupdates;
         for (int i = 0; i < ups.size(); ++i) {
             string f = ups[i];
-            string fn = fs::path(f).filename().string();
+            string fn = Utils::filename(f);
             if (!fn.empty() && std::find_if(fn.begin(),  fn.end(),
                         [](char c) {
                         return !std::isdigit(c);
@@ -819,10 +816,9 @@ void printInfo(KB &kb) {
 }
 
 void startServer(KB &kb, int port) {
-    fs::path full_path( fs::initial_path<fs::path>());
     std::unique_ptr<TridentServer> webint;
     webint = std::unique_ptr<TridentServer>(
-            new TridentServer(kb, full_path.string() + "/../webinterface"));
+            new TridentServer(kb, "./../webinterface"));
     webint->start("0.0.0.0", to_string(port));
     LOG(INFO) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();

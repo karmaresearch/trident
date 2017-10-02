@@ -1,12 +1,9 @@
 #include <snap/tasks.h>
 
 #include <kognac/logs.h>
-
-#include <boost/filesystem.hpp>
+#include <kognac/utils.h>
 
 #include <iostream>
-
-namespace fs = boost::filesystem;
 
 AnalyticsTasks AnalyticsTasks::__tasks_;
 
@@ -164,7 +161,7 @@ void AnalyticsTasks::Param::set(string value) {
                 boost::lexical_cast<bool>(value);
                 break;
             case PATH:
-                if (!fs::exists(fs::path(value))) {
+                if (!Utils::exists(value)) {
                     LOG(ERROR) << "Path " << value << " does not exist";
                     throw 10;
                 }

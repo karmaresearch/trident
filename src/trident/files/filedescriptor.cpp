@@ -32,19 +32,15 @@
 #include <fstream>
 #include <cmath>
 
-#include <boost/filesystem.hpp>
-
 #include <unistd.h>
 
 using namespace std;
-
-namespace fs = boost::filesystem;
 
 void FileDescriptor::mapFile(uint64_t requiredIncrement) {
     if (requiredIncrement > 0) {
         mapped_rgn->flush();
         delete mapped_rgn;
-        fs::resize_file(fs::path(filePath), sizeFile + requiredIncrement);
+        Utils::resizeFile(filePath, sizeFile + requiredIncrement);
     }
     mapped_rgn = new bip::mapped_region(*mapping,
                                         readOnly ? bip::read_only : bip::read_write);
@@ -69,7 +65,7 @@ FileDescriptor::FileDescriptor(bool readOnly, int id, std::string file,
     memoryTrackerId = -1;
 
     bool newFile = false;
-    if (!readOnly && !fs::exists(file)) {
+    if (!readOnly && !Utils::exists(file)) {
         ofstream oFile(file);
         oFile.seekp(1024 * 1024);
         oFile.put(0);
@@ -227,9 +223,9 @@ FileDescriptor::~FileDescriptor() {
     if (!readOnly) {
         if (size == 0) {
             //Remove the file
-            fs::remove(fs::path(filePath));
+            Utils::remove(filePath);
         } else if (size < sizeFile) {
-            fs::resize_file(fs::path(filePath), size);
+            Utils::resizeFile(filePath, size);
         }
     }
 }

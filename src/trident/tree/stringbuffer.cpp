@@ -23,16 +23,15 @@
 #include <trident/tree/stringbuffer.h>
 
 #include <kognac/logs.h>
+#include <kognac/utils.h>
 
 #include <lz4.h>
 #include <lz4hc.h>
-#include <boost/filesystem.hpp>
 #include <string>
 #include <cstring>
 #include <algorithm>
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 char StringBuffer::FINISH_THREAD[1];
 
@@ -60,8 +59,8 @@ StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
         readOnly ?
         std::fstream::in :
         std::fstream::in | std::fstream::out | std::fstream::app;
-    if (!fs::exists(fs::path(dir))) {
-        fs::create_directories(fs::path(dir));
+    if (!Utils::exists(dir)) {
+        Utils::create_directories(dir);
     }
     sb.open((dir + string("/sb")).c_str(), mode);
 

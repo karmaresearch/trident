@@ -396,7 +396,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     f.close();
 
     if (dumpRawFormat) {
-        fs::create_directories(outputdir);
+        Utils::create_directories(outputdir);
         LZ4Writer writer(outputdir + "/raw");
         for (size_t i = 0; i < values.size(); ++i) {
             for (size_t j = 0; j < 3; ++j) {

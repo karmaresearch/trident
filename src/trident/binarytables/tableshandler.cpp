@@ -24,7 +24,6 @@
 
 #include <kognac/utils.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -35,11 +34,10 @@
 #include <stdio.h>
 
 using namespace std;
-namespace fs = boost::filesystem;
 namespace bip = boost::interprocess;
 
 void FileMarks::parse(string path) {
-    if (!fs::exists(path)) {
+    if (!Utils::exists(path)) {
         LOG(ERROR) << "File non-existent: " << path;
         throw 10;
     }
@@ -50,7 +48,7 @@ void FileMarks::parse(string path) {
     char *raw_input = static_cast<char*>(this->mappedrgn->get_address());
 
     //Size marks
-    this->sizefile = fs::file_size(path.substr(0, path.size() - 4));
+    this->sizefile = Utils::fileSize(path.substr(0, path.size() - 4));
     this->sizeMarks = Utils::decode_long(raw_input, 0);
     this->begin = raw_input + 8;
     this->end = this->begin + this->sizeMarks * 11;
@@ -66,14 +64,12 @@ TableStorage::TableStorage(bool readOnly, string pathDir, long maxFileSize,
         this->pathDir[sizePathDir++] = '/';
 
         //Determine the highest number of a file
-        fs::path dir(pathDir);
-        fs::directory_iterator end_iter;
         lastCreatedFile = 0;
         sizeLastCreatedFile = 0;
-        if (fs::exists(dir) && fs::is_directory(dir)) {
-            for (fs::directory_iterator dir_iter(dir); dir_iter != end_iter;
-                    ++dir_iter) {
-                int idx = atoi(dir_iter->path().filename().c_str());
+        if (Utils::exists(pathDir) && Utils::isDirectory(pathDir)) {
+            auto children = Utils::getFiles(pathDir);
+            for(auto child : children) {
+                int idx = atoi(Utils::filename(child).c_str());
                 if (lastCreatedFile < idx)
                     lastCreatedFile = (short) idx;
             }
@@ -86,7 +82,7 @@ TableStorage::TableStorage(bool readOnly, string pathDir, long maxFileSize,
         } else {
             //Create the directory if it does not exist
             if (!readOnly) {
-                fs::create_directories(pathDir);
+                Utils::create_directories(pathDir);
             }
 
             cache = new FileManager<FileDescriptor, FileDescriptor>(pathDir,
@@ -243,7 +239,7 @@ void TableStorage::storeFileIndex(const std::vector<WrittenMarks> &input,
         string pathFile) {
     char supportArray[16];
     ofstream oFile;
-    if (fs::exists(pathFile)) {
+    if (Utils::exists(pathFile)) {
         {
             bip::file_mapping mapping(pathFile.c_str(), bip::read_write);
             bip::mapped_region mapped_rgn(mapping, bip::read_write, 0, 8);

@@ -72,7 +72,7 @@ DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - startDiff;
     LOG(DEBUG) << "Load diff tree: " << sec.count() * 1000 << "ms.";
 
-    if (fs::exists(dir + "/s/p0")) { //The update has its data locally stored
+    if (Utils::exists(dir + "/s/p0")) { //The update has its data locally stored
         memset(buffers, 0, sizeof(const char*) * 6);
     } else {
         for (int i = 0; i < 6; ++i)
@@ -422,7 +422,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
 
     /**** If flag is activated, dump all update in a file (useful for debugging) ****/
     if (dumpRawFormat) {
-        fs::create_directories(outputdir);
+        Utils::create_directories(outputdir);
         LZ4Writer writer(outputdir + "/raw");
         for (size_t i = 0; i < all_s.size(); ++i) {
             writer.writeLong(all_s[i]);
@@ -464,12 +464,12 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
 
     /**** Sort by SPO,SOP ****/
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    fs::create_directories(outputdir);
+    Utils::create_directories(outputdir);
     string s_outputdir = outputdir + "/s";
-    if (fs::exists(s_outputdir)) {
-        fs::remove_all(fs::path(s_outputdir));
+    if (Utils::exists(s_outputdir)) {
+        Utils::remove_all(s_outputdir);
     }
-    fs::create_directories(s_outputdir);
+    Utils::create_directories(s_outputdir);
     size_t validtriples;
     std::unique_ptr<UpdateStats> ufs;
 
@@ -483,7 +483,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     }
 
     string s_diffdir = diffdir + "/s";
-    fs::create_directories(s_diffdir);
+    Utils::create_directories(s_diffdir);
     validtriples = DiffIndex3::sortIndex(s_outputdir, s_diffdir, IDX_SPO, IDX_SOP, idx1,
                                          all_s, all_p, all_o, map, q, ufs.get(), shouldSort);
 
@@ -493,10 +493,10 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     /**** Sort by POS,PSO ****/
     start = std::chrono::system_clock::now();
     string p_outputdir = outputdir + "/p";
-    if (fs::exists(p_outputdir)) {
-        fs::remove_all(fs::path(p_outputdir));
+    if (Utils::exists(p_outputdir)) {
+        Utils::remove_all(p_outputdir);
     }
-    fs::create_directories(p_outputdir);
+    Utils::create_directories(p_outputdir);
     std::unique_ptr<UpdateStats> ufp;
 
     if (update == TypeUpdate::ADDITION) {
@@ -505,7 +505,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
         ufp = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_POS, IDX_PSO, true, true));
     }
     string p_diffdir = diffdir + "/p";
-    fs::create_directories(p_diffdir);
+    Utils::create_directories(p_diffdir);
     DiffIndex3::sortIndex(p_outputdir, p_diffdir, IDX_POS, IDX_PSO,
                           idx1, all_p, all_o, all_s, map, q, ufp.get(), true);
 
@@ -515,10 +515,10 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     /**** Sort by OPS,OSP ****/
     start = std::chrono::system_clock::now();
     string o_outputdir = outputdir + "/o";
-    if (fs::exists(o_outputdir)) {
-        fs::remove_all(fs::path(o_outputdir));
+    if (Utils::exists(o_outputdir)) {
+        Utils::remove_all(o_outputdir);
     }
-    fs::create_directories(o_outputdir);
+    Utils::create_directories(o_outputdir);
     std::unique_ptr<UpdateStats> ufo;
 
     if (update == TypeUpdate::ADDITION) {
@@ -527,7 +527,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
         ufo = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_OPS, IDX_OSP, false, true));
     }
     string o_diffdir = diffdir + "/o";
-    fs::create_directories(o_diffdir);
+    Utils::create_directories(o_diffdir);
     DiffIndex3::sortIndex(o_outputdir, o_diffdir, IDX_OPS, IDX_OSP,
                           idx1, all_o, all_p, all_s, map, q, ufo.get(), true);
 
@@ -1550,7 +1550,7 @@ DiffIndex3::~DiffIndex3() {
 RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     spaceleft = initialsize;
-    if (!fs::exists(file)) {
+    if (!Utils::exists(file)) {
         currentposition = 0;
         ofstream f;
         f.open(file);
@@ -1558,8 +1558,8 @@ RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
         f.put(0);
         f.close();
     } else {
-        currentposition = fs::file_size(file);
-        fs::resize_file(file, currentposition + spaceleft);
+        currentposition = Utils::fileSize(file);
+        Utils::resizeFile(file, currentposition + spaceleft);
     }
 
     const size_t alignment = memmap::mapped_file_sink::alignment();
@@ -1575,7 +1575,7 @@ RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         sink.close();
         size_t incr = max((size_t)64 * 1014 * 1024, maxTableSize);
-        fs::resize_file(file, currentposition + incr);
+        Utils::resizeFile(file, currentposition + incr);
         spaceleft = incr;
         const size_t alignment = memmap::mapped_file_sink::alignment();
         const size_t offset = currentposition % alignment;
@@ -1594,7 +1594,7 @@ RWMappedFile::~RWMappedFile() {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     currentbuffer = NULL;
     sink.close();
-    fs::resize_file(file, currentposition);
+    Utils::resizeFile(file, currentposition);
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(DEBUG) << "Runtime close file = " << sec.count() * 1000;
 }

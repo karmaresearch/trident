@@ -289,11 +289,11 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
         for (int i = 0; i < updates.size(); ++i) {
             string update = updates[i];
             string updatefile = update + "/raw";
-            if (!fs::exists(updatefile)) {
+            if (!Utils::exists(updatefile)) {
                 LOG(ERROR) << "The update directory exists but contains no raw file.";
                 throw 10;
             }
-            if (fs::exists(update + "/ADD")) {
+            if (Utils::exists(update + "/ADD")) {
                 LZ4Reader reader(updatefile);
                 long count = 0;
                 while (!reader.isEof()) {

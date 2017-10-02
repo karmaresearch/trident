@@ -30,27 +30,18 @@
 
 #include <kognac/filereader.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <string>
-
-namespace fs = boost::filesystem;
 
 void Updater::parseUpdate(std::string update,
                           StringCollection &support,
                           std::vector<TextualTriple> &output) {
     std::vector<std::string> filesToParse;
-    if (fs::is_directory(update)) {
+    if (Utils::isDirectory(update)) {
         //Read files. Ignore hidden ones.
-        fs::directory_iterator end;
-        for (fs::directory_iterator dir_iter(update); dir_iter != end;
-                ++dir_iter) {
-            std::string pathfile = dir_iter->path().filename().string();
-            if (pathfile.c_str()[0] != '.') {
-                filesToParse.push_back(update);
-            }
-        }
+        filesToParse = Utils::getFiles(update);
+        //J: The old code had a bug, I think 
     } else {
         filesToParse.push_back(update);
     }
@@ -62,7 +53,7 @@ void Updater::parseUpdate(std::string update,
         FileInfo filei;
         filei.path = file;
         filei.start = 0;
-        filei.size = fs::file_size(file);
+        filei.size = Utils::fileSize(file);
         //Check whether the file terminates in *.gz
         if (boost::ends_with(file, ".gz")) {
             filei.splittable = false;
@@ -112,7 +103,7 @@ void Updater::writeDict(DictMgmt *dictmgmt,
 
     //The update is large enough to justify the creation of a dedicated B+Tree
     string dictdir = newupdatedir + "/dict";
-    fs::create_directories(fs::path(dictdir));
+    Utils::create_directories(dictdir);
 
     //Init data structures
     Stats stats;
@@ -123,11 +114,11 @@ void Updater::writeDict(DictMgmt *dictmgmt,
     conf.setBool(TEXT_KEYS, true);
     conf.setBool(TEXT_VALUES, false);
     string t2idir = dictdir + "/t2id";
-    fs::create_directories(t2idir);
+    Utils::create_directories(t2idir);
     std::unique_ptr<Root> dict = std::unique_ptr<Root>(new Root(t2idir, sb.get(),
                                  false, conf));
     string i2tdir = dictdir + "/id2t";
-    fs::create_directories(i2tdir);
+    Utils::create_directories(i2tdir);
     conf.setBool(TEXT_KEYS, false);
     conf.setBool(TEXT_VALUES, true);
     std::unique_ptr<Root> invdict = std::unique_ptr<Root>(new Root(i2tdir,
@@ -381,13 +372,13 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
 
 std::string Updater::getPathForUpdate(std::string kbdir) {
     std::string diffdir = kbdir + "/_diff";
-    if (!fs::exists(fs::path(diffdir))) {
+    if (!Utils::exists(diffdir)) {
         return diffdir + "/0";
     } else {
         //Read all files in the directory that starts with a number
         int idx = 0;
         std::string updir = diffdir + "/" + to_string(idx);
-        while (fs::exists(updir)) {
+        while (Utils::exists(updir)) {
             idx++;
             updir = diffdir + "/" + to_string(idx);
         }

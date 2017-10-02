@@ -14,7 +14,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -367,7 +366,7 @@ string TridentServer::getPage(string f) {
 
     //Read the file (if any) and return it to the user
     string pathfile = dirhtmlfiles + "/" + f;
-    if (boost::filesystem::exists(boost::filesystem::path(pathfile))) {
+    if (Utils::exists(pathfile)) {
         //Read the content of the file
         LOG(DEBUG) << "Reading the content of " << pathfile;
         ifstream ifs(pathfile);

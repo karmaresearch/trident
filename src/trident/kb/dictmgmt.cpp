@@ -29,7 +29,6 @@
 #include <kognac/lz4io.h>
 
 #include <lz4.h>
-#include <boost/thread.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -54,7 +53,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
         gud_idtext.set_empty_key(~0lu);
         gud_idtext.set_deleted_key(~0lu - 1);
         //load gud
-        if (fs::exists(dirToStoreGUD + "/gud")) {
+        if (Utils::exists(dirToStoreGUD + "/gud")) {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             ifstream ifs;
             ifs.open(dirToStoreGUD + "/gud");
@@ -75,7 +74,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r) :
             LOG(DEBUG) << "Time loading GUD " << sec.count() * 1000;
         }
 
-        if (fs::exists(e2r)) {
+        if (Utils::exists(e2r)) {
             LOG(DEBUG) << "Load the mappings rel->ent from " << e2r;
             //Load the mappings from the relation IDs to the entity IDs
             r2e.set_deleted_key(~0lu);

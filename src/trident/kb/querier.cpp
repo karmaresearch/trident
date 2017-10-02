@@ -74,7 +74,7 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         if (files[0]) {
             std::string pathFirstPerm = files[0]->getPath();
             pathRawData = pathFirstPerm + std::string("raw");
-            copyRawData = fs::exists(pathRawData);
+            copyRawData = Utils::exists(pathRawData);
         }
 
         if (sampleKB != NULL) {

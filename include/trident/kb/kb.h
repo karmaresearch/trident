@@ -33,8 +33,6 @@
 
 #include <kognac/factory.h>
 
-#include <boost/filesystem.hpp>
-
 #include <string>
 
 class Leaf;
@@ -47,7 +45,6 @@ struct FileSegment;
 class FileDescriptor;
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 typedef enum e_GraphType { DEFAULT, DIRECTED, UNDIRECTED } GraphType;
 

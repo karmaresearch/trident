@@ -23,10 +23,6 @@
 #include <trident/binarytables/newcolumntableinserter.h>
 #include <kognac/utils.h>
 
-#include <boost/filesystem.hpp>
-
-namespace fs = boost::filesystem;
-
 void NewColumnTableInserter::startAppend() {
     tmpfirstpairs.clear();
     tmpsecondpairs.clear();
@@ -181,7 +177,7 @@ void NewColumnTableInserter::stopAppend() {
         delete[] buffer;
         assert(offloadedElements1 == 0);
         offloadfile1_r.close();
-        fs::remove(getRootDir() + "/tmpfile1" + to_string(perm));
+        Utils::remove(getRootDir() + "/tmpfile1" + to_string(perm));
     }
 
     //Write all first elements
@@ -213,7 +209,7 @@ void NewColumnTableInserter::stopAppend() {
         }
         assert(offloadedElements2 == 0);
         offloadfile2_r.close();
-        fs::remove(getRootDir() + "/tmpfile2" + to_string(perm));
+        Utils::remove(getRootDir() + "/tmpfile2" + to_string(perm));
     }
 
     //Write all second elements

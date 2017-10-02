@@ -26,12 +26,8 @@
 #include <kognac/multidisklz4reader.h>
 #include <kognac/multidisklz4writer.h>
 
-#include <boost/filesystem.hpp>
-
 #include <string>
 #include <vector>
-
-namespace fs = boost::filesystem;
 
 class PermSorter {
     private:

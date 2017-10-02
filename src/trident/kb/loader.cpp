@@ -39,7 +39,6 @@
 #include <kognac/schemaextractor.h>
 #include <kognac/kognac.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/timer.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -58,7 +57,6 @@
 #include <unordered_map>
 #include <cstdlib>
 
-namespace fs = boost::filesystem;
 namespace io = boost::iostreams;
 
 bool _sorter_spo(const Triple &a, const Triple &b) {
@@ -452,15 +450,11 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         LOG(DEBUG) << "Start converting dictionary file(s)";
         //Check whether it is a file or a sequence of files...
         std::vector<string> inputfiles;
-        if (fs::exists(inputdict)) {
+        if (Utils::exists(inputdict)) {
             inputfiles.push_back(inputdict);
         } else {
-            fs::path path(inputdict);
-            inputfiles = Utils::getFilesWithPrefix(path.parent_path().string(), path.filename().string());
+            inputfiles = Utils::getFilesWithPrefix(Utils::parentDir(inputdict), Utils::filename(inputdict));
             std::sort(inputfiles.begin(), inputfiles.end());
-            for(int i = 0; i < inputfiles.size(); ++i) {
-                inputfiles[i] = path.parent_path().string() + string("/") + inputfiles[i];
-            }
         }
 
         char *support = new char[MAX_TERM_SIZE + 2];
@@ -497,7 +491,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
 
     //Create the permutations
     long ntriples = 0;
-    if (fs::exists(inputtriples)) {
+    if (Utils::exists(inputtriples)) {
         ifstream rawFile2;
         rawFile2.open(inputtriples);
         boost::iostreams::filtering_istream compressedFile2;
@@ -526,8 +520,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         }
     } else {
         // Load all the files in parallel
-        fs::path path(inputtriples);
-        vector<FileInfo> *files = Compressor::splitInputInChunks(path.parent_path().string(), nreadThreads, path.filename().string());
+        vector<FileInfo> *files = Compressor::splitInputInChunks(Utils::parentDir(inputtriples), nreadThreads, Utils::filename(inputtriples));
         std::thread *threads = new std::thread[nthreads];
         std::thread *threadReaders = new std::thread[nreadThreads];
         DiskReader **readers = new DiskReader*[nreadThreads];
@@ -863,7 +856,7 @@ void Loader::sortPermutation(string inputDir,
         std::vector<std::vector<string>> inputsReaders(parallelProcesses);
         int currentPart = 0;
         for(int i = 0; i < unsortedFiles.size(); ++i) {
-            if (fs::exists(fs::path(unsortedFiles[i]))) {
+            if (Utils::exists(unsortedFiles[i])) {
                 inputsReaders[currentPart].push_back(unsortedFiles[i]);
                 currentPart = (currentPart + 1) % parallelProcesses;
             }
@@ -1002,7 +995,7 @@ void Loader::sortPermutation(string inputDir,
             delete readers[i];
         }
         for(auto inputFile : unsortedFiles)
-            fs::remove(fs::path(inputFile));
+            Utils::remove(inputFile);
         delete[] readers;
         delete[] threads;
     }
@@ -1235,7 +1228,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     //Remove the files
     if (removeInput) {
         LOG(DEBUG) << "Removing " << inputDir;
-        fs::remove_all(fs::path(inputDir));
+        Utils::remove_all(inputDir);
     }
     LOG(DEBUG) << "...completed. Added " << count << " triples out of " << countInput;
 }
@@ -1254,7 +1247,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
     //Read n. popular terms
     //nTerm key = ((long)1 << 40);
     nTerm key = 0;
-    if (fs::exists(dictFileInput)) {
+    if (Utils::exists(dictFileInput)) {
         LZ4Reader in(dictFileInput);
         while (!in.isEof()) {
             in.parseLong();
@@ -1301,7 +1294,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
 
     *maxValueCounter = key - 1;
     /*** I can now add the common terms. They are not in lex. ordering so I cannot append ***/
-    if (fs::exists(dictFileInput)) {
+    if (Utils::exists(dictFileInput)) {
         LZ4Reader in(dictFileInput);
         LOG(DEBUG) << "Parsing " << dictFileInput;
         key = 0;
@@ -1371,17 +1364,17 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
         //Delete the temporary files
         for (vector<string>::iterator itr = files.begin(); itr != files.end();
                 ++itr) {
-            fs::remove(*itr);
+            Utils::remove(*itr);
         }
 
         //Delete the input file
-        fs::remove(dictFileInput + ".tmp");
+        Utils::remove(dictFileInput + ".tmp");
     }
 
     for (auto f = alldictfiles.begin(); f != alldictfiles.end(); ++f) {
-        fs::remove(*f);
+        Utils::remove(*f);
     }
-    fs::remove(dictFileInput);
+    Utils::remove(dictFileInput);
 }
 
 void Loader::exportFiles(string tripleDir, string* dictFiles,
@@ -1489,16 +1482,16 @@ void Loader::load(ParamsLoad p) {
     }
 
     //Check if kbDir exists
-    if (fs::exists(fs::path(p.kbDir))) {
-        fs::remove_all(fs::path(p.kbDir));
+    if (Utils::exists(p.kbDir)) {
+        Utils::remove_all(p.kbDir);
     }
-    fs::create_directories(fs::path(p.kbDir));
+    Utils::create_directories(p.kbDir);
 
     if (p.tmpDir != p.kbDir) {
-        if (fs::exists(fs::path(p.tmpDir))) {
-            fs::remove_all(fs::path(p.tmpDir));
+        if (Utils::exists(p.tmpDir)) {
+            Utils::remove_all(p.tmpDir);
         }
-        fs::create_directories(fs::path(p.tmpDir));
+        Utils::create_directories(p.tmpDir);
     }
 
     //How many to use dictionaries?
@@ -1568,7 +1561,7 @@ void Loader::load(ParamsLoad p) {
     string *permDirs = new string[nperms];
     for (int i = 0; i < nperms; ++i) {
         permDirs[i] = p.tmpDir + string("/permtmp-") + to_string(i);
-        fs::create_directories(fs::path(permDirs[i]));
+        Utils::create_directories(permDirs[i]);
     }
     string *fileNameDictionaries = new string[p.dictionaries];
     for (int i = 0; i < p.dictionaries; ++i) {
@@ -1614,16 +1607,16 @@ void Loader::load(ParamsLoad p) {
                 exportFiles(permDirs[0], fileNameDictionaries,
                         p.dictionaries, outputTriples, outputDict);
                 for (int i = 0; i < nperms; ++i)
-                    fs::remove_all(permDirs[i]);
+                    Utils::remove_all(permDirs[i]);
                 for (int i = 0; i < p.dictionaries; ++i) {
-                    fs::remove(fileNameDictionaries[i]);
+                    Utils::remove(fileNameDictionaries[i]);
                     std::vector<string> moreDictFiles = Compressor::getAllDictFiles(fileNameDictionaries[i]);
                     for (int j = 0; j < moreDictFiles.size(); ++j) {
-                        fs::remove(moreDictFiles[j]);
+                        Utils::remove(moreDictFiles[j]);
                     }
                 }
                 if (p.tmpDir != p.kbDir) {
-                    fs::remove_all(fs::path(p.tmpDir));
+                    Utils::remove_all(p.tmpDir);
                 }
                 return;
             }
@@ -1666,7 +1659,7 @@ void Loader::load(ParamsLoad p) {
     delete[] permDirs;
     delete[] fileNameDictionaries;
     if (p.tmpDir != p.kbDir) {
-        fs::remove_all(fs::path(p.tmpDir));
+        Utils::remove_all(p.tmpDir);
     }
     std::unique_lock<std::mutex> lck(mtx);
     isFinished = true;
@@ -1702,8 +1695,8 @@ void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
                 writer.writeLong(o);
             }
         }
-        fs::remove(pathfile);
-        fs::rename(pathfile + "-new", pathfile);
+        Utils::remove(pathfile);
+        Utils::rename(pathfile + "-new", pathfile);
     }
 }
 
@@ -1783,16 +1776,16 @@ void Loader::loadKB(KB &kb,
     string aggr1Dir = tmpDir + string("/aggr1");
     string aggr2Dir = tmpDir + string("/aggr2");
     if (aggrIndices && nindices > 1) {
-        fs::create_directories(fs::path(aggr1Dir));
+        Utils::create_directories(aggr1Dir);
         if (nindices > 3)
-            fs::create_directories(fs::path(aggr2Dir));
+            Utils::create_directories(aggr2Dir);
     }
 
     //if sample is requested, create a subdir
     string sampleDir = tmpDir + string("/sampledir");
     SimpleTripleWriter *sampleWriter = NULL;
     if (sample) {
-        fs::create_directories(fs::path(sampleDir));
+        Utils::create_directories(sampleDir);
         sampleWriter = new SimpleTripleWriter(sampleDir, "input", false);
     }
 
@@ -1817,13 +1810,12 @@ void Loader::loadKB(KB &kb,
         LOG(DEBUG) << "Transforming the graph in 'undirected'";
         string input = permDirs[3];
         string output = input + "_tmp";
-        fs::create_directories(output);
+        Utils::create_directories(output);
         std::vector<string> files = Utils::getFiles(input);
         for(auto file : files) {
             LOG(DEBUG) << "Transforming file " << file;
-            fs::path pfile = fs::path(file);
             LZ4Reader reader(file);
-            string fileout = output + string("/") + pfile.filename().string();
+            string fileout = output + string("/") + Utils::filename(file);
             LZ4Writer writer(fileout);
             while (!reader.isEof()) {
                 L_Triple t;
@@ -1839,8 +1831,8 @@ void Loader::loadKB(KB &kb,
                 t.writeTo(&writer);
             }
         }
-        fs::remove_all(input);
-        fs::rename(fs::path(output), input);
+        Utils::remove_all(input);
+        Utils::rename(output, input);
         LOG(DEBUG) << "End transformation";
         kb.setGraphType(GraphType::UNDIRECTED);
     }
@@ -1923,7 +1915,7 @@ void Loader::loadKB(KB &kb,
         threads[i].join();
     }
     for (int i = 0; i < nindices; ++i) {
-        fs::remove(fs::path(sTreeWriters[i]));
+        Utils::remove(sTreeWriters[i]);
         delete treeWriters[i];
     }
     delete[] sTreeWriters;
@@ -1951,7 +1943,7 @@ void Loader::loadKB(KB &kb,
         string *samplePermDirs = new string[nperms];
         for (int i = 0; i < nperms; ++i) {
             samplePermDirs[i] = sampleKB + string("/permtmp-") + to_string(i);
-            fs::create_directories(fs::path(samplePermDirs[i]));
+            Utils::create_directories(samplePermDirs[i]);
         }
 
         //Create the permutations
@@ -1985,7 +1977,7 @@ void Loader::loadKB(KB &kb,
                 false,
                 false);
 
-        fs::remove_all(fs::path(sampleDir));
+        Utils::remove_all(sampleDir);
         delete[] samplePermDirs;
     }
 
@@ -2021,9 +2013,8 @@ void Loader::generateNewPermutation(string outputdir,
         int maxReadingThreads) {
     //Read all files in the the directory.
     LOG(DEBUG) << "Start process generating new permutation";
-    fs::path pInput(inputdir);
-    if (fs::is_directory(pInput)) {
-        auto files = Utils::getFiles(pInput.string());
+    if (Utils::isDirectory(inputdir)) {
+        auto files = Utils::getFiles(inputdir);
         std::vector<std::vector<string>> chunks(parallelProcesses);
         int idx = 0;
         for (auto f : files) {
@@ -2088,16 +2079,16 @@ void Loader::moveData(string remoteLocation, string inputDir, long limitSpace) {
     LOG(DEBUG) << "Check whether I should move " << inputDir << " to " << remoteLocation << " limit " << limitSpace;
     if (remoteLocation != "") {
         LOG(DEBUG) << "Check if the space is less than " << limitSpace;
-        fs::space_info info = fs::space(inputDir);
-        LOG(DEBUG) << "Space is " << info.available << " bytes";
-        if (info.available < limitSpace) {
+        uint64_t spaceleft = TridentUtils::spaceLeft(inputDir);
+        LOG(DEBUG) << "Space is " << spaceleft << " bytes";
+        if (spaceleft < limitSpace) {
             //Copy the input dir in a certain location with scp
             string cmd = string("scp -r ") + inputDir + string(" ") + remoteLocation;
             LOG(DEBUG) << "Executing the command " << cmd;
             auto exitcode = system(cmd.c_str());
             if (exitcode == 0) {
                 LOG(DEBUG) << "Program exited";
-                fs::remove_all(fs::path(inputDir));
+                Utils::remove_all(inputDir);
             } else {
                 LOG(DEBUG) << "Something went wrong in the execution of the program. Do nothing.";
             }
@@ -2409,7 +2400,7 @@ void Loader::seq_createIndices(
     string lastInput = permDirs[0];
     generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
             maxReadingThreads);
-    fs::remove_all(fs::path(lastInput));
+    Utils::remove_all(lastInput);
     ins->stopInserts(0);
     moveData(remotePath, outputDirs[0], limitSpace);
     LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2436,7 +2427,7 @@ void Loader::seq_createIndices(
     generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
             lastInput, 2, 0, 1, parallelProcesses,
             maxReadingThreads);
-    fs::remove_all(fs::path(lastInput));
+    Utils::remove_all(lastInput);
     ins->stopInserts(1);
     moveData(remotePath, outputDirs[1], limitSpace);
     LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2463,7 +2454,7 @@ void Loader::seq_createIndices(
     generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
             lastInput, 1, 0, 2, parallelProcesses,
             maxReadingThreads);
-    fs::remove_all(fs::path(lastInput));
+    Utils::remove_all(lastInput);
     ins->stopInserts(3);
     moveData(remotePath, outputDirs[3], limitSpace);
     LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
@@ -2546,14 +2537,14 @@ void Loader::seq_createIndices(
         sortAndInsert(params);
         LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
     }
-    fs::remove_all(fs::path(lastInput));
+    Utils::remove_all(lastInput);
 
     if (!aggrIndices) {
         lastInput = permDirs[2];
         generateNewPermutation(permDirs[5],
                 lastInput, 0, 2, 1, parallelProcesses,
                 maxReadingThreads);
-        fs::remove_all(fs::path(lastInput));
+        Utils::remove_all(lastInput);
 
         ParamSortAndInsert params;
         params.parallelProcesses = parallelProcesses;
@@ -2580,7 +2571,7 @@ void Loader::seq_createIndices(
         LOG(DEBUG) << "Memory used so far: " << Utils::getUsedMemory();
 
         lastInput = permDirs[5];
-        fs::remove_all(fs::path(lastInput));
+        Utils::remove_all(lastInput);
     } else {
         ParamSortAndInsert params;
         params.parallelProcesses = parallelProcesses;
@@ -2775,7 +2766,7 @@ void Loader::loadFlatTree(string sop,
             throw 10;
         }
         string fidx = sop + "/" + to_string(i) + ".idx";
-        if (fs::exists(fidx)) {
+        if (Utils::exists(fidx)) {
             //Open it, and read the coordinates
             char tmpbuffer[16];
             ifstream ifs;
@@ -2886,7 +2877,7 @@ void Loader::loadFlatTree(string sop,
             throw 10;
         }
         string fidx = osp + "/" + to_string(i) + ".idx";
-        if (fs::exists(fidx)) {
+        if (Utils::exists(fidx)) {
             //Open it, and read the coordinates
             char tmpbuffer[16];
             ifstream ifs;
