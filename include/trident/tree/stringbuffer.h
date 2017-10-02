@@ -31,9 +31,6 @@
 #include <kognac/utils.h>
 #include <kognac/hashmap.h>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-
 #include <thread>
 #include <iostream>
 #include <fstream>
@@ -73,23 +70,23 @@ private:
     std::fstream sb;
 
     //Used by the compression thread
-    boost::mutex fileLock;
+    std::mutex fileLock;
     char *bufferToCompress;
     int sizeBufferToCompress;
 
-    boost::condition_variable compressWait;
-    boost::mutex _compressMutex;
+    std::condition_variable compressWait;
+    std::mutex _compressMutex;
     std::thread compressionThread;
 
     //Used to check for termination
-    boost::condition_variable compressTerm;
-    boost::mutex _compressTerm;
+    std::condition_variable compressTerm;
+    std::mutex _compressTerm;
     bool threadRunning;
     bool isThreadFinished() {
         return !threadRunning;
     }
 
-    boost::mutex sizeLock;
+    std::mutex sizeLock;
 
     int posBaseEntry;
     int sizeBaseEntry;

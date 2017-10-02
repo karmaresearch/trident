@@ -49,7 +49,7 @@ void TridentServer::startThread(string address, string port) {
 }
 
 void TridentServer::start(string address, string port) {
-    t = boost::thread(&TridentServer::startThread, this, address, port);
+    t = std::thread(&TridentServer::startThread, this, address, port);
 }
 
 void TridentServer::stop() {

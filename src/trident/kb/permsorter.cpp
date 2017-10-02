@@ -24,13 +24,12 @@
 #include <kognac/utils.h>
 #include <kognac/compressor.h>
 
-#include <boost/thread.hpp>
-
 #include <tbb/parallel_sort.h>
 #include <tbb/task_scheduler_init.h>
 
 #include <thread>
 #include <functional>
+#include <array>
 
 struct __PermSorter_sorter {
     char *rawinput;
@@ -258,7 +257,7 @@ void PermSorter::dumpPermutation_old(char *input, long end,
     if (idx.size() > 0)
         rawidx = &(idx[0]);
 
-    boost::thread *threads = new boost::thread[parallelProcesses];
+    std::thread *threads = new std::thread[parallelProcesses];
     long chunkSize = max((long)1, (long)(realSize / parallelProcesses));
     long currentEnd = 0;
     for(int i = 0; i < parallelProcesses; ++i) {
@@ -273,7 +272,7 @@ void PermSorter::dumpPermutation_old(char *input, long end,
         MultiDiskLZ4Writer *currentWriter = writers[i / partsPerWriter];
         int currentPart = i % partsPerWriter;
         if (nextEnd > currentEnd) {
-            threads[i] = boost::thread(PermSorter::dumpPermutation_seq_old,
+            threads[i] = std::thread(PermSorter::dumpPermutation_seq_old,
                     input,
                     rawidx + currentEnd,
                     rawidx + nextEnd,
@@ -322,7 +321,7 @@ void PermSorter::dumpPermutation(char *input, long end,
         }
     }
 
-    boost::thread *threads = new boost::thread[parallelProcesses];
+    std::thread *threads = new std::thread[parallelProcesses];
     long chunkSize = max((long)1, (long)(realSize / parallelProcesses));
     long currentEnd = 0;
     for(int i = 0; i < parallelProcesses; ++i) {
@@ -337,7 +336,7 @@ void PermSorter::dumpPermutation(char *input, long end,
         MultiDiskLZ4Writer *currentWriter = writers[i / partsPerWriter];
         int currentPart = i % partsPerWriter;
         if (nextEnd > currentEnd) {
-            threads[i] = boost::thread(PermSorter::dumpPermutation_seq,
+            threads[i] = std::thread(PermSorter::dumpPermutation_seq,
                     input + currentEnd * 15,
                     input + nextEnd * 15,
                     currentWriter,
@@ -682,7 +681,7 @@ void PermSorter::sortChunks_Old(string inputdir,
             }
         }
     }
-    boost::thread *threads = new boost::thread[parallelProcesses];
+    std::thread *threads = new std::thread[parallelProcesses];
     LOG(DEBUG) << "Creating vectors of " << elementsMainMem << " elements. Each el is 15 bytes";
     char *rawTriples = new char[elementsMainMem * 15];
     std::vector<long> idx0(elementsMainMem);
@@ -704,8 +703,8 @@ void PermSorter::sortChunks_Old(string inputdir,
         for (int i = 0; i < parallelProcesses; ++i) {
             MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
             int idReader = i / maxReadingThreads;
-            threads[i] = boost::thread(
-                    boost::bind(&sortChunks_seq_old, idReader, reader,
+            threads[i] = std::thread(
+                    std::bind(&sortChunks_seq_old, idReader, reader,
                         rawTriples + (i * 15 * maxInserts),
                         rawTriples + ((i+1) * 15 * maxInserts),
                         &(counts[i])));
@@ -873,7 +872,7 @@ void PermSorter::sortChunks(string inputdir,
             }
         }
     }
-    boost::thread *threads = new boost::thread[parallelProcesses];
+    std::thread *threads = new std::thread[parallelProcesses];
     LOG(DEBUG) << "Creating vectors of "
         << elementsMainMem << " elements. Each el is 15 bytes";
 
@@ -894,8 +893,8 @@ void PermSorter::sortChunks(string inputdir,
         for (int i = 0; i < parallelProcesses; ++i) {
             MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
             int idReader = i / maxReadingThreads;
-            threads[i] = boost::thread(
-                    boost::bind(&sortChunks_seq, idReader, reader,
+            threads[i] = std::thread(
+                    std::bind(&sortChunks_seq, idReader, reader,
                         &rawTriples,
                         (i * 15 * maxInserts),
                         ((i+1) * 15 * maxInserts),

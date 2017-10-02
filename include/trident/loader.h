@@ -385,15 +385,15 @@ struct ParamsMergeCoordinates {
     int *buffersReady;
     BufferCoordinates *buffer1;
     BufferCoordinates *buffer2;
-    boost::condition_variable *cond;
-    boost::mutex *mut;
+    std::condition_variable *cond;
+    std::mutex *mut;
 };
 
 struct SharedStructs {
-    boost::mutex mut;
+    std::mutex mut;
     int buffersReady;
     bool isFinished;
-    boost::condition_variable cond;
+    std::condition_variable cond;
     BufferCoordinates buffer1;
     BufferCoordinates buffer2;
     BufferCoordinates *bufferToFill;

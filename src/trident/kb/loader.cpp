@@ -528,15 +528,15 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         // Load all the files in parallel
         fs::path path(inputtriples);
         vector<FileInfo> *files = Compressor::splitInputInChunks(path.parent_path().string(), nreadThreads, path.filename().string());
-        boost::thread *threads = new boost::thread[nthreads];
-        boost::thread *threadReaders = new boost::thread[nreadThreads];
+        std::thread *threads = new std::thread[nthreads];
+        std::thread *threadReaders = new std::thread[nreadThreads];
         DiskReader **readers = new DiskReader*[nreadThreads];
         MultiDiskLZ4Writer **writers = new MultiDiskLZ4Writer*[nreadThreads];
         int j = 0;
         for (int i = 0; i < nreadThreads; ++i) {
             readers[i] = new DiskReader(max(2,
                         (int)(nthreads / nreadThreads) * 2), &files[i]);
-            threadReaders[i] = boost::thread(boost::bind(&DiskReader::run, readers[i]));
+            threadReaders[i] = std::thread(std::bind(&DiskReader::run, readers[i]));
             std::vector<string> files;
             int threadsPerPart = nthreads / nreadThreads;
             for(int m = 0; m < threadsPerPart; ++m) {
@@ -550,8 +550,8 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
         long *outputs = new long[nthreads];
         for(int i = 0; i < nthreads; ++i) {
             outputs[i] = 0;
-            threads[i] = boost::thread(
-                    boost::bind(&Loader::createPermsAndDictsFromFiles_seq,
+            threads[i] = std::thread(
+                    std::bind(&Loader::createPermsAndDictsFromFiles_seq,
                         readers[i % nreadThreads],
                         writers[i % nreadThreads],
                         i / nreadThreads,
@@ -768,7 +768,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
     if (input.size() > 0)
         rawInput = &(input[0]);
 
-    boost::thread *threads = new boost::thread[parallelProcesses];
+    std::thread *threads = new std::thread[parallelProcesses];
     long chunkSize = max((long)1, (long)(realSize / parallelProcesses));
     long currentEnd = 0;
     for(int i = 0; i < parallelProcesses; ++i) {
@@ -783,7 +783,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
         MultiDiskLZ4Writer *currentWriter = writers[i / partsPerWriter];
         int currentPart = i % partsPerWriter;
         if (nextEnd > currentEnd) {
-            threads[i] = boost::thread(dumpPermutation_seq<K>,
+            threads[i] = std::thread(dumpPermutation_seq<K>,
                     rawInput + currentEnd,
                     rawInput + nextEnd,
                     currentWriter,
@@ -903,7 +903,7 @@ void Loader::sortPermutation(string inputDir,
                 }
             }
         }
-        boost::thread *threads = new boost::thread[parallelProcesses];
+        std::thread *threads = new std::thread[parallelProcesses];
 
         elementsMainMem = max((long)parallelProcesses,
                 min(elementsMainMem, (long)(estimatedSize * 1.2)));
@@ -926,8 +926,8 @@ void Loader::sortPermutation(string inputDir,
             for (int i = 0; i < parallelProcesses; ++i) {
                 MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
                 int idReader = i / maxReadingThreads;
-                threads[i] = boost::thread(
-                        boost::bind(&sortPermutation_seq<K>, idReader, reader,
+                threads[i] = std::thread(
+                        std::bind(&sortPermutation_seq<K>, idReader, reader,
                             i * maxInserts, rawTriples,
                             maxInserts, &(counts[i])));
             }
@@ -1091,8 +1091,8 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
 
         //Start one thread to merge the files in a single stream. Put the results
         //in a synchronized queue
-        boost::thread t = boost::thread(
-                boost::bind(Loader::parallelmerge,
+        std::thread t = std::thread(
+                std::bind(Loader::parallelmerge,
                     &merger,
                     sizebuffer,
                     &buffers,
@@ -1477,14 +1477,14 @@ void Loader::load(ParamsLoad p) {
     LOG(DEBUG) << "Start loading ...";
 
     //Start a monitoring thread ...
-    boost::thread monitor;
+    std::thread monitor;
     std::mutex mtx;
     std::condition_variable cv;
     bool isFinished = false;
     if (/*p.logPtr != NULL &&*/ p.timeoutStats != -1) {
         //Activate it only for Linux systems
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-        monitor = boost::thread(boost::bind(Loader::monitorPerformance, p.logPtr, p.timeoutStats, &cv, &mtx, &isFinished));
+        monitor = std::thread(std::bind(Loader::monitorPerformance, p.logPtr, p.timeoutStats, &cv, &mtx, &isFinished));
 #endif
     }
 
@@ -1738,15 +1738,15 @@ void Loader::loadKB(KB &kb,
     //this->logPtr = logPtr;
     //End init params
 
-    boost::thread *threads;
+    std::thread *threads;
     if (storeDicts) {
         LOG(DEBUG) << "Insert the dictionary in the trees";
-        threads = new boost::thread[dictionaries - 1];
+        threads = new std::thread[dictionaries - 1];
         nTerm *maxValues = new nTerm[dictionaries];
         if (dictMethod != DICT_SMART) {
             for (int i = 1; i < dictionaries; ++i) {
-                threads[i - 1] = boost::thread(
-                        boost::bind(&Loader::insertDictionary, i,
+                threads[i - 1] = std::thread(
+                        std::bind(&Loader::insertDictionary, i,
                             kb.getDictMgmt(),
                             fileNameDictionaries[i],
                             dictMethod != DICT_HASH,
@@ -1891,11 +1891,11 @@ void Loader::loadKB(KB &kb,
         treeWriters[i]->finish();
     }
 
-    threads = new boost::thread[dictionaries + 1];
+    threads = new std::thread[dictionaries + 1];
     LOG(DEBUG) << "Compress the dictionary nodes...";
     for (int i = 0; i < dictionaries && storeDicts; ++i) {
-        threads[i + 1] = boost::thread(
-                boost::bind(&NodeManager::compressSpace,
+        threads[i + 1] = std::thread(
+                std::bind(&NodeManager::compressSpace,
                     kb.getDictPath(i)));
     }
 
@@ -1916,8 +1916,8 @@ void Loader::loadKB(KB &kb,
     params.buffer2 = &structs.buffer2;
     params.cond = &structs.cond;
     params.mut = &structs.mut;
-    threads[0] = boost::thread(
-            boost::bind(&Loader::mergeTermCoordinates, params));
+    threads[0] = std::thread(
+            std::bind(&Loader::mergeTermCoordinates, params));
     processTermCoordinates(ins, &structs);
     for (int i = 0; i < (storeDicts ? dictionaries : 0) + 1; ++i) {
         threads[i].join();
@@ -2053,13 +2053,13 @@ void Loader::generateNewPermutation(string outputdir,
             writers[i] = new MultiDiskLZ4Writer(outputchunk, 3, 4);
         }
         //Start threads
-        boost::thread *threads = new boost::thread[parallelProcesses];
+        std::thread *threads = new std::thread[parallelProcesses];
         for(int i = 0; i < parallelProcesses; ++i) {
             int idx1 = i % maxReadingThreads;
             int idx2 = i / maxReadingThreads;
             MultiDiskLZ4Reader *reader = readers[idx1];
             MultiDiskLZ4Writer *writer = writers[idx1];
-            threads[i] = boost::thread(generateNewPermutation_seq,
+            threads[i] = std::thread(generateNewPermutation_seq,
                     reader,
                     writer,
                     idx2,
@@ -2191,8 +2191,8 @@ void Loader::parallel_createIndices(
     }
 
     int nperms = aggrIndices ? 4 : 6;
-    boost::thread ts[3];
-    boost::thread at1, at2;
+    std::thread ts[3];
+    std::thread at1, at2;
     if (!aggrIndices) {
         ParamSortAndInsert params;
         params.nindices = nperms;
@@ -2216,24 +2216,24 @@ void Loader::parallel_createIndices(
         params.treeWriter = treeWriters[1];
         params.canSkipTables = false;
 
-        ts[0] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[0] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 3;
         params.inputDir = permDirs[3];
         params.treeWriter = treeWriters[3];
         params.canSkipTables = canSkipTables;
 
-        ts[1] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[1] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 4;
         params.inputDir = permDirs[4];
         params.treeWriter = treeWriters[4];
         params.canSkipTables = canSkipTables;
 
-        ts[2] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[2] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
 
         //Start two more threads
         params.permutation = 2;
@@ -2241,14 +2241,14 @@ void Loader::parallel_createIndices(
         params.treeWriter = treeWriters[2];
         params.canSkipTables = false;
 
-        at1 = boost::thread(boost::bind(&Loader::sortAndInsert, params));
+        at1 = std::thread(std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 5;
         params.inputDir = permDirs[5];
         params.treeWriter = treeWriters[5];
         params.canSkipTables = canSkipTables;
 
-        at2 = boost::thread(boost::bind(&Loader::sortAndInsert, params));
+        at2 = std::thread(std::bind(&Loader::sortAndInsert, params));
 
     } else {
         ParamSortAndInsert params;
@@ -2273,8 +2273,8 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = &aggr1Dir;
         params.canSkipTables = false;
 
-        ts[0] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[0] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 3;
         params.inputDir = permDirs[2];
@@ -2282,8 +2282,8 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = NULL;
         params.canSkipTables = canSkipTables;
 
-        ts[1] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[1] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 4;
         params.inputDir = permDirs[3];
@@ -2291,8 +2291,8 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = NULL;
         params.canSkipTables = canSkipTables;
 
-        ts[2] = boost::thread(
-                boost::bind(&Loader::sortAndInsert, params));
+        ts[2] = std::thread(
+                std::bind(&Loader::sortAndInsert, params));
     }
 
     ParamSortAndInsert params;
@@ -2347,8 +2347,8 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = NULL;
         params.canSkipTables = false;
 
-        boost::thread t[2];
-        t[0] = boost::thread(boost::bind(&Loader::sortAndInsert, params));
+        std::thread t[2];
+        t[0] = std::thread(std::bind(&Loader::sortAndInsert, params));
 
         params.permutation = 5;
         params.inputDir = aggr2Dir;
@@ -2356,7 +2356,7 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = NULL;
         params.canSkipTables = canSkipTables;
 
-        t[1] = boost::thread(boost::bind(&Loader::sortAndInsert, params));
+        t[1] = std::thread(std::bind(&Loader::sortAndInsert, params));
         t[0].join();
         t[1].join();
     }
@@ -2995,7 +2995,7 @@ void Loader::mergeTermCoordinates(ParamsMergeCoordinates params) {
     TermCoordinates *value = NULL;
     while ((value = merger.get(key)) != NULL) {
         if (bufferToFill->isFull()) {
-            boost::unique_lock<boost::mutex> lock(*mut);
+            std::unique_lock<std::mutex> lock(*mut);
             (*buffersReady)++;
             if (*buffersReady > 0) {
                 cond->notify_one();
@@ -3010,7 +3010,7 @@ void Loader::mergeTermCoordinates(ParamsMergeCoordinates params) {
         }
         bufferToFill->add(key, value);
     }
-    boost::unique_lock<boost::mutex> lock(*mut);
+    std::unique_lock<std::mutex> lock(*mut);
     if (!bufferToFill->isEmpty()) {
         (*buffersReady)++;
     }
@@ -3020,7 +3020,7 @@ void Loader::mergeTermCoordinates(ParamsMergeCoordinates params) {
 }
 
 BufferCoordinates *Loader::getBunchTermCoordinates(SharedStructs *structs) {
-    boost::unique_lock<boost::mutex> lock(structs->mut);
+    std::unique_lock<std::mutex> lock(structs->mut);
     while (structs->buffersReady == 0) {
         if (structs->isFinished) {
             lock.unlock();
@@ -3040,7 +3040,7 @@ BufferCoordinates *Loader::getBunchTermCoordinates(SharedStructs *structs) {
 void Loader::releaseBunchTermCoordinates(BufferCoordinates *cord,
         SharedStructs *structs) {
     cord->clear();
-    boost::unique_lock<boost::mutex> lock(structs->mut);
+    std::unique_lock<std::mutex> lock(structs->mut);
     if (structs->buffersReady == 2) {
         structs->cond.notify_one();
     }
@@ -3050,7 +3050,7 @@ void Loader::releaseBunchTermCoordinates(BufferCoordinates *cord,
 
 void Loader::testLoadingTree(string tmpDir, Inserter *ins, int nindices) {
     /*string *sTreeWriters = new string[nindices];
-      boost::thread *threads = new boost::thread[1];
+      std::thread *threads = new std::thread[1];
       for (int i = 0; i < nindices; ++i) {
       sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
       }
@@ -3059,8 +3059,8 @@ void Loader::testLoadingTree(string tmpDir, Inserter *ins, int nindices) {
       bufferToFill = bufferToReturn = &buffer1;
       isFinished = false;
       buffersReady = 0;
-      threads[0] = boost::thread(
-      boost::bind(&Loader::mergeTermCoordinates, this,
+      threads[0] = std::thread(
+      std::bind(&Loader::mergeTermCoordinates, this,
       sTreeWriters, nindices));
       processTermCoordinates(ins);
       for (int i = 0; i < 1; ++i) {

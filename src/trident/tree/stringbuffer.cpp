@@ -173,7 +173,7 @@ void StringBuffer::compressBlocks() {
     char *compressedBuffer = new char[maxSize];
     while (true) {
 
-        boost::unique_lock<boost::mutex> lock(_compressMutex);
+        std::unique_lock<std::mutex> lock(_compressMutex);
         while (bufferToCompress == NULL) {
             compressWait.wait(lock);
         }
@@ -320,7 +320,7 @@ long StringBuffer::getSize() {
 }
 
 void StringBuffer::compressLastBlock() {
-    boost::unique_lock<boost::mutex> lock(_compressMutex);
+    std::unique_lock<std::mutex> lock(_compressMutex);
     while (bufferToCompress != NULL) {
         compressWait.wait(lock);
     }
@@ -582,7 +582,7 @@ StringBuffer::~StringBuffer() {
             compressLastBlock();
         }
 
-        boost::unique_lock<boost::mutex> lock(_compressMutex);
+        std::unique_lock<std::mutex> lock(_compressMutex);
         while (bufferToCompress != NULL) {
             compressWait.wait(lock);
         }
@@ -592,7 +592,7 @@ StringBuffer::~StringBuffer() {
         bufferToCompress = FINISH_THREAD;
         compressWait.notify_one();
 
-        boost::unique_lock<boost::mutex> lock2(_compressTerm);
+        std::unique_lock<std::mutex> lock2(_compressTerm);
         compressTerm.wait(lock2, std::bind(&StringBuffer::isThreadFinished, this));
 
         sb.flush();
