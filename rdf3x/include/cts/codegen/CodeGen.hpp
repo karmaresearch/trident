@@ -23,13 +23,18 @@ class Runtime;
 /// Interfact to the code generation part of the compiletime system
 class CodeGen
 {
-   public:
-   /// Collect all variables contained in a plan
-   static void collectVariables(std::set<unsigned>& variables,Plan* plan);
-   /// Translate an execution plan into an operator tree without output generation
-   static Operator* translateIntern(Runtime& runtime, const QueryGraph& query, Plan* plan, std::vector<Register*>& output, const std::map<const QueryGraph::Node*, unsigned> &registers);
-   /// Translate an execution plan into an operator tree
-   static Operator* translate(Runtime& runtime,const QueryGraph& query,Plan* plan,bool silent=false);
+    public:
+        /// Prepare runtime
+        static void prepareRuntime(Runtime &runtime,
+                const QueryGraph::SubQuery& query,
+                std::map<const QueryGraph::Node*, unsigned> &registers);
+
+        /// Collect all variables contained in a plan
+        static void collectVariables(std::set<unsigned>& variables,Plan* plan);
+        /// Translate an execution plan into an operator tree without output generation
+        static Operator* translateIntern(Runtime& runtime, const QueryGraph& query, Plan* plan, std::vector<Register*>& output, const std::map<const QueryGraph::Node*, unsigned> &registers);
+        /// Translate an execution plan into an operator tree
+        static Operator* translate(Runtime& runtime,const QueryGraph& query,Plan* plan, bool silent=false);
 };
 //---------------------------------------------------------------------------
 #endif

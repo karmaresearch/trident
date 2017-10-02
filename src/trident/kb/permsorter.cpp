@@ -26,6 +26,7 @@
 
 #include <boost/chrono.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/thread.hpp>
 
 #include <tbb/parallel_sort.h>
 #include <tbb/task_scheduler_init.h>

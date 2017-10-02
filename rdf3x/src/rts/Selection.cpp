@@ -1,7 +1,9 @@
 #include "rts/operator/Selection.hpp"
 #include "rts/operator/PlanPrinter.hpp"
-//#include "rts/database/Database.hpp"
+#include "rts/operator/ResultsPrinter.hpp"
 #include "rts/runtime/Runtime.hpp"
+#include "cts/codegen/CodeGen.hpp"
+#include "cts/plangen/PlanGen.hpp"
 //#include "rts/segment/DictionarySegment.hpp"
 #include <sstream>
 #include <cassert>
@@ -25,14 +27,78 @@
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
 using namespace std;
+
+long _getLong(const std::string &s) {
+    std::string number = s.substr(1, s.find_first_of('"',1)-1);
+    return std::stol(number);
+}
+
+double _getDouble(const std::string &s) {
+    std::string number = s.substr(1, s.find_first_of('"',1)-1);
+    return std::stod(number);
+}
+
+bool _endsWith(const std::string &s, const std::string &suffix) {
+    if (s.length() >= suffix.length()) {
+        return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
+    }
+    return false;
+}
+
+Selection::NumType Selection::getNumType(std::string s) {
+    std::string d = "^^<http://www.w3.org/2001/XMLSchema#double>";
+    std::string f = "^^<http://www.w3.org/2001/XMLSchema#float>";
+    std::string i = "^^<http://www.w3.org/2001/XMLSchema#integer>";
+    if (_endsWith(s,d) || _endsWith(s,f)) {
+        return NumType::DECIMAL;
+    } else if (_endsWith(s,i)) {
+        return NumType::INT;
+    }
+    return NumType::UNKNOWN;
+}
+
+bool Selection::isNumericComparison(const Result &l, const Result &r) {
+    if (l.type == Type::Literal && r.type == Type::Literal) {
+        //Get numerical type
+        if (getNumType(l.value) != NumType::UNKNOWN &&
+                getNumType(r.value) != NumType::UNKNOWN) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Selection::numLess(const Result &l, const Result &r) {
+    auto tl = getNumType(l.value);
+    auto tr = getNumType(r.value);
+    if (tl == NumType::INT && tr == NumType::INT) {
+        long v1 = _getLong(l.value);
+        long v2 = _getLong(r.value);
+        return v1 < v2;
+    } else if (tl == NumType::DECIMAL && tr == NumType::INT) {
+        double v1 = _getDouble(l.value);
+        long v2 = _getLong(r.value);
+        return v1 < v2;
+    } else if (tl == NumType::INT && tr == NumType::DECIMAL) {
+        long v1 = _getLong(l.value);
+        double v2 = _getDouble(r.value);
+        return v1 < v2;
+    } else {
+        double v1 = _getDouble(l.value);
+        double v2 = _getDouble(r.value);
+        return v1 < v2;
+    }
+    return false;
+}
+
 //---------------------------------------------------------------------------
 Selection::Result::~Result()
-// Destructor
+    // Destructor
 {
 }
 //---------------------------------------------------------------------------
 void Selection::Result::ensureString(Selection* selection)
-// Ensure that a string is available
+    // Ensure that a string is available
 {
     if (!(flags & stringAvailable)) {
         if (flags & idAvailable) {
@@ -56,7 +122,7 @@ void Selection::Result::ensureString(Selection* selection)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::ensureType(Selection* selection)
-// Ensure that the type is available
+    // Ensure that the type is available
 {
     if (!(flags & typeAvailable)) {
         if (flags & idAvailable) {
@@ -77,7 +143,7 @@ void Selection::Result::ensureType(Selection* selection)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::ensureSubType(Selection* selection)
-// Ensure that the type is available
+    // Ensure that the type is available
 {
     ensureType(selection);
     if (!(flags & subTypeAvailable)) {
@@ -98,7 +164,7 @@ void Selection::Result::ensureSubType(Selection* selection)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::ensureBoolean(Selection* runtime)
-// Ensure that a boolean interpretation is available
+    // Ensure that a boolean interpretation is available
 {
     if (!(flags & booleanAvailable)) {
         ensureString(runtime);
@@ -108,7 +174,7 @@ void Selection::Result::ensureBoolean(Selection* runtime)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::setBoolean(bool v)
-// Set to a boolean value
+    // Set to a boolean value
 {
     flags = booleanAvailable | typeAvailable;
     type = Type::Boolean;
@@ -116,14 +182,14 @@ void Selection::Result::setBoolean(bool v)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::setId(uint64_t v)
-// Set to an id value
+    // Set to an id value
 {
     flags = idAvailable;
     id = v;
 }
 //---------------------------------------------------------------------------
 void Selection::Result::setLiteral(const std::string& v)
-// Set to a string value
+    // Set to a string value
 {
     flags = stringAvailable | typeAvailable;
     type = Type::Literal;
@@ -131,7 +197,7 @@ void Selection::Result::setLiteral(const std::string& v)
 }
 //---------------------------------------------------------------------------
 void Selection::Result::setIRI(const std::string& v)
-// Set to a string value
+    // Set to a string value
 {
     flags = stringAvailable | typeAvailable;
     type = Type::URI;
@@ -145,18 +211,18 @@ Selection::Predicate::Predicate()
 }
 //---------------------------------------------------------------------------
 Selection::Predicate::~Predicate()
-// Destructor
+    // Destructor
 {
 }
 //---------------------------------------------------------------------------
 void Selection::Predicate::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     selection = s;
 }
 //---------------------------------------------------------------------------
 bool Selection::Predicate::check()
-// Check the predicate
+    // Check the predicate
 {
     Result r;
     eval(r);
@@ -165,14 +231,14 @@ bool Selection::Predicate::check()
 }
 //---------------------------------------------------------------------------
 Selection::BinaryPredicate::~BinaryPredicate()
-// Destructor
+    // Destructor
 {
     delete left;
     delete right;
 }
 //---------------------------------------------------------------------------
 void Selection::BinaryPredicate::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     left->setSelection(s);
@@ -180,44 +246,44 @@ void Selection::BinaryPredicate::setSelection(Selection* s)
 }
 //---------------------------------------------------------------------------
 Selection::UnaryPredicate::~UnaryPredicate()
-// Destructor
+    // Destructor
 {
     delete input;
 }
 //---------------------------------------------------------------------------
 void Selection::UnaryPredicate::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     input->setSelection(s);
 }
 //---------------------------------------------------------------------------
 void Selection::Or::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setBoolean(left->check() || right->check());
 }
 //---------------------------------------------------------------------------
 string Selection::Or::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")||(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::And::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setBoolean(left->check() && right->check());
 }
 //---------------------------------------------------------------------------
 string Selection::And::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")&&(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Equal::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -236,13 +302,13 @@ void Selection::Equal::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Equal::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")==(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::NotEqual::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -261,13 +327,13 @@ void Selection::NotEqual::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::NotEqual::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")!=(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Less::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -276,17 +342,21 @@ void Selection::Less::eval(Result& result)
     // XXX implement type based comparisons!
     l.ensureString(selection);
     r.ensureString(selection);
-    result.setBoolean(l.value < r.value);
+    if (isNumericComparison(l,r)) {
+        result.setBoolean(numLess(l,r));
+    } else {
+        result.setBoolean(l.value < r.value);
+    }
 }
 //---------------------------------------------------------------------------
 string Selection::Less::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")<(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::LessOrEqual::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -299,13 +369,13 @@ void Selection::LessOrEqual::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::LessOrEqual::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")<=(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Plus::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -319,13 +389,13 @@ void Selection::Plus::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Plus::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")+(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Minus::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -339,13 +409,13 @@ void Selection::Minus::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Minus::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")-(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Mul::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -359,13 +429,13 @@ void Selection::Mul::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Mul::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")*(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Div::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -379,25 +449,25 @@ void Selection::Div::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Div::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "(" + left->print(out) + ")/(" + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::Not::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setBoolean(!input->check());
 }
 //---------------------------------------------------------------------------
 string Selection::Not::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "!" + input->print(out);
 }
 //---------------------------------------------------------------------------
 void Selection::Neg::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(i);
@@ -409,61 +479,61 @@ void Selection::Neg::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::Neg::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "-" + input->print(out);
 }
 //---------------------------------------------------------------------------
 void Selection::Null::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setId(~0u);
 }
 //---------------------------------------------------------------------------
 string Selection::Null::print(PlanPrinter& /*out*/)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "NULL";
 }
 //---------------------------------------------------------------------------
 void Selection::False::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setBoolean(false);
 }
 //---------------------------------------------------------------------------
 string Selection::False::print(PlanPrinter& /*out*/)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "false";
 }
 //---------------------------------------------------------------------------
 void Selection::Variable::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setId(reg->value);
 }
 //---------------------------------------------------------------------------
 string Selection::Variable::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return out.formatRegister(reg);
 }
 //---------------------------------------------------------------------------
 void Selection::ConstantLiteral::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setId(id);
 }
 //---------------------------------------------------------------------------
 string Selection::ConstantLiteral::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return out.formatValue(id);
 }
 //---------------------------------------------------------------------------
 void Selection::TemporaryConstantLiteral::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setLiteral(value);
 }
@@ -473,37 +543,37 @@ bool Selection::TemporaryConstantLiteral::check() {
 }
 //---------------------------------------------------------------------------
 string Selection::TemporaryConstantLiteral::print(PlanPrinter& /*out*/)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return value;
 }
 //---------------------------------------------------------------------------
 void Selection::ConstantIRI::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setId(id);
 }
 //---------------------------------------------------------------------------
 string Selection::ConstantIRI::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return out.formatValue(id);
 }
 //---------------------------------------------------------------------------
 void Selection::TemporaryConstantIRI::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setIRI(value);
 }
 //---------------------------------------------------------------------------
 string Selection::TemporaryConstantIRI::print(PlanPrinter& /*out*/)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return value;
 }
 //---------------------------------------------------------------------------
 void Selection::FunctionCall::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     for (vector<Predicate*>::iterator iter = args.begin(), limit = args.end(); iter != limit; ++iter)
@@ -511,13 +581,13 @@ void Selection::FunctionCall::setSelection(Selection* s)
 }
 //---------------------------------------------------------------------------
 void Selection::FunctionCall::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setId(~0u); // XXX perform the call
 }
 //---------------------------------------------------------------------------
 string Selection::FunctionCall::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     string result = "<" + func + ">(";
     for (vector<Predicate*>::iterator iter = args.begin(), limit = args.end(); iter != limit; ++iter) {
@@ -530,7 +600,7 @@ string Selection::FunctionCall::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinStr::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     input->eval(result);
     result.ensureString(selection);
@@ -539,7 +609,7 @@ void Selection::BuiltinStr::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinStr::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "str(" + input->print(out) + ")";
 }
@@ -552,13 +622,13 @@ void Selection::BuiltinXSD::eval(Result& result) {
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinXSD::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "xsd:decimal(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinLang::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(i);
@@ -573,13 +643,13 @@ void Selection::BuiltinLang::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinLang::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "lang(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinLangMatches::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -598,13 +668,13 @@ void Selection::BuiltinLangMatches::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinLangMatches::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return  "langMatches(" + left->print(out) + "," + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinContains::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -621,69 +691,69 @@ void Selection::BuiltinContains::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinContains::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return  "contains(" + left->print(out) + "," + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinDatatype::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(result);
     i.ensureType(selection);
 
     switch (i.type) {
-    case Type::URI:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#URI");
-        break;
-    case Type::Literal:
-    case Type::CustomLanguage:
-    case Type::String:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#string");
-        break;
-    case Type::Integer:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#integer");
-        break;
-    case Type::Decimal:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#decimal");
-        break;
-    case Type::Double:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#double");
-        break;
-    case Type::Boolean:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#boolean");
-        break;
-    case Type::CustomType:
-        i.ensureSubType(selection);
-        result.setLiteral(i.subTypeValue);
-        break;
-    case Type::Date:
-        result.setLiteral("http://www.w3.org/2001/XMLSchema#date");
-        break;
+        case Type::URI:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#URI");
+            break;
+        case Type::Literal:
+        case Type::CustomLanguage:
+        case Type::String:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#string");
+            break;
+        case Type::Integer:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#integer");
+            break;
+        case Type::Decimal:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#decimal");
+            break;
+        case Type::Double:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#double");
+            break;
+        case Type::Boolean:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#boolean");
+            break;
+        case Type::CustomType:
+            i.ensureSubType(selection);
+            result.setLiteral(i.subTypeValue);
+            break;
+        case Type::Date:
+            result.setLiteral("http://www.w3.org/2001/XMLSchema#date");
+            break;
     }
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinDatatype::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "datatype(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinBound::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     result.setBoolean(~reg->value);
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinBound::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "bound(" + out.formatRegister(reg) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinSameTerm::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result l, r;
     left->eval(l);
@@ -708,13 +778,13 @@ void Selection::BuiltinSameTerm::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinSameTerm::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "sameTerm(" + left->print(out) + "," + right->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinIsIRI::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(i);
@@ -723,13 +793,13 @@ void Selection::BuiltinIsIRI::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinIsIRI::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "isIRI(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinIsBlank::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(i);
@@ -743,13 +813,13 @@ void Selection::BuiltinIsBlank::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinIsBlank::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "isBlanl(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinIsLiteral::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result i;
     input->eval(i);
@@ -758,13 +828,13 @@ void Selection::BuiltinIsLiteral::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinIsLiteral::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     return "isLiteral(" + input->print(out) + ")";
 }
 //---------------------------------------------------------------------------
 Selection::BuiltinRegEx::~BuiltinRegEx()
-// Destructor
+    // Destructor
 {
     delete arg1;
     delete arg2;
@@ -772,7 +842,7 @@ Selection::BuiltinRegEx::~BuiltinRegEx()
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinRegEx::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     arg1->setSelection(s);
@@ -781,29 +851,29 @@ void Selection::BuiltinRegEx::setSelection(Selection* s)
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinRegEx::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     /*#ifdef CONFIG_TR1
-       Result text,pattern;
-       arg1->eval(text);
-       arg2->eval(pattern);
+      Result text,pattern;
+      arg1->eval(text);
+      arg2->eval(pattern);
 
-       try {
-          pattern.ensureString(selection);
-          std::tr1::regex r(pattern.value.c_str());
-          text.ensureString(selection);
-          result.setBoolean(std::tr1::regex_match(text.value.begin(),text.value.end(),r));
-          return;
-       } catch (const std::tr1::regex_error&) {
-          result.setBoolean(false);
-       }
-    #else */
+      try {
+      pattern.ensureString(selection);
+      std::tr1::regex r(pattern.value.c_str());
+      text.ensureString(selection);
+      result.setBoolean(std::tr1::regex_match(text.value.begin(),text.value.end(),r));
+      return;
+      } catch (const std::tr1::regex_error&) {
+      result.setBoolean(false);
+      }
+#else */
     result.setBoolean(false);
-//#endif
+    //#endif
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinReplace::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     input->eval(result);
     result.ensureString(selection);
@@ -831,7 +901,7 @@ void Selection::BuiltinReplace::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinRegEx::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     string result = "regex(" + arg1->print(out) + "," + arg2->print(out);
     if (arg3) {
@@ -843,7 +913,7 @@ string Selection::BuiltinRegEx::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 Selection::BuiltinReplace::~BuiltinReplace()
-// Destructor
+    // Destructor
 {
     delete input;
     delete arg2;
@@ -852,7 +922,7 @@ Selection::BuiltinReplace::~BuiltinReplace()
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinReplace::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     input->setSelection(s);
@@ -862,7 +932,7 @@ void Selection::BuiltinReplace::setSelection(Selection* s)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinReplace::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     string result = "replace(" + input->print(out) + "," + arg2->print(out);
     if (arg3) {
@@ -874,7 +944,7 @@ string Selection::BuiltinReplace::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinIn::setSelection(Selection* s)
-// Set the selection
+    // Set the selection
 {
     Predicate::setSelection(s);
     probe->setSelection(s);
@@ -883,7 +953,7 @@ void Selection::BuiltinIn::setSelection(Selection* s)
 }
 //---------------------------------------------------------------------------
 void Selection::BuiltinIn::eval(Result& result)
-// Evaluate the predicate
+    // Evaluate the predicate
 {
     Result p, c;
     probe->eval(p);
@@ -917,7 +987,7 @@ void Selection::BuiltinIn::eval(Result& result)
 }
 //---------------------------------------------------------------------------
 string Selection::BuiltinIn::print(PlanPrinter& out)
-// Print the predicate (debugging only)
+    // Print the predicate (debugging only)
 {
     string result = "in(" + probe->print(out);
     for (vector<Predicate*>::iterator iter = args.begin(), limit = args.end(); iter != limit; ++iter) {
@@ -928,6 +998,47 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
     return result;
 }
 //---------------------------------------------------------------------------
+Selection::BuiltinNotExists::BuiltinNotExists(Operator *tree,
+                        std::vector<Register *> regsToLoad,
+                        std::vector<Register *> regsToCheck) :
+    regsToLoad(regsToLoad), regsToCheck(regsToCheck), loaded(false)
+{
+    this->tree = std::unique_ptr<Operator>(tree);
+    probe = std::unique_ptr<Predicate>(new Selection::Variable(regsToCheck[0]));
+    if (regsToLoad.size() != 1)
+        throw;
+}
+//---------------------------------------------------------------------------
+void Selection::BuiltinNotExists::eval(Result& result)
+    // Evaluate the predicate
+{
+    if (!loaded) {
+        if (tree->first()) {
+            do {
+                set.insert(regsToLoad[0]->value);
+            } while (tree->next());
+        }
+        loaded = true;
+    }
+
+    Result p, c;
+    probe->eval(p); // The variable to be checked
+
+    if (!set.count(p.id)) {
+        result.setBoolean(true);
+    } else {
+        result.setBoolean(false);
+    }
+}
+//---------------------------------------------------------------------------
+string Selection::BuiltinNotExists::print(PlanPrinter& out)
+    // Print the predicate (debugging only)
+{
+    string result = "not_exists(<subquery>)";
+    return result;
+}
+
+//---------------------------------------------------------------------------
 Selection::Selection(Operator* input, Runtime& runtime, Predicate* predicate, double expectedOutputCardinality)
     : Operator(expectedOutputCardinality), input(input), runtime(runtime), predicate(predicate)
       // Constructor
@@ -935,14 +1046,14 @@ Selection::Selection(Operator* input, Runtime& runtime, Predicate* predicate, do
 }
 //---------------------------------------------------------------------------
 Selection::~Selection()
-// Destructor
+    // Destructor
 {
     delete predicate;
     delete input;
 }
 //---------------------------------------------------------------------------
 uint64_t Selection::first()
-// Produce the first tuple
+    // Produce the first tuple
 {
     observedOutputCardinality = 0;
     predicate->setSelection(this);
@@ -962,7 +1073,7 @@ uint64_t Selection::first()
 }
 //---------------------------------------------------------------------------
 uint64_t Selection::next()
-// Produce the next tuple
+    // Produce the next tuple
 {
     while (true) {
         // Retrieve the next tuple
@@ -978,7 +1089,7 @@ uint64_t Selection::next()
 }
 //---------------------------------------------------------------------------
 void Selection::print(PlanPrinter& out)
-// Print the operator tree. Debugging only.
+    // Print the operator tree. Debugging only.
 {
     out.beginOperator("Selection", expectedOutputCardinality, observedOutputCardinality);
     out.addGenericAnnotation(predicate->print(out));
@@ -987,13 +1098,13 @@ void Selection::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 void Selection::addMergeHint(Register* reg1, Register* reg2)
-// Add a merge join hint
+    // Add a merge join hint
 {
     input->addMergeHint(reg1, reg2);
 }
 //---------------------------------------------------------------------------
 void Selection::getAsyncInputCandidates(Scheduler& scheduler)
-// Register parts of the tree that can be executed asynchronous
+    // Register parts of the tree that can be executed asynchronous
 {
     input->getAsyncInputCandidates(scheduler);
 }

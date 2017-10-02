@@ -55,6 +55,9 @@ IF(PY3_FOUND)
     LINK_DIRECTORIES(${PY3_LIBRARY_DIRS})
 ENDIF()
 
+#ZLIB
+find_package(ZLIB REQUIRED)
+
 #NumPY
 if(NOT PYTHON_EXECUTABLE)
   if(NumPy_FIND_QUIETLY)
@@ -127,7 +130,7 @@ ENDIF()
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-FIND_PACKAGE(Boost COMPONENTS chrono thread system filesystem program_options log log_setup iostreams serialization REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS thread chrono system filesystem program_options log log_setup iostreams REQUIRED)
 IF (Boost_FOUND)
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} SYSTEM)
 ENDIF()
@@ -168,7 +171,7 @@ IF(KOGNAC_LIB)
     set_property(TARGET kognac PROPERTY IMPORTED_LOCATION ${KOGNAC_LIB})
 ELSE()
     ExternalProject_Add(git-kognac
-        DOWNLOAD_COMMAND git clone https://github.com/jrbn/kognac.git
+        DOWNLOAD_COMMAND git clone https://github.com/karmaresearch/kognac.git
         DOWNLOAD_DIR .
         SOURCE_DIR kognac
         BUILD_IN_SOURCE 1
@@ -210,6 +213,6 @@ if (CMAKE_THREAD_LIBS_INIT)
 endif()
 
 #Create both a library and the executable program
-TARGET_LINK_LIBRARIES(trident curl kognac lz4 tbb snap ${rt} ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(trident curl kognac lz4 tbb snap ${rt} ${Boost_LIBRARIES} ${ZLIB_LIBRARIES})
 TARGET_LINK_LIBRARIES(tridentp trident ${PY3_LIBRARIES})
 TARGET_LINK_LIBRARIES(trident_exec trident)

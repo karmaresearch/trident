@@ -33,6 +33,12 @@ public:
         /// Is there an implicit join edge to another node?
         bool canJoin(const Node& other) const;
     };
+    // A special node with a list of values (VALUES in SPARQL 1.1)
+    struct ValuesNode {
+        std::vector<unsigned> variables;
+        std::vector<uint64_t> values;
+    };
+
     /// The potential join edges
     struct Edge {
         /// The endpoints
@@ -46,6 +52,7 @@ public:
         ~Edge();
     };
     /// A value filter
+    struct SubQuery;
     struct Filter {
         /// Possible types
         enum Type {
@@ -53,7 +60,7 @@ public:
             Not, UnaryPlus, UnaryMinus, Literal, Variable, IRI, Null, Function, ArgumentList,
             Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
             Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_contains,
-            Builtin_xsddecimal
+            Builtin_xsddecimal, Builtin_notexists
         };
 
         /// The type
@@ -65,6 +72,8 @@ public:
         /// The raw value (for constants)
         std::string value;
         uint64_t valueid; //id of constants
+        std::shared_ptr<QueryGraph> subquery;
+        std::shared_ptr<QueryGraph::SubQuery> subpattern;
 
         /// Constructor
         Filter();
@@ -83,7 +92,7 @@ public:
     };
     /// A table function
     struct TableFunction {
-        Filter * associatedFilter;
+        std::shared_ptr<Filter> associatedFilter;
         /// An argument
         struct Argument {
             /// The variable id if any
@@ -117,6 +126,10 @@ public:
         std::vector<TableFunction> tableFunctions;
         /// Possible query
         std::vector<std::shared_ptr<QueryGraph>> subqueries;
+        /// Possible Minuses
+        std::vector<std::shared_ptr<QueryGraph>> minuses;
+        /// All VALUES patterns
+        std::vector<ValuesNode> valueNodes;
     };
 /// Order by entry
     struct Order {

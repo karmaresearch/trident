@@ -49,6 +49,8 @@ class MergeJoin : public Operator
    /// Is a copy of the left hand side available? Only used for loopSpooled*
    bool leftInCopy;
 
+   bool leftOptional, rightOptional;
+
    /// Copy the left tuple into its shadow
    void copyLeft();
    /// Swap the left tuple with its shadow
@@ -63,7 +65,14 @@ class MergeJoin : public Operator
 
    public:
    /// Constructor
-   MergeJoin(Operator* left,Register* leftValue,const std::vector<Register*>& leftTail,Operator* right,Register* rightValue,const std::vector<Register*>& rightTail,double expectedOutputCardinality);
+   MergeJoin(Operator* left,Register* leftValue,
+           const std::vector<Register*>& leftTail, 
+           Operator* right,
+           Register* rightValue,
+           const std::vector<Register*>& rightTail,
+            bool leftOptional,
+            bool rightOptional,
+           double expectedOutputCardinality);
    /// Destructor
    ~MergeJoin();
 

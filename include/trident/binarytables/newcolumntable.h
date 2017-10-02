@@ -28,6 +28,8 @@
 #include <trident/kb/consts.h>
 #include <kognac/utils.h>
 
+#include <assert.h>
+
 class SequenceWriter {
     public:
         virtual void add(const uint64_t v) {

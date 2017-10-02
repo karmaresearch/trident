@@ -26,7 +26,7 @@
 using namespace std;
 //---------------------------------------------------------------------------
 ResultsPrinter::ResultsPrinter(Runtime& runtime, Operator* input, const vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit, bool silent)
-    : Operator(1), output(output), input(input), runtime(runtime), dictionary(runtime.getDatabase()), duplicateHandling(duplicateHandling), outputMode(DefaultOutput), limit(limit), silent(silent), nrows(0), jsonoutput(NULL)
+    : Operator(1), output(output), input(input), runtime(runtime), dictionary(runtime.getDatabase()), duplicateHandling(duplicateHandling), outputMode(DefaultOutput), limit(limit), silent(silent), nrows(0), jsonoutput(NULL), outputset(NULL)
       // Constructor
 {
 }
@@ -229,6 +229,19 @@ uint64_t ResultsPrinter::first()
     if ((count = input->first()) == 0) {
         if ((!silent) && (outputMode != Embedded))
             cout << "<empty result>" << endl;
+        return 1;
+    }
+
+    if (outputset) {
+        //Copy the values into the output set
+        uint64_t minCount = (duplicateHandling == ShowDuplicates) ? 2 : 1;
+        uint64_t entryCount = 0;
+        do {
+            if (count < minCount) continue;
+            uint64_t id = output[prjId]->value;
+            outputset->insert(id);
+            if ((++entryCount) >= this->limit) break;
+        } while ((count = input->next()) != 0);
         return 1;
     }
 

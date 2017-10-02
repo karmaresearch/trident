@@ -48,25 +48,25 @@ QueryGraph::Edge::Edge(uint64_t from, uint64_t to, const vector<unsigned>& commo
 }
 //---------------------------------------------------------------------------
 QueryGraph::Edge::~Edge()
-// Destructor
+    // Destructor
 {
 }
 //---------------------------------------------------------------------------
 QueryGraph::Filter::Filter()
-    : arg1(0), arg2(0), arg3(0), arg4(0), id(~0u)
+    : arg1(0), arg2(0), arg3(0), arg4(0), id(~0u), subquery(NULL), subpattern(NULL)
       // Constructor
 {
 }
 //---------------------------------------------------------------------------
 QueryGraph::Filter::Filter(const Filter& other)
     : type(other.type), arg1(other.arg1 ? new Filter(*other.arg1) : 0), arg2(other.arg2 ? new Filter(*other.arg2) : 0), arg3(other.arg3 ? new Filter(*other.arg3) : 0), arg4(other.arg4 ? new Filter(*other.arg4) : 0), id(other.id), value(other.value),
-      valueid(other.valueid)
-      // Copy-Constructor
+    valueid(other.valueid), subquery(other.subquery), subpattern(other.subpattern)
+    // Copy-Constructor
 {
 }
 //---------------------------------------------------------------------------
 QueryGraph::Filter::~Filter()
-// Destructor
+    // Destructor
 {
     delete arg1;
     delete arg2;
@@ -75,7 +75,7 @@ QueryGraph::Filter::~Filter()
 }
 //---------------------------------------------------------------------------
 QueryGraph::Filter& QueryGraph::Filter::operator=(const Filter& other)
-// Assignment
+    // Assignment
 {
     if ((&other) != this) {
         type = other.type;
@@ -144,7 +144,16 @@ bool QueryGraph::Filter::isApplicable(const std::set<unsigned>& variables) const
     if (arg1 && (!arg1->isApplicable(variables))) return false;
     if (arg2 && (!arg2->isApplicable(variables))) return false;
     if (arg3 && (!arg3->isApplicable(variables))) return false;
-
+    if (subquery) {
+        //Check whether the subquery mentions all variables
+        for(auto idx = subquery->projectionBegin();
+                idx != subquery->projectionEnd();
+                ++idx) {
+            if (!variables.count(*idx)) {
+                return false;
+            }
+        }
+    }
     return true;
 }
 //---------------------------------------------------------------------------
@@ -155,12 +164,12 @@ QueryGraph::QueryGraph()
 }
 //---------------------------------------------------------------------------
 QueryGraph::~QueryGraph()
-// Destructor
+    // Destructor
 {
 }
 //---------------------------------------------------------------------------
 void QueryGraph::clear()
-// Clear the graph
+    // Clear the graph
 {
     query = SubQuery();
     duplicateHandling = AllDuplicates;
@@ -168,7 +177,7 @@ void QueryGraph::clear()
 }
 //---------------------------------------------------------------------------
 static bool intersects(const set<unsigned>& a, const set<unsigned>& b, vector<unsigned>& common)
-// Check if two sets overlap
+    // Check if two sets overlap
 {
     common.clear();
     set<unsigned>::const_iterator ia, la, ib, lb;
@@ -205,10 +214,10 @@ static bool intersects(const set<unsigned>& a, const set<unsigned>& b, vector<un
 }
 //---------------------------------------------------------------------------
 static void constructEdges(QueryGraph::SubQuery& subQuery, set<unsigned>& bindings)
-// Construct the edges for a specfic subquery
+    // Construct the edges for a specfic subquery
 {
     // Collect all variable bindings
-    vector<set<unsigned> > patternBindings, optionalBindings, unionBindings, subqueryBindings;;
+    vector<set<unsigned> > patternBindings, optionalBindings, unionBindings, subqueryBindings, valueBindings;
     patternBindings.resize(subQuery.nodes.size());
     for (unsigned index = 0, limit = patternBindings.size(); index < limit; ++index) {
         const QueryGraph::Node& n = subQuery.nodes[index];
@@ -239,14 +248,22 @@ static void constructEdges(QueryGraph::SubQuery& subQuery, set<unsigned>& bindin
     // Add the projection of the subqueries.
     subqueryBindings.resize(subQuery.subqueries.size());
     for (unsigned index = 0, limit = subqueryBindings.size(); index < limit; ++index) {
-	subqueryBindings[index].insert(subQuery.subqueries[index]->projectionBegin(), subQuery.subqueries[index]->projectionEnd());
-	bindings.insert(subqueryBindings[index].begin(), subqueryBindings[index].end());
+        subqueryBindings[index].insert(subQuery.subqueries[index]->projectionBegin(), subQuery.subqueries[index]->projectionEnd());
+        bindings.insert(subqueryBindings[index].begin(), subqueryBindings[index].end());
+    }
+    valueBindings.resize(subQuery.valueNodes.size());
+    for (unsigned index = 0, limit = valueBindings.size(); index < limit; ++index) {
+        for (auto v : subQuery.valueNodes[index].variables) {
+            valueBindings[index].insert(v);
+            bindings.insert(v);
+        }
     }
 
     // Derive all edges
     subQuery.edges.clear();
     unsigned optionalOfs = patternBindings.size(), unionOfs = optionalOfs + optionalBindings.size();
     unsigned subqueryOfs = unionOfs + unionBindings.size();
+    unsigned valueOfs = subqueryOfs + subqueryBindings.size();
     vector<unsigned> common;
     for (unsigned index = 0, limit = patternBindings.size(); index < limit; ++index) {
         for (unsigned index2 = index + 1; index2 < limit; index2++)
@@ -261,6 +278,9 @@ static void constructEdges(QueryGraph::SubQuery& subQuery, set<unsigned>& bindin
         for (unsigned index2 = 0, limit2 = subqueryBindings.size(); index2 < limit2; index2++)
             if (intersects(patternBindings[index], subqueryBindings[index2], common))
                 subQuery.edges.push_back(QueryGraph::Edge(index, subqueryOfs + index2, common));
+        for (unsigned index2 = 0, limit2 = valueBindings.size(); index2 < limit2; index2++)
+            if (intersects(patternBindings[index], valueBindings[index2], common))
+                subQuery.edges.push_back(QueryGraph::Edge(index, valueOfs + index2, common));
     }
     for (unsigned index = 0, limit = optionalBindings.size(); index < limit; ++index) {
         for (unsigned index2 = index + 1; index2 < limit; index2++)
@@ -272,6 +292,9 @@ static void constructEdges(QueryGraph::SubQuery& subQuery, set<unsigned>& bindin
         for (unsigned index2 = 0, limit2 = subqueryBindings.size(); index2 < limit2; index2++)
             if (intersects(optionalBindings[index], subqueryBindings[index2], common))
                 subQuery.edges.push_back(QueryGraph::Edge(optionalOfs + index, subqueryOfs + index2, common));
+        for (unsigned index2 = 0, limit2 = valueBindings.size(); index2 < limit2; index2++)
+            if (intersects(optionalBindings[index], valueBindings[index2], common))
+                subQuery.edges.push_back(QueryGraph::Edge(optionalOfs + index, valueOfs + index2, common));
     }
     for (unsigned index = 0, limit = unionBindings.size(); index < limit; ++index) {
         for (unsigned index2 = index + 1; index2 < limit; index2++)
@@ -280,15 +303,22 @@ static void constructEdges(QueryGraph::SubQuery& subQuery, set<unsigned>& bindin
         for (unsigned index2 = 0, limit2 = subqueryBindings.size(); index2 < limit2; index2++)
             if (intersects(unionBindings[index], subqueryBindings[index2], common))
                 subQuery.edges.push_back(QueryGraph::Edge(unionOfs + index, subqueryOfs + index2, common));
+        for (unsigned index2 = 0, limit2 = valueBindings.size(); index2 < limit2; index2++)
+            if (intersects(unionBindings[index], valueBindings[index2], common))
+                subQuery.edges.push_back(QueryGraph::Edge(unionOfs + index, valueOfs + index2, common));
     }
-    for (unsigned index = 0, limit = subqueryBindings.size(); index < limit; index++)
+    for (unsigned index = 0, limit = subqueryBindings.size(); index < limit; index++) {
         for (unsigned index2 = index + 1, limit2 = subqueryBindings.size(); index2 < limit2; index2++)
-	    if (intersects(subqueryBindings[index], subqueryBindings[index2], common))
-		subQuery.edges.push_back(QueryGraph::Edge(subqueryOfs + index, subqueryOfs + index2, common));
+            if (intersects(subqueryBindings[index], subqueryBindings[index2], common))
+                subQuery.edges.push_back(QueryGraph::Edge(subqueryOfs + index, subqueryOfs + index2, common));
+        for (unsigned index2 = 0, limit2 = valueBindings.size(); index2 < limit2; index2++)
+            if (intersects(subqueryBindings[index], valueBindings[index2], common))
+                subQuery.edges.push_back(QueryGraph::Edge(subqueryOfs + index, valueOfs + index2, common));
+    }
 }
 //---------------------------------------------------------------------------
 void QueryGraph::constructEdges()
-// Construct the edges
+    // Construct the edges
 {
     set<unsigned> bindings;
     ::constructEdges(query, bindings);

@@ -86,6 +86,7 @@ template <class Impl,class T> void PoolBase<Impl,T>::allocChunk()
 {
    // Allocate the chunk
    char* newData=new char[chunkSize*size+sizeof(ChunkHeader)];
+   memset(newData, 0, chunkSize*size+sizeof(ChunkHeader));
    ChunkHeader* const newChunk=reinterpret_cast<ChunkHeader*>(newData+chunkSize*size);
    newChunk->next=chunks; newChunk->chunkSize=chunkSize; chunks=newChunk;
 

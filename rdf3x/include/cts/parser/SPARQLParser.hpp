@@ -60,13 +60,14 @@ public:
         ~Pattern();
     };
     /// A filter entry
+    struct PatternGroup;
     struct Filter {
         /// Possible types
         enum Type {
             Or, And, Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual, Plus, Minus, Mul, Div,
             Not, UnaryPlus, UnaryMinus, Literal, Variable, IRI, Function, ArgumentList,
             Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
-            Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_contains,
+            Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_notexists, Builtin_contains,
             Builtin_xsddecimal
         };
 
@@ -80,6 +81,9 @@ public:
         std::string valueType;
         /// Possible subtypes or variable ids
         unsigned valueArg;
+        /// subqueries or anything else
+        std::shared_ptr<SPARQLParser> pointerToSubquery;
+        std::shared_ptr<PatternGroup> pointerToSubPattern;
 
         /// Constructor
         Filter();
@@ -93,7 +97,7 @@ public:
     };
     /// An assignment entry
     struct Assignment {
-        Filter *expression;
+        std::shared_ptr<Filter> expression;
         Element outputVar;
     };
     /// A group of patterns
@@ -109,10 +113,23 @@ public:
         /// The union parts
         std::vector<std::vector<PatternGroup> > unions;
         /// If it contains complete subqueries
-        std::vector<SPARQLParser*> subqueries;
+        std::vector<std::shared_ptr<SPARQLParser>> subqueries;
+        /// If it contains MINUS patterns
+        std::vector<PatternGroup> minuses;
+        /// Values passed by the directive VALUES
+        struct ValueBindings {
+            std::vector<unsigned> variables;
+            std::vector<SPARQLParser::Element> values;
+            ValueBindings(std::vector<unsigned> variables
+                    , std::vector<SPARQLParser::Element> values) :
+            variables(variables), values(values) {
+            }
+        };
+        std::vector<ValueBindings> values;
     };
     /// The projection modifier
-    enum ProjectionModifier { Modifier_None, Modifier_Distinct, Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
+    enum ProjectionModifier { Modifier_None, Modifier_Distinct,
+        Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
     /// Sort order
     struct Order {
         /// Variable id
@@ -190,6 +207,10 @@ private:
     void parseGraphPattern(PatternGroup& group);
     // Parse an assignment (SPARQL 1.1)
     void parseAssignment(PatternGroup& group);
+    // Parse VALUES (SPARQL 1.1)
+    void parseValues(PatternGroup& group);
+    /// Parse the minus operator (SPARQL 1.1)
+    void parseMinus(PatternGroup& group);
     // Parse a group of patterns
     void parseGroupGraphPattern(PatternGroup& group);
 

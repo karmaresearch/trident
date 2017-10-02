@@ -31,6 +31,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/log/trivial.hpp>
 
 #include <sparsehash/sparse_hash_map>
 #include <sparsehash/dense_hash_map>

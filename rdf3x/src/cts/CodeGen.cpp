@@ -20,6 +20,8 @@
 #include <rts/operator/Selection.hpp>
 #include <rts/operator/SingletonScan.hpp>
 #include <rts/operator/Sort.hpp>
+#include <rts/operator/Minus.hpp>
+#include <rts/operator/ValuesScan.hpp>
 #include <rts/operator/Assignment.hpp>
 #include <rts/operator/TableFunction.hpp>
 #include <rts/operator/Union.hpp>
@@ -65,6 +67,19 @@ static void resolveScanVariable(Runtime& runtime, const map<unsigned, Register*>
                 bindings[var] = reg;
         }
     }
+}
+//---------------------------------------------------------------------------
+static Operator* translateValuesScan(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
+{
+    const QueryGraph::ValuesNode& node = *reinterpret_cast<QueryGraph::ValuesNode*>(plan->left);
+    std::vector<Register*> regs;
+    for(unsigned i = 0; i < node.variables.size(); ++i) {
+        unsigned var = node.variables[i];
+        Register *reg = runtime.getRegister(registers.find((QueryGraph::Node*)&node)->second + i);
+        regs.push_back(reg);
+        bindings[var] = reg;
+    }
+    return new ValuesScan(regs, node.values, node.values.size() / node.variables.size());
 }
 //---------------------------------------------------------------------------
 static Operator* translateIndexScan(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
@@ -175,6 +190,16 @@ static void collectVariables(const map<unsigned, Register*>& context, set<unsign
                                       break;
                                   }
         case Plan::Singleton:
+                                  break;
+        case Plan::Minus:
+                                  collectVariables(context, variables, plan->left);
+                                  collectVariables(context, variables, plan->right);
+                                  break;
+        case Plan::ValuesScan:
+                                  for (auto v : ((QueryGraph::ValuesNode*) plan->left)->variables) {
+                                      variables.insert(v);
+                                  }
+                                  break;
         case Plan::Subselect:
                                   //Here I collect only the projected variables
                                   QueryGraph *graph = (QueryGraph*)plan->right;
@@ -327,7 +352,7 @@ static Operator* translateMergeJoin(Runtime& runtime, const map<unsigned, Regist
             rightTail.push_back((*iter).second);
 
     // Build the operator
-    Operator* result = new MergeJoin(leftTree, leftBindings[joinOn], leftTail, rightTree, rightBindings[joinOn], rightTail, plan->cardinality);
+    Operator* result = new MergeJoin(leftTree, leftBindings[joinOn], leftTail, rightTree, rightBindings[joinOn], rightTail, plan->left->optional, plan->right->optional, plan->cardinality);
 
     // And apply additional selections if necessary
     result = addAdditionalSelections(runtime, result, joinVariables, leftBindings, rightBindings, joinOn);
@@ -398,51 +423,51 @@ static void collectVariables(set<unsigned>& filterVariables, const QueryGraph::F
         collectVariables(filterVariables, *filter.arg3);
 }
 //---------------------------------------------------------------------------
-static Selection::Predicate* buildSelection(const map<unsigned, Register*>& bindings, const QueryGraph::Filter& filter);
+static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned, Register*>& bindings, const QueryGraph::Filter& filter, Plan *plan, const map<const QueryGraph::Node*, unsigned>& registers);
 //---------------------------------------------------------------------------
-static void collectSelectionArgs(const map<unsigned, Register*>& bindings, vector<Selection::Predicate*>& args, const QueryGraph::Filter* input)
+static void collectSelectionArgs(Runtime &runtime, const map<unsigned, Register*>& bindings, vector<Selection::Predicate*>& args, const QueryGraph::Filter* input, Plan *filterplan, const map<const QueryGraph::Node*, unsigned>& registers)
     // Collect all function arguments
 {
     for (const QueryGraph::Filter* iter = input; iter; iter = iter->arg2) {
         assert(iter->type == QueryGraph::Filter::ArgumentList);
-        args.push_back(buildSelection(bindings, *(iter->arg1)));
+        args.push_back(buildSelection(runtime, bindings, *(iter->arg1), filterplan, registers));
     }
 }
 //---------------------------------------------------------------------------
-static Selection::Predicate* buildSelection(const map<unsigned, Register*>& bindings, const QueryGraph::Filter& filter)
+static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned, Register*>& bindings, const QueryGraph::Filter& filter, Plan *plan, const map<const QueryGraph::Node*, unsigned>& registers)
     // Construct a complex filter predicate
 {
     switch (filter.type) {
         case QueryGraph::Filter::Or:
-            return new Selection::Or(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Or(buildSelection(runtime, bindings, *filter.arg1, plan, registers), buildSelection(runtime, bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::And:
-            return new Selection::And(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::And(buildSelection(runtime, bindings, *filter.arg1, plan, registers), buildSelection(runtime, bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Equal:
-            return new Selection::Equal(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Equal(buildSelection(runtime, bindings, *filter.arg1, plan, registers), buildSelection(runtime, bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::NotEqual:
-            return new Selection::And(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::NotEqual(buildSelection(runtime, bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Less:
-            return new Selection::Less(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Less(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::LessOrEqual:
-            return new Selection::LessOrEqual(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::LessOrEqual(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Greater:
-            return new Selection::Less(buildSelection(bindings, *filter.arg2), buildSelection(bindings, *filter.arg1));
+            return new Selection::Less(buildSelection(runtime,bindings, *filter.arg2, plan, registers), buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::GreaterOrEqual:
-            return new Selection::LessOrEqual(buildSelection(bindings, *filter.arg2), buildSelection(bindings, *filter.arg1));
+            return new Selection::LessOrEqual(buildSelection(runtime,bindings, *filter.arg2, plan, registers), buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Plus:
-            return new Selection::Plus(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Plus(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Minus:
-            return new Selection::Minus(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Minus(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Mul:
-            return new Selection::Mul(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Mul(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Div:
-            return new Selection::Div(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+            return new Selection::Div(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Not:
-            return new Selection::Not(buildSelection(bindings, *filter.arg1));
+            return new Selection::Not(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::UnaryPlus:
-            return buildSelection(bindings, *filter.arg1);
+            return buildSelection(runtime,bindings, *filter.arg1, plan, registers);
         case QueryGraph::Filter::UnaryMinus:
-            return new Selection::Neg(buildSelection(bindings, *filter.arg1));
+            return new Selection::Neg(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Literal:
             if (~filter.id)
                 return new Selection::ConstantLiteral(filter.id);
@@ -463,43 +488,43 @@ static Selection::Predicate* buildSelection(const map<unsigned, Register*>& bind
         case QueryGraph::Filter::Function: {
                                                assert(filter.arg1->type == QueryGraph::Filter::IRI);
                                                vector<Selection::Predicate*> args;
-                                               collectSelectionArgs(bindings, args, filter.arg2);
+                                               collectSelectionArgs(runtime, bindings, args, filter.arg2, plan, registers);
                                                return new Selection::FunctionCall(filter.arg1->value, args);
                                            }
         case QueryGraph::Filter::ArgumentList:
                                            assert(false); // cannot happen
         case QueryGraph::Filter::Builtin_str:
-                                           return new Selection::BuiltinStr(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinStr(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_lang:
-                                           return new Selection::BuiltinLang(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinLang(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_langmatches:
-                                           return new Selection::BuiltinLangMatches(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+                                           return new Selection::BuiltinLangMatches(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Builtin_contains:
-                                           return new Selection::BuiltinContains(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+                                           return new Selection::BuiltinContains(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Builtin_datatype:
-                                           return new Selection::BuiltinDatatype(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinDatatype(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_bound:
                                            if (~(filter.arg1->id))
                                                return new Selection::BuiltinBound((*bindings.find(filter.arg1->id)).second);
                                            else
                                                return new Selection::False();
         case QueryGraph::Filter::Builtin_sameterm:
-                                           return new Selection::BuiltinSameTerm(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2));
+                                           return new Selection::BuiltinSameTerm(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers));
         case QueryGraph::Filter::Builtin_isiri:
-                                           return new Selection::BuiltinIsIRI(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinIsIRI(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_isblank:
-                                           return new Selection::BuiltinIsBlank(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinIsBlank(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_isliteral:
-                                           return new Selection::BuiltinIsLiteral(buildSelection(bindings, *filter.arg1));
+                                           return new Selection::BuiltinIsLiteral(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
         case QueryGraph::Filter::Builtin_regex:
-                                           return new Selection::BuiltinRegEx(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2), filter.arg3 ? buildSelection(bindings, *filter.arg3) : 0);
+                                           return new Selection::BuiltinRegEx(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers), filter.arg3 ? buildSelection(runtime,bindings, *filter.arg3, plan, registers) : 0);
         case QueryGraph::Filter::Builtin_replace:
-                                           return new Selection::BuiltinReplace(buildSelection(bindings, *filter.arg1), buildSelection(bindings, *filter.arg2), filter.arg3 ? buildSelection(bindings, *filter.arg3) : 0, filter.arg4 ? buildSelection(bindings, *filter.arg4) : 0);
+                                           return new Selection::BuiltinReplace(buildSelection(runtime,bindings, *filter.arg1, plan, registers), buildSelection(runtime,bindings, *filter.arg2, plan, registers), filter.arg3 ? buildSelection(runtime,bindings, *filter.arg3, plan, registers) : 0, filter.arg4 ? buildSelection(runtime,bindings, *filter.arg4, plan, registers) : 0);
         case QueryGraph::Filter::Builtin_in: {
                                                  vector<Selection::Predicate*> args;
                                                  set<string> strings;
-                                                 collectSelectionArgs(bindings, args, filter.arg2);
-                                                 return new Selection::BuiltinIn(buildSelection(bindings, *filter.arg1), args, strings, true);
+                                                 collectSelectionArgs(runtime, bindings, args, filter.arg2, plan, registers);
+                                                 return new Selection::BuiltinIn(buildSelection(runtime,bindings, *filter.arg1, plan, registers), args, strings, true);
                                              }
         case QueryGraph::Filter::Builtin_notin: {
                                                     vector<Selection::Predicate*> args;
@@ -508,10 +533,47 @@ static Selection::Predicate* buildSelection(const map<unsigned, Register*>& bind
                                                         assert(iter->type == QueryGraph::Filter::ArgumentList);
                                                         strings.insert(iter->value);
                                                     }
-                                                    return new Selection::BuiltinIn(buildSelection(bindings, *filter.arg1), args, strings, false);
+                                                    return new Selection::BuiltinIn(buildSelection(runtime,bindings, *filter.arg1, plan, registers), args, strings, false);
                                                 }
         case QueryGraph::Filter::Builtin_xsddecimal:
-                                                return new Selection::BuiltinXSD(buildSelection(bindings, *filter.arg1));
+                                                return new Selection::BuiltinXSD(buildSelection(runtime,bindings, *filter.arg1, plan, registers));
+        case QueryGraph::Filter::Builtin_notexists: {
+                                                        std::shared_ptr<QueryGraph> query = filter.subquery;
+                                                        std::shared_ptr<QueryGraph::SubQuery> pattern = filter.subpattern;
+                                                        if (!query && !pattern) {
+                                                            throw;
+                                                        }
+
+                                                        //Create operator tree for the subquery
+                                                        Operator *tree = NULL;
+                                                        std::vector<Register *> regsToLoad;
+                                                        std::vector<Register *> regsToCheck;
+                                                        if (query) {
+                                                            vector<Register*> output;
+                                                            tree = CodeGen::translateIntern(runtime, *query.get(), plan, output, registers);
+                                                            unsigned i = 0;
+                                                            for(auto prj = query->projectionBegin(); prj != query->projectionEnd(); ++prj) {
+                                                                if (bindings.count(*prj)) {
+                                                                    regsToLoad.push_back(output[i]);
+                                                                    regsToCheck.push_back(bindings.find(*prj)->second);
+                                                                }
+                                                                i++;
+                                                            }
+                                                        } else {
+                                                            map<unsigned, Register*> context, filterBindings;
+                                                            std::set<unsigned> projection;
+                                                            CodeGen::collectVariables(projection, plan);
+                                                            tree = translatePlan(runtime, context, projection, filterBindings, registers, plan);
+                                                            for(auto v : projection) {
+                                                                if (bindings.count(v)) {
+                                                                    regsToCheck.push_back(bindings.find(v)->second);
+                                                                    regsToLoad.push_back(filterBindings.find(v)->second);
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return new Selection::BuiltinNotExists(tree, regsToLoad, regsToCheck);
+                                                    }
     }
     throw; // Cannot happen
 }
@@ -519,7 +581,9 @@ static Selection::Predicate* buildSelection(const map<unsigned, Register*>& bind
 static Operator* translateFilter(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
     // Translate a filter into an operator tree
 {
-    const QueryGraph::Filter& filter = *reinterpret_cast<QueryGraph::Filter*>(plan->right);
+    //const QueryGraph::Filter& filter = *reinterpret_cast<QueryGraph::Filter*>(plan->right);
+    FilterArgs& filterArgs =  *reinterpret_cast<FilterArgs*>(plan->right);
+    const QueryGraph::Filter& filter = *filterArgs.filter;
 
     // Collect all variables
     set<unsigned> filterVariables;
@@ -566,7 +630,7 @@ static Operator* translateFilter(Runtime& runtime, const map<unsigned, Register*
         }
     }
     if (!result) {
-        result = new Selection(tree, runtime, buildSelection(bindings, filter), plan->cardinality);
+        result = new Selection(tree, runtime, buildSelection(runtime, bindings, filter, filterArgs.plan, registers), plan->cardinality);
     }
 
     // Cleanup the binding
@@ -607,6 +671,59 @@ static Operator* translateSubselect(Runtime& runtime, /*const map<unsigned, Regi
     tree = new DuplLimit(tree, outputFromTheSubquery, duplicateHandling,
             query->getLimit());
     return tree;
+
+}
+//---------------------------------------------------------------------------
+static Operator* translateMinus(Runtime& runtime,const map<unsigned, Register*>& context,
+        const set<unsigned>& projection, map<unsigned, Register*>& bindings,
+        const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
+
+{
+    if (!plan->right || !plan->right->subquery) {
+        throw 1;
+    }
+
+    std::set<unsigned> variablesMainPlan;
+    CodeGen::collectVariables(variablesMainPlan, plan->left);
+    std::set<unsigned> minusVariables;
+    CodeGen::collectVariables(minusVariables, plan->right);
+    //Find the variables that should be checked
+    std::set<unsigned> varsToCheck;
+    for(auto varId : minusVariables) {
+        if (variablesMainPlan.count(varId)) {
+            varsToCheck.insert(varId);
+        }
+    }
+
+    //Make sure that all the common variables are also projected in the main tree
+    auto newprojection = projection;
+    for(auto v : varsToCheck) newprojection.insert(v);
+
+    //Convert main query
+    Operator* mainTree = translatePlan(runtime,
+            context,
+            newprojection,
+            bindings, registers,
+            plan->left);
+
+    map<unsigned, Register*> minusBindings;
+    Operator* minusTree = translatePlan(runtime,
+            context,
+            varsToCheck,
+            minusBindings,
+            registers,
+            plan->right);
+
+    //Create pairs of registers to check
+    std::vector<std::pair<Register*, Register*>> regsToCheck;
+    for (auto v : varsToCheck) {
+        regsToCheck.push_back(make_pair(bindings.find(v)->second,
+                    minusBindings.find(v)->second));
+    }
+
+    Operator *result = new Minus(mainTree, minusTree, regsToCheck,
+            plan->left->cardinality);
+    return result;
 
 }
 //---------------------------------------------------------------------------
@@ -786,6 +903,12 @@ static Operator* translatePlan(Runtime& runtime, const map<unsigned, Register*>&
         case Plan::Subselect:
             result = translateSubselect(runtime, /* context,*/ projection, bindings, registers, plan);
             break;
+        case Plan::Minus:
+            result = translateMinus(runtime, context, projection, bindings, registers, plan);
+            break;
+        case Plan::ValuesScan:
+            result = translateValuesScan(runtime, context, projection, bindings, registers, plan);
+            break;
         case Plan::MergeUnion:
             result = translateMergeUnion(runtime, context, projection, bindings, registers, plan);
             break;
@@ -813,11 +936,14 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
             registerClasses[node.object].insert(id + 2);
         id += 3;
     }
+
     for (vector<QueryGraph::SubQuery>::const_iterator iter = query.optional.begin(), limit = query.optional.end(); iter != limit; ++iter)
         id = allocateRegisters(registers, registerClasses, (*iter), id);
+
     for (vector<vector<QueryGraph::SubQuery> >::const_iterator iter = query.unions.begin(), limit = query.unions.end(); iter != limit; ++iter)
         for (vector<QueryGraph::SubQuery>::const_iterator iter2 = (*iter).begin(), limit2 = (*iter).end(); iter2 != limit2; ++iter2)
             id = allocateRegisters(registers, registerClasses, (*iter2), id);
+
     for (vector<QueryGraph::TableFunction>::const_iterator iter = query.tableFunctions.begin(), limit = query.tableFunctions.end(); iter != limit; ++iter) {
         registers[reinterpret_cast<const QueryGraph::Node*>(&(*iter))] = id;
         unsigned slot = 0;
@@ -825,15 +951,34 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
             registerClasses[*iter2].insert(id + slot);
         id += (*iter).output.size();
     }
+
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin();
             itr != query.subqueries.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        /*registers[reinterpret_cast<const QueryGraph::Node*>(subq)] = id;
-          for (QueryGraph::projection_iterator itr = subq->projectionBegin();
-          itr != subq->projectionEnd(); ++itr) {
-          registerClasses[*itr].insert(id++);
-          }*/
         id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+    }
+
+    for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.minuses.begin();
+            itr != query.minuses.end(); ++itr) {
+        QueryGraph* subq = itr->get();
+        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+    }
+
+    for (auto itr = query.valueNodes.begin();
+            itr != query.valueNodes.end(); ++itr) {
+        QueryGraph::Node *n = (QueryGraph::Node*)&(*itr);
+        registers[n] = id;
+        for (auto v : itr->variables) {
+            registerClasses[v].insert(id++);
+        }
+    }
+    for(auto itr = query.filters.begin(); itr != query.filters.end(); ++itr) {
+        if (itr->subpattern != NULL) {
+            id = allocateRegisters(registers, registerClasses, *itr->subpattern.get(), id);
+        }
+        if (itr->subquery != NULL) {
+            id = allocateRegisters(registers, registerClasses, itr->subquery->getQuery(), id);
+        }
     }
     return id;
 }
@@ -887,14 +1032,13 @@ Operator* CodeGen::translateIntern(Runtime& runtime, const QueryGraph& query, Pl
     return tree;
 }
 //---------------------------------------------------------------------------
-Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* plan, bool silent)
-    // Perform a naive translation of a query into an operator tree
+
+void CodeGen::prepareRuntime(Runtime &runtime,
+        const QueryGraph::SubQuery& query,
+        std::map<const QueryGraph::Node*, unsigned> &registers)
 {
-
-
-    std::map<const QueryGraph::Node*, unsigned> registers;
     map<unsigned, set<unsigned> > registerClasses;
-    unsigned registerCount = allocateRegisters(registers, registerClasses, query.getQuery(), 0);
+    unsigned registerCount = allocateRegisters(registers, registerClasses, query, 0);
     runtime.allocateRegisters(registerCount + 1);
     // Prepare domain information for join attributes
     {
@@ -921,6 +1065,13 @@ Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* pl
                 runtime.getRegister(*iter2)->domain = domain;
         }
     }
+}
+//---------------------------------------------------------------------------
+Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* plan, bool silent)
+    // Perform a naive translation of a query into an operator tree
+{
+    std::map<const QueryGraph::Node*, unsigned> registers;
+    prepareRuntime(runtime, query.getQuery(), registers);
 
     // Build the tree itself
     vector<Register*> output;
