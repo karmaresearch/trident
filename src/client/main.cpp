@@ -665,7 +665,7 @@ void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport)
 void subgraphEval(KB &kb, po::variables_map &vm) {
     SubgraphHandler sh;
     sh.evaluate(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
-            "TODO", "TODO",
+            vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),
             vm["nametest"].as<string>(), "python");
 }
 

@@ -307,15 +307,12 @@ class Embeddings {
             uint16_t dim;
             uint32_t embperblock = 0;
             for (auto f : files) {
-                if (boost::algorithm::contains(f, "-meta")) {
+                if (boost::algorithm::ends_with(f, "-meta")) {
                     //Get the metadata
                     std::ifstream ifs;
-                    ifs.open(p.parent_path().string() + "/" + f, std::ifstream::in);
+                    ifs.open(f, std::ifstream::in);
                     boost::iostreams::filtering_stream<boost::iostreams::input> in;
                     in.push(ifs);
-                    if (boost::algorithm::ends_with(f, ".gz")) {
-                        in.push(boost::iostreams::gzip_decompressor());
-                    }
                     char buffer[10];
                     in.read(buffer, 10);
                     embperblock = *(uint32_t*) buffer;
@@ -339,15 +336,12 @@ class Embeddings {
                 uint32_t *conf = emb->conflicts.data();
 
                 uint32_t countfile = 0;
-                while (boost::filesystem::exists(path + "." + std::to_string(countfile))) {
-                    std::string filetoload = path + "." + std::to_string(countfile);
+                std::string filetoload = path + "." + std::to_string(countfile);
+                while (boost::filesystem::exists(filetoload)) {
                     std::ifstream ifs;
                     ifs.open(filetoload, std::ifstream::in);
                     boost::iostreams::filtering_stream<boost::iostreams::input> in;
                     in.push(ifs);
-                    if (boost::algorithm::ends_with(filetoload, ".gz")) {
-                        in.push(boost::iostreams::gzip_decompressor());
-                    }
                     const uint16_t sizeline = 8 + dim * 8;
                     std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
                     while(true) {
@@ -364,6 +358,7 @@ class Embeddings {
                         raw += dim;
                     }
                     countfile += 1;
+                    filetoload = path + "." + std::to_string(countfile);
                 }
                 return emb;
             }

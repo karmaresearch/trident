@@ -48,17 +48,14 @@ class CIKMSubgraphs : public Subgraphs<K> {
         void loadFromFile(string file) {
             std::ifstream ifs;
             ifs.open(file, std::ifstream::in);
-            boost::iostreams::filtering_stream<boost::iostreams::input> in;
-            in.push(ifs);
-            in.push(boost::iostreams::gzip_decompressor());
             char bdim[2];
-            in.read(bdim, 2);
+            ifs.read(bdim, 2);
             dim = *(uint16_t*) bdim;
             const uint16_t sizeline = 17 + dim * 8;
             std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
             while (true) {
-                in.read(buffer.get(), sizeline);
-                if (in.eof()) {
+                ifs.read(buffer.get(), sizeline);
+                if (ifs.eof()) {
                     break;
                 }
                 //Parse the subgraph

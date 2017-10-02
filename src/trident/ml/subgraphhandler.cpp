@@ -12,7 +12,8 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new CIKMSubgraphs<double>());
         subgraphs->loadFromFile(subgraphsFile);
     } else {
-        BOOST_LOG_TRIVIAL(error) << "Not implemented!";
+        BOOST_LOG_TRIVIAL(error) << "Subgraph format not implemented!";
+        throw 10;
     }
 }
 
@@ -42,18 +43,19 @@ void SubgraphHandler::evaluate(KB &kb,
     //Load the test file
     std::vector<uint64_t> testTriples;
     if (format == "python") {
-        //The file is a gzip file with all the test triples serialized after
+        //The file is a uncompressed file with all the test triples serialized after
         //each other
+        if (!fs::exists(nametest)) {
+            BOOST_LOG_TRIVIAL(error) << "Test file " << nametest << " not found";
+            throw 10;
+        }
         std::ifstream ifs;
         ifs.open(nametest, std::ifstream::in);
-        boost::iostreams::filtering_stream<boost::iostreams::input> in;
-        in.push(ifs);
-        in.push(boost::iostreams::gzip_decompressor());
         const uint16_t sizeline = 8 * 3;
         std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
         while (true) {
-            in.read(buffer.get(), sizeline);
-            if (in.eof()) {
+            ifs.read(buffer.get(), sizeline);
+            if (ifs.eof()) {
                 break;
             }
             testTriples.push_back(*(uint64_t*)buffer.get());
@@ -76,7 +78,7 @@ void SubgraphHandler::evaluate(KB &kb,
     if (algo == "transe") {
         //Select most promising subgraphs to do the search
         std::vector<uint64_t> relevantSubgraphs;
-        for(uint64_t i = 0; i < testTriples.size(); ++i) {
+        for(uint64_t i = 0; i < testTriples.size(); i+=3) {
             uint64_t h, t, r;
             h = testTriples[i];
             t = testTriples[i + 1];
@@ -85,7 +87,7 @@ void SubgraphHandler::evaluate(KB &kb,
             bool foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
             selectRelevantSubGraphs(SP, r, t, relevantSubgraphs);
             bool foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
-            //Now I have the list of relevant subgraphs. It the answer in one of these?
+            //TODO: Now I have the list of relevant subgraphs. It the answer in one of these?
         }
     } else {
         BOOST_LOG_TRIVIAL(error) << "Algo not yet supported";

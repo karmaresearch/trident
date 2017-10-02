@@ -416,7 +416,12 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     subeval_options.add_options()("nametest",
             po::value<string>()->default_value(""),
             "The path (or name) of the dataset to use to test the performance.");
-
+    subeval_options.add_options()("sgfile",
+            po::value<string>()->default_value(""),
+            "The path of the file that contains embeddings of the subgraphs.");
+    subeval_options.add_options()("sgformat",
+            po::value<string>()->default_value(""),
+            "The format of the subgraphs (for now only 'cikm').");
 
     po::options_description cmdline_options("Generic options");
     cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options).add(ml_options).add(subeval_options);
