@@ -46,6 +46,8 @@ class TridentUtils {
 
         static void loadPairFromFile(std::string inputfile,
                 std::vector<std::pair<long,long>> &values, char sep);
+
+        static uint64_t spaceLeft(std::string location);
 };
 
 #endif

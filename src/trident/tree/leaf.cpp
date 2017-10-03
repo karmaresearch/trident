@@ -27,13 +27,9 @@
 
 #include <kognac/utils.h>
 
-#include <boost/chrono.hpp>
-
 #include <string.h>
 #include <assert.h>
 #include <climits>
-
-namespace timens = boost::chrono;
 
 Leaf::Leaf(TreeContext *c) :
     Node(c) {
@@ -206,43 +202,6 @@ int Leaf::serialize_numberlist(char *bytes, int pos) {
     return pos;
 }
 
-//int Leaf::serialize_text(char *bytes, int pos) {
-//  /*** STRINGS ***/
-//  // We reserve 4 * getCurrentBytes to store the positions of the
-//  // strings.
-//  int currentSize = getCurrentSize();
-//  int origPos = pos;
-//  pos += 4 * currentSize;
-//  int startPos = pos;
-//
-//  //Copy the first string
-//  memcpy(bytes + pos, strings, endStrings[0]);
-//  pos += endStrings[0];
-//  Utils::encode_int(bytes, origPos, endStrings[0]);
-//  origPos += 4;
-//
-//  for (int i = 1; i < currentSize; ++i) {
-//      // 1- Calculate the number of equal characters
-//      int eq_bytes = Utils::commonPrefix((tTerm*) strings, 0, endStrings[0],
-//              (tTerm *) strings, endStrings[i - 1], endStrings[i]);
-//
-//      // 2- Write the number of equal characters
-//      pos = Utils::encode_vint2(bytes, pos, eq_bytes);
-//
-//      // 3- Write the length of the remaining strings
-//      int remSize = endStrings[i] - endStrings[i - 1] - eq_bytes;
-//      pos = Utils::encode_vint2(bytes, pos, remSize);
-//
-//      // 4- Write the remaining string
-//      memcpy(bytes + pos, strings + endStrings[i] - remSize, remSize);
-//      pos += remSize;
-//
-//      Utils::encode_int(bytes, origPos, pos - startPos);
-//      origPos += 4;
-//  }
-//  return pos;
-//}
-
 int Leaf::serialize_values(char *bytes, int pos) {
     // The original buffer (b) is used to store the combinations per
     // entry. The following buffer starts later and stores the
@@ -257,7 +216,7 @@ int Leaf::serialize_values(char *bytes, int pos) {
         // Write the starting pos on bufferPositions.
         int diff = posValues - posValueOrig;
         if (diff > USHRT_MAX) {
-            BOOST_LOG_TRIVIAL(error) << "The value of the nodes are too high to be addressed by 2 bytes. Needs to find a workaround for that...";
+            LOG(ERROR) << "The value of the nodes are too high to be addressed by 2 bytes. Needs to find a workaround for that...";
             exit(1);
         }
         Utils::encode_short(bytes, posValueStarts, diff);
@@ -376,122 +335,6 @@ void insertStringIntoBuffer(tTerm *value, int sizeValue, int p, char* strings,
         endStrings[p] = startPos + sizeValue;
     }
 }
-
-//void Leaf::enlargeStringsBuffer(Leaf *leaf, int occupiedSize, int addedBytes) {
-//  if (occupiedSize + addedBytes >= leaf->sizeStrings) {
-//      int newSize = max(leaf->sizeStrings + addedBytes,
-//              max(leaf->sizeStrings * 2,
-//                      30 * leaf->getContext()->getMaxElementsPerNode()));
-//      char *newStrings = new char[newSize];
-//      if (leaf->sizeStrings > 0) {
-//          memcpy(newStrings, leaf->strings, leaf->sizeStrings);
-//      }
-//      leaf->sizeStrings = newSize;
-//      if (leaf->strings != NULL) {
-//          delete[] leaf->strings;
-//      }
-//      leaf->strings = newStrings;
-//  }
-//}
-
-//Node *Leaf::put(nTerm key, tTerm *value, int sizeValue) {
-//  setState(STATE_MODIFIED);
-//  int p = pos(key);
-//  if (p < 0) {
-//      p = -p - 1;
-//      if (shouldSplit()) {
-//          Leaf *l = getContext()->getCache()->newLeaf();
-//          l->setId(getContext()->getNewNodeID());
-//          l->setParent(getParent());
-//          //Copy strings
-//          int minSize = getContext()->getMinElementsPerNode();
-//          int sizeStringsToCopy =
-//                  endStrings[getContext()->getMaxElementsPerNode() - 1]
-//                          - endStrings[minSize - 1];
-//          enlargeStringsBuffer(l, 0, sizeStringsToCopy);
-//
-//          memcpy(l->strings, strings + endStrings[minSize - 1],
-//                  sizeStringsToCopy);
-//
-//          //Copy endStrings
-//          if (l->endStrings == NULL) {
-//              l->endStrings = new int[getContext()->getMaxElementsPerNode()];
-//          }
-//          for (int i = 0; i < minSize; ++i) {
-//              l->endStrings[i] = endStrings[minSize + i]
-//                      - endStrings[minSize - 1];
-//          }
-//
-//          split(l);
-//          if (p < getContext()->getMinElementsPerNode()) {
-//              putkeyAt(key, p);
-//              int bufferSize =
-//                      getCurrentSize() > 1 ?
-//                              endStrings[getCurrentSize() - 2] : 0;
-//              enlargeStringsBuffer(this, bufferSize, sizeValue);
-//              insertStringIntoBuffer(value, sizeValue, p, strings, bufferSize,
-//                      endStrings, getCurrentSize());
-//          } else {
-//              p -= getContext()->getMinElementsPerNode();
-//              l->putkeyAt(key, p);
-//              int bufferSize =
-//                      l->getCurrentSize() > 1 ?
-//                              l->endStrings[l->getCurrentSize() - 2] : 0;
-//              enlargeStringsBuffer(l, bufferSize, sizeValue);
-//              insertStringIntoBuffer(value, sizeValue, p, l->strings,
-//                      bufferSize, l->endStrings, l->getCurrentSize());
-//          }
-//
-//          l->setState(STATE_MODIFIED);
-//          return l;
-//      } else {
-//          /*** New insert ***/
-//          if (endStrings == NULL) {
-//              endStrings = new int[getContext()->getMaxElementsPerNode()];
-//          }
-//
-//          //Make sure that the container of the strings is big enough
-//          int currentBufferSize =
-//                  getCurrentSize() > 0 ? endStrings[getCurrentSize() - 1] : 0;
-//          enlargeStringsBuffer(this, currentBufferSize, sizeValue);
-//          putkeyAt(key, p);
-//          insertStringIntoBuffer(value, sizeValue, p, strings,
-//                  currentBufferSize, endStrings, getCurrentSize());
-//      }
-//  } else {
-//      /*** Replace current value ***/
-//      int oldSize = endStrings[p];
-//      int startPos = p > 0 ? endStrings[p - 1] : 0;
-//
-//      // Increase or decrease the size
-//      int sizeOldString = oldSize - startPos;
-//      if (sizeOldString != sizeValue && p < getCurrentSize()) {
-//          if (sizeValue > sizeOldString
-//                  && (endStrings[getCurrentSize() - 1] + sizeValue
-//                          - sizeOldString >= sizeStrings)) {
-//              sizeStrings = sizeStrings + sizeValue - sizeOldString;
-//              char *newStrings = new char[sizeStrings];
-//              memcpy(newStrings, strings + startPos, startPos);
-//              memcpy(newStrings + startPos + sizeValue, strings + oldSize,
-//                      endStrings[getCurrentSize() - 1] - oldSize);
-//              delete[] strings;
-//              strings = newStrings;
-//          } else {
-//              // Shift the elements inside the currentBuffer
-//              memmove(strings + startPos + sizeValue, strings + oldSize,
-//                      (endStrings[getCurrentSize() - 1] - oldSize)
-//                              * sizeof(strings));
-//          }
-//
-//          endStrings[p] = startPos + sizeValue;
-//          for (int i = p + 1; i < getCurrentSize(); ++i) {
-//              endStrings[i] += sizeValue - sizeOldString;
-//          }
-//      }
-//      memcpy(strings + startPos, value, sizeof(tTerm) * sizeValue);
-//  }
-//  return NULL;
-//}
 
 Node *Leaf::insertAtPosition(int p, nTerm key, long coordinates) {
     if (p < 0) {

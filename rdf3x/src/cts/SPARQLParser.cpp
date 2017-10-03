@@ -1,11 +1,12 @@
 #include "cts/parser/SPARQLParser.hpp"
 #include "cts/parser/SPARQLLexer.hpp"
+
+#include <kognac/logs.h>
+
 #include <iostream>
 #include <memory>
 #include <cstdlib>
 #include <set>
-
-#include <boost/log/trivial.hpp>
 
 //---------------------------------------------------------------------------
 // RDF-3X
@@ -141,11 +142,11 @@ unsigned SPARQLParser::nameVariable(const string& name)
     // Lookup or create a named variable
 {
     if (namedVariables.count(name)) {
-        BOOST_LOG_TRIVIAL(debug) << "Found variable " << name << ", value = " << namedVariables[name];
+        LOG(DEBUG) << "Found variable " << name << ", value = " << namedVariables[name];
         return namedVariables[name];
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "New variable " << name << ", value = " << variableCount;
+    LOG(DEBUG) << "New variable " << name << ", value = " << variableCount;
     unsigned result = variableCount++;
     namedVariables[name] = result;
     return result;
@@ -298,7 +299,7 @@ void SPARQLParser::parseProjection(PatternGroup& group)
                 size_t sizeAssignments = group.assignments.size();
                 parseAssignment(group);
                 if (group.assignments.size() <= sizeAssignments) {
-                    BOOST_LOG_TRIVIAL(error) << "The parsing of the assignment did not go so well";
+                    LOG(ERROR) << "The parsing of the assignment did not go so well";
                     throw 10; //Exception. This should not occur
                 }
                 projection.push_back(group.assignments[sizeAssignments].outputVar.id);
@@ -379,7 +380,7 @@ void SPARQLParser::parseRDFLiteral(std::string& value, Element::SubType& subType
                 throw ParserException("identifier expected after ':'");
             subType = Element::CustomType;
             valueType = prefixes[prefix] + lexer.getIRIValue();
-            BOOST_LOG_TRIVIAL(error) << "Token: valueType = " << valueType << ", value = " << value;
+            LOG(ERROR) << "Token: valueType = " << valueType << ", value = " << value;
 
         } else if (token == SPARQLLexer::IRI) {
             subType = Element::CustomType;

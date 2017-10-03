@@ -22,16 +22,16 @@
 
 #include <trident/tree/stringbuffer.h>
 
+#include <kognac/logs.h>
+#include <kognac/utils.h>
+
 #include <lz4.h>
 #include <lz4hc.h>
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
 #include <string>
 #include <cstring>
 #include <algorithm>
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 char StringBuffer::FINISH_THREAD[1];
 
@@ -59,8 +59,8 @@ StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
         readOnly ?
         std::fstream::in :
         std::fstream::in | std::fstream::out | std::fstream::app;
-    if (!fs::exists(fs::path(dir))) {
-        fs::create_directories(fs::path(dir));
+    if (!Utils::exists(dir)) {
+        Utils::create_directories(dir);
     }
     sb.open((dir + string("/sb")).c_str(), mode);
 
@@ -163,7 +163,7 @@ void StringBuffer::addCache(int idx) {
             f = cacheVector[f].second;
             c++;
         }
-        BOOST_LOG_TRIVIAL(error) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
+        LOG(ERROR) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
 }
 
 void StringBuffer::compressBlocks() {
@@ -172,7 +172,7 @@ void StringBuffer::compressBlocks() {
     char *compressedBuffer = new char[maxSize];
     while (true) {
 
-        boost::unique_lock<boost::mutex> lock(_compressMutex);
+        std::unique_lock<std::mutex> lock(_compressMutex);
         while (bufferToCompress == NULL) {
             compressWait.wait(lock);
         }
@@ -319,7 +319,7 @@ long StringBuffer::getSize() {
 }
 
 void StringBuffer::compressLastBlock() {
-    boost::unique_lock<boost::mutex> lock(_compressMutex);
+    std::unique_lock<std::mutex> lock(_compressMutex);
     while (bufferToCompress != NULL) {
         compressWait.wait(lock);
     }
@@ -356,7 +356,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            BOOST_LOG_TRIVIAL(error) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
         }
         fileLock.unlock();
     } else {
@@ -368,7 +368,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            BOOST_LOG_TRIVIAL(error) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
         }
     }
 
@@ -383,7 +383,7 @@ void StringBuffer::uncompressBlock(int b) {
     stats->incrNReadIndexBlocks();
     stats->addNReadIndexBytes(length);
     if (bytesUncompressed < 0) {
-        BOOST_LOG_TRIVIAL(error) << "Decompression of block "
+        LOG(ERROR) << "Decompression of block "
                                  << b
                                  << " has failed. Read at pos "
                                  << start
@@ -581,7 +581,7 @@ StringBuffer::~StringBuffer() {
             compressLastBlock();
         }
 
-        boost::unique_lock<boost::mutex> lock(_compressMutex);
+        std::unique_lock<std::mutex> lock(_compressMutex);
         while (bufferToCompress != NULL) {
             compressWait.wait(lock);
         }
@@ -591,7 +591,7 @@ StringBuffer::~StringBuffer() {
         bufferToCompress = FINISH_THREAD;
         compressWait.notify_one();
 
-        boost::unique_lock<boost::mutex> lock2(_compressTerm);
+        std::unique_lock<std::mutex> lock2(_compressTerm);
         compressTerm.wait(lock2, std::bind(&StringBuffer::isThreadFinished, this));
 
         sb.flush();

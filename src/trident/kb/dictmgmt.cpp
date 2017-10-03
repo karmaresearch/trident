@@ -29,15 +29,11 @@
 #include <kognac/lz4io.h>
 
 #include <lz4.h>
-#include <boost/thread.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/chrono.hpp>
 
 #include <iostream>
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         string e2s) :
@@ -58,8 +54,8 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         gud_idtext.set_empty_key(~0lu);
         gud_idtext.set_deleted_key(~0lu - 1);
         //load gud
-        if (fs::exists(dirToStoreGUD + "/gud")) {
-            boost::chrono::system_clock::time_point start = timens::system_clock::now();
+        if (Utils::exists(dirToStoreGUD + "/gud")) {
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             ifstream ifs;
             ifs.open(dirToStoreGUD + "/gud");
             ifs >> gud_largestID;
@@ -74,13 +70,13 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
                 }
             }
             ifs.close();
-            boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+            std::chrono::duration<double> sec = std::chrono::system_clock::now()
                 - start;
-            BOOST_LOG_TRIVIAL(debug) << "Time loading GUD " << sec.count() * 1000;
+            LOG(DEBUG) << "Time loading GUD " << sec.count() * 1000;
         }
 
-        if (fs::exists(e2r)) {
-            BOOST_LOG_TRIVIAL(debug) << "Load the mappings rel->ent from " << e2r;
+        if (Utils::exists(e2r)) {
+            LOG(DEBUG) << "Load the mappings rel->ent from " << e2r;
             //Load the mappings from the relation IDs to the entity IDs
             r2e.set_deleted_key(~0lu);
             LZ4Reader reader(e2r);
@@ -89,8 +85,8 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
                 long r = reader.parseLong();
                 r2e.insert(std::make_pair(r,e));
             }
-        } else if (fs::exists(e2s)) {
-            BOOST_LOG_TRIVIAL(debug) << "Load the mappings rel->ent (string) from " << e2s;
+        } else if (Utils::exists(e2s)) {
+            LOG(DEBUG) << "Load the mappings rel->ent (string) from " << e2s;
             r2e.set_deleted_key(~0lu);
             LZ4Reader reader(e2s);
             while (!reader.isEof()) {
@@ -285,7 +281,7 @@ DictMgmt::~DictMgmt() {
     delete[] insertedNewTerms;
     if (gud_modified && !gud_idtext.empty()) {
         //Write down the new version
-        boost::chrono::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         ofstream os;
         os.open(gudLocation + "/gud", ios_base::trunc);
         os << gud_largestID << endl;
@@ -293,8 +289,8 @@ DictMgmt::~DictMgmt() {
             os << it->first << '\t' << it->second << endl;
         }
         os.close();
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+        std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time writing GUD " << sec.count() * 1000;
+        LOG(DEBUG) << "Time writing GUD " << sec.count() * 1000;
     }
 }

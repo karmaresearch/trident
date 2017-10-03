@@ -29,8 +29,6 @@
 
 #include <kognac/factory.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <inttypes.h>
 #include <cmath>
@@ -76,7 +74,7 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         if (files[0]) {
             std::string pathFirstPerm = files[0]->getPath();
             pathRawData = pathFirstPerm + std::string("raw");
-            copyRawData = fs::exists(pathRawData);
+            copyRawData = Utils::exists(pathRawData);
         }
 
         if (sampleKB != NULL) {
@@ -665,7 +663,7 @@ PairItr *Querier::getPermuted(const int idx, const long el1, const long el2,
         case IDX_OPS:
             return get(idx, el3, el2, el1, constrain);
     }
-    BOOST_LOG_TRIVIAL(error) << "Idx " << idx << " not known";
+    LOG(ERROR) << "Idx " << idx << " not known";
     throw 10;
 }
 
@@ -884,7 +882,7 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
     if (!diffIndices.empty()) {
 
 #ifdef MT
-        BOOST_LOG_TRIVIAL(warning) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
+        LOG(WARN) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
 #endif
 
         std::vector<PairItr*> iterators;

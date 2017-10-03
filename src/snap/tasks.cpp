@@ -1,11 +1,9 @@
 #include <snap/tasks.h>
 
-#include <boost/log/trivial.hpp>
-#include <boost/filesystem.hpp>
+#include <kognac/logs.h>
+#include <kognac/utils.h>
 
 #include <iostream>
-
-namespace fs = boost::filesystem;
 
 AnalyticsTasks AnalyticsTasks::__tasks_;
 
@@ -104,19 +102,19 @@ void AnalyticsTasks::load(string nametask, string raw) {
     while (getline(f, s, ';')) {
         size_t pos = s.find("=");
         if (pos == string::npos) {
-            BOOST_LOG_TRIVIAL(error) << "Param string not well-formed";
+            LOG(ERROR) << "Param string not well-formed";
             throw 10;
         }
         string nameparam = s.substr(0, pos);
         string valueparam = s.substr(pos + 1, s.length());
         if (nameparam.empty() || valueparam.empty()) {
-            BOOST_LOG_TRIVIAL(error) << "Name or value params are empty";
+            LOG(ERROR) << "Name or value params are empty";
             throw 10;
         }
 
         auto task = tasks.find(nametask);
         if (task == tasks.end()) {
-            BOOST_LOG_TRIVIAL(error) << "Param task " << nametask << " not found";
+            LOG(ERROR) << "Param task " << nametask << " not found";
             throw 10;
         }
         task->second.updateParam(nameparam, valueparam);
@@ -128,7 +126,7 @@ AnalyticsTasks::Param &AnalyticsTasks::Task::getParam(string nameparam) {
         if (params[i].name == nameparam)
             return params[i];
     }
-    BOOST_LOG_TRIVIAL(error) << "Param " << nameparam << " not found";
+    LOG(ERROR) << "Param " << nameparam << " not found";
     throw 10;
 }
 
@@ -163,14 +161,14 @@ void AnalyticsTasks::Param::set(string value) {
                 boost::lexical_cast<bool>(value);
                 break;
             case PATH:
-                if (!fs::exists(fs::path(value))) {
-                    BOOST_LOG_TRIVIAL(error) << "Path " << value << " does not exist";
+                if (!Utils::exists(value)) {
+                    LOG(ERROR) << "Path " << value << " does not exist";
                     throw 10;
                 }
                 break;
         }
     } catch (boost::bad_lexical_cast &) {
-        BOOST_LOG_TRIVIAL(error) << "Failed conversion of " << value;
+        LOG(ERROR) << "Failed conversion of " << value;
         throw 10;
     }
     this->value = value;

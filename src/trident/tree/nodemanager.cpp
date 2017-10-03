@@ -17,82 +17,78 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/tree/nodemanager.h>
 
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
-#include <boost/filesystem.hpp>
 
 #include <iostream>
 #include <fstream>
 
 namespace bip = boost::interprocess;
-namespace fs = boost::filesystem;
 char one[1] = { 1 };
 char zero[1] = { 0 };
 
 NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
-                         int fileMaxSize, int maxNFiles, long cacheMaxSize, std::string path) :
+        int fileMaxSize, int maxNFiles, long cacheMaxSize, std::string path) :
     readOnly(context->isReadOnly()), path(path), nodeMinSize(nodeMinBytes) {
-    lastNodeInserted = NULL;
+        lastNodeInserted = NULL;
 
-    //Init filemanager
-    //Calculate the highest file
-    fs::path dir(path);
-    fs::directory_iterator end_iter;
-    lastCreatedFile = 0;
-    if (fs::exists(dir) && fs::is_directory(dir)) {
-        for (fs::directory_iterator dir_iter(dir); dir_iter != end_iter;
-                ++dir_iter) {
-            if (!dir_iter->path().has_extension()) {
-                short idx = (short) atoi(dir_iter->path().filename().c_str());
-                if (lastCreatedFile < idx)
-                    lastCreatedFile = idx;
+        //Init filemanager
+        //Calculate the highest file
+        lastCreatedFile = 0;
+        if (Utils::exists(path) && Utils::isDirectory(path)) {
+            auto children = Utils::getFiles(path);
+            for (auto child : children) {
+                if (!Utils::hasExtension(child)) {
+                    short idx = (short) atoi(Utils::filename(child).c_str());
+                    if (lastCreatedFile < idx)
+                        lastCreatedFile = idx;
+                }
+            }
+        }
+        bytesTracker = new MemoryManager<FileDescriptor>(cacheMaxSize);
+        this->manager = new FileManager<FileDescriptor, FileDescriptor>(path,
+                context->isReadOnly(), fileMaxSize, maxNFiles, lastCreatedFile,
+                bytesTracker, NULL);
+
+        //Init storedNodes and firstElementPerFile
+        string file = path + string("/idx");
+
+        if (!readOnly) {
+            readOnlyStoredNodes = NULL;
+            nodesLoaded = NULL;
+            mapping = NULL;
+            mapped_rgn = NULL;
+            rawInput = NULL;
+
+            //Load existing nodes in the array
+            if (Utils::exists(file) && Utils::fileSize(file) > 0) {
+                mapping = new bip::file_mapping(file.c_str(), bip::read_only);
+                mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
+                rawInput = static_cast<char*>(mapped_rgn->get_address());
+                int nNodes = Utils::decode_int(rawInput, 0);
+                nodesLoaded = new bool[nNodes];
+                memset(nodesLoaded, 0, nNodes * sizeof(bool));
+                readOnlyStoredNodes = new CachedNode[nNodes];
+            }
+
+        } else {
+            //Load the nodes in the array
+            if (Utils::exists(file) && Utils::fileSize(file) > 0) {
+                mapping = new bip::file_mapping(file.c_str(), bip::read_only);
+                mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
+                rawInput = static_cast<char*>(mapped_rgn->get_address());
+                int nNodes = Utils::decode_int(rawInput, 0);
+                nodesLoaded = new bool[nNodes];
+                memset(nodesLoaded, 0, nNodes * sizeof(bool));
+                readOnlyStoredNodes = new CachedNode[nNodes];
             }
         }
     }
-    bytesTracker = new MemoryManager<FileDescriptor>(cacheMaxSize);
-    this->manager = new FileManager<FileDescriptor, FileDescriptor>(path,
-            context->isReadOnly(), fileMaxSize, maxNFiles, lastCreatedFile,
-            bytesTracker, NULL);
-
-    //Init storedNodes and firstElementPerFile
-    string file = path + string("/idx");
-
-    if (!readOnly) {
-        readOnlyStoredNodes = NULL;
-        nodesLoaded = NULL;
-        mapping = NULL;
-        mapped_rgn = NULL;
-        rawInput = NULL;
-
-        //Load existing nodes in the array
-        if (fs::exists(file) && fs::file_size(file) > 0) {
-            mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-            mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-            rawInput = static_cast<char*>(mapped_rgn->get_address());
-            int nNodes = Utils::decode_int(rawInput, 0);
-            nodesLoaded = new bool[nNodes];
-            memset(nodesLoaded, 0, nNodes * sizeof(bool));
-            readOnlyStoredNodes = new CachedNode[nNodes];
-        }
-
-    } else {
-        //Load the nodes in the array
-        if (fs::exists(file) && fs::file_size(file) > 0) {
-            mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-            mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-            rawInput = static_cast<char*>(mapped_rgn->get_address());
-            int nNodes = Utils::decode_int(rawInput, 0);
-            nodesLoaded = new bool[nNodes];
-            memset(nodesLoaded, 0, nNodes * sizeof(bool));
-            readOnlyStoredNodes = new CachedNode[nNodes];
-        }
-    }
-}
 
 void NodeManager::unserializeNodeFrom(CachedNode *node, char *buffer, int pos) {
     long id = Utils::decode_long(buffer, pos);
@@ -160,7 +156,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
     CachedNode *cn = getCachedNode(node->getId());
     if (cn != NULL) {
         if (sizeBuffer > cn->availableSize) {
-            BOOST_LOG_TRIVIAL(debug) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
+            LOG(DEBUG) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
             int diff = sizeBuffer - cn->availableSize;
             //Enlarge the file
             manager->shiftRemainingFile(cn->fileIndex, cn->posIndex, diff);
@@ -219,7 +215,7 @@ void NodeManager::compressSpace(string path) {
     vector<vector<CachedNode> > nodes;
     string sFileIdx = path + string("/idx");
     int totalNumberNodes = 0;
-    if (fs::exists(path) && fs::file_size(sFileIdx) > 0) {
+    if (Utils::exists(path) && Utils::fileSize(sFileIdx) > 0) {
         bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
                 bip::read_only);
         bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
@@ -248,7 +244,7 @@ void NodeManager::compressSpace(string path) {
 
     //2-- Rewrite each file eliminating the blank spaces
     char *supportBuffer = new char[SIZE_SUPPORT_BUFFER];
-    fs::remove(fs::path(sFileIdx));
+    Utils::remove(sFileIdx);
     ofstream fileIdx(sFileIdx);
     int sizeCoordinates = 4 * totalNumberNodes;
     char *coordinatesSpace = new char[sizeCoordinates];
@@ -260,10 +256,10 @@ void NodeManager::compressSpace(string path) {
     for (int i = 0; i < nodes.size(); ++i) {
         vector<CachedNode> *fileNodes = &nodes[i];
         //Open the old file and create a new file
-        fs::path pOldFile(path + string("/") + to_string(i));
-        ifstream sOldfile(pOldFile.string());
-        fs::path pNewFile(path + string("/") + to_string(i) + ".new");
-        ofstream sNewFile(pNewFile.string());
+        string pOldFile = path + string("/") + to_string(i);
+        ifstream sOldfile(pOldFile);
+        string pNewFile = path + string("/") + to_string(i) + ".new";
+        ofstream sNewFile(pNewFile);
 
         //Go through all the nodes and copy the contents from the old node to the new one
         int size = fileNodes->size();
@@ -291,14 +287,14 @@ void NodeManager::compressSpace(string path) {
         sNewFile.close();
 
         //Remove the old file
-        long oldSize = fs::file_size(pOldFile);
-        fs::remove_all(pOldFile);
+        long oldSize = Utils::fileSize(pOldFile);
+        Utils::remove_all(pOldFile);
 
         //Rename the new file
-        long newSize = fs::file_size(pNewFile);
-        fs::rename(pNewFile, pOldFile);
+        long newSize = Utils::fileSize(pNewFile);
+        Utils::rename(pNewFile, pOldFile);
 
-        BOOST_LOG_TRIVIAL(debug) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
+        LOG(DEBUG) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
     }
     fileIdx.seekp(4);
     fileIdx.write(coordinatesSpace, sizeCoordinates);
@@ -340,7 +336,7 @@ NodeManager::~NodeManager() {
                     out.write(zero, 1);
                     int p = serializeTo(node, supportBuffer);
                     Utils::encode_int(coordinatesSpace, node->id * 4,
-                                      out.tellp());
+                            out.tellp());
                     out.write(supportBuffer, p);
                     wastedSpace += node->availableSize - node->nodeSize;
                     node = node->next;
@@ -353,12 +349,12 @@ NodeManager::~NodeManager() {
         out.write(coordinatesSpace, sizeCoordinates);
         delete[] coordinatesSpace;
 
-        BOOST_LOG_TRIVIAL(debug) << "Wasted space to store the nodes: " << wastedSpace;
+        LOG(DEBUG) << "Wasted space to store the nodes: " << wastedSpace;
         out.close();
 
         //Clean the stored nodes
         for (boost::unordered_map<long, CachedNode*>::iterator itr =
-                    storedNodes.begin(); itr != storedNodes.end(); ++itr) {
+                storedNodes.begin(); itr != storedNodes.end(); ++itr) {
             delete itr->second;
         }
         storedNodes.clear();

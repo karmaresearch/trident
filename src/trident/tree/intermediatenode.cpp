@@ -26,9 +26,6 @@
 
 #include <kognac/utils.h>
 
-#include <boost/chrono.hpp>
-#include <boost/log/trivial.hpp>
-
 #include <iostream>
 #include <assert.h>
 #include <mutex>
@@ -152,8 +149,8 @@ tTerm *IntermediateNode::largestTextualKey(int *size) {
 void IntermediateNode::cacheChild(Node *child) {
     int p = getPosChild(child);
     if (p == CHILD_NOT_FOUND) {
-        BOOST_LOG_TRIVIAL(error) << "Child: " << child->getId() << " is not found on node " << getId();
-        BOOST_LOG_TRIVIAL(error) << "CacheChild(): Position not found!";
+        LOG(ERROR) << "Child: " << child->getId() << " is not found on node " << getId();
+        LOG(ERROR) << "CacheChild(): Position not found!";
     }
     children[p] = NULL;
     idChildren[p] = child->getId();

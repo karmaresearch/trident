@@ -29,6 +29,8 @@
 
 #include<boost/iostreams/device/mapped_file.hpp>
 
+#include <chrono>
+
 DiffIndex1::DiffIndex1(string dir, DiffIndex::TypeUpdate type) : DiffIndex(type, DiffIndex::DIFF1) {
     ifstream f;
     f.open(dir + "/stats");
@@ -386,7 +388,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
                                  long triple[3],
                                  std::vector<uint64_t> &values,
                                  uint8_t posvalues) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     //Write an empty file to indicate this is a type 1 update
     ofstream f;
     f.open(outputdir + "/type1");
@@ -394,7 +396,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     f.close();
 
     if (dumpRawFormat) {
-        fs::create_directories(outputdir);
+        Utils::create_directories(outputdir);
         LZ4Writer writer(outputdir + "/raw");
         for (size_t i = 0; i < values.size(); ++i) {
             for (size_t j = 0; j < 3; ++j) {
@@ -622,13 +624,13 @@ void DiffIndex1::createDiffIndex(string outputdir,
         f.write(buffer, 8);
     }
     f.close();
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+    std::chrono::duration<double> sec = std::chrono::system_clock::now()
                                           - start;
-    BOOST_LOG_TRIVIAL(info) << "Runtime creating indices one column = " << sec.count() * 1000;
+    LOG(INFO) << "Runtime creating indices one column = " << sec.count() * 1000;
 }
 
 long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string fout) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     ofstream f(fout);
     itr->ignoreSecondColumn();
     if (itr->hasNext()) {
@@ -657,8 +659,8 @@ long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string f
             f << (uint8_t)1;
         }
     }
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+    std::chrono::duration<double> sec = std::chrono::system_clock::now()
                                           - start;
-    BOOST_LOG_TRIVIAL(info) << "Runtime checking first pairs = " << sec.count() * 1000;
+    LOG(INFO) << "Runtime checking first pairs = " << sec.count() * 1000;
     return out;
 }

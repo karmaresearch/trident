@@ -31,15 +31,11 @@
 
 #include <kognac/utils.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
-
 #include <iostream>
 #include <string>
 #include <fstream>
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) :
     readOnly(readOnly), path(path) {
@@ -55,7 +51,7 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
             conf.getInt(NODE_KEYS_FACTORY_SIZE, 10),
             conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE, 10));
 
-//  BOOST_LOG_TRIVIAL(debug)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
+//  LOG(DEBUG)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
 
 //  timens::system_clock::time_point start = timens::system_clock::now();
     if (!textKeys && !textValues) {
@@ -71,7 +67,7 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
     }
 //  boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
 //          - start;
-//  BOOST_LOG_TRIVIAL(debug)<< "Time init node factories: " << (sec.count() * 1000);
+//  LOG(DEBUG)<< "Time init node factories: " << (sec.count() * 1000);
 
     context = new TreeContext(cache, stringbuffer, readOnly, maxElementsPerNode,
                               textKeys, textValues, ilFactory, ilBufferFactory, nodesKeysFactory);
@@ -102,8 +98,8 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
         cache->registerNode(rootNode);
 
         //Create the directory if it does not exist
-        if (!readOnly && !fs::exists(path)) {
-            fs::create_directories(path);
+        if (!readOnly && !Utils::exists(path)) {
+            Utils::create_directories(path);
         }
     }
 }
@@ -135,7 +131,7 @@ bool Root::get(tTerm *key, const int sizeKey, nTerm *value) {
 
 void Root::put(nTerm key, long coordinates) {
     if (readOnly) {
-        BOOST_LOG_TRIVIAL(error) << "Put is requested on a read-only tree";
+        LOG(ERROR) << "Put is requested on a read-only tree";
         throw 10;
     }
 
@@ -153,7 +149,7 @@ void Root::put(nTerm key, long coordinates) {
 
 void Root::put(nTerm key, TermCoordinates *value) {
     if (readOnly) {
-        BOOST_LOG_TRIVIAL(error) << "Put is requested on a read-only tree";
+        LOG(ERROR) << "Put is requested on a read-only tree";
         throw 10;
     }
 

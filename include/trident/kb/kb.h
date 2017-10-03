@@ -33,12 +33,6 @@
 
 #include <kognac/factory.h>
 
-#include <boost/thread.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/file.hpp>
-
 #include <string>
 
 class Leaf;
@@ -51,10 +45,7 @@ struct FileSegment;
 class FileDescriptor;
 
 using namespace std;
-namespace fs = boost::filesystem;
-namespace logging = boost::log;
 
-typedef boost::shared_ptr<logging::sinks::synchronous_sink<logging::sinks::text_file_backend>> SinkPtr;
 typedef enum e_GraphType { DEFAULT, DIRECTED, UNDIRECTED } GraphType;
 
 class KB {

@@ -26,7 +26,7 @@
 #include <trident/kb/consts.h>
 
 #include <iostream>
-#include <boost/log/trivial.hpp>
+#include <assert.h>
 
 using namespace std;
 

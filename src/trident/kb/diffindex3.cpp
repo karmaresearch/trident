@@ -31,16 +31,14 @@
 
 #include <kognac/lz4io.h>
 
-#include <boost/chrono.hpp>
 #include <cstdlib>
 
-namespace timens = boost::chrono;
 using namespace std;
 
 DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
                        KBConfig &config, TypeUpdate type) :
     DiffIndex(type, DiffIndex::DIFF3), dir(dir) {
-    timens::system_clock::time_point startDiff = timens::system_clock::now();
+    std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
     PropertyMap map;
     map.setBool(TEXT_KEYS, false);
     map.setBool(TEXT_VALUES, false);
@@ -71,10 +69,10 @@ DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
     roots[IDX_POS] = roots[IDX_PSO] = p.get();
     roots[IDX_OPS] = roots[IDX_OSP] = o.get();
     strat = NULL;
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - startDiff;
-    BOOST_LOG_TRIVIAL(debug) << "Load diff tree: " << sec.count() * 1000 << "ms.";
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - startDiff;
+    LOG(DEBUG) << "Load diff tree: " << sec.count() * 1000 << "ms.";
 
-    if (fs::exists(dir + "/s/p0")) { //The update has its data locally stored
+    if (Utils::exists(dir + "/s/p0")) { //The update has its data locally stored
         memset(buffers, 0, sizeof(const char*) * 6);
     } else {
         for (int i = 0; i < 6; ++i)
@@ -113,7 +111,7 @@ DiffIndex3::DiffIndex3(std::string dir, const char **globalbuffers,
     nfirstterms[IDX_OSP] = Utils::decode_long(buffer + 40);
     nuniquekeys[IDX_OSP] = nuniquekeys[IDX_OPS] = Utils::decode_long(buffer + 48);
     f.close();
-    BOOST_LOG_TRIVIAL(debug) << "Load diff index with " << size << " triples. N. subjects " << nkeys_s << " N. predicates " << nkeys_p << " N. objects " << nkeys_o << " unique first terms (spo) " << nuniquefirstterms[IDX_SPO] << " (sop) " << nuniquefirstterms[IDX_SOP] << " (pos) " << nuniquefirstterms[IDX_POS] << " (pso) " << nuniquefirstterms[IDX_PSO] << " (ops) " << nuniquefirstterms[IDX_OPS] << " (osp) " << nuniquefirstterms[IDX_OSP] << " first terms (spo) " << nfirstterms[IDX_SPO] << " (sop) " << nfirstterms[IDX_SOP] << " (pos) " << nfirstterms[IDX_POS] << " (pso) " << nfirstterms[IDX_PSO] << " (ops) " << nfirstterms[IDX_OPS] << " (osp) " << nfirstterms[IDX_OSP];
+    LOG(DEBUG) << "Load diff index with " << size << " triples. N. subjects " << nkeys_s << " N. predicates " << nkeys_p << " N. objects " << nkeys_o << " unique first terms (spo) " << nuniquefirstterms[IDX_SPO] << " (sop) " << nuniquefirstterms[IDX_SOP] << " (pos) " << nuniquefirstterms[IDX_POS] << " (pso) " << nuniquefirstterms[IDX_PSO] << " (ops) " << nuniquefirstterms[IDX_OPS] << " (osp) " << nuniquefirstterms[IDX_OSP] << " first terms (spo) " << nfirstterms[IDX_SPO] << " (sop) " << nfirstterms[IDX_SOP] << " (pos) " << nfirstterms[IDX_POS] << " (pso) " << nfirstterms[IDX_PSO] << " (ops) " << nfirstterms[IDX_OPS] << " (osp) " << nfirstterms[IDX_OSP];
 }
 
 EmptyItr _diEmpty;
@@ -189,7 +187,7 @@ PairItr *DiffIndex3::getIterator(int idx,
                                  long third,
                                  long &nfirstterms) {
     if (first < 0) {
-        BOOST_LOG_TRIVIAL(error) << "This method should not be called for full scans";
+        LOG(ERROR) << "This method should not be called for full scans";
         throw 10;
     }
 
@@ -320,10 +318,10 @@ void _sort(std::vector <uint32_t> &idx1,
            std::vector<uint64_t> &thirdcolumn,
            const bool getsecondlevel,
            string file) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     std::sort(idx1.begin(), idx1.end(), _Sorter(firstcolumn));
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sorting = " << sec.count() * 1000 << " " << idx1.size();
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sorting = " << sec.count() * 1000 << " " << idx1.size();
 
     //Create file
     size_t sizetable = idx1.size() * 8;
@@ -336,7 +334,7 @@ void _sort(std::vector <uint32_t> &idx1,
     sink.open(file, sizetable);
     char *currentbuffer = sink.data();
 
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<std::pair<uint64_t, uint64_t>> secondlevel;
     secondlevel.reserve(idx1.size() / 2);
     uint64_t prevfirst = ~0lu;
@@ -401,8 +399,8 @@ void _sort(std::vector <uint32_t> &idx1,
         }
     }
     sink.close();
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sorting = " << sec.count() * 1000 << " nvalid=" << nvalid;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sorting = " << sec.count() * 1000 << " nvalid=" << nvalid;
 }
 
 void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
@@ -424,7 +422,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
 
     /**** If flag is activated, dump all update in a file (useful for debugging) ****/
     if (dumpRawFormat) {
-        fs::create_directories(outputdir);
+        Utils::create_directories(outputdir);
         LZ4Writer writer(outputdir + "/raw");
         for (size_t i = 0; i < all_s.size(); ++i) {
             writer.writeLong(all_s[i]);
@@ -465,13 +463,13 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
                config->getParamInt(TREE_NODE_KEYS_PREALL_FACTORY_SIZE));
 
     /**** Sort by SPO,SOP ****/
-    timens::system_clock::time_point start = timens::system_clock::now();
-    fs::create_directories(outputdir);
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+    Utils::create_directories(outputdir);
     string s_outputdir = outputdir + "/s";
-    if (fs::exists(s_outputdir)) {
-        fs::remove_all(fs::path(s_outputdir));
+    if (Utils::exists(s_outputdir)) {
+        Utils::remove_all(s_outputdir);
     }
-    fs::create_directories(s_outputdir);
+    Utils::create_directories(s_outputdir);
     size_t validtriples;
     std::unique_ptr<UpdateStats> ufs;
 
@@ -485,20 +483,20 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     }
 
     string s_diffdir = diffdir + "/s";
-    fs::create_directories(s_diffdir);
+    Utils::create_directories(s_diffdir);
     validtriples = DiffIndex3::sortIndex(s_outputdir, s_diffdir, IDX_SPO, IDX_SOP, idx1,
                                          all_s, all_p, all_o, map, q, ufs.get(), shouldSort);
 
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create s* indices = " << sec.count() * 1000;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sort and create s* indices = " << sec.count() * 1000;
 
     /**** Sort by POS,PSO ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     string p_outputdir = outputdir + "/p";
-    if (fs::exists(p_outputdir)) {
-        fs::remove_all(fs::path(p_outputdir));
+    if (Utils::exists(p_outputdir)) {
+        Utils::remove_all(p_outputdir);
     }
-    fs::create_directories(p_outputdir);
+    Utils::create_directories(p_outputdir);
     std::unique_ptr<UpdateStats> ufp;
 
     if (update == TypeUpdate::ADDITION) {
@@ -507,20 +505,20 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
         ufp = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_POS, IDX_PSO, true, true));
     }
     string p_diffdir = diffdir + "/p";
-    fs::create_directories(p_diffdir);
+    Utils::create_directories(p_diffdir);
     DiffIndex3::sortIndex(p_outputdir, p_diffdir, IDX_POS, IDX_PSO,
                           idx1, all_p, all_o, all_s, map, q, ufp.get(), true);
 
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create p* indices = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sort and create p* indices = " << sec.count() * 1000;
 
     /**** Sort by OPS,OSP ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     string o_outputdir = outputdir + "/o";
-    if (fs::exists(o_outputdir)) {
-        fs::remove_all(fs::path(o_outputdir));
+    if (Utils::exists(o_outputdir)) {
+        Utils::remove_all(o_outputdir);
     }
-    fs::create_directories(o_outputdir);
+    Utils::create_directories(o_outputdir);
     std::unique_ptr<UpdateStats> ufo;
 
     if (update == TypeUpdate::ADDITION) {
@@ -529,26 +527,26 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
         ufo = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_OPS, IDX_OSP, false, true));
     }
     string o_diffdir = diffdir + "/o";
-    fs::create_directories(o_diffdir);
+    Utils::create_directories(o_diffdir);
     DiffIndex3::sortIndex(o_outputdir, o_diffdir, IDX_OPS, IDX_OSP,
                           idx1, all_o, all_p, all_s, map, q, ufo.get(), true);
 
 
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sort and create o* indices = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sort and create o* indices = " << sec.count() * 1000;
 
     /**** Sort the inverted pairs ****/
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<uint64_t> &invertedpairsOP = ufp->getInvertedPairs1();
     std::vector<uint64_t> &invertedpairsSP = ufp->getInvertedPairs2();
     std::vector<uint64_t> &invertedpairsSO = ufo->getInvertedPairs2();
     std::sort(invertedpairsOP.begin(), invertedpairsOP.end());
     std::sort(invertedpairsSP.begin(), invertedpairsSP.end());
     std::sort(invertedpairsSO.begin(), invertedpairsSO.end());
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime sort unique pairs = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime sort unique pairs = " << sec.count() * 1000;
 
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     std::vector<UpdateStats::KeyInfo> &keysS = ufs->getAllKeys();
     std::vector<UpdateStats::KeyInfo> &keysP = ufp->getAllKeys();
     std::vector<UpdateStats::KeyInfo> &keysO = ufo->getAllKeys();
@@ -608,10 +606,10 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             keysS[idxKeysS].nfirsts2 = count;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Copying the S* unique pair counts = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Copying the S* unique pair counts = " << sec.count() * 1000;
     //OP
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     if (invertedpairsOP.size() > 0) {
         size_t idxOP = 0;
         long prevkey = invertedpairsOP[0];
@@ -638,11 +636,11 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             keysO[idxKeysO].nfirsts1 = count;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Copying the O* unique pair counts = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Copying the O* unique pair counts = " << sec.count() * 1000;
 
     //Writing the trees on disk
-    start = timens::system_clock::now();
+    start = std::chrono::system_clock::now();
     {
         TermCoordinates coord;
         coord.clear();
@@ -691,8 +689,8 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
             root.append(keysO[i].key, &coord);
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime to write the B+Trees on disk = " << sec.count() * 1000;
+    sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime to write the B+Trees on disk = " << sec.count() * 1000;
 
     //Write some general statistics for the S* indices
     char buffer[8];
@@ -1371,12 +1369,12 @@ size_t DiffIndex3::sortIndex(string outputdir,
                              Querier * q,
                              UpdateStats *statsFirstTerms,
                              const bool sort) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     if (sort) {
         std::sort(idx1.begin(), idx1.end(), _Sorter(firstcolumn));
     }
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Sort by first column " << sec.count() * 1000;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Sort by first column " << sec.count() * 1000;
 
     //Init the tree and tmp arrays
     std::vector<uint64_t> tmp1;
@@ -1386,7 +1384,7 @@ size_t DiffIndex3::sortIndex(string outputdir,
     string file1;
     const size_t initialsize = min(idx1.size() * sizeof(uint64_t),
                                    (unsigned long) 128 * 1024 * 1024);
-    BOOST_LOG_TRIVIAL(debug) << "Initial size: " << initialsize;
+    LOG(DEBUG) << "Initial size: " << initialsize;
     if (idx1.size() < THRESHOLD_USEGLOBALFILES) { //If the update is small, then I store it in a single global file
         file1 = globaloutputdir + "/p0";
     } else {
@@ -1479,13 +1477,13 @@ size_t DiffIndex3::sortIndex(string outputdir,
     mappedFile1 = std::unique_ptr<RWMappedFile>();
     mappedFile2 = std::unique_ptr<RWMappedFile>();
 
-    BOOST_LOG_TRIVIAL(debug) << "N. tuples " << idx1.size() << " unique " << nvalid;
-    BOOST_LOG_TRIVIAL(debug) << "Ntables=" << ntables << " nsorts=" << nsorts;
+    LOG(DEBUG) << "N. tuples " << idx1.size() << " unique " << nvalid;
+    LOG(DEBUG) << "Ntables=" << ntables << " nsorts=" << nsorts;
     /*for (int i = 0; i < 16; ++i) {
-        BOOST_LOG_TRIVIAL(debug) << "counters layout1 " << i << " is " << countersLayouts1[i];
-        BOOST_LOG_TRIVIAL(debug) << "counters layout2 " << i << " is " << countersLayouts2[i];
+        LOG(DEBUG) << "counters layout1 " << i << " is " << countersLayouts1[i];
+        LOG(DEBUG) << "counters layout2 " << i << " is " << countersLayouts2[i];
     }*/
-    BOOST_LOG_TRIVIAL(debug) << "BothRowsSmall: " << stats.bothRowsSmallCounter
+    LOG(DEBUG) << "BothRowsSmall: " << stats.bothRowsSmallCounter
                              << " BothRows: " << stats.bothRowsCounter
                              << " BothColumn: " << stats.bothColumnsCounter
                              << " ColumnRow: " << stats.columnRowCounter
@@ -1550,9 +1548,9 @@ DiffIndex3::~DiffIndex3() {
 }
 
 RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     spaceleft = initialsize;
-    if (!fs::exists(file)) {
+    if (!Utils::exists(file)) {
         currentposition = 0;
         ofstream f;
         f.open(file);
@@ -1560,31 +1558,31 @@ RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
         f.put(0);
         f.close();
     } else {
-        currentposition = fs::file_size(file);
-        fs::resize_file(file, currentposition + spaceleft);
+        currentposition = Utils::fileSize(file);
+        Utils::resizeFile(file, currentposition + spaceleft);
     }
 
     const size_t alignment = memmap::mapped_file_sink::alignment();
     const size_t offset = currentposition % alignment;
     sink.open(file, spaceleft + offset, currentposition - offset);
     currentbuffer = sink.data() + offset;
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime init file = " << sec.count() * 1000;
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime init file = " << sec.count() * 1000;
 }
 
 RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
     if (maxTableSize > spaceleft) {
-        timens::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         sink.close();
         size_t incr = max((size_t)64 * 1014 * 1024, maxTableSize);
-        fs::resize_file(file, currentposition + incr);
+        Utils::resizeFile(file, currentposition + incr);
         spaceleft = incr;
         const size_t alignment = memmap::mapped_file_sink::alignment();
         const size_t offset = currentposition % alignment;
         sink.open(file, spaceleft + offset, currentposition - offset);
         currentbuffer = sink.data() + offset;
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(debug) << "Runtime resize file = " << sec.count() * 1000;
+        std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+        LOG(DEBUG) << "Runtime resize file = " << sec.count() * 1000;
     }
     Block b;
     b.begin = currentposition;
@@ -1593,12 +1591,12 @@ RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
 }
 
 RWMappedFile::~RWMappedFile() {
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     currentbuffer = NULL;
     sink.close();
-    fs::resize_file(file, currentposition);
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(debug) << "Runtime close file = " << sec.count() * 1000;
+    Utils::resizeFile(file, currentposition);
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(DEBUG) << "Runtime close file = " << sec.count() * 1000;
 }
 
 void RWMappedFile::setLastBlockSize(const size_t spaceused) {

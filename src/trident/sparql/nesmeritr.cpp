@@ -21,12 +21,10 @@
 
 
 #include <trident/sparql/joins.h>
-#include <boost/log/trivial.hpp>
 
 #include <iostream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 #define GO_BACK(x) -x -1;
 
@@ -59,13 +57,6 @@ long NestedMergeJoinItr::executePlan() {
     if (currentItr == NULL) {
         return 0;
     }
-
-    //  boost::chrono::duration<double> timings[10];
-    //  for (int i = 0; i < plan->nPatterns; ++i) {
-    //      timings[i] = timings[i].zero();
-    //  }
-    //  timens::duration<double> timeLookup = timeLookup.zero();
-    //  timens::duration<double> finalWaitTime = timeLookup.zero();
 
     while (true) {
         /* Get the next value of the current iterator. If the current

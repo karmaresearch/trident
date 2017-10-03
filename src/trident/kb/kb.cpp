@@ -30,18 +30,17 @@
 #include <trident/tree/stringbuffer.h>
 #include <trident/binarytables/tableshandler.h>
 
-#include <boost/log/trivial.hpp>
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
 #include <cmath>
+#include <chrono>
 
 using namespace std;
 
 bool _sort_by_number(const string &s1, const string &s2) {
-    return atoi(fs::path(s1).filename().c_str()) < atoi(fs::path(s2).filename().c_str());
+    return atoi(Utils::filename(s1).c_str()) < atoi(Utils::filename(s2).c_str());
 }
 
 KB::KB(const char *path,
@@ -53,16 +52,16 @@ KB::KB(const char *path,
     path(path), readOnly(readOnly), isClosed(false), ntables(), nFirstTables(),
     dictEnabled(dictEnabled), config(config) {
 
-        if (readOnly && !fs::exists(string(path) + "/tree")) {
-            BOOST_LOG_TRIVIAL(error) << "The input path does not seem to be a valid KB";
+        if (readOnly && !Utils::exists(string(path) + "/tree")) {
+            LOG(ERROR) << "The input path does not seem to be a valid KB";
             throw 10;
         }
 
-        timens::system_clock::time_point start = timens::system_clock::now();
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
         //Get statistics and configuration
         string fileConf = path + string("/kbstats");
-        if (fs::exists(fs::path(fileConf))) {
+        if (Utils::exists(fileConf)) {
             std::ifstream fis;
             fis.open(fileConf);
             char data[8];
@@ -157,15 +156,15 @@ KB::KB(const char *path,
 
         tree = new Root(fileTree, NULL, readOnly, map);
 
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+        std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        LOG(DEBUG) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
 
         //Initialize the dictionaries
         if (dictEnabled) {
             loadDict(&config);
-            sec = boost::chrono::system_clock::now() - start;
-            BOOST_LOG_TRIVIAL(debug) << "Time init dictionaries KB = " <<
+            sec = std::chrono::system_clock::now() - start;
+            LOG(DEBUG) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
             dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
@@ -198,9 +197,7 @@ KB::KB(const char *path,
             is << path << "/p" << i;
             if (readOnly) {
                 //Check if there are actually files in the directory
-                boost::filesystem::directory_iterator endItr;
-                boost::filesystem::directory_iterator itr(is.str());
-                if  (itr != endItr) {
+                if  (!Utils::isEmpty(is.str())) {
                     files[i] = new TableStorage(readOnly, is.str(),
                             config.getParamLong(STORAGE_MAX_FILE_SIZE),
                             config.getParamInt(STORAGE_MAX_N_FILES),
@@ -218,7 +215,7 @@ KB::KB(const char *path,
 
         //Is there some sample data available?
         string sampleDir = path + string("/_sample");
-        if (fs::exists(fs::path(sampleDir))) {
+        if (Utils::exists(sampleDir)) {
             KBConfig sampleConfig;
             sampleKB = new KB(sampleDir.c_str(), true, false, false, sampleConfig);
             sampleRate = (double) sampleKB->getSize() / this->totalNumberTriples;
@@ -228,12 +225,12 @@ KB::KB(const char *path,
         }
 
         string defaultDiffDir = path + string("/_diff");
-        if (fs::exists(fs::path(defaultDiffDir))) {
+        if (Utils::exists(defaultDiffDir)) {
             std::vector<string> files = Utils::getSubdirs(defaultDiffDir);
             std::vector<string> childrenupdates;
             for (int i = 0; i < files.size(); ++i) {
                 string f = files[i];
-                string fn = fs::path(f).filename().string();
+                string fn = Utils::filename(f);
                 if (!fn.empty() && std::find_if(fn.begin(),  fn.end(),
                             [](char c) {
                             return !std::isdigit(c);
@@ -248,32 +245,32 @@ KB::KB(const char *path,
                 //Instantiate the buffers
                 for (int i = 0; i < 6; ++i)
                     globalbuffers[0] = NULL;
-                if (fs::exists(defaultDiffDir + "/s/p0")) {
+                if (Utils::exists(defaultDiffDir + "/s/p0")) {
                     spo_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/s/p0"));
                     globalbuffers[IDX_SPO] = spo_f->getBuffer();
                 }
-                if (fs::exists(defaultDiffDir + "/s/p1")) {
+                if (Utils::exists(defaultDiffDir + "/s/p1")) {
                     sop_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/s/p1"));
                     globalbuffers[IDX_SOP] = sop_f->getBuffer();
                 }
-                if (fs::exists(defaultDiffDir + "/p/p0")) {
+                if (Utils::exists(defaultDiffDir + "/p/p0")) {
                     pos_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/p/p0"));
                     globalbuffers[IDX_POS] = pos_f->getBuffer();
                 }
-                if (fs::exists(defaultDiffDir + "/p/p1")) {
+                if (Utils::exists(defaultDiffDir + "/p/p1")) {
                     pso_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/p/p1"));
                     globalbuffers[IDX_PSO] = pso_f->getBuffer();
                 }
-                if (fs::exists(defaultDiffDir + "/o/p0")) {
+                if (Utils::exists(defaultDiffDir + "/o/p0")) {
                     ops_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/o/p0"));
                     globalbuffers[IDX_OPS] = ops_f->getBuffer();
                 }
-                if (fs::exists(defaultDiffDir + "/o/p1")) {
+                if (Utils::exists(defaultDiffDir + "/o/p1")) {
                     osp_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + "/o/p1"));
                     globalbuffers[IDX_OSP] = osp_f->getBuffer();
@@ -282,10 +279,10 @@ KB::KB(const char *path,
                 //Sort them by numeric value
                 sort(childrenupdates.begin(), childrenupdates.end(), _sort_by_number);
                 for (int i = 0; i < childrenupdates.size(); ++i) {
-                    timens::system_clock::time_point startDiff = timens::system_clock::now();
+                    std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
                     addDiffIndex(childrenupdates[i], &globalbuffers[0], NULL);
-                    sec = boost::chrono::system_clock::now() - startDiff;
-                    BOOST_LOG_TRIVIAL(debug) << "Time loading diff index " << sec.count() * 1000 << "ms.";
+                    sec = std::chrono::system_clock::now() - startDiff;
+                    LOG(DEBUG) << "Time loading diff index " << sec.count() * 1000 << "ms.";
                 }
             }
             if (!dictUpdates.empty()) {
@@ -301,8 +298,8 @@ KB::KB(const char *path,
             nextID = max(nextID, (long)dictManager->getLargestGUDTerm() + 1);
         }
 
-        sec = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(debug) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        sec = std::chrono::system_clock::now() - start;
+        LOG(DEBUG) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
     }
 
 Root *KB::getRootTree() {
@@ -397,7 +394,7 @@ Querier *KB::query() {
 
 Inserter *KB::insert() {
     if (readOnly) {
-        BOOST_LOG_TRIVIAL(error) << "Insert() is not available if the knowledge base is opened in read_only mode.";
+        LOG(ERROR) << "Insert() is not available if the knowledge base is opened in read_only mode.";
     }
 
     return new Inserter(tree,
@@ -547,7 +544,7 @@ KB::~KB() {
         fos.write(data, 4);
 
         //Write down whether separate IDs were used for the relations
-        if (fs::exists(string(path) + "/e2r")) {
+        if (Utils::exists(string(path) + "/e2r")) {
             data[0] = 1;
         } else {
             data[0] = 0;
@@ -559,13 +556,13 @@ KB::~KB() {
 
 void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
     DiffIndex::TypeUpdate type;
-    if (fs::exists(inputdir + "/ADD")) {
+    if (Utils::exists(inputdir + "/ADD")) {
         type = DiffIndex::TypeUpdate::ADDITION;
     } else {
         type = DiffIndex::TypeUpdate::DELETE;
     }
 
-    if (fs::exists(inputdir + "/type1")) {
+    if (Utils::exists(inputdir + "/type1")) {
         diffIndices.push_back(std::unique_ptr<DiffIndex>(
                     new DiffIndex1(inputdir, type)));
     } else {
@@ -574,7 +571,7 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
                         config, type)));
     }
 
-    if (fs::exists(inputdir + "/dict")) {
+    if (Utils::exists(inputdir + "/dict")) {
         //Load the dictionary
         DictMgmt::Dict ud;
         ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + "/dict", true, 1, 1, ud.stats.get()));

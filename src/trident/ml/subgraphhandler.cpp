@@ -12,7 +12,7 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new CIKMSubgraphs<double>());
         subgraphs->loadFromFile(subgraphsFile);
     } else {
-        BOOST_LOG_TRIVIAL(error) << "Subgraph format not implemented!";
+        LOG(ERROR) << "Subgraph format not implemented!";
         throw 10;
     }
 }
@@ -40,7 +40,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
             add(emb.get(), embe, embr, dim);
         }
     } else {
-        BOOST_LOG_TRIVIAL(error) << "Algo not recognized";
+        LOG(ERROR) << "Algo not recognized";
         throw 10;
     }
 
@@ -73,8 +73,8 @@ void SubgraphHandler::evaluate(KB &kb,
     if (format == "python") {
         //The file is a uncompressed file with all the test triples serialized after
         //each other
-        if (!fs::exists(nametest)) {
-            BOOST_LOG_TRIVIAL(error) << "Test file " << nametest << " not found";
+        if (!Utils::exists(nametest)) {
+            LOG(ERROR) << "Test file " << nametest << " not found";
             throw 10;
         }
         std::ifstream ifs;

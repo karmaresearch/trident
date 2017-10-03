@@ -23,10 +23,6 @@
 #include <trident/binarytables/newcolumntableinserter.h>
 #include <kognac/utils.h>
 
-#include <boost/filesystem.hpp>
-
-namespace fs = boost::filesystem;
-
 void NewColumnTableInserter::startAppend() {
     tmpfirstpairs.clear();
     tmpsecondpairs.clear();
@@ -79,7 +75,7 @@ void NewColumnTableInserter::append(long t1, long t2) {
         if (sizebuffer > 0) {
             offloadfile1.write(buffer, sizebuffer);
             if (offloadfile1.fail()) {
-                BOOST_LOG_TRIVIAL(error) << "Failed in writing offloadfile1";
+                LOG(ERROR) << "Failed in writing offloadfile1";
                 throw 10;
             }
         }
@@ -107,7 +103,7 @@ void NewColumnTableInserter::append(long t1, long t2) {
         if (sizebuffer > 0) {
             offloadfile2.write(buffer, sizebuffer);
             if (offloadfile2.fail()) {
-                BOOST_LOG_TRIVIAL(error) << "Failed in writing offloadfile2";
+                LOG(ERROR) << "Failed in writing offloadfile2";
                 throw 10;
             }
         }
@@ -129,7 +125,7 @@ void NewColumnTableInserter::stopAppend() {
     uint8_t bytesPerOffset = Utils::numBytesFixedLength(totalsize2);
     if (bytesPerFirstEntry == 0 || bytesPerSecondEntry == 0 ||
             bytesPerCount == 0 || bytesPerOffset == 0) {
-        BOOST_LOG_TRIVIAL(error) << "Bytes are incorrect";
+        LOG(ERROR) << "Bytes are incorrect";
         throw 10;
     }
 
@@ -181,7 +177,7 @@ void NewColumnTableInserter::stopAppend() {
         delete[] buffer;
         assert(offloadedElements1 == 0);
         offloadfile1_r.close();
-        fs::remove(getRootDir() + "/tmpfile1" + to_string(perm));
+        Utils::remove(getRootDir() + "/tmpfile1" + to_string(perm));
     }
 
     //Write all first elements
@@ -213,7 +209,7 @@ void NewColumnTableInserter::stopAppend() {
         }
         assert(offloadedElements2 == 0);
         offloadfile2_r.close();
-        fs::remove(getRootDir() + "/tmpfile2" + to_string(perm));
+        Utils::remove(getRootDir() + "/tmpfile2" + to_string(perm));
     }
 
     //Write all second elements

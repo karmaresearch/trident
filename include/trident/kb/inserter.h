@@ -98,7 +98,7 @@ class Inserter {
         //Store the number of all first terms in all tables
         long *nFirstElsNTables;
 
-        boost::mutex mutex;
+        std::mutex mutex;
 
         long getCoordinatesForPOS(const int p);
         void writeCurrentEntryIntoTree(int permutation, TripleWriter *posArray,
@@ -145,7 +145,7 @@ class Inserter {
                 coordinatesLastFirstTerm[i] = 0;
                 skippedTables[i] = 0;
             }
-            BOOST_LOG_TRIVIAL(debug) << "Threshold for column layout is " << thresholdForColumnStorage;
+            LOG(DEBUG) << "Threshold for column layout is " << thresholdForColumnStorage;
         }
 
         void disableColumnStorage() {

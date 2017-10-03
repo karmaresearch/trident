@@ -1,4 +1,4 @@
-#ifndef  BATCH_H_
+#ifndef BATCH_H_
 #define BATCH_H_
 
 #include <trident/ml/feedback.h>

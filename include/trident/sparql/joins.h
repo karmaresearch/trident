@@ -31,16 +31,12 @@
 #include <trident/kb/querier.h>
 #include <trident/model/table.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <algorithm>
 
 #define JOIN_FAILED 0
 #define JOIN_SUCCESSFUL 1
 #define NOMORE_JOIN 3
-
-namespace timens = boost::chrono;
 
 class NestedMergeJoinItr : public TupleIterator {
 private:

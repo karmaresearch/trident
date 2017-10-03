@@ -26,9 +26,8 @@
 #include <trident/binarytables/newtable.h>
 #include <trident/kb/consts.h>
 
-#include <boost/log/trivial.hpp>
-
 #include <iostream>
+#include <assert.h>
 
 using namespace std;
 

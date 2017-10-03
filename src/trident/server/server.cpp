@@ -14,7 +14,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -49,18 +48,18 @@ void TridentServer::startThread(string address, string port) {
 }
 
 void TridentServer::start(string address, string port) {
-    t = boost::thread(&TridentServer::startThread, this, address, port);
+    t = std::thread(&TridentServer::startThread, this, address, port);
 }
 
 void TridentServer::stop() {
-    BOOST_LOG_TRIVIAL(info) << "Stopping server ...";
+    LOG(INFO) << "Stopping server ...";
     while (isActive) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
     }
     acceptor.cancel();
     acceptor.close();
     io.stop();
-    BOOST_LOG_TRIVIAL(info) << "Done";
+    LOG(INFO) << "Done";
 }
 
 void TridentServer::connect() {
@@ -155,13 +154,13 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         std::unique_ptr<SPARQLLexer>(new SPARQLLexer(sparqlquery));
     std::unique_ptr<SPARQLParser> parser = std::unique_ptr<SPARQLParser>(
             new SPARQLParser(*lexer.get()));
-    boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     parseQuery(parsingOk, *parser.get(), *queryGraph.get(), *queryDict.get(), db);
     if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime query: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = 0";
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+        LOG(INFO) << "Runtime query: 0ms.";
+        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = 0";
         return;
     }
 
@@ -213,14 +212,14 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
             p->setJSONOutput(jsonresults, jsonnamevars);
         }
 
-        boost::chrono::system_clock::time_point startQ = boost::chrono::system_clock::now();
+        std::chrono::system_clock::time_point startQ = std::chrono::system_clock::now();
         if (operatorTree->first()) {
             while (operatorTree->next());
         }
-        boost::chrono::duration<double> durationQ = boost::chrono::system_clock::now() - startQ;
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+        LOG(INFO) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
         if (jsonstats) {
             jsonstats->put("runtime", to_string(durationQ.count()));
             jsonstats->put("nresults", to_string(p->getPrintedRows()));
@@ -228,7 +227,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         }
         if (printstdout) {
             long nElements = p->getPrintedRows();
-            BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+            LOG(INFO) << "# rows = " << nElements;
         }
         delete operatorTree;
     }
@@ -367,9 +366,9 @@ string TridentServer::getPage(string f) {
 
     //Read the file (if any) and return it to the user
     string pathfile = dirhtmlfiles + "/" + f;
-    if (boost::filesystem::exists(boost::filesystem::path(pathfile))) {
+    if (Utils::exists(pathfile)) {
         //Read the content of the file
-        BOOST_LOG_TRIVIAL(debug) << "Reading the content of " << pathfile;
+        LOG(DEBUG) << "Reading the content of " << pathfile;
         ifstream ifs(pathfile);
         stringstream sstr;
         sstr << ifs.rdbuf();

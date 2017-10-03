@@ -61,7 +61,7 @@ public:
 
     virtual TupleIterator *getIterator(
         std::vector<uint8_t> &positions, std::vector<uint64_t> &values) {
-        BOOST_LOG_TRIVIAL(error) << "Not supported";
+        LOG(ERROR) << "Not supported";
         throw 10;
     }
 

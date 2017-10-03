@@ -25,14 +25,9 @@
 #include <trident/binarytables/tableshandler.h>
 #include <trident/binarytables/binarytableinserter.h>
 
-#include <boost/chrono.hpp>
-#include <boost/log/trivial.hpp>
-
 //means: newrow layout with 8 bytes + 8 bytes
 char Inserter::STRATEGY_FOR_POS =
 StorageStrat::getStrategy(NEWROW_ITR, NO_DIFFERENCE, 3, 3, true);
-
-namespace timens = boost::chrono;
 
 bool Inserter::insert(const int permutation,
         const long t1,
@@ -47,7 +42,7 @@ bool Inserter::insert(const int permutation,
     bool ret = false;
     if (t1 != currentT1[permutation]) {
         if (t1 < currentT1[permutation]) {
-            BOOST_LOG_TRIVIAL(debug) << "t1=" << t1 << " currentT1[perm]=" << currentT1[permutation];
+            LOG(DEBUG) << "t1=" << t1 << " currentT1[perm]=" << currentT1[permutation];
         }
         ntables[permutation]++;
         nFirstElsNTables[permutation]++;

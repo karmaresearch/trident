@@ -22,7 +22,6 @@
 
 #include <trident/kb/cacheidx.h>
 
-#include <boost/log/trivial.hpp>
 #include <string>
 
 std::pair<std::vector<std::pair<uint64_t, uint64_t>>*,

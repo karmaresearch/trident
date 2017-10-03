@@ -75,6 +75,6 @@ void TridentQueryPlan::print() {
     if (root != NULL) {
         root->print(0);
     } else {
-        BOOST_LOG_TRIVIAL(debug) << "NULL" << endl;
+        LOG(DEBUG) << "NULL";
     }
 }

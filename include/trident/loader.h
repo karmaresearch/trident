@@ -245,7 +245,7 @@ struct ParamSortAndInsert {
     SimpleTripleWriter *sampleWriter;
     double sampleRate;
     bool printstats;
-    SinkPtr logPtr;
+    //SinkPtr logPtr;
     bool removeInput;
     long estimatedSize;
     bool deletePreviousExt;
@@ -385,15 +385,15 @@ struct ParamsMergeCoordinates {
     int *buffersReady;
     BufferCoordinates *buffer1;
     BufferCoordinates *buffer2;
-    boost::condition_variable *cond;
-    boost::mutex *mut;
+    std::condition_variable *cond;
+    std::mutex *mut;
 };
 
 struct SharedStructs {
-    boost::mutex mut;
+    std::mutex mut;
     int buffersReady;
     bool isFinished;
-    boost::condition_variable cond;
+    std::condition_variable cond;
     BufferCoordinates buffer1;
     BufferCoordinates buffer2;
     BufferCoordinates *bufferToFill;
@@ -425,7 +425,7 @@ struct ParamsLoad {
     bool sample;
     double sampleRate;
     int thresholdSkipTable;
-    SinkPtr logPtr;
+    //SinkPtr logPtr;
     string remoteLocation;
     long limitSpace;
     string graphTransformation;
@@ -437,7 +437,7 @@ struct ParamsLoad {
 class Loader {
     private:
         bool printStats;
-        SinkPtr logPtr;
+        //SinkPtr logPtr;
 
     public:
         static void generateNewPermutation(string outputdir,
@@ -634,7 +634,7 @@ class Loader {
                 int pos1,
                 int pos2);
 
-        static void monitorPerformance(SinkPtr logger, int seconds,
+        static void monitorPerformance(/*SinkPtr logger, */int seconds,
                 std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
 
         static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);

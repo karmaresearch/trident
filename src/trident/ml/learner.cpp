@@ -7,14 +7,9 @@
 
 #include <tbb/concurrent_queue.h>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-
 #include <iostream>
 #include <chrono>
 #include <cmath>
-
-namespace fs = boost::filesystem;
 
 using namespace std;
 
@@ -30,11 +25,11 @@ void Learner::setup(const uint16_t nthreads,
 }
 
 void Learner::setup(const uint16_t nthreads) {
-    BOOST_LOG_TRIVIAL(debug) << "Creating E ...";
+    LOG(DEBUG) << "Creating E ...";
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
     E->init(nthreads, true);
-    BOOST_LOG_TRIVIAL(debug) << "Creating R ...";
+    LOG(DEBUG) << "Creating R ...";
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     R->init(nthreads, false);
 
@@ -87,13 +82,13 @@ void Learner::batch_processer(
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
-    BOOST_LOG_TRIVIAL(debug) << "Start serialization ...";
-    fs::create_directories(path);
-    BOOST_LOG_TRIVIAL(debug) << "Serializing R ...";
+    LOG(DEBUG) << "Start serialization ...";
+    Utils::create_directories(path);
+    LOG(DEBUG) << "Serializing R ...";
     R->store(path + "/R", compressstorage, nthreads);
-    BOOST_LOG_TRIVIAL(debug) << "Serializing E ...";
+    LOG(DEBUG) << "Serializing E ...";
     E->store(path + "/E", compressstorage, nthreads);
-    BOOST_LOG_TRIVIAL(debug) << "Serialization done";
+    LOG(DEBUG) << "Serialization done";
 }
 
 void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
@@ -107,8 +102,8 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
     int bestepoch = -1;
 
     //storefolder should point to a directory. Create it if it does not exist
-    if (shouldStoreModel && !fs::exists(fs::path(storefolder))) {
-        fs::create_directories(storefolder);
+    if (shouldStoreModel && !Utils::exists(storefolder)) {
+        Utils::create_directories(storefolder);
     }
 
     std::vector<std::unique_ptr<Querier>> queriers;
@@ -116,7 +111,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         queriers.push_back(std::unique_ptr<Querier>(kb.query()));
     }
 
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
         std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
         //Init code
@@ -152,7 +147,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 inputQueue.push(pio);
                 batchcounter++;
                 if (batchcounter % 100000 == 0) {
-                    BOOST_LOG_TRIVIAL(debug) << "Processed " << batchcounter << " batches";
+                    LOG(DEBUG) << "Processed " << batchcounter << " batches";
                 }
             } else {
                 //Puts nthread NULL pointers to tell the threads to stop
@@ -176,29 +171,29 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         R->postprocessUpdates();
 
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Epoch " << epoch << ". Time=" <<
+        LOG(INFO) << "Epoch " << epoch << ". Time=" <<
             elapsed_seconds.count() << "sec. Violations=" << totalV <<
             " Conflicts=" << totalC;
 
         if (shouldStoreModel && (epoch + 1) % storeits == 0) {
             string pathmodel = storefolder + "/model-" + to_string(epoch+1);
-            BOOST_LOG_TRIVIAL(info) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
+            LOG(INFO) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
             store_model(pathmodel, compresstorage, nstorethreads);
         }
 
         if ((epoch+1) % evalits == 0) {
-            if (fs::exists(pathvalid)) {
+            if (Utils::exists(pathvalid)) {
                 //Load the loading data into a vector
                 std::vector<uint64_t> testset;
                 BatchCreator::loadTriples(pathvalid, testset);
                 //Do the test
                 TranseTester<double> tester(E, R);
-                BOOST_LOG_TRIVIAL(debug) << "Testing on the valid dataset ...";
+                LOG(DEBUG) << "Testing on the valid dataset ...";
                 auto result = tester.test("valid", testset, nthreads, epoch);
                 if (result->loss < bestresult) {
                     bestresult = result->loss;
                     bestepoch = epoch;
-                    BOOST_LOG_TRIVIAL(debug) << "Epoch " << epoch << " got best results";
+                    LOG(DEBUG) << "Epoch " << epoch << " got best results";
                 }
                 if (batcher.getFeedback()) {
                     batcher.getFeedback()->addFeedbacks(result);
@@ -206,7 +201,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 //Store the results of the detailed queries
                 if (shouldStoreModel) {
                     string pathresults = storefolder + "/results-" + to_string(epoch+1);
-                    BOOST_LOG_TRIVIAL(debug) << "Storing the results ...";
+                    LOG(DEBUG) << "Storing the results ...";
                     ofstream out;
                     out.open(pathresults);
                     out << "Query\tPosS\tPosO" << endl;
@@ -221,8 +216,8 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
             }
         }
     }
-    boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-    BOOST_LOG_TRIVIAL(info) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
+    std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+    LOG(INFO) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
 }
 
 void Learner::update_gradients(BatchIO &io,
@@ -322,7 +317,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
                     p.feedback_minFullEpochs));
     }
     bool filter = true;
-    BOOST_LOG_TRIVIAL(debug) << "Launching " << op << " with params: " << p.tostring();
+    LOG(DEBUG) << "Launching " << op << " with params: " << p.tostring();
     BatchCreator batcher(kb.getPath(),
             p.batchsize,
             p.nthreads,
@@ -332,37 +327,37 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
             feedback);
     if (op == "transe") {
         TranseLearner tr(kb, p);
-        BOOST_LOG_TRIVIAL(info) << "Setting up TranSE ...";
+        LOG(INFO) << "Setting up TranSE ...";
         tr.setup(p.nthreads);
-        BOOST_LOG_TRIVIAL(info) << "Launching the training of TranSE ...";
+        LOG(INFO) << "Launching the training of TranSE ...";
         tr.train(batcher, p.nthreads,
                 p.nstorethreads,
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
                 p.compressstorage);
-        BOOST_LOG_TRIVIAL(info) << "Done.";
+        LOG(INFO) << "Done.";
         tr.getDebugger(debugger);
 
     } else if (op == "distmul") {
         DistMulLearner tr(kb, p);
-        BOOST_LOG_TRIVIAL(info) << "Setting up DistMul...";
+        LOG(INFO) << "Setting up DistMul...";
         tr.setup(p.nthreads);
-        BOOST_LOG_TRIVIAL(info) << "Launching the training of DistMul...";
+        LOG(INFO) << "Launching the training of DistMul...";
         tr.train(batcher, p.nthreads,
                 p.nstorethreads,
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
                 p.compressstorage);
-        BOOST_LOG_TRIVIAL(info) << "Done.";
+        LOG(INFO) << "Done.";
         tr.getDebugger(debugger);
 
     } else {
-        BOOST_LOG_TRIVIAL(error) << "Task " << op << " not recognized";
+        LOG(ERROR) << "Task " << op << " not recognized";
         return;
     }
-    //BOOST_LOG_TRIVIAL(debug) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
+    //LOG(DEBUG) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
 
     if (p.filetrace != "") {
         debugger->store(p.filetrace);

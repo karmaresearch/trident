@@ -25,7 +25,7 @@
 
 #include <trident/kb/consts.h>
 
-#include <boost/log/trivial.hpp>
+#include <kognac/logs.h>
 
 #include <inttypes.h>
 
@@ -100,7 +100,7 @@ public:
     }
 
     uint64_t* getValues(int perm, long *size) {
-        BOOST_LOG_TRIVIAL(error) << "Not implemented";
+        LOG(ERROR) << "Not implemented";
         return NULL;
     }
 
