@@ -3,17 +3,12 @@
 
 #include <snap/tasks.h>
 
-#include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 
 #include <iostream>
 
 using namespace std;
-namespace logging = boost::log;
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
 
 void printHelp(const char *programName, string section,
         po::options_description &desc,
@@ -96,7 +91,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
         //Check if the directory exists
         string kbDir = vm["input"].as<string>();
-        if ((cmd == "query" || cmd == "lookup") && !fs::is_directory(kbDir)) {
+        if ((cmd == "query" || cmd == "lookup") && !Utils::isDirectory(kbDir)) {
             printErrorMsg(
                     (string("The directory ") + kbDir
                      + string(" does not exist.")).c_str());
@@ -105,7 +100,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
         //Check if the directory is not empty
         if (cmd == "query" || cmd == "lookup" || cmd == "query_native") {
-            if (fs::is_empty(kbDir)) {
+            if (Utils::isEmpty(kbDir)) {
                 printErrorMsg(
                         (string("The directory ") + kbDir + string(" is empty.")).c_str());
                 return false;
@@ -114,7 +109,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
         /*** Check specific parameters ***/
         if (cmd == "query") {
             string queryFile = vm["query"].as<string>();
-            if (queryFile != "" && !fs::exists(queryFile)) {
+            if (queryFile != "" && !Utils::exists(queryFile)) {
                 printErrorMsg(
                         (string("The file ") + queryFile
                          + string(" doesn't exist.")).c_str());
@@ -140,7 +135,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
             if (!vm.count("comprinput")) {
                 string tripleDir = vm["tripleFiles"].as<string>();
-                if (!fs::exists(tripleDir)) {
+                if (!Utils::exists(tripleDir)) {
                     printErrorMsg(
                             (string("The path ") + tripleDir
                              + string(" does not exist.")).c_str());
@@ -200,7 +195,7 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
                 return false;
             }
             string updatedir = vm["update"].as<string>();
-            if (!fs::exists(updatedir)) {
+            if (!Utils::exists(updatedir)) {
                 string msgerror = string("The path specified (") + updatedir + string(") does not exist");
                 printErrorMsg(msgerror.c_str());
                 return false;
@@ -224,21 +219,21 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
 bool checkMachineConstraints() {
     if (sizeof(long) != 8) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'long' to be 8 bytes";
+        LOG(ERROR) << "Trident expects a 'long' to be 8 bytes";
         return false;
     }
     if (sizeof(int) != 4) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'int' to be 4 bytes";
+        LOG(ERROR) << "Trident expects a 'int' to be 4 bytes";
         return false;
     }
     if (sizeof(short) != 2) {
-        BOOST_LOG_TRIVIAL(error) << "Trident expects a 'short' to be 2 bytes";
+        LOG(ERROR) << "Trident expects a 'short' to be 2 bytes";
         return false;
     }
     int n = 1;
     // big endian if true
     if(*(char *)&n != 1) {
-        BOOST_LOG_TRIVIAL(error) << "Some features of Trident rely on little endianness. Change machine ...sorry";
+        LOG(ERROR) << "Some features of Trident rely on little endianness. Change machine ...sorry";
         return false;
     }
     return true;
@@ -438,9 +433,10 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     sections.insert(make_pair("ml",ml_options));
 
     cmdline_options.add_options()("input,i", po::value<string>(),
-            "The path of the KB directory. This parameter is REQUIRED.")(
+            "The path of the KB directory. This parameter is REQUIRED.");
+    /*(
                 "logLevel,l", po::value<logging::trivial::severity_level>(),
-                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");
+                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");*/
     cmdline_options.add_options()("logfile",
             po::value<string>()->default_value(""),
             "Set if you want to store the logs in a file");

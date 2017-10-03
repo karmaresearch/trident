@@ -6,7 +6,6 @@
 #include <trident/utils/batch.h>
 #include <trident/kb/querier.h>
 
-#include <boost/log/trivial.hpp>
 #include <tbb/concurrent_queue.h>
 
 struct _PairwiseSorter {

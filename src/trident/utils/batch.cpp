@@ -2,7 +2,6 @@
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 
-
 #include <fstream>
 #include <algorithm>
 #include <random>
@@ -131,30 +130,28 @@ void BatchCreator::start() {
     string fin = this->kbdir + "/_batch";
     if (Utils::exists(fin)) {
         //if (valid > 0 || test > 0) {
-        //    BOOST_LOG_TRIVIAL(warning) << "The batch was already prepared. The 'valid' and 'test' parameters will be ignored. You must remove all _batch files so that the batch can be re-created with the given parameters";
         //}
-    } else
+    } else {
         LOG(INFO) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
-    createInputForBatch(valid, test);
-}
+        createInputForBatch(valid, test);
+    }
 
-//Load the file into a memory-mapped file
-this->mapping = bip::file_mapping(fin.c_str(), bip::read_only);
-this->mapped_rgn = bip::mapped_region(this->mapping, bip::read_only);
-this->rawtriples = static_cast<char*>(this->mapped_rgn.get_address());
-this->ntriples = (uint64_t)this->mapped_rgn.get_size() / 15; //triples
+    //Load the file into a memory-mapped file
+    this->mapping = bip::file_mapping(fin.c_str(), bip::read_only);
+    this->mapped_rgn = bip::mapped_region(this->mapping, bip::read_only);
+    this->rawtriples = static_cast<char*>(this->mapped_rgn.get_address());
+    this->ntriples = (uint64_t)this->mapped_rgn.get_size() / 15; //triples
 
-LOG(DEBUG) << "Creating index array ...";
-this->indices.resize(this->ntriples);
-for(long i = 0; i < this->ntriples; ++i) {
-    this->indices[i] = i;
-}
+    LOG(DEBUG) << "Creating index array ...";
+    this->indices.resize(this->ntriples);
+    for(long i = 0; i < this->ntriples; ++i) {
+        this->indices[i] = i;
+    }
 
-LOG(DEBUG) << "Shuffling array ...";
-auto engine = std::default_random_engine();
-std::shuffle(this->indices.begin(), this->indices.end(), engine);
-this->currentidx = 0;
-LOG(DEBUG) << "Done";
+    LOG(DEBUG) << "Shuffling array ...";
+    std::shuffle(this->indices.begin(), this->indices.end(), engine);
+    this->currentidx = 0;
+    LOG(DEBUG) << "Done";
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {

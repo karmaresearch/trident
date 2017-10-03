@@ -4,7 +4,6 @@
 #include <trident/ml/subgraphhandler.h>
 #include <trident/utils/batch.h>
 
-#include <boost/log/trivial.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/karma.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
@@ -13,7 +12,7 @@
 namespace po = boost::program_options;
 
 void launchML(KB &kb, string op, string algo, string params) {
-    BOOST_LOG_TRIVIAL(info) << "Launching " << op << " " << params << " ...";
+    LOG(INFO) << "Launching " << op << " " << params << " ...";
     //Parse the params
     std::map<std::string,std::string> mapparams;
     std::string::iterator first = params.begin();
@@ -22,14 +21,15 @@ void launchML(KB &kb, string op, string algo, string params) {
             *( *(boost::spirit::qi::char_-"=")  >> boost::spirit::qi::lit("=") >> *(boost::spirit::qi::char_-";") >> -boost::spirit::qi::lit(";") ),
             boost::spirit::ascii::space, mapparams);
     if (!result) {
-        BOOST_LOG_TRIVIAL(error) << "Parsing params " << params << " has failed!";
+        LOG(ERROR) << "Parsing params " << params << " has failed!";
         return;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Parsed params: " << boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
-                boost::spirit::karma::string), mapparams);
+    //string str = boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
+    //            boost::spirit::karma::string), mapparams);
+    //LOG(DEBUG) << "Parsed params: " << str.c_str();
 
     if (!kb.areRelIDsSeparated()) {
-        BOOST_LOG_TRIVIAL(error) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
+        LOG(ERROR) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
         return;
     }
 

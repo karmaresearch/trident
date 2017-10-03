@@ -1,7 +1,5 @@
 #include <trident/ml/feedback.h>
 
-#include <boost/log/trivial.hpp>
-
 bool Feedback::shouldBeIncluded(long s, long p, long o) {
     if (currentEpoch < minFullEpochs) {
         return true;
@@ -45,8 +43,8 @@ bool Feedback::_querySorter(const std::pair<uint32_t, QueriesItr>& a,
 }
 
 void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
-    BOOST_LOG_TRIVIAL(debug) << "Adding feedbacks ...";
-    BOOST_LOG_TRIVIAL(debug) << "Excluded triples in a epoch so far: " << excluded;
+    LOG(DEBUG) << "Adding feedbacks ...";
+    LOG(DEBUG) << "Excluded triples in a epoch so far: " << excluded;
     excluded = 0;
     queries_sp.clear();
     queries_po.clear();
@@ -89,5 +87,5 @@ void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
 
     //Print them for debugging
 
-    BOOST_LOG_TRIVIAL(debug) << "done.";
+    LOG(DEBUG) << "done.";
 }

@@ -4,8 +4,6 @@
 
 #include <tbb/concurrent_queue.h>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -16,8 +14,6 @@
 #include <fstream>
 #include <chrono>
 #include <cmath>
-
-namespace fs = boost::filesystem;
 
 using namespace std;
 

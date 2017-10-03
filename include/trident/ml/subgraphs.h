@@ -4,6 +4,8 @@
 #include <trident/ml/embeddings.h>
 #include <trident/kb/querier.h>
 
+#include <kognac/logs.h>
+
 #include <inttypes.h>
 #include <vector>
 
@@ -38,7 +40,7 @@ class Subgraphs {
         virtual void loadFromFile(string file) = 0;
 
         virtual double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
-            BOOST_LOG_TRIVIAL(error) << "Not implemented";
+            LOG(ERROR) << "Not implemented";
             throw 10;
         }
 
@@ -53,7 +55,7 @@ class Subgraphs {
                         distances.push_back(l1(q, i, emb, dim));
                         break;
                     default:
-                        BOOST_LOG_TRIVIAL(error) << "Not implemented";
+                        LOG(ERROR) << "Not implemented";
                         throw 10;
                 };
             }

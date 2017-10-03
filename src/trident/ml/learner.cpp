@@ -212,7 +212,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                     }
                 }
             } else {
-                BOOST_LOG_TRIVIAL(warning) << "I'm supposed to test the model but no data is available";
+                LOG(WARN) << "I'm supposed to test the model but no data is available";
             }
         }
     }

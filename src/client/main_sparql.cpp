@@ -122,15 +122,15 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
     SPARQLLexer lexer(queryContent);
     SPARQLParser parser(lexer);
 
-    boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     parseQuery(parsingOk, parser, queryGraph,
             queryDict, db);
     if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = 0";
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+        LOG(INFO) << "Runtime queryopti: 0ms.";
+        LOG(INFO) << "Runtime queryexec: 0ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = 0";
         return;
     }
 
@@ -148,7 +148,7 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         cerr << "internal error plan generation failed" << endl;
         return;
     }
-    boost::chrono::duration<double> durationO = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> durationO = std::chrono::system_clock::now() - start;
 
     // Build a physical plan
     Runtime runtime(db, NULL, &queryDict);
@@ -160,18 +160,18 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         operatorTree->print(out);
         delete operatorTree;
     } else {
-        boost::chrono::system_clock::time_point startQ = boost::chrono::system_clock::now();
+        std::chrono::system_clock::time_point startQ = std::chrono::system_clock::now();
         if (operatorTree->first()) {
             while (operatorTree->next());
         }
-        boost::chrono::duration<double> durationQ = boost::chrono::system_clock::now() - startQ;
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         ResultsPrinter *p = (ResultsPrinter*) operatorTree;
         long nElements = p->getPrintedRows();
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+        LOG(INFO) << "# rows = " << nElements;
         delete operatorTree;
     }
 }
@@ -195,14 +195,14 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
     SPARQLLexer lexer(strStream.str());
     SPARQLParser parser(lexer);
 
-    timens::system_clock::time_point start = timens::system_clock::now();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     parseQuery(parsingOk, parser, queryGraph, queryDict, db);
     if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+        LOG(INFO) << "Runtime queryopti: 0ms.";
+        LOG(INFO) << "Runtime queryexec: 0ms.";
+        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         return;
     }
 
@@ -210,17 +210,17 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
             queryGraph);
     TridentQueryPlan plan(q);
     plan.create(*query.get(), SIMPLE);
-    boost::chrono::duration<double> durationO = boost::chrono::system_clock::now() - start;
+    std::chrono::duration<double> durationO = std::chrono::system_clock::now() - start;
 
     //Output plan
 #ifdef DEBUG
-    BOOST_LOG_TRIVIAL(debug) << "Translated plan:";
+    LOG(DEBUG) << "Translated plan:";
     plan.print();
 #endif
 
     {
         q->resetCounters();
-        timens::system_clock::time_point startQ = timens::system_clock::now();
+        std::chrono::system_clock::time_point startQ = std::chrono::system_clock::now();
         TupleIterator *root = plan.getIterator();
         //Execute the query
         const uint8_t nvars = (uint8_t) root->getTupleSize();
@@ -235,15 +235,15 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
             }
             nElements++;
         }
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+        std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - startQ;
-        boost::chrono::duration<double> secT = boost::chrono::system_clock::now()
+        std::chrono::duration<double> secT = std::chrono::system_clock::now()
             - start;
         //Print stats
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
+        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
+        LOG(INFO) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
+        LOG(INFO) << "# rows = " << nElements;
         plan.releaseIterator(root);
     }
     //Print stats dictionary

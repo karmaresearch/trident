@@ -4,6 +4,8 @@
 #include <trident/ml/embeddings.h>
 #include <trident/kb/kb.h>
 
+#include <kognac/logs.h>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -111,7 +113,7 @@ class Tester {
                 counter++;
                 float perc = (float)(3*counter) / sizeinput * 100;
                 if (perc > stepperc) {
-                    BOOST_LOG_TRIVIAL(debug) << "***Processed " << perc << "\% testcases***";
+                    LOG(DEBUG) << "***Processed " << perc << "\% testcases***";
                     stepperc += 10;
                 }
 
@@ -215,9 +217,9 @@ class Tester {
             double avghit3 = (avghit3s + avghit3o) / 2;
             std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - starttime;
 
-            BOOST_LOG_TRIVIAL(info) << "Time: " << elapsed_seconds.count() << " sec. Mean subj pos: " << avgsubj << " Mean obj pos: " << avgobj << " Mean pos: " << totalavg;
-            BOOST_LOG_TRIVIAL(info) << "Hit@10(s): " << avghit10s << "% Hit@10(o): " << avghit10o << "% Hit@10: " << avghit10 << "%";
-            BOOST_LOG_TRIVIAL(info) << "Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
+            LOG(INFO) << "Time: " << elapsed_seconds.count() << " sec. Mean subj pos: " << avgsubj << " Mean obj pos: " << avgobj << " Mean pos: " << totalavg;
+            LOG(INFO) << "Hit@10(s): " << avghit10s << "% Hit@10(o): " << avghit10o << "% Hit@10: " << avghit10 << "%";
+            LOG(INFO) << "Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
 
             //Write JSON output
             boost::property_tree::ptree jsonresults;
@@ -236,7 +238,7 @@ class Tester {
             jsonresults.put("hit3", avghit3);
             std::stringstream output;
             write_json(output, jsonresults);
-            BOOST_LOG_TRIVIAL(debug) << "JSON: " << output.str();
+            LOG(DEBUG) << "JSON: " << output.str();
 
 
             std::shared_ptr<OutputTest> results(new OutputTest());

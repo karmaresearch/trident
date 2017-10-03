@@ -4,14 +4,13 @@
 #include <trident/utils/tridentutils.h>
 
 #include <kognac/utils.h>
+#include <kognac/logs.h>
 
-#include <boost/log/trivial.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/serialization/vector.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <vector>
@@ -218,7 +217,7 @@ class Embeddings {
                 b++;
                 counter += 1;
             }
-            BOOST_LOG_TRIVIAL(debug) << "Done";
+            LOG(DEBUG) << "Done";
         }
 
         void store(std::string path, bool compress, uint16_t nthreads) {
@@ -278,7 +277,7 @@ class Embeddings {
                     if (end > ((long)n * dim) || i == nthreads - 1) {
                         end = (long)n * dim;
                     }
-                    BOOST_LOG_TRIVIAL(debug) << "Storing " <<
+                    LOG(DEBUG) << "Storing " <<
                         (end - begin) << " values in " << localpath << " ...";
                     if (begin < end) {
                         threads.push_back(std::thread(
@@ -299,9 +298,8 @@ class Embeddings {
         }
 
         static std::shared_ptr<Embeddings<K>> load(std::string path) {
-            boost::filesystem::path p(path);
             std::vector<std::string> files = Utils::getFilesWithPrefix(
-                    p.parent_path().string(), p.filename().string());
+                    Utils::parentDir(path), Utils::filename(path));
 
             //There should be a file that ends with -meta
             bool metafound = false;
@@ -326,7 +324,7 @@ class Embeddings {
             }
 
             if (!metafound) {
-                BOOST_LOG_TRIVIAL(warning) << "Embedding file " << path << " not found";
+                LOG(WARN) << "Embedding file " << path << " not found";
                 return std::shared_ptr<Embeddings<double>>();
             } else {
                 //Count the files with a number as extension
@@ -339,7 +337,7 @@ class Embeddings {
 
                 uint32_t countfile = 0;
                 std::string filetoload = path + "." + std::to_string(countfile);
-                while (boost::filesystem::exists(filetoload)) {
+                while (Utils::exists(filetoload)) {
                     std::ifstream ifs;
                     ifs.open(filetoload, std::ifstream::in);
                     boost::iostreams::filtering_stream<boost::iostreams::input> in;
@@ -400,7 +398,7 @@ class Embeddings {
         uint16_t processedfiles = 0;
         while (processedfiles < files_e.size()) {
         string file = dirname + "/" + bpath.filename().string() + "." + to_string(processedfiles);
-        BOOST_LOG_TRIVIAL(debug) << "Processing file " << file;
+        LOG(DEBUG) << "Processing file " << file;
         ifstream ifs2;
         ifs2.open(file);
         boost::iostreams::filtering_stream<boost::iostreams::input> inp2;

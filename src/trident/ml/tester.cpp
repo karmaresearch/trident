@@ -23,7 +23,7 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
         TranseTester<double> tester(E,R);
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
     } else {
-        BOOST_LOG_TRIVIAL(error) << "Not yet supported";
+        LOG(ERROR) << "Not yet supported";
     }
 
 }
