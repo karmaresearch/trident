@@ -48,14 +48,14 @@ class Subgraphs {
                 K* emb,
                 uint16_t dim) {
             for(size_t i = 0; i < subgraphs.size(); ++i) {
-            switch (dist) {
-                case L1:
-                    distances.push_back(l1(q, i, emb, dim));
-                    break;
-                default:
-                    BOOST_LOG_TRIVIAL(error) << "Not implemented";
-                    throw 10;
-            };
+                switch (dist) {
+                    case L1:
+                        distances.push_back(l1(q, i, emb, dim));
+                        break;
+                    default:
+                        BOOST_LOG_TRIVIAL(error) << "Not implemented";
+                        throw 10;
+                };
             }
         }
 };
@@ -91,11 +91,18 @@ class CIKMSubgraphs : public Subgraphs<K> {
                 //Parse the features vector
                 const uint8_t lenParam = sizeof(K);
                 for(uint16_t i = 0; i < dim; ++i) {
-                    K param = *(K*) (buffer.get() + 17 + i * lenParam); 
+                    K param = *(K*) (buffer.get() + 17 + i * lenParam);
                     params.push_back(param);
                 }
             }
         }
+
+        double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            //TODO calculate the distance using l1
+            double out = 0;
+            return out;
+        }
+
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,

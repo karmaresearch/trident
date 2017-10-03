@@ -28,16 +28,9 @@
 #include <trident/kb/updater.h>
 #include <trident/kb/kbconfig.h>
 #include <trident/kb/querier.h>
-#include <trident/binarytables/storagestrat.h>
 #include <trident/mining/miner.h>
 #include <trident/tests/common.h>
 #include <trident/server/server.h>
-#include <trident/ml/learner.h>
-#include <trident/ml/tester.h>
-#include <trident/ml/subgraphhandler.h>
-#include <trident/sparql/query.h>
-#include <trident/sparql/plan.h>
-#include <trident/utils/batch.h>
 
 #include <kognac/utils.h>
 
@@ -46,21 +39,6 @@
 //SNAP dependencies
 #include <snap/analytics.h>
 //END SNAP dependencies
-
-//RDF3X dependencies
-#include <layers/TridentLayer.hpp>
-#include <cts/parser/SPARQLLexer.hpp>
-#include <cts/parser/SPARQLParser.hpp>
-#include <cts/infra/QueryGraph.hpp>
-#include <cts/semana/SemanticAnalysis.hpp>
-#include <cts/plangen/PlanGen.hpp>
-#include <cts/codegen/CodeGen.hpp>
-#include <rts/runtime/Runtime.hpp>
-#include <rts/runtime/QueryDict.hpp>
-#include <rts/operator/Operator.hpp>
-#include <rts/operator/PlanPrinter.hpp>
-#include <rts/operator/ResultsPrinter.hpp>
-//END RDF3x dependencies
 
 #include <boost/chrono.hpp>
 #include <boost/log/trivial.hpp>
@@ -74,10 +52,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/karma.hpp>
-#include <boost/fusion/adapted/std_pair.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -89,7 +63,7 @@ namespace logging = boost::log;
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
-//Defined main_params.cpp
+//Implemented in main_params.cpp
 extern bool checkMachineConstraints();
 extern bool checkParams(po::variables_map &vm, int argc, const char** argv,
         po::options_description &desc,
@@ -98,6 +72,18 @@ extern bool initParams(int argc, const char** argv, po::variables_map &vm);
 extern void printHelp(const char *programName, string section,
         po::options_description &desc,
         std::map<string,po::options_description> &sections);
+
+//Implemented in main_sparql.cpp
+extern void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent);
+extern void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
+        bool disableBifocalSampling, bool resultslookup);
+
+//Implemented in main_ml.cpp
+extern void launchML(KB &kb, string op, string algo, string params);
+extern void subgraphEval(KB &kb, po::variables_map &vm);
+
+//Implemented in kb.cpp
+extern bool _sort_by_number(const string &s1, const string &s2);
 
 SinkPtr initLogging(
         logging::trivial::severity_level level,
@@ -214,161 +200,6 @@ void dump(KB *kb, string outputdir) {
     delete q;
 }
 
-std::unique_ptr<Query> createQueryFromRF3XQueryGraph(SPARQLParser &parser,
-        QueryGraph &graph) {
-    std::vector<Pattern*> patterns;
-    std::vector<Filter*> filters;
-    std::vector<std::string> projections;
-
-    for (QueryGraph::projection_iterator itr = graph.projectionBegin();
-            itr != graph.projectionEnd(); ++itr) {
-        //Get the text
-        projections.push_back(parser.getVariableName(*itr));
-    }
-
-    //Create a "Pattern" object for each element in the graph
-    QueryGraph::SubQuery &sb = graph.getQuery();
-    for (auto el : sb.nodes) {
-        Pattern *pattern = new Pattern();
-        if (!el.constSubject) {
-            pattern->addVar(0, parser.getVariableName(el.subject));
-        } else {
-            pattern->subject(el.subject);
-        }
-        if (!el.constPredicate) {
-            pattern->addVar(1, parser.getVariableName(el.predicate));
-        } else {
-            pattern->predicate(el.predicate);
-        }
-        if (!el.constObject) {
-            pattern->addVar(2, parser.getVariableName(el.object));
-        } else {
-            pattern->object(el.object);
-        }
-
-        patterns.push_back(pattern);
-        filters.push_back(NULL);
-        el.additionalData = (void*) pattern;
-    }
-
-    return std::unique_ptr<Query>(new Query(patterns, filters, projections));
-}
-
-void parseQuery(bool &success,
-        SPARQLParser &parser,
-        QueryGraph &queryGraph,
-        QueryDict &queryDict,
-        TridentLayer &db) {
-
-    //Sometimes the query introduces new constants which need an ID
-    try {
-        parser.parse();
-    } catch (const SPARQLParser::ParserException& e) {
-        cerr << "parse error: " << e.message << endl;
-        success = false;
-        return;
-    }
-
-    // And perform the semantic anaylsis
-    try {
-        SemanticAnalysis semana(db, queryDict);
-        semana.transform(parser, queryGraph);
-    } catch (const SemanticAnalysis::SemanticException& e) {
-        cerr << "semantic error: " << e.message << endl;
-        success = false;
-        return;
-    }
-    if (queryGraph.knownEmpty()) {
-        cout << "<empty result -- known empty>" << endl;
-        success = false;
-        return;
-    }
-
-    success = true;
-    return;
-}
-
-void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
-        bool disableBifocalSampling, bool resultslookup) {
-    QueryDict queryDict(db.getNextId());
-    QueryGraph queryGraph;
-    bool parsingOk;
-
-    // Parse the query
-    string queryContent = "";
-    if (queryFileName == "") {
-        //Read it from STDIN
-        cout << "SPARQL Query:" << endl;
-        getline(cin, queryContent);
-        cout << "QUERY " << queryContent << endl;
-    } else {
-        std::fstream inFile;
-        inFile.open(queryFileName);//open the input file
-        std::stringstream strStream;
-        strStream << inFile.rdbuf();//read the file
-        queryContent = strStream.str();
-    }
-
-    SPARQLLexer lexer(queryContent);
-    SPARQLParser parser(lexer);
-
-    boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
-    parseQuery(parsingOk, parser, queryGraph,
-            queryDict, db);
-    if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = 0";
-        return;
-    }
-
-    // Run the optimizer
-    PlanGen plangen;
-    Plan* plan = NULL;
-    if (!disableBifocalSampling) {
-        plan = plangen.translate(db, queryGraph);
-    } else {
-        db.disableBifocalSampling();
-        plan = plangen.translate(db, queryGraph, false);
-    }
-
-    if (!plan) {
-        cerr << "internal error plan generation failed" << endl;
-        return;
-    }
-    boost::chrono::duration<double> durationO = boost::chrono::system_clock::now() - start;
-
-    // Build a physical plan
-    Runtime runtime(db, NULL, &queryDict);
-    Operator* operatorTree = CodeGen().translate(runtime, queryGraph, plan, !resultslookup);
-
-    // Execute it
-    if (explain) {
-        DebugPlanPrinter out(runtime, false);
-        operatorTree->print(out);
-        delete operatorTree;
-    } else {
-        boost::chrono::system_clock::time_point startQ = boost::chrono::system_clock::now();
-        if (operatorTree->first()) {
-            while (operatorTree->next());
-        }
-        boost::chrono::duration<double> durationQ = boost::chrono::system_clock::now() - startQ;
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        ResultsPrinter *p = (ResultsPrinter*) operatorTree;
-        long nElements = p->getPrintedRows();
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
-        delete operatorTree;
-    }
-}
-
-//Defined in kb.cpp
-extern bool _sort_by_number(const string &s1, const string &s2);
-
 void testkb(string kbDir, po::variables_map &vm) {
     if (!fs::exists(fs::path(kbDir))) {
         //Load the KB
@@ -450,8 +281,6 @@ void testkb(string kbDir, po::variables_map &vm) {
     test.test_moveto(permutations);
 }
 
-void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent);
-
 void printInfo(KB &kb) {
     cout << "N. Terms: " << kb.getNTerms() << endl;
     cout << "N. Triples: " << kb.getSize() << endl;
@@ -503,170 +332,11 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
     Analytics::run(kb, op, param1, param2);
 }
 
-void launchML(KB &kb, string op, string algo, string params) {
-    BOOST_LOG_TRIVIAL(info) << "Launching " << op << " " << params << " ...";
-    //Parse the params
-    std::map<std::string,std::string> mapparams;
-    std::string::iterator first = params.begin();
-    std::string::iterator last  = params.end();
-    const bool result = boost::spirit::qi::phrase_parse(first, last,
-            *( *(boost::spirit::qi::char_-"=")  >> boost::spirit::qi::lit("=") >> *(boost::spirit::qi::char_-";") >> -boost::spirit::qi::lit(";") ),
-            boost::spirit::ascii::space, mapparams);
-    if (!result) {
-        BOOST_LOG_TRIVIAL(error) << "Parsing params " << params << " has failed!";
-        return;
-    }
-    BOOST_LOG_TRIVIAL(debug) << "Parsed params: " << boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
-                boost::spirit::karma::string), mapparams);
-
-    if (!kb.areRelIDsSeparated()) {
-        BOOST_LOG_TRIVIAL(error) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
-        return;
-    }
-
-    //Setting up parameters
-    uint16_t epochs = 100;
-    const uint32_t ne = kb.getNTerms();
-    auto dict = kb.getDictMgmt();
-    const uint32_t nr = dict->getNRels();
-    uint16_t dim = 50;
-    uint32_t batchsize = 1000;
-    uint16_t nthreads = 1;
-    uint16_t nstorethreads = 1;
-    float margin = 1.0;
-    float learningrate = 0.1;
-    string storefolder = "";
-    bool adagrad = false;
-    bool compresstorage = false;
-    uint64_t numneg = 0;
-    bool usefeedback = false;
-    uint32_t feedback_threshold = 10;
-    uint32_t feedback_minfulle = 20;
-
-    uint32_t evalits = 10;
-    uint32_t storeits = 10;
-    float valid = 0.0;
-    float test = 0.0;
-    string fileout;
-
-    //params for predict
-    string modele;
-    string modelr;
-    string nametestset;
-
-    if (mapparams.count("dim")) {
-        dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
-    }
-    if (mapparams.count("epochs")) {
-        epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
-    }
-    if (mapparams.count("batchsize")) {
-        batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
-    }
-    if (mapparams.count("nthreads")) {
-        nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
-    }
-    if (mapparams.count("nstorethreads")) {
-        nstorethreads = boost::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
-    }
-    if (mapparams.count("margin")) {
-        margin = boost::lexical_cast<float>(mapparams["margin"]);
-    }
-    if (mapparams.count("learningrate")) {
-        learningrate = boost::lexical_cast<float>(mapparams["learningrate"]);
-    }
-    if (mapparams.count("storefolder")) {
-        storefolder = mapparams["storefolder"];
-    }
-    if (mapparams.count("storeits")) {
-        storeits = boost::lexical_cast<uint32_t>(mapparams["storeits"]);
-    }
-    if (mapparams.count("evalits")) {
-        evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
-    }
-    if (mapparams.count("validperc")) {
-        valid = boost::lexical_cast<float>(mapparams["validperc"]);
-    }
-    if (mapparams.count("testperc")) {
-        test = boost::lexical_cast<float>(mapparams["testperc"]);
-    }
-    if (mapparams.count("adagrad")) {
-        adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
-    }
-    if (mapparams.count("compress")) {
-        compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
-    }
-    if (mapparams.count("feedback")) {
-        usefeedback = boost::lexical_cast<bool>(mapparams["feedback"]);
-    }
-    if (mapparams.count("feedback_threshold")) {
-        feedback_threshold = boost::lexical_cast<uint32_t>(mapparams["feedback_threshold"]);
-    }
-    if (mapparams.count("feedback_minfullep")) {
-        feedback_minfulle = boost::lexical_cast<uint32_t>(mapparams["feedback_minfulle"]);
-    }
-    if (mapparams.count("numneg")) {
-        numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
-    }
-    if (mapparams.count("debugout")) {
-        fileout = mapparams["debugout"];
-    }
-    if (mapparams.count("modele")) {
-        modele = mapparams["modele"];
-    }
-    if (mapparams.count("modelr")) {
-        modelr = mapparams["modelr"];
-    }
-    if (mapparams.count("nametestset")) {
-        nametestset = mapparams["nametestset"];
-    }
-    if (op == "learn") {
-        LearnParams p;
-        p.epochs = epochs;
-        p.ne = ne;
-        p.nr = nr;
-        p.dim = dim;
-        p.margin = margin;
-        p.learningrate = learningrate;
-        p.batchsize = batchsize;
-        p.adagrad = adagrad;
-
-        p.nthreads = nthreads;
-        p.nstorethreads = nstorethreads;
-        p.evalits = evalits;
-        p.storeits = storeits;
-        p.storefolder = storefolder;
-        p.compressstorage = compresstorage;
-        p.filetrace = fileout;
-        p.valid = valid;
-        p.test = test;
-        p.numneg = numneg;
-        p.feedback = usefeedback;
-        p.feedback_threshold = feedback_threshold;
-        p.feedback_minFullEpochs = feedback_minfulle;
-        Learner::launchLearning(kb, algo, p);
-    } else { //can only be predict
-        PredictParams p;
-        p.path_modele = modele;
-        p.path_modelr = modelr;
-        p.nametestset = nametestset;
-        p.nthreads = nthreads;
-        Predictor::launchPrediction(kb, algo, p);
-    }
-}
-
 void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
     BOOST_LOG_TRIVIAL(info) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
     miner.getFrequentPatterns(minLen, maxLen, minSupport);
-}
-
-void subgraphEval(KB &kb, po::variables_map &vm) {
-    SubgraphHandler sh;
-    sh.evaluate(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
-            vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),
-            vm["nametest"].as<string>(), "python");
 }
 
 int main(int argc, const char** argv) {
@@ -859,77 +529,4 @@ int main(int argc, const char** argv) {
     //Print other stats
     BOOST_LOG_TRIVIAL(info) << "Max memory used: " << Utils::get_max_mem() << " MB";
     return EXIT_SUCCESS;
-}
-
-void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
-    long nElements = 0;
-    char bufferTerm[MAX_TERM_SIZE];
-    DictMgmt *dict = kb.getDictMgmt();
-    string queryFileName = vm["query"].as<string>();
-    TridentLayer db(kb);
-
-    //Parse the query
-    QueryDict queryDict(db.getNextId());
-    QueryGraph queryGraph;
-    bool parsingOk;
-
-    std::fstream inFile;
-    inFile.open(queryFileName);//open the input file
-    std::stringstream strStream;
-    strStream << inFile.rdbuf();//read the file
-    SPARQLLexer lexer(strStream.str());
-    SPARQLParser parser(lexer);
-
-    timens::system_clock::time_point start = timens::system_clock::now();
-
-    parseQuery(parsingOk, parser, queryGraph, queryDict, db);
-    if (!parsingOk) {
-        boost::chrono::duration<double> duration = boost::chrono::system_clock::now() - start;
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: 0ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        return;
-    }
-
-    std::unique_ptr<Query> query  = createQueryFromRF3XQueryGraph(parser,
-            queryGraph);
-    TridentQueryPlan plan(q);
-    plan.create(*query.get(), SIMPLE);
-    boost::chrono::duration<double> durationO = boost::chrono::system_clock::now() - start;
-
-    //Output plan
-#ifdef DEBUG
-    BOOST_LOG_TRIVIAL(debug) << "Translated plan:";
-    plan.print();
-#endif
-
-    {
-        q->resetCounters();
-        timens::system_clock::time_point startQ = timens::system_clock::now();
-        TupleIterator *root = plan.getIterator();
-        //Execute the query
-        const uint8_t nvars = (uint8_t) root->getTupleSize();
-        while (root->hasNext()) {
-            root->next();
-            if (! silent) {
-                for (uint8_t i = 0; i < nvars; ++i) {
-                    dict->getText(root->getElementAt(i), bufferTerm);
-                    std::cout << bufferTerm << ' ';
-                }
-                std::cout << '\n';
-            }
-            nElements++;
-        }
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
-            - startQ;
-        boost::chrono::duration<double> secT = boost::chrono::system_clock::now()
-            - start;
-        //Print stats
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
-        BOOST_LOG_TRIVIAL(info) << "# rows = " << nElements;
-        plan.releaseIterator(root);
-    }
-    //Print stats dictionary
 }

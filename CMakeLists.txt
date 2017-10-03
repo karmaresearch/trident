@@ -197,7 +197,7 @@ include_directories(include/ rdf3x/include)
 add_library(trident STATIC ${trident_SRC})
 add_library(tridentp SHARED ${tridentp_SRC}) #Python library
 set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
-add_executable(trident_exec src/client/main.cpp src/client/main_params.cpp)
+add_executable(trident_exec src/client/main.cpp src/client/main_params.cpp src/client/main_sparql.cpp src/client/main_ml.cpp)
 set_target_properties(trident PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
 set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
 set_target_properties(trident_exec PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
