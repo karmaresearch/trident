@@ -163,6 +163,8 @@ private:
     std::vector<Order> order;
     /// The result limit
     unsigned limit;
+    // Silent output variables
+    bool silentOutputVars;
 
     /// Lookup or create a named variable
     unsigned nameVariable(const std::string& name);
@@ -240,7 +242,7 @@ public:
     ~SPARQLParser();
 
     /// Parse the input. Throws an exception in the case of an error
-    void parse(bool multiQuery = false);
+    void parse(bool multiQuery = false, bool silentOutputVars = false);
 
     /// Get the patterns
     const PatternGroup& getPatterns() const {

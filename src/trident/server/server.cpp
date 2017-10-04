@@ -101,7 +101,7 @@ void TridentServer::parseQuery(bool &success,
 
     //Sometimes the query introduces new constants which need an ID
     try {
-        parser.parse();
+        parser.parse(false, true);
     } catch (const SPARQLParser::ParserException& e) {
         cerr << "parse error: " << e.message << endl;
         success = false;
@@ -202,7 +202,6 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         delete operatorTree;
     } else {
 #if DEBUG
-        cout << "Hi" << endl ;
         DebugPlanPrinter out(runtime, false);
         operatorTree->print(out);
 #endif

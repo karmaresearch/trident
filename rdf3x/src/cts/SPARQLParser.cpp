@@ -284,12 +284,14 @@ void SPARQLParser::parseProjection(PatternGroup& group)
         bool first = true;
 
         //I print in the stderr because I want to parse it later on
-        std::cerr << "OUTPUT: ";
+        if (!silentOutputVars)
+            std::cerr << "OUTPUT: ";
 
         while (true) {
             SPARQLLexer::Token token = lexer.getNext();
             if (token == SPARQLLexer::Variable) {
-                std::cerr << lexer.getTokenValue() << "\t";
+                if (!silentOutputVars)
+                    std::cerr << lexer.getTokenValue() << "\t";
                 projection.push_back(nameVariable(lexer.getTokenValue()));
             } else if (token == SPARQLLexer::Mul) {
                 // We do nothing here. Empty projections will be filled with all
@@ -311,7 +313,8 @@ void SPARQLParser::parseProjection(PatternGroup& group)
             }
             first = false;
         }
-        std::cerr << std::endl;
+        if (!silentOutputVars)
+            std::cerr << std::endl;
     }
 
 }
@@ -1531,9 +1534,11 @@ void SPARQLParser::parseLimit()
     }
 }
 //---------------------------------------------------------------------------
-void SPARQLParser::parse(bool multiQuery)
+void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
     // Parse the input
 {
+    this->silentOutputVars = silentOutputVars;
+
     // Parse the prefix part
     parsePrefix();
 
