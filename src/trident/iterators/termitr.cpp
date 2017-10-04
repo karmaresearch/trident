@@ -150,7 +150,7 @@ long TermItr::getCount() {
     TermCoordinates values;
     bool resp = tree->get(key, &values);
     if (!resp) {
-        LOG(ERROR) << "Every key should be in the tree...";
+        LOG(ERRORL) << "Every key should be in the tree...";
         throw 10;
     }
     if (perm > 2) {

@@ -149,8 +149,8 @@ tTerm *IntermediateNode::largestTextualKey(int *size) {
 void IntermediateNode::cacheChild(Node *child) {
     int p = getPosChild(child);
     if (p == CHILD_NOT_FOUND) {
-        LOG(ERROR) << "Child: " << child->getId() << " is not found on node " << getId();
-        LOG(ERROR) << "CacheChild(): Position not found!";
+        LOG(ERRORL) << "Child: " << child->getId() << " is not found on node " << getId();
+        LOG(ERRORL) << "CacheChild(): Position not found!";
     }
     children[p] = NULL;
     idChildren[p] = child->getId();

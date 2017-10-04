@@ -14,7 +14,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/bind.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -52,14 +52,14 @@ void TridentServer::start(string address, string port) {
 }
 
 void TridentServer::stop() {
-    LOG(INFO) << "Stopping server ...";
+    LOG(INFOL) << "Stopping server ...";
     while (isActive) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
     }
     acceptor.cancel();
     acceptor.close();
     io.stop();
-    LOG(INFO) << "Done";
+    LOG(INFOL) << "Done";
 }
 
 void TridentServer::connect() {
@@ -158,9 +158,9 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
     parseQuery(parsingOk, *parser.get(), *queryGraph.get(), *queryDict.get(), db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Runtime query: 0ms.";
-        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
-        LOG(INFO) << "# rows = 0";
+        LOG(INFOL) << "Runtime query: 0ms.";
+        LOG(INFOL) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        LOG(INFOL) << "# rows = 0";
         return;
     }
 
@@ -202,6 +202,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         delete operatorTree;
     } else {
 #if DEBUG
+        cout << "Hi" << endl ;
         DebugPlanPrinter out(runtime, false);
         operatorTree->print(out);
 #endif
@@ -218,8 +219,8 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         }
         std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
-        LOG(INFO) << "Runtime total: " << duration.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime query: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime total: " << duration.count() * 1000 << "ms.";
         if (jsonstats) {
             jsonstats->put("runtime", to_string(durationQ.count()));
             jsonstats->put("nresults", to_string(p->getPrintedRows()));
@@ -227,7 +228,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         }
         if (printstdout) {
             long nElements = p->getPrintedRows();
-            LOG(INFO) << "# rows = " << nElements;
+            LOG(INFOL) << "# rows = " << nElements;
         }
         delete operatorTree;
     }
@@ -368,7 +369,7 @@ string TridentServer::getPage(string f) {
     string pathfile = dirhtmlfiles + "/" + f;
     if (Utils::exists(pathfile)) {
         //Read the content of the file
-        LOG(DEBUG) << "Reading the content of " << pathfile;
+        LOG(DEBUGL) << "Reading the content of " << pathfile;
         ifstream ifs(pathfile);
         stringstream sstr;
         sstr << ifs.rdbuf();

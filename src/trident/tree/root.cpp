@@ -51,7 +51,7 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
             conf.getInt(NODE_KEYS_FACTORY_SIZE, 10),
             conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE, 10));
 
-//  LOG(DEBUG)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
+//  LOG(DEBUGL)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
 
 //  timens::system_clock::time_point start = timens::system_clock::now();
     if (!textKeys && !textValues) {
@@ -67,7 +67,7 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
     }
 //  boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
 //          - start;
-//  LOG(DEBUG)<< "Time init node factories: " << (sec.count() * 1000);
+//  LOG(DEBUGL)<< "Time init node factories: " << (sec.count() * 1000);
 
     context = new TreeContext(cache, stringbuffer, readOnly, maxElementsPerNode,
                               textKeys, textValues, ilFactory, ilBufferFactory, nodesKeysFactory);
@@ -131,7 +131,7 @@ bool Root::get(tTerm *key, const int sizeKey, nTerm *value) {
 
 void Root::put(nTerm key, long coordinates) {
     if (readOnly) {
-        LOG(ERROR) << "Put is requested on a read-only tree";
+        LOG(ERRORL) << "Put is requested on a read-only tree";
         throw 10;
     }
 
@@ -149,7 +149,7 @@ void Root::put(nTerm key, long coordinates) {
 
 void Root::put(nTerm key, TermCoordinates *value) {
     if (readOnly) {
-        LOG(ERROR) << "Put is requested on a read-only tree";
+        LOG(ERRORL) << "Put is requested on a read-only tree";
         throw 10;
     }
 

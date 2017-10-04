@@ -190,19 +190,19 @@ std::vector<int> NestedJoinPlan::reorder(std::vector<Pattern*> patterns,
     //timens::system_clock::time_point start = timens::system_clock::now();
 
     std::vector<std::pair<Pattern *, uint64_t> > pairs;
-    LOG(DEBUG) << "UNOPTIMIZED ORDER OF PATTERNS:";
+    LOG(DEBUGL) << "UNOPTIMIZED ORDER OF PATTERNS:";
     for (int i = 0; i < patterns.size(); ++i) {
         Pattern *p = patterns[i];
         uint64_t card = std::static_pointer_cast<Scan>(scans[i])->estimateCost();
         pairs.push_back(std::make_pair(p, card));
-        LOG(DEBUG) << card << " " << p->toString();
+        LOG(DEBUGL) << card << " " << p->toString();
     }
 
     //Rearrange the patterns making sure that: there is always a join and the
     //smallest are picked first
     NestedJoinPlan::rearrange(pairs);
 
-    LOG(DEBUG) << "OPTIMIZED ORDER OF PATTERNS:";
+    LOG(DEBUGL) << "OPTIMIZED ORDER OF PATTERNS:";
     std::vector<int> output;
     for (vector<std::pair<Pattern*, uint64_t>>::iterator itr = pairs.begin();
             itr != pairs.end(); ++itr) {
@@ -219,12 +219,12 @@ std::vector<int> NestedJoinPlan::reorder(std::vector<Pattern*> patterns,
         assert(idx != -1);
         output.push_back(idx);
 
-        LOG(DEBUG) << " " << itr->first->toString() << " card: " << itr->second;
+        LOG(DEBUGL) << " " << itr->first->toString() << " card: " << itr->second;
     }
 
     //boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
     //                                      - start;
-    //LOG(INFO) << "Time optimizing the query = " << sec.count() * 1000
+    //LOG(INFOL) << "Time optimizing the query = " << sec.count() * 1000
     //                        << " milliseconds";
 
     return output;
@@ -268,9 +268,9 @@ void JoinPlan::prepare(std::vector<std::shared_ptr<SPARQLOperator>> children,
         if (i == 0) {
             //Copy all variables
             const size_t n = children[0]->getOutputTupleSize();
-            // LOG(DEBUG) << "children[0]->getOutputTupleSize() = " << n;
+            // LOG(DEBUGL) << "children[0]->getOutputTupleSize() = " << n;
             currentVars = children[0]->getTupleFieldsIDs();
-            // LOG(DEBUG) << "currentVars.size() = " << currentVars.size();
+            // LOG(DEBUGL) << "currentVars.size() = " << currentVars.size();
             for (uint8_t j = 0; j < n; ++j)
                 pc.push_back(j);
         } else {
@@ -288,7 +288,7 @@ void JoinPlan::prepare(std::vector<std::shared_ptr<SPARQLOperator>> children,
                 if (found) {
                     //Set up join
                     JoinPoint jp;
-                    // LOG(DEBUG) << "posRow = " << idxVar << ", posPattern = " << j;
+                    // LOG(DEBUGL) << "posRow = " << idxVar << ", posPattern = " << j;
                     jp.posRow = idxVar;
                     jp.posPattern = j;
                     joins[i].push_back(jp);
@@ -431,7 +431,7 @@ void NestedJoinPlan::prepare(Querier *q, std::vector<Pattern *> patterns,
 
             // Determine the index
             idxs[i] = q->getIndex(tmpS, tmpP, tmpO);
-            LOG(DEBUG) << "Selected index " << idxs[i] << " for " << tmpS << " " << tmpP << " " << tmpO;
+            LOG(DEBUGL) << "Selected index " << idxs[i] << " for " << tmpS << " " << tmpP << " " << tmpO;
             int *inv_perm = q->getInvOrder(idxs[i]);
 
             for (unsigned int r = 0; r < joins_on_pattern.size(); ++r) {

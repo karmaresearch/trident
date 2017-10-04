@@ -72,11 +72,11 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
             ifs.close();
             std::chrono::duration<double> sec = std::chrono::system_clock::now()
                 - start;
-            LOG(DEBUG) << "Time loading GUD " << sec.count() * 1000;
+            LOG(DEBUGL) << "Time loading GUD " << sec.count() * 1000;
         }
 
         if (Utils::exists(e2r)) {
-            LOG(DEBUG) << "Load the mappings rel->ent from " << e2r;
+            LOG(DEBUGL) << "Load the mappings rel->ent from " << e2r;
             //Load the mappings from the relation IDs to the entity IDs
             r2e.set_deleted_key(~0lu);
             LZ4Reader reader(e2r);
@@ -86,14 +86,14 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
                 r2e.insert(std::make_pair(r,e));
             }
         } else if (Utils::exists(e2s)) {
-            LOG(DEBUG) << "Load the mappings rel->ent (string) from " << e2s;
+            LOG(DEBUGL) << "Load the mappings rel->ent (string) from " << e2s;
             r2e.set_deleted_key(~0lu);
             LZ4Reader reader(e2s);
             while (!reader.isEof()) {
                 long r = reader.parseLong();
                 int size;
                 const char *t = reader.parseString(size);
-                r2s.insert(std::make_pair(r,string(t, size)));
+                r2s.insert(std::make_pair(r,string(t + 2, size-2)));
             }
 
         }
@@ -291,6 +291,6 @@ DictMgmt::~DictMgmt() {
         os.close();
         std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        LOG(DEBUG) << "Time writing GUD " << sec.count() * 1000;
+        LOG(DEBUGL) << "Time writing GUD " << sec.count() * 1000;
     }
 }

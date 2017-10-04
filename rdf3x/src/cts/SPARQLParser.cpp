@@ -142,11 +142,11 @@ unsigned SPARQLParser::nameVariable(const string& name)
     // Lookup or create a named variable
 {
     if (namedVariables.count(name)) {
-        LOG(DEBUG) << "Found variable " << name << ", value = " << namedVariables[name];
+        LOG(DEBUGL) << "Found variable " << name << ", value = " << namedVariables[name];
         return namedVariables[name];
     }
 
-    LOG(DEBUG) << "New variable " << name << ", value = " << variableCount;
+    LOG(DEBUGL) << "New variable " << name << ", value = " << variableCount;
     unsigned result = variableCount++;
     namedVariables[name] = result;
     return result;
@@ -299,7 +299,7 @@ void SPARQLParser::parseProjection(PatternGroup& group)
                 size_t sizeAssignments = group.assignments.size();
                 parseAssignment(group);
                 if (group.assignments.size() <= sizeAssignments) {
-                    LOG(ERROR) << "The parsing of the assignment did not go so well";
+                    LOG(ERRORL) << "The parsing of the assignment did not go so well";
                     throw 10; //Exception. This should not occur
                 }
                 projection.push_back(group.assignments[sizeAssignments].outputVar.id);
@@ -380,7 +380,7 @@ void SPARQLParser::parseRDFLiteral(std::string& value, Element::SubType& subType
                 throw ParserException("identifier expected after ':'");
             subType = Element::CustomType;
             valueType = prefixes[prefix] + lexer.getIRIValue();
-            LOG(ERROR) << "Token: valueType = " << valueType << ", value = " << value;
+            LOG(ERRORL) << "Token: valueType = " << valueType << ", value = " << value;
 
         } else if (token == SPARQLLexer::IRI) {
             subType = Element::CustomType;

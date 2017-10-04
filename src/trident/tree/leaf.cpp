@@ -216,7 +216,7 @@ int Leaf::serialize_values(char *bytes, int pos) {
         // Write the starting pos on bufferPositions.
         int diff = posValues - posValueOrig;
         if (diff > USHRT_MAX) {
-            LOG(ERROR) << "The value of the nodes are too high to be addressed by 2 bytes. Needs to find a workaround for that...";
+            LOG(ERRORL) << "The value of the nodes are too high to be addressed by 2 bytes. Needs to find a workaround for that...";
             exit(1);
         }
         Utils::encode_short(bytes, posValueStarts, diff);

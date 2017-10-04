@@ -109,7 +109,7 @@ class FileManager {
                             }
                         }
                         if (rem) {
-                            //LOG(DEBUG) << "Deleting map for file " << idxFileToRemove;
+                            //LOG(DEBUGL) << "Deleting map for file " << idxFileToRemove;
                             delete openedFiles[idxFileToRemove];
                             openedFiles[idxFileToRemove] = NULL;
                             nOpenedFiles--;
@@ -184,14 +184,14 @@ class FileManager {
                 lastSession = (lastSession + 1) % MAX_SESSIONS;
                 cnt++;
                 if (cnt > MAX_SESSIONS) {
-                    LOG(ERROR) << "Max number of sessions is reached";
+                    LOG(ERRORL) << "Max number of sessions is reached";
                     throw 10;
                 }
             }
             sessions[lastSession] = EMPTY_SESSION;
             cnt = lastSession;
             lastSession = (lastSession + 1) % MAX_SESSIONS;
-            // LOG(DEBUG) << "This = " << this << ", Open session " << cnt;
+            // LOG(DEBUGL) << "This = " << this << ", Open session " << cnt;
             return cnt;
         }
 
@@ -200,7 +200,7 @@ class FileManager {
             if (sessions[idx] >= 0) {
                 bytesTracker->releaseLock(sessions[idx]);
             }
-            // LOG(DEBUG) << "This = " << this << ", Close session " << idx;
+            // LOG(DEBUGL) << "This = " << this << ", Close session " << idx;
             sessions[idx] = FREE_SESSION;
         }
 
@@ -246,7 +246,7 @@ class FileManager {
         short createNewFile() {
             lastFileId++;
             if (lastFileId == MAX_N_FILES) {
-                LOG(ERROR) << "Max number of files is reached";
+                LOG(ERRORL) << "Max number of files is reached";
                 throw 10;
             }
             load_file(lastFileId);

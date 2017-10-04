@@ -25,11 +25,11 @@ void Learner::setup(const uint16_t nthreads,
 }
 
 void Learner::setup(const uint16_t nthreads) {
-    LOG(DEBUG) << "Creating E ...";
+    LOG(DEBUGL) << "Creating E ...";
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
     E->init(nthreads, true);
-    LOG(DEBUG) << "Creating R ...";
+    LOG(DEBUGL) << "Creating R ...";
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     R->init(nthreads, false);
 
@@ -82,13 +82,13 @@ void Learner::batch_processer(
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
-    LOG(DEBUG) << "Start serialization ...";
+    LOG(DEBUGL) << "Start serialization ...";
     Utils::create_directories(path);
-    LOG(DEBUG) << "Serializing R ...";
+    LOG(DEBUGL) << "Serializing R ...";
     R->store(path + "/R", compressstorage, nthreads);
-    LOG(DEBUG) << "Serializing E ...";
+    LOG(DEBUGL) << "Serializing E ...";
     E->store(path + "/E", compressstorage, nthreads);
-    LOG(DEBUG) << "Serialization done";
+    LOG(DEBUGL) << "Serialization done";
 }
 
 void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
@@ -147,7 +147,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 inputQueue.push(pio);
                 batchcounter++;
                 if (batchcounter % 100000 == 0) {
-                    LOG(DEBUG) << "Processed " << batchcounter << " batches";
+                    LOG(DEBUGL) << "Processed " << batchcounter << " batches";
                 }
             } else {
                 //Puts nthread NULL pointers to tell the threads to stop
@@ -171,13 +171,13 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         R->postprocessUpdates();
 
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Epoch " << epoch << ". Time=" <<
+        LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
             elapsed_seconds.count() << "sec. Violations=" << totalV <<
             " Conflicts=" << totalC;
 
         if (shouldStoreModel && (epoch + 1) % storeits == 0) {
             string pathmodel = storefolder + "/model-" + to_string(epoch+1);
-            LOG(INFO) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
+            LOG(INFOL) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
             store_model(pathmodel, compresstorage, nstorethreads);
         }
 
@@ -188,12 +188,12 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 BatchCreator::loadTriples(pathvalid, testset);
                 //Do the test
                 TranseTester<double> tester(E, R);
-                LOG(DEBUG) << "Testing on the valid dataset ...";
+                LOG(DEBUGL) << "Testing on the valid dataset ...";
                 auto result = tester.test("valid", testset, nthreads, epoch);
                 if (result->loss < bestresult) {
                     bestresult = result->loss;
                     bestepoch = epoch;
-                    LOG(DEBUG) << "Epoch " << epoch << " got best results";
+                    LOG(DEBUGL) << "Epoch " << epoch << " got best results";
                 }
                 if (batcher.getFeedback()) {
                     batcher.getFeedback()->addFeedbacks(result);
@@ -201,7 +201,7 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                 //Store the results of the detailed queries
                 if (shouldStoreModel) {
                     string pathresults = storefolder + "/results-" + to_string(epoch+1);
-                    LOG(DEBUG) << "Storing the results ...";
+                    LOG(DEBUGL) << "Storing the results ...";
                     ofstream out;
                     out.open(pathresults);
                     out << "Query\tPosS\tPosO" << endl;
@@ -212,12 +212,12 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
                     }
                 }
             } else {
-                LOG(WARN) << "I'm supposed to test the model but no data is available";
+                LOG(WARNL) << "I'm supposed to test the model but no data is available";
             }
         }
     }
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-    LOG(INFO) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
+    LOG(INFOL) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
 }
 
 void Learner::update_gradients(BatchIO &io,
@@ -317,7 +317,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
                     p.feedback_minFullEpochs));
     }
     bool filter = true;
-    LOG(DEBUG) << "Launching " << op << " with params: " << p.tostring();
+    LOG(DEBUGL) << "Launching " << op << " with params: " << p.tostring();
     BatchCreator batcher(kb.getPath(),
             p.batchsize,
             p.nthreads,
@@ -327,37 +327,37 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
             feedback);
     if (op == "transe") {
         TranseLearner tr(kb, p);
-        LOG(INFO) << "Setting up TranSE ...";
+        LOG(INFOL) << "Setting up TranSE ...";
         tr.setup(p.nthreads);
-        LOG(INFO) << "Launching the training of TranSE ...";
+        LOG(INFOL) << "Launching the training of TranSE ...";
         tr.train(batcher, p.nthreads,
                 p.nstorethreads,
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
                 p.compressstorage);
-        LOG(INFO) << "Done.";
+        LOG(INFOL) << "Done.";
         tr.getDebugger(debugger);
 
     } else if (op == "distmul") {
         DistMulLearner tr(kb, p);
-        LOG(INFO) << "Setting up DistMul...";
+        LOG(INFOL) << "Setting up DistMul...";
         tr.setup(p.nthreads);
-        LOG(INFO) << "Launching the training of DistMul...";
+        LOG(INFOL) << "Launching the training of DistMul...";
         tr.train(batcher, p.nthreads,
                 p.nstorethreads,
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
                 p.compressstorage);
-        LOG(INFO) << "Done.";
+        LOG(INFOL) << "Done.";
         tr.getDebugger(debugger);
 
     } else {
-        LOG(ERROR) << "Task " << op << " not recognized";
+        LOG(ERRORL) << "Task " << op << " not recognized";
         return;
     }
-    //LOG(DEBUG) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
+    //LOG(DEBUGL) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
 
     if (p.filetrace != "") {
         debugger->store(p.filetrace);

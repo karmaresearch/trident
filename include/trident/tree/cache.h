@@ -55,7 +55,7 @@ public:
 
     Cache(int maxNodesInCache, bool compressedNodes) :
         compressedNodes(compressedNodes), registeredNodes(maxNodesInCache) {
-//      LOG(DEBUG)<< "Init cache: maxNodesInCache=" << maxNodesInCache << " compressed? " << compressedNodes;
+//      LOG(DEBUGL)<< "Init cache: maxNodesInCache=" << maxNodesInCache << " compressed? " << compressedNodes;
         context = NULL;
         factory = NULL;
         manager = NULL;

@@ -290,7 +290,7 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
             string update = updates[i];
             string updatefile = update + "/raw";
             if (!Utils::exists(updatefile)) {
-                LOG(ERROR) << "The update directory exists but contains no raw file.";
+                LOG(ERRORL) << "The update directory exists but contains no raw file.";
                 throw 10;
             }
             if (Utils::exists(update + "/ADD")) {
@@ -303,7 +303,7 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
                     triples.push_back(_Triple(s, p, o));
                     count++;
                 }
-                LOG(DEBUG) << "Loaded raw update of " << count << " triples";
+                LOG(DEBUGL) << "Loaded raw update of " << count << " triples";
             } else {
                 std::vector<_Triple> rmtriples;
                 LZ4Reader reader(updatefile);
@@ -315,7 +315,7 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
                     rmtriples.push_back(_Triple(s, p, o));
                     count++;
                 }
-                LOG(DEBUG) << "Loaded raw del update of " << count << " triples";
+                LOG(DEBUGL) << "Loaded raw del update of " << count << " triples";
 
                 //Must sort the triples
                 std::sort(triples.begin(), triples.end(), _less_spo);
@@ -361,7 +361,7 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
 void TestTrident::test_existing(std::vector<int> permutations) {
     //Sort the triples and launch the queries
     for (auto perm : permutations) {
-        LOG(INFO) << "Testing permutation " << perm;
+        LOG(INFOL) << "Testing permutation " << perm;
         //Sort the vector
         if (perm == IDX_SPO) {
             std::sort(triples.begin(), triples.end(), _less_spo);
@@ -380,10 +380,10 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         }
 
         //Test the scan queries
-        LOG(INFO) << "Check a complete scan...";
+        LOG(INFOL) << "Check a complete scan...";
         uint64_t card = q->getCardOnIndex(perm, -1, -1, -1);
         if (card != triples.size()) {
-            LOG(ERROR) << "Cardinalities do not match: " << card << " " << triples.size();
+            LOG(ERRORL) << "Cardinalities do not match: " << card << " " << triples.size();
             throw 10;
         }
         PairItr *currentItr = q->get(perm, -1, -1, -1);
@@ -440,11 +440,11 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         q->releaseItr(currentItr);
         q->releaseItr(scanWithoutLast);
         currentItr = NULL;
-        LOG(INFO) << "All OK";
+        LOG(INFOL) << "All OK";
 
         //Test a scan without the second and third columns
         currentItr = q->getTermList(perm);
-        LOG(INFO) << "Check a filtered scan...";
+        LOG(INFOL) << "Check a filtered scan...";
         long prevEl = -1;
         for (auto const el : triples) {
             //cout << el.s << " " << el.p << " " << el.o << endl;
@@ -484,7 +484,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         }
         q->releaseItr(currentItr);
         currentItr = NULL;
-        LOG(INFO) << "All OK";
+        LOG(INFOL) << "All OK";
 
         //Filter on the first element
         long currentFirst = -1;
@@ -497,7 +497,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         pattern[1] = -1;
         pattern[2] = -1;
         PairItr *currentItrFirst = NULL;
-        LOG(INFO) << "Check cardinalities on the first level ...";
+        LOG(INFOL) << "Check cardinalities on the first level ...";
         for (size_t idx = 0; idx < triples.size(); ++idx) {
             _Triple el = triples[idx];
             long first, second;
@@ -550,7 +550,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                             pattern[1],
                             pattern[2]);
                     if (card != count) {
-                        LOG(ERROR) << "Cardinalities do not match: " << card << " " << count;
+                        LOG(ERRORL) << "Cardinalities do not match: " << card << " " << count;
                         throw 10;
                     }
                     uint64_t card2 = q->getCardOnIndex(perm, pattern[0],
@@ -558,7 +558,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                             pattern[2],
                             true);
                     if (card2 != countFirst) {
-                        LOG(ERROR) << "Cardinalities do not match: " << card2 << " " << countFirst;
+                        LOG(ERRORL) << "Cardinalities do not match: " << card2 << " " << countFirst;
                         throw 10;
                     }
                 }
@@ -627,7 +627,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             _copyCurrentFirst(perm, pattern, currentFirst);
             uint64_t card = q->getCardOnIndex(perm, pattern[0], pattern[1], pattern[2]);
             if (card != count) {
-                LOG(ERROR) << "Cardinalities do not match: " << card << " " << count;
+                LOG(ERRORL) << "Cardinalities do not match: " << card << " " << count;
                 throw 10;
             }
 
@@ -636,12 +636,12 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     pattern[2],
                     true);
             if (card2 != countFirst) {
-                LOG(ERROR) << "Cardinalities do not match: " << card2 << " " << countFirst;
+                LOG(ERRORL) << "Cardinalities do not match: " << card2 << " " << countFirst;
                 throw 10;
             }
 
         }
-        LOG(INFO) << "All OK";
+        LOG(INFOL) << "All OK";
 
         //Filter on the second element
         currentItr = NULL;
@@ -652,12 +652,12 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         pattern[1] = -1;
         pattern[2] = -1;
         long totalCount = 0;
-        LOG(INFO) << "Check cardinalities on the second level ...";
+        LOG(INFOL) << "Check cardinalities on the second level ...";
         for (size_t idx = 0; idx < triples.size(); ++idx) {
             _Triple el = triples[idx];
             totalCount++;
             if (totalCount % 1000000 == 0) {
-                LOG(DEBUG) << "Processed " << totalCount << " triples";
+                LOG(DEBUGL) << "Processed " << totalCount << " triples";
             }
             long first, second;
             first = second = 0;
@@ -694,7 +694,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     uint64_t card = q->getCardOnIndex(perm, pattern[0],
                             pattern[1], pattern[2]);
                     if (card != count) {
-                        LOG(ERROR) << "Cardinalities " <<
+                        LOG(ERRORL) << "Cardinalities " <<
                             "do not match: " <<
                             card << " " << count;
                         throw 10;
@@ -734,13 +734,13 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             _copyCurrentFirstSecond(perm, pattern, currentFirst, currentSecond);
             uint64_t card = q->getCardOnIndex(perm, pattern[0], pattern[1], pattern[2]);
             if (card != count) {
-                LOG(ERROR) << "Cardinalities do not match: " << card << " " << count;
+                LOG(ERRORL) << "Cardinalities do not match: " << card << " " << count;
                 throw 10;
             }
         }
-        LOG(INFO) << "All OK";
+        LOG(INFOL) << "All OK";
 
-        LOG(INFO) << "Check single lookups ...";
+        LOG(INFOL) << "Check single lookups ...";
         for (auto const el : triples) {
             long first, second, third;
             first = second = third = 0;
@@ -795,7 +795,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                 throw 10;
             }
         }
-        LOG(INFO) << "All OK";
+        LOG(INFOL) << "All OK";
 
     }
 }
@@ -919,9 +919,9 @@ void TestTrident::test_moveto_ignoresecond(int perm, long key,
 }
 
 void TestTrident::test_moveto(std::vector<int> permutations) {
-    LOG(INFO) << "Testing moveto";
+    LOG(INFOL) << "Testing moveto";
     for (auto perm : permutations) {
-        LOG(INFO) << "Testing permutation " << perm;
+        LOG(INFOL) << "Testing permutation " << perm;
         if (perm == IDX_SPO) {
             std::sort(triples.begin(), triples.end(), _less_spo);
         } else if (perm == IDX_SOP) {
@@ -987,7 +987,7 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
                 allfirsts.clear();
                 if (itr != NULL) {
                     if (itr->hasNext()) {
-                        LOG(ERROR) << "itr should not have more elements";
+                        LOG(ERRORL) << "itr should not have more elements";
                         throw 10;
                     }
                     q->releaseItr(itr);
@@ -1017,7 +1017,7 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
 
             //Test the behaviour of the moveto method
             if (!itr->hasNext()) {
-                LOG(ERROR) << "itr should not have some elements";
+                LOG(ERRORL) << "itr should not have some elements";
                 throw 10;
             } else {
                 itr->next();
@@ -1062,9 +1062,9 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
 }
 
 void TestTrident::test_nonexist(std::vector<int> permutations) {
-    LOG(INFO) << "Testing non-existing queries";
+    LOG(INFOL) << "Testing non-existing queries";
     for (auto perm : permutations) {
-        LOG(INFO) << "Testing permutation " << perm;
+        LOG(INFOL) << "Testing permutation " << perm;
         if (perm == IDX_SPO) {
             std::sort(triples.begin(), triples.end(), _less_spo);
         } else if (perm == IDX_SOP) {
@@ -1086,7 +1086,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         //queries with an existing key
         //b) but a lower bound for first term, a upper bound, and one in between,
         //c) same as before but on the second column
-        LOG(INFO) << "Testing a query with a max non-existing key";
+        LOG(INFOL) << "Testing a query with a max non-existing key";
         //Get the maximum number in the array for the given permutation
         long maxNumber = 0;
         long minNumber = 0;
@@ -1103,22 +1103,22 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         maxNumber += 1;
         PairItr *itr = q->getPermuted(perm, maxNumber, -1, -1, true);
         if (itr->hasNext()) {
-            LOG(ERROR) << "A query with key (max) " << maxNumber << " should fail!";
+            LOG(ERRORL) << "A query with key (max) " << maxNumber << " should fail!";
             throw 10;
         }
         q->releaseItr(itr);
         if (minNumber > 0) {
-            LOG(INFO) << "Testing a query with a min non-existing key";
+            LOG(INFOL) << "Testing a query with a min non-existing key";
             PairItr *itr = q->getPermuted(perm, minNumber - 1, -1, -1, true);
             if (itr->hasNext()) {
-                LOG(ERROR) << "A query with key (min) " << (minNumber - 1) << " should fail!";
+                LOG(ERRORL) << "A query with key (min) " << (minNumber - 1) << " should fail!";
                 throw 10;
             }
             q->releaseItr(itr);
         }
 
         //Try some random keys (up to 100000)
-        LOG(INFO) << "Testing random non-existing keys";
+        LOG(INFOL) << "Testing random non-existing keys";
         const int maxAttempts = 100000;
         int currentAttempt = 0;
         long prevkey = minNumber;
@@ -1144,11 +1144,11 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
             }
             prevkey = currentkey;
         }
-        LOG(INFO) << "All OK (keys tested=" << currentAttempt << ")";
+        LOG(INFOL) << "All OK (keys tested=" << currentAttempt << ")";
 
         //Testing some queries where the key is existing but the first term does not.
         //For each key I try three possibilities: first term is too small, too large and in-between
-        LOG(INFO) << "Testing non-existing first terms";
+        LOG(INFOL) << "Testing non-existing first terms";
         prevkey = minNumber;
         int previdx = 0;
         long t[3];
@@ -1194,9 +1194,9 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
                 ntests += 2;
             }
         }
-        LOG(INFO) << "All OK (ntests=" << ntests << ")";
+        LOG(INFOL) << "All OK (ntests=" << ntests << ")";
 
-        LOG(INFO) << "Testing non-existing second terms";
+        LOG(INFOL) << "Testing non-existing second terms";
         ntests = 0;
         for (size_t i = 0; i < triples.size(); ++i) {
             _permute(perm, t, triples[i].s, triples[i].p, triples[i].o);
@@ -1230,7 +1230,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
                 }
             }
         }
-        LOG(INFO) << "All OK (ntests=" << ntests << ")";
+        LOG(INFOL) << "All OK (ntests=" << ntests << ")";
     }
 }
 
@@ -1239,7 +1239,7 @@ bool TestTrident::shouldFail(int idx, long first, long second, long third) {
     bool sf = !itr->hasNext();
     q->releaseItr(itr);
     if (!sf) {
-        LOG(ERROR) << "Test " << idx << " " << first << " " << second << " " << third << " has failed!";
+        LOG(ERRORL) << "Test " << idx << " " << first << " " << second << " " << third << " has failed!";
         throw 10;
     }
     return sf;

@@ -102,19 +102,19 @@ void AnalyticsTasks::load(string nametask, string raw) {
     while (getline(f, s, ';')) {
         size_t pos = s.find("=");
         if (pos == string::npos) {
-            LOG(ERROR) << "Param string not well-formed";
+            LOG(ERRORL) << "Param string not well-formed";
             throw 10;
         }
         string nameparam = s.substr(0, pos);
         string valueparam = s.substr(pos + 1, s.length());
         if (nameparam.empty() || valueparam.empty()) {
-            LOG(ERROR) << "Name or value params are empty";
+            LOG(ERRORL) << "Name or value params are empty";
             throw 10;
         }
 
         auto task = tasks.find(nametask);
         if (task == tasks.end()) {
-            LOG(ERROR) << "Param task " << nametask << " not found";
+            LOG(ERRORL) << "Param task " << nametask << " not found";
             throw 10;
         }
         task->second.updateParam(nameparam, valueparam);
@@ -126,7 +126,7 @@ AnalyticsTasks::Param &AnalyticsTasks::Task::getParam(string nameparam) {
         if (params[i].name == nameparam)
             return params[i];
     }
-    LOG(ERROR) << "Param " << nameparam << " not found";
+    LOG(ERRORL) << "Param " << nameparam << " not found";
     throw 10;
 }
 
@@ -162,13 +162,13 @@ void AnalyticsTasks::Param::set(string value) {
                 break;
             case PATH:
                 if (!Utils::exists(value)) {
-                    LOG(ERROR) << "Path " << value << " does not exist";
+                    LOG(ERRORL) << "Path " << value << " does not exist";
                     throw 10;
                 }
                 break;
         }
     } catch (boost::bad_lexical_cast &) {
-        LOG(ERROR) << "Failed conversion of " << value;
+        LOG(ERRORL) << "Failed conversion of " << value;
         throw 10;
     }
     this->value = value;

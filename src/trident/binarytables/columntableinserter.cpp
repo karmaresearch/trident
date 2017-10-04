@@ -51,7 +51,7 @@ uint8_t ColumnTableInserter::getNBytes(const int comprType, const long value) co
     case NO_COMPR:
         return 8;
     }
-    LOG(ERROR) << "Should not happen";
+    LOG(ERRORL) << "Should not happen";
     throw 10;
 }
 

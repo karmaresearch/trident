@@ -12,7 +12,7 @@
 namespace po = boost::program_options;
 
 void launchML(KB &kb, string op, string algo, string params) {
-    LOG(INFO) << "Launching " << op << " " << params << " ...";
+    LOG(INFOL) << "Launching " << op << " " << params << " ...";
     //Parse the params
     std::map<std::string,std::string> mapparams;
     std::string::iterator first = params.begin();
@@ -21,15 +21,15 @@ void launchML(KB &kb, string op, string algo, string params) {
             *( *(boost::spirit::qi::char_-"=")  >> boost::spirit::qi::lit("=") >> *(boost::spirit::qi::char_-";") >> -boost::spirit::qi::lit(";") ),
             boost::spirit::ascii::space, mapparams);
     if (!result) {
-        LOG(ERROR) << "Parsing params " << params << " has failed!";
+        LOG(ERRORL) << "Parsing params " << params << " has failed!";
         return;
     }
     //string str = boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
     //            boost::spirit::karma::string), mapparams);
-    //LOG(DEBUG) << "Parsed params: " << str.c_str();
+    //LOG(DEBUGL) << "Parsed params: " << str.c_str();
 
     if (!kb.areRelIDsSeparated()) {
-        LOG(ERROR) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
+        LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
         return;
     }
 

@@ -156,7 +156,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
     CachedNode *cn = getCachedNode(node->getId());
     if (cn != NULL) {
         if (sizeBuffer > cn->availableSize) {
-            LOG(DEBUG) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
+            LOG(DEBUGL) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
             int diff = sizeBuffer - cn->availableSize;
             //Enlarge the file
             manager->shiftRemainingFile(cn->fileIndex, cn->posIndex, diff);
@@ -294,7 +294,7 @@ void NodeManager::compressSpace(string path) {
         long newSize = Utils::fileSize(pNewFile);
         Utils::rename(pNewFile, pOldFile);
 
-        LOG(DEBUG) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
+        LOG(DEBUGL) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
     }
     fileIdx.seekp(4);
     fileIdx.write(coordinatesSpace, sizeCoordinates);
@@ -349,7 +349,7 @@ NodeManager::~NodeManager() {
         out.write(coordinatesSpace, sizeCoordinates);
         delete[] coordinatesSpace;
 
-        LOG(DEBUG) << "Wasted space to store the nodes: " << wastedSpace;
+        LOG(DEBUGL) << "Wasted space to store the nodes: " << wastedSpace;
         out.close();
 
         //Clean the stored nodes

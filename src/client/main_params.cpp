@@ -219,21 +219,21 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
 
 bool checkMachineConstraints() {
     if (sizeof(long) != 8) {
-        LOG(ERROR) << "Trident expects a 'long' to be 8 bytes";
+        LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
         return false;
     }
     if (sizeof(int) != 4) {
-        LOG(ERROR) << "Trident expects a 'int' to be 4 bytes";
+        LOG(ERRORL) << "Trident expects a 'int' to be 4 bytes";
         return false;
     }
     if (sizeof(short) != 2) {
-        LOG(ERROR) << "Trident expects a 'short' to be 2 bytes";
+        LOG(ERRORL) << "Trident expects a 'short' to be 2 bytes";
         return false;
     }
     int n = 1;
     // big endian if true
     if(*(char *)&n != 1) {
-        LOG(ERROR) << "Some features of Trident rely on little endianness. Change machine ...sorry";
+        LOG(ERRORL) << "Some features of Trident rely on little endianness. Change machine ...sorry";
         return false;
     }
     return true;

@@ -44,7 +44,7 @@ private:
 
         Sorter(std::vector<uint8_t> &f) : nfields((uint8_t) f.size()) {
             if (f.size() > 8) {
-                LOG(ERROR) << "Sorting works on at most 8 fields";
+                LOG(ERRORL) << "Sorting works on at most 8 fields";
                 throw 10;
             }
 

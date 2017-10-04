@@ -298,7 +298,7 @@ class Querier {
 
         Querier &getSampler() {
             if (sampler == NULL) {
-                LOG(ERROR) << "No sampler available";
+                LOG(ERRORL) << "No sampler available";
                 throw 10;
             } else {
                 return *sampler;

@@ -39,7 +39,7 @@ bool DiffScanItr::hasNext() {
             currentkey = root->next(&values);
             currentItr = ((DiffIndex3*)diff)->getIterator(perm, currentkey, values);
             if (!currentItr->hasNext()) {
-                LOG(ERROR) << "This should not happen";
+                LOG(ERRORL) << "This should not happen";
             }
             if (ignseccol)
                 currentItr->ignoreSecondColumn();

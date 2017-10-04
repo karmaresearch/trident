@@ -38,7 +38,7 @@ namespace bip = boost::interprocess;
 
 void FileMarks::parse(string path) {
     if (!Utils::exists(path)) {
-        LOG(ERROR) << "File non-existent: " << path;
+        LOG(ERRORL) << "File non-existent: " << path;
         throw 10;
     }
 

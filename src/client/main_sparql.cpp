@@ -127,10 +127,10 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
             queryDict, db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Runtime queryopti: 0ms.";
-        LOG(INFO) << "Runtime queryexec: 0ms.";
-        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
-        LOG(INFO) << "# rows = 0";
+        LOG(INFOL) << "Runtime queryopti: 0ms.";
+        LOG(INFOL) << "Runtime queryexec: 0ms.";
+        LOG(INFOL) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFOL) << "# rows = 0";
         return;
     }
 
@@ -166,12 +166,12 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         }
         std::chrono::duration<double> durationQ = std::chrono::system_clock::now() - startQ;
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        LOG(INFO) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
-        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         ResultsPrinter *p = (ResultsPrinter*) operatorTree;
         long nElements = p->getPrintedRows();
-        LOG(INFO) << "# rows = " << nElements;
+        LOG(INFOL) << "# rows = " << nElements;
         delete operatorTree;
     }
 }
@@ -200,9 +200,9 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
     parseQuery(parsingOk, parser, queryGraph, queryDict, db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-        LOG(INFO) << "Runtime queryopti: 0ms.";
-        LOG(INFO) << "Runtime queryexec: 0ms.";
-        LOG(INFO) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime queryopti: 0ms.";
+        LOG(INFOL) << "Runtime queryexec: 0ms.";
+        LOG(INFOL) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         return;
     }
 
@@ -214,7 +214,7 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
 
     //Output plan
 #ifdef DEBUG
-    LOG(DEBUG) << "Translated plan:";
+    LOG(DEBUGL) << "Translated plan:";
     plan.print();
 #endif
 
@@ -240,10 +240,10 @@ void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
         std::chrono::duration<double> secT = std::chrono::system_clock::now()
             - start;
         //Print stats
-        LOG(INFO) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
-        LOG(INFO) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
-        LOG(INFO) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
-        LOG(INFO) << "# rows = " << nElements;
+        LOG(INFOL) << "Runtime queryopti: " << durationO.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime queryexec: " << sec.count() * 1000 << "ms.";
+        LOG(INFOL) << "Runtime totalexec: " << secT.count() * 1000 << "ms.";
+        LOG(INFOL) << "# rows = " << nElements;
         plan.releaseIterator(root);
     }
     //Print stats dictionary

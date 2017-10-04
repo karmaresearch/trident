@@ -97,13 +97,13 @@ public:
         }
 
         ~Dict() {
-            LOG(DEBUG) << "Deallocating dict ...";
+            LOG(DEBUGL) << "Deallocating dict ...";
             dict = std::shared_ptr<Root>();
-            LOG(DEBUG) << "Deallocating invdict ...";
+            LOG(DEBUGL) << "Deallocating invdict ...";
             invdict = std::shared_ptr<Root>();
-            LOG(DEBUG) << "Deallocating sb ...";
+            LOG(DEBUGL) << "Deallocating sb ...";
             sb = std::shared_ptr<StringBuffer>();
-            LOG(DEBUG) << "Deallocating stats ...";
+            LOG(DEBUGL) << "Deallocating stats ...";
             stats = std::shared_ptr<Stats>();
         }
     };

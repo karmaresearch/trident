@@ -24,7 +24,7 @@ void GradTracer::add(uint16_t epoch, uint32_t id,
 }
 
 void GradTracer::store(std::string file) {
-    LOG(DEBUG) << "Storing the debug info about the gradients in " << file;
+    LOG(DEBUGL) << "Storing the debug info about the gradients in " << file;
     //Write down the content as a JSON file
     boost::property_tree::ptree pt;
     pt.put("nents", std::to_string(updates_meta.size()));
@@ -32,7 +32,7 @@ void GradTracer::store(std::string file) {
 
     for(uint32_t idx = 0; idx < updates_meta.size(); ++idx) {
         uint32_t entityId = idx;
-        LOG(DEBUG) << "Process entity " << entityId << " ...";
+        LOG(DEBUGL) << "Process entity " << entityId << " ...";
         auto trace = updates_meta[entityId];
         boost::property_tree::ptree enttraces;
         for (auto t : trace) {

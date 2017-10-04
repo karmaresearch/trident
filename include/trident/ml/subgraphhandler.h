@@ -15,14 +15,15 @@ class SubgraphHandler {
 
         void loadSubgraphs(string subgraphsFile, string subFormat);
 
-        bool isAnswerInSubGraphs(uint64_t a,
+        long isAnswerInSubGraphs(uint64_t a,
                 const std::vector<uint64_t> &subgraphs, Querier *q);
 
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
                 string algo,
                 TYPEQUERY t, uint64_t v1, uint64_t v2,
-                std::vector<uint64_t> &output);
+                std::vector<uint64_t> &output,
+                uint32_t topk);
 
         static void add(double *dest, double *v1, double *v2, uint16_t dim);
 

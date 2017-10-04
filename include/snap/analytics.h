@@ -33,7 +33,7 @@ class Analytics {
                     std::vector<float> &values1,
                     std::vector<float> &values2,
                     string outputfile) {
-                LOG(INFO) << "Saving the results on " << outputfile << " ...";
+                LOG(INFOL) << "Saving the results on " << outputfile << " ...";
                 std::ofstream file_out(outputfile, ios_base::binary);
                 {
                     boost::iostreams::filtering_ostream out;
@@ -83,7 +83,7 @@ class Analytics {
                     }
                 }
                 file_out.close();
-                LOG(INFO) << "Done.";
+                LOG(INFOL) << "Done.";
             }
 
         static void runTask(string nameTask,
@@ -108,15 +108,15 @@ class Analytics {
             }
             std::chrono::microseconds duration = std::chrono::duration_cast<
                 std::chrono::microseconds>(std::chrono::system_clock::now() - start);
-            LOG(INFO) << "Runtime " << nameTask << ": " << duration.count() / 1000 << " ms. (" << duration.count() << " mu_s)";
+            LOG(INFOL) << "Runtime " << nameTask << ": " << duration.count() / 1000 << " ms. (" << duration.count() << " mu_s)";
             string els = "";
             int i = 0;
             switch (r) {
                 case INT:
-                    LOG(INFO) << "Output " << nameTask << ": " << retValue_int;
+                    LOG(INFOL) << "Output " << nameTask << ": " << retValue_int;
                     break;
                 case DOUBLE:
-                    LOG(INFO) << "Output " << nameTask << ": " << retValue_double;
+                    LOG(INFOL) << "Output " << nameTask << ": " << retValue_double;
                     break;
                 case V_LONG:
                     i = 0;
@@ -128,7 +128,7 @@ class Analytics {
                         els += to_string(el) + " ";
                         i++;
                     }
-                    LOG(INFO) << "Output " << nameTask << ": (" << retValue_vlong.size() << ") " << els;
+                    LOG(INFOL) << "Output " << nameTask << ": (" << retValue_vlong.size() << ") " << els;
                     break;
                 default:
                     break;
@@ -146,7 +146,7 @@ class Analytics {
                 AnalyticsTasks::Task task = tasks.getTask(nameTask);
                 //Check if the graph comply with the requirements of the task
 
-                LOG(INFO) << "Loading the graph ...";
+                LOG(INFOL) << "Loading the graph ...";
                 K Graph = new V(&kb);
 
                 //Possible inputs
@@ -166,7 +166,7 @@ class Analytics {
                 std::function<double()> f_double;
                 std::function<std::vector<long>()> f_vlong;
 
-                LOG(INFO) << "Run task " << task.tostring();
+                LOG(INFOL) << "Run task " << task.tostring();
 
                 if (nameTask == "pagerank") {
                     f = std::bind(TSnap::GetPageRank_stl<K>,
@@ -302,7 +302,7 @@ class Analytics {
                     }
 
                 } else {
-                    LOG(ERROR) << "Task " << nameTask << " is not known!";
+                    LOG(ERRORL) << "Task " << nameTask << " is not known!";
                     throw 10;
                 }
 
@@ -337,7 +337,7 @@ class Analytics {
             } else {
                 //Graph should be undirected
                 if ((kb.getGraphType() != GraphType::UNDIRECTED)) {
-                    LOG(ERROR) << "Graph analytical operations work only on simple directed or simple undirected graphs";
+                    LOG(ERRORL) << "Graph analytical operations work only on simple directed or simple undirected graphs";
                     throw 10;
                 }
                 Analytics::runTask<PTrident_UTNGraph, Trident_UTNGraph>(kb, nameTask, outputfile, params);

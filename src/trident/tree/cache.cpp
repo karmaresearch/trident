@@ -34,7 +34,7 @@ using namespace std;
 void Cache::init(TreeContext *context, std::string path, int fileMaxSize,
         int maxNFiles, long cacheMaxSize, int sizeLeavesFactory,
         int sizePreallLeavesFactory, int nodeMinBytes) {
-    //      LOG(DEBUG) << "file_max_size: " << fileMaxSize << " cache_max_size: " << cacheMaxSize << " size_leaf_factory: " << sizeLeavesFactory <<
+    //      LOG(DEBUGL) << "file_max_size: " << fileMaxSize << " cache_max_size: " << cacheMaxSize << " size_leaf_factory: " << sizeLeavesFactory <<
     //      " preall: " << sizePreallLeavesFactory <<
     //      " nodes_min_bytes: " << nodeMinBytes;
 
@@ -84,7 +84,7 @@ void Cache::flushNode(Node *node, const bool registerNode) {
                     supportBuffer2, sizeBuffer);
 #endif
             if (sizeCompressedBuffer == 0 || sizeCompressedBuffer > SIZE_SUPPORT_BUFFER) {
-                LOG(ERROR) << "Failed compressing buffer (size=0)";
+                LOG(ERRORL) << "Failed compressing buffer (size=0)";
                 throw 10;
             }
             manager->put(node, supportBuffer2, sizeCompressedBuffer);

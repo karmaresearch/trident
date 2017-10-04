@@ -100,7 +100,7 @@ public:
     }
 
     uint64_t* getValues(int perm, long *size) {
-        LOG(ERROR) << "Not implemented";
+        LOG(ERRORL) << "Not implemented";
         return NULL;
     }
 

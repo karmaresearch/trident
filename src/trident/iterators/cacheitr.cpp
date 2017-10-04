@@ -92,7 +92,7 @@ void CacheItr::next() {
 }
 
 void CacheItr::clear() {
-    LOG(DEBUG) << "Collected " << newPairs.size() << " pairs and " << newBlocks.size() << " blocks. All pairs are " << estimatedSize;
+    LOG(DEBUGL) << "Collected " << newPairs.size() << " pairs and " << newBlocks.size() << " blocks. All pairs are " << estimatedSize;
 
     if (newPairs.size() > 0) {
         if (startDelta != newPairs.size()) {

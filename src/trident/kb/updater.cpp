@@ -81,7 +81,7 @@ void Updater::parseUpdate(std::string update,
             }
         }
     }
-    LOG(DEBUG) << "Parsed " << validtriples << " invalid " << invalidtriples;
+    LOG(DEBUGL) << "Parsed " << validtriples << " invalid " << invalidtriples;
 }
 
 void Updater::writeDict(DictMgmt *dictmgmt,
@@ -313,7 +313,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
     //Add triples that are either not existing (ADD) or existing (REMOVE) ...
     match(type, all_s, all_p, all_o, q, parsedtriples);
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-    LOG(DEBUG) << "Runtime compressing and filtering the update = " << sec.count() * 1000;
+    LOG(DEBUGL) << "Runtime compressing and filtering the update = " << sec.count() * 1000;
 
 }
 
@@ -360,12 +360,12 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
 
 
         std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-        LOG(DEBUG) << "Runtime creating the diff index from the update = " << sec.count() * 1000;
+        LOG(DEBUGL) << "Runtime creating the diff index from the update = " << sec.count() * 1000;
     } else {
-        LOG(DEBUG) << "The update is empty";
+        LOG(DEBUGL) << "The update is empty";
     }
     std::chrono::duration<double> secdiff = std::chrono::system_clock::now() - startdiff;
-    LOG(INFO) << "Runtime update " << secdiff.count() * 1000 << " ms.";
+    LOG(INFOL) << "Runtime update " << secdiff.count() * 1000 << " ms.";
 
     delete q;
 }

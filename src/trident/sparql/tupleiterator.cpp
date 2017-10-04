@@ -159,7 +159,7 @@ uint64_t TupleKBItr::getElementAt(const int p) {
     case 2:
         return physIterator->getValue2();
     }
-    LOG(ERROR) << "This should not happen";
+    LOG(ERRORL) << "This should not happen";
     throw 10;
 }
 

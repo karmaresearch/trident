@@ -108,7 +108,7 @@ void NestedMergeJoin::print(int indent) {
     for (int i = 0; i < indent; ++i)
         cerr << ' ';
 
-    LOG(DEBUG) << "MERGEJOIN";
+    LOG(DEBUGL) << "MERGEJOIN";
 
     for (int i = 0; i < children.size(); ++i) {
         children[i]->print(indent + 1);
@@ -143,7 +143,7 @@ void TridentHashJoin::print(int indent) {
     for (int i = 0; i < indent; ++i)
         cerr << ' ';
 
-    LOG(DEBUG) << "HASHJOIN";
+    LOG(DEBUGL) << "HASHJOIN";
 
     for (int i = 0; i < children.size(); ++i) {
         children[i]->print(indent + 1);
@@ -160,7 +160,7 @@ void Scan::print(int indent) {
     for (int i = 0; i < indent; ++i)
         cerr << ' ';
 
-    LOG(DEBUG) << "SCAN " << pattern->toString();
+    LOG(DEBUGL) << "SCAN " << pattern->toString();
 }
 
 KBScan::KBScan(Querier *q, Pattern *p) : Scan(p), t(3) {
@@ -294,7 +294,7 @@ MaterializedScan::MaterializedScan(std::shared_ptr<SemiNaiver> sn,
     bool isPConst = false;
     bool isOConst = false;
     long s, pr, o;
-    // LOG(DEBUG) << "MaterializedScan: [" << p->subject() << ", "
+    // LOG(DEBUGL) << "MaterializedScan: [" << p->subject() << ", "
     //                          << p->predicate() << ", " << p->object() << "]; " << p->toString();
     // Here, if there are variables in the pattern, the corresponding
     // value is -1!
@@ -351,7 +351,7 @@ MaterializedScan::MaterializedScan(std::shared_ptr<SemiNaiver> sn,
     //Literal TI
     string ti = string("TI");
     Literal l = Literal(program->getPredicate(ti), t);
-    // LOG(DEBUG) << "MaterializedScan: literal = " << l.tostring();
+    // LOG(DEBUGL) << "MaterializedScan: literal = " << l.tostring();
     FCIterator itr = sn->getTable(l, 0, (size_t) - 1);
     table = std::unique_ptr<TupleTable>(new TupleTable(nVars + nRepeated));
     while (!itr.isEmpty()) {

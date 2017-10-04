@@ -91,7 +91,7 @@ bool Trident_TNGraph::getNodeInfo(TermCoordinates &coord,
         ok = true;
     }
     if (!ok) {
-        LOG(ERROR) << "One node is skipped";
+        LOG(ERRORL) << "One node is skipped";
         throw 10;
     }
     return ok;

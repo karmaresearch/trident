@@ -43,8 +43,8 @@ bool Feedback::_querySorter(const std::pair<uint32_t, QueriesItr>& a,
 }
 
 void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
-    LOG(DEBUG) << "Adding feedbacks ...";
-    LOG(DEBUG) << "Excluded triples in a epoch so far: " << excluded;
+    LOG(DEBUGL) << "Adding feedbacks ...";
+    LOG(DEBUGL) << "Excluded triples in a epoch so far: " << excluded;
     excluded = 0;
     queries_sp.clear();
     queries_po.clear();
@@ -87,5 +87,5 @@ void Feedback::addFeedbacks(std::shared_ptr<Tester<double>::OutputTest> out) {
 
     //Print them for debugging
 
-    LOG(DEBUG) << "done.";
+    LOG(DEBUGL) << "done.";
 }

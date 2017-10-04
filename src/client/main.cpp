@@ -134,7 +134,7 @@ void lookup(DictMgmt *dict, po::variables_map &vm) {
 
 void dump(KB *kb, string outputdir) {
     if (Utils::exists(outputdir)) {
-        LOG(INFO) << "Removing the output directory ... " << outputdir;
+        LOG(INFOL) << "Removing the output directory ... " << outputdir;
         Utils::remove_all(outputdir);
     }
     Utils::create_directories(outputdir);
@@ -182,7 +182,7 @@ void dump(KB *kb, string outputdir) {
         }
         out << std::endl;
     }
-    LOG(INFO) << "Finished dumping";
+    LOG(INFOL) << "Finished dumping";
     q->releaseItr(itr);
     delete q;
 }
@@ -285,33 +285,33 @@ void startServer(KB &kb, int port) {
     webint = std::unique_ptr<TridentServer>(
             new TridentServer(kb, "./../webinterface"));
     webint->start("0.0.0.0", to_string(port));
-    LOG(INFO) << "Server is launched at 0.0.0.0:" << to_string(port);
+    LOG(INFOL) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
 }
 
 void printStats(KB &kb, Querier *q) {
-    LOG(DEBUG) << "Max mem (MB) " << Utils::get_max_mem();
-    LOG(DEBUG) << "# Read Index Blocks = " << kb.getStats().getNReadIndexBlocks();
-    LOG(DEBUG) << " Read Index Bytes from disk = " << kb.getStats().getNReadIndexBytes();
+    LOG(DEBUGL) << "Max mem (MB) " << Utils::get_max_mem();
+    LOG(DEBUGL) << "# Read Index Blocks = " << kb.getStats().getNReadIndexBlocks();
+    LOG(DEBUGL) << " Read Index Bytes from disk = " << kb.getStats().getNReadIndexBytes();
     Querier::Counters c = q->getCounters();
-    LOG(DEBUG) << "RowLayouts: " << c.statsRow << " ClusterLayouts: " << c.statsCluster << " ColumnLayouts: " << c.statsColumn;
-    LOG(DEBUG) << "AggrIndices: " << c.aggrIndices << " NotAggrIndices: " << c.notAggrIndices << " CacheIndices: " << c.cacheIndices;
-    LOG(DEBUG) << "Permutations: spo " << c.spo << " ops " << c.ops << " pos " << c.pos << " sop " << c.sop << " osp " << c.osp << " pso " << c.pso;
+    LOG(DEBUGL) << "RowLayouts: " << c.statsRow << " ClusterLayouts: " << c.statsCluster << " ColumnLayouts: " << c.statsColumn;
+    LOG(DEBUGL) << "AggrIndices: " << c.aggrIndices << " NotAggrIndices: " << c.notAggrIndices << " CacheIndices: " << c.cacheIndices;
+    LOG(DEBUGL) << "Permutations: spo " << c.spo << " ops " << c.ops << " pos " << c.pos << " sop " << c.sop << " osp " << c.osp << " pso " << c.pso;
     long nblocks = 0;
     long nbytes = 0;
     for (int i = 0; i < kb.getNDictionaries(); ++i) {
         nblocks = kb.getStatsDict()[i].getNReadIndexBlocks();
         nbytes = kb.getStatsDict()[i].getNReadIndexBytes();
     }
-    LOG(DEBUG) << "# Read Dictionary Blocks = " << nblocks;
-    LOG(DEBUG) << "# Read Dictionary Bytes from disk = " << nbytes;
-    LOG(DEBUG) << "Process IO Read bytes = " << Utils::getIOReadBytes();
-    LOG(DEBUG) << "Process IO Read char = " << Utils::getIOReadChars();
+    LOG(DEBUGL) << "# Read Dictionary Blocks = " << nblocks;
+    LOG(DEBUGL) << "# Read Dictionary Bytes from disk = " << nbytes;
+    LOG(DEBUGL) << "Process IO Read bytes = " << Utils::getIOReadBytes();
+    LOG(DEBUGL) << "Process IO Read char = " << Utils::getIOReadChars();
 }
 
 void launchAnalytics(KB &kb, string op, string param1, string param2) {
     if (!AnalyticsTasks::getInstance().isValidTask(op)) {
-        LOG(ERROR) << "Task " << op << " not recognized";
+        LOG(ERRORL) << "Task " << op << " not recognized";
         throw 10;
     }
     AnalyticsTasks::getInstance().load(op, param2);
@@ -319,7 +319,7 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
 }
 
 void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
-    LOG(INFO) << "Mining frequent graphs";
+    LOG(INFOL) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
     miner.getFrequentPatterns(minLen, maxLen, minSupport);
@@ -351,8 +351,9 @@ int main(int argc, const char** argv) {
         for(int i = 0; i < argc; ++i) {
             params += string(argv[i]) + " ";
         }
-        LOG(DEBUG) << "PARAMS: " << params;
+        LOG(DEBUGL) << "PARAMS: " << params;
     }*/
+    Logger::setMinLevel(INFOL);
 
     //Init the knowledge base
     string cmd = string(argv[1]);
@@ -513,6 +514,6 @@ int main(int argc, const char** argv) {
     }
 
     //Print other stats
-    LOG(INFO) << "Max memory used: " << Utils::get_max_mem() << " MB";
+    LOG(INFOL) << "Max memory used: " << Utils::get_max_mem() << " MB";
     return EXIT_SUCCESS;
 }

@@ -85,6 +85,10 @@ class Embeddings {
         }
 
         K* get(const uint32_t n) {
+            if (n >= this->n) {
+                LOG(ERRORL) << n << " too high";
+                throw 10;
+            }
             return raw.data() + n * dim;
         }
 
@@ -217,7 +221,7 @@ class Embeddings {
                 b++;
                 counter += 1;
             }
-            LOG(DEBUG) << "Done";
+            LOG(DEBUGL) << "Done";
         }
 
         void store(std::string path, bool compress, uint16_t nthreads) {
@@ -277,7 +281,7 @@ class Embeddings {
                     if (end > ((long)n * dim) || i == nthreads - 1) {
                         end = (long)n * dim;
                     }
-                    LOG(DEBUG) << "Storing " <<
+                    LOG(DEBUGL) << "Storing " <<
                         (end - begin) << " values in " << localpath << " ...";
                     if (begin < end) {
                         threads.push_back(std::thread(
@@ -324,7 +328,7 @@ class Embeddings {
             }
 
             if (!metafound) {
-                LOG(WARN) << "Embedding file " << path << " not found";
+                LOG(WARNL) << "Embedding file " << path << " not found";
                 return std::shared_ptr<Embeddings<double>>();
             } else {
                 //Count the files with a number as extension
@@ -398,7 +402,7 @@ class Embeddings {
         uint16_t processedfiles = 0;
         while (processedfiles < files_e.size()) {
         string file = dirname + "/" + bpath.filename().string() + "." + to_string(processedfiles);
-        LOG(DEBUG) << "Processing file " << file;
+        LOG(DEBUGL) << "Processing file " << file;
         ifstream ifs2;
         ifs2.open(file);
         boost::iostreams::filtering_stream<boost::iostreams::input> inp2;

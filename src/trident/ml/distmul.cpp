@@ -103,7 +103,7 @@ void DistMulLearner::process_batch(BatchIO &io,
                     e_denom_r2 += e_score(h[i], r_neg, t[i]);
                 }
             } else {
-                LOG(ERROR) << "Not implemented yet";
+                LOG(ERRORL) << "Not implemented yet";
             }
 
             //Gradients
@@ -134,7 +134,7 @@ void DistMulLearner::process_batch(BatchIO &io,
 
     //Update the gradients
     if (adagrad) {
-        LOG(ERROR) << "Adagrad not supported (yet)";
+        LOG(ERRORL) << "Adagrad not supported (yet)";
         throw 10;
     } else { //sgd
         for (auto &i : gradientsE) {

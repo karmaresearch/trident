@@ -42,7 +42,7 @@ bool Inserter::insert(const int permutation,
     bool ret = false;
     if (t1 != currentT1[permutation]) {
         if (t1 < currentT1[permutation]) {
-            LOG(DEBUG) << "t1=" << t1 << " currentT1[perm]=" << currentT1[permutation];
+            LOG(DEBUGL) << "t1=" << t1 << " currentT1[perm]=" << currentT1[permutation];
         }
         ntables[permutation]++;
         nFirstElsNTables[permutation]++;

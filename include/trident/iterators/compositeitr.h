@@ -99,7 +99,7 @@ public:
     }
 
     void reset(const char r) {
-	LOG(DEBUG) << "reset: r = " << (int) r;
+	LOG(DEBUGL) << "reset: r = " << (int) r;
 	v1 = savedv1;
 	v2 = savedv2;
 	currentCount = savedcurrentCount;

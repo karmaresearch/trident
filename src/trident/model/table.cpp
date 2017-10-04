@@ -255,7 +255,7 @@ std::vector<std::pair<uint8_t, uint8_t>> TupleTable::getPosJoins(TupleTable *o) 
 
 TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
     if (signature.size() == 0 || o->signature.size() == 0) {
-        LOG(DEBUG) << "This should not happen";
+        LOG(DEBUGL) << "This should not happen";
         throw 10;
     }
 
@@ -418,7 +418,7 @@ TupleTable *o) {
 
 TupleTable *TupleTable::join(TupleTable *o) {
     if (signature.size() == 0 || o->signature.size() == 0) {
-        LOG(DEBUG) << "This should not happen";
+        LOG(DEBUGL) << "This should not happen";
         throw 10;
     }
 

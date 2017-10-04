@@ -14,13 +14,13 @@ class Subgraphs {
     public:
         typedef enum { PO, SP } TYPE;
 
-    private:
         struct Metadata {
             uint64_t id;
             TYPE t;
             uint64_t ent, rel;
         };
 
+    private:
         std::vector<Metadata> subgraphs;
 
     public:
@@ -40,22 +40,26 @@ class Subgraphs {
         virtual void loadFromFile(string file) = 0;
 
         virtual double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
-            LOG(ERROR) << "Not implemented";
+            LOG(ERRORL) << "Not implemented";
             throw 10;
+        }
+
+        Metadata &getMeta(uint64_t subgraphid) {
+            return subgraphs[subgraphid];
         }
 
         void getDistanceToAllSubgraphs(DIST dist,
                 Querier *q,
-                std::vector<double> &distances,
+                std::vector<std::pair<double, uint64_t>> &distances,
                 K* emb,
                 uint16_t dim) {
             for(size_t i = 0; i < subgraphs.size(); ++i) {
                 switch (dist) {
                     case L1:
-                        distances.push_back(l1(q, i, emb, dim));
+                        distances.push_back(make_pair(l1(q, i, emb, dim), i));
                         break;
                     default:
-                        LOG(ERROR) << "Not implemented";
+                        LOG(ERRORL) << "Not implemented";
                         throw 10;
                 };
             }
@@ -100,8 +104,10 @@ class CIKMSubgraphs : public Subgraphs<K> {
         }
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
-            //TODO calculate the distance using l1
             double out = 0;
+            for(uint16_t i = 0; i < dim; ++i) {
+                out += abs(emb[i] - params[dim * subgraphid + i]);
+            }
             return out;
         }
 

@@ -53,7 +53,7 @@ KB::KB(const char *path,
     dictEnabled(dictEnabled), config(config) {
 
         if (readOnly && !Utils::exists(string(path) + "/tree")) {
-            LOG(ERROR) << "The input path does not seem to be a valid KB";
+            LOG(ERRORL) << "The input path does not seem to be a valid KB";
             throw 10;
         }
 
@@ -158,13 +158,13 @@ KB::KB(const char *path,
 
         std::chrono::duration<double> sec = std::chrono::system_clock::now()
             - start;
-        LOG(DEBUG) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        LOG(DEBUGL) << "Time init tree KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
 
         //Initialize the dictionaries
         if (dictEnabled) {
             loadDict(&config);
             sec = std::chrono::system_clock::now() - start;
-            LOG(DEBUG) << "Time init dictionaries KB = " <<
+            LOG(DEBUGL) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
             dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
@@ -282,7 +282,7 @@ KB::KB(const char *path,
                     std::chrono::system_clock::time_point startDiff = std::chrono::system_clock::now();
                     addDiffIndex(childrenupdates[i], &globalbuffers[0], NULL);
                     sec = std::chrono::system_clock::now() - startDiff;
-                    LOG(DEBUG) << "Time loading diff index " << sec.count() * 1000 << "ms.";
+                    LOG(DEBUGL) << "Time loading diff index " << sec.count() * 1000 << "ms.";
                 }
             }
             if (!dictUpdates.empty()) {
@@ -299,7 +299,7 @@ KB::KB(const char *path,
         }
 
         sec = std::chrono::system_clock::now() - start;
-        LOG(DEBUG) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
+        LOG(DEBUGL) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
     }
 
 Root *KB::getRootTree() {
@@ -394,7 +394,7 @@ Querier *KB::query() {
 
 Inserter *KB::insert() {
     if (readOnly) {
-        LOG(ERROR) << "Insert() is not available if the knowledge base is opened in read_only mode.";
+        LOG(ERRORL) << "Insert() is not available if the knowledge base is opened in read_only mode.";
     }
 
     return new Inserter(tree,

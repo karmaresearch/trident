@@ -92,10 +92,10 @@ void HashJoinItr::fillNextMap(const int i, std::vector<uint64_t> &currentMapValu
     uint64_t prevValue2 = 0;
     size_t beginIdx = 0;
 
-    // LOG(DEBUG) << "fillNextMap: idxRows.size() = " << idxRows.size();
+    // LOG(DEBUGL) << "fillNextMap: idxRows.size() = " << idxRows.size();
     for (size_t i = 0; i < idxRows.size(); ++i) {
         size_t beginRow = idxRows[i];
-        // LOG(DEBUG) << "fillNextMap: idxRows[" << i << "] = " << beginRow;
+        // LOG(DEBUGL) << "fillNextMap: idxRows[" << i << "] = " << beginRow;
         if (i == 0) {
             prevValue1 = tmpContainer[beginRow + joinField1];
             if (njoins == 2)
@@ -129,7 +129,7 @@ void HashJoinItr::fillNextMap(const int i, std::vector<uint64_t> &currentMapValu
     }
 
     if (njoins == 1) {
-        // LOG(DEBUG) << "CurrentMap1.insert(" << prevValue1 << ", "
+        // LOG(DEBUGL) << "CurrentMap1.insert(" << prevValue1 << ", "
         //     << beginIdx << ")";
         currentMap1->insert(std::make_pair(prevValue1, beginIdx));
     } else {
@@ -176,9 +176,9 @@ void HashJoinItr::execJoin() {
         const size_t nvarstocopy = plan->posVarsToCopy[i].size();
 
         if (i == 0) {
-            LOG(DEBUG) << "Process pattern " << i;
+            LOG(DEBUGL) << "Process pattern " << i;
         } else {
-            LOG(DEBUG) << "Process pattern " << i << " Results so far: " << currentMapValues.size() / currentMapRowSize;
+            LOG(DEBUGL) << "Process pattern " << i << " Results so far: " << currentMapValues.size() / currentMapRowSize;
         }
 
         SPARQLOperator *scan = children[i].get();
@@ -186,7 +186,7 @@ void HashJoinItr::execJoin() {
         TupleIterator *itr;
         if (scan->doesSupportsSideways() && i != 0) {
             const int njoins = plan->joins[i].size();
-            // LOG(DEBUG) << "njoins = " << njoins;
+            // LOG(DEBUGL) << "njoins = " << njoins;
             assert(njoins > 0 && njoins < 3);
             const JoinPoint *joins = &(plan->joins[i][0]);
 
@@ -194,7 +194,7 @@ void HashJoinItr::execJoin() {
             std::vector<uint64_t> allvalues;
             if (njoins == 1) {
                 posJoins.push_back((uint8_t) joins[0].posPattern);
-                // LOG(DEBUG) << "posJoin[0] = " << (int) joins[0].posPattern;
+                // LOG(DEBUGL) << "posJoin[0] = " << (int) joins[0].posPattern;
                 for (HashJoinMap::iterator itr = currentMap1->begin();
                         itr != currentMap1->end();
                         ++itr) {
@@ -202,8 +202,8 @@ void HashJoinItr::execJoin() {
                 }
                 sort(allvalues.begin(), allvalues.end());
             } else { //joins = 2
-                // LOG(DEBUG) << "posJoin[0] = " << (int) joins[0].posPattern;
-                // LOG(DEBUG) << "posJoin[1] = " << (int) joins[1].posPattern;
+                // LOG(DEBUGL) << "posJoin[0] = " << (int) joins[0].posPattern;
+                // LOG(DEBUGL) << "posJoin[1] = " << (int) joins[1].posPattern;
                 posJoins.push_back((uint8_t) joins[0].posPattern);
                 posJoins.push_back((uint8_t) joins[1].posPattern);
                 for (DoubleHashJoinMap::iterator itr = currentMap2->begin();
@@ -214,7 +214,7 @@ void HashJoinItr::execJoin() {
                 }
                 sortPairElements(allvalues);
             }
-            LOG(DEBUG) << "Possible bindings passed to the reasoner " << allvalues.size() / posJoins.size();
+            LOG(DEBUGL) << "Possible bindings passed to the reasoner " << allvalues.size() / posJoins.size();
             scan->optimize(&posJoins, &allvalues);
             itr = scan->getIterator(posJoins, allvalues);
         } else {
@@ -228,7 +228,7 @@ void HashJoinItr::execJoin() {
 
             if (i == 0) {
                 while (itr->hasNext()) {
-                    // LOG(DEBUG) << "Pushing entry to " << tmpContainer.size();
+                    // LOG(DEBUGL) << "Pushing entry to " << tmpContainer.size();
                     idxRows.push_back(tmpContainer.size());
                     itr->next();
                     for (int i = 0; i < nvarstocopy; ++i) {
@@ -243,7 +243,7 @@ void HashJoinItr::execJoin() {
 
 #if DEBUG
                 if (currentMap1 != NULL)
-                    LOG(DEBUG) << "Size bindings " << currentMap1->size();
+                    LOG(DEBUGL) << "Size bindings " << currentMap1->size();
 #endif
 
                 long nTuples = 0;
@@ -290,7 +290,7 @@ void HashJoinItr::execJoin() {
                         }
                     }
                 }
-                LOG(DEBUG) << "The iterator returned " << nTuples << " tuples";
+                LOG(DEBUGL) << "The iterator returned " << nTuples << " tuples";
 
                 tmpContainerRowSize = currentMapRowSize + nvarstocopy;
             }
@@ -298,7 +298,7 @@ void HashJoinItr::execJoin() {
             if (idxRows.size() > 0) {
                 fillNextMap(i, currentMapValues, currentMapRowSize, currentMap1,
                             currentMap2, tmpContainer, tmpContainerRowSize, idxRows);
-                LOG(DEBUG) << "Finished loading the map";
+                LOG(DEBUGL) << "Finished loading the map";
             } else {
                 scan->releaseIterator(itr);
                 return; //No more joins
@@ -325,7 +325,7 @@ void HashJoinItr::execJoin() {
 
                 if (njoins == 1) {
                     long key = itr->getElementAt(joins[0].posPattern);
-                    // LOG(DEBUG) << "Join: key = " << key;
+                    // LOG(DEBUGL) << "Join: key = " << key;
                     HashJoinMap::iterator mapItr = currentMap1->find(key);
                     if (mapItr != currentMap1->end()) {
                         found = true;

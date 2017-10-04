@@ -163,7 +163,7 @@ void StringBuffer::addCache(int idx) {
             f = cacheVector[f].second;
             c++;
         }
-        LOG(ERROR) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
+        LOG(ERRORL) << "Elements in cache " << elementsInCache << " First " << firstBlockInCache << " Last " << lastBlockInCache << " idx " << idx << " count " << c;*/
 }
 
 void StringBuffer::compressBlocks() {
@@ -356,7 +356,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERRORL) << "error: only " << sb.gcount() << " could be read";
         }
         fileLock.unlock();
     } else {
@@ -368,7 +368,7 @@ void StringBuffer::uncompressBlock(int b) {
         sb.seekg(start);
         sb.read(uncompressSupportBuffer, length);
         if (!sb) {
-            LOG(ERROR) << "error: only " << sb.gcount() << " could be read";
+            LOG(ERRORL) << "error: only " << sb.gcount() << " could be read";
         }
     }
 
@@ -383,7 +383,7 @@ void StringBuffer::uncompressBlock(int b) {
     stats->incrNReadIndexBlocks();
     stats->addNReadIndexBytes(length);
     if (bytesUncompressed < 0) {
-        LOG(ERROR) << "Decompression of block "
+        LOG(ERRORL) << "Decompression of block "
                                  << b
                                  << " has failed. Read at pos "
                                  << start
