@@ -111,7 +111,7 @@ body {
 	/*color:#333333;*/
     color: #FFFF00;
 	width:1024px;
-	height:70px;
+	height:90px;
 	background-image:initial;
 	background-repeat-x:initial;
 	background-repeat-y:initial;
@@ -123,10 +123,20 @@ body {
 	background-origin:initial;
 	background-clip:initial;
 	background-color:#ABBEBE;
-	margin:10px 0px 0px 0px;
-	padding:0px;
+	margin:10px 0px 50px 0px;
+	padding:5px;
 	font-family:Arial, Helvetica, sans-serif;
-	font-size:28px;
+	font-size:22px;
+}
+
+#menu {
+    margin: 14px 0px 0px 0px;
+    background-color: yellow;
+    width: 100%;
+}
+
+#menu a {
+    margin-right: 30px;
 }
 
 #leftcolumn {
