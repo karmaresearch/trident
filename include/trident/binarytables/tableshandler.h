@@ -28,15 +28,11 @@
 #include <trident/kb/consts.h>
 #include <trident/kb/statistics.h>
 #include <trident/files/filemanager.h>
-
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include <trident/utils/memoryfile.h>
 
 #include <string>
 #include <iostream>
 #include <mutex>
-
-namespace bip = boost::interprocess;
 
 #define MAX_LENGTH_PATHFILE 1024
 #define MAX_N_SECTORS 10000
@@ -49,8 +45,7 @@ class FileMarks {
 
         long sizeMarks;
         long sizefile;
-        bip::file_mapping *filemapping;
-        bip::mapped_region *mappedrgn;
+        std::unique_ptr<MemoryMappedFile> mappedFile;
 
     public:
         const char *getBeginTableCoordinates() {
@@ -75,8 +70,6 @@ class FileMarks {
         }
 
         ~FileMarks() {
-            delete mappedrgn;
-            delete filemapping;
         }
 };
 

@@ -73,46 +73,6 @@ extern void subgraphEval(KB &kb, po::variables_map &vm);
 //Implemented in kb.cpp
 extern bool _sort_by_number(const string &s1, const string &s2);
 
-/*SinkPtr initLogging(
-        logging::trivial::severity_level level,
-        bool consoleActive,
-        bool fileActive,
-        string filelog) {
-
-    logging::add_common_attributes();
-
-    if (consoleActive) {
-        logging::add_console_log(std::cerr, logging::keywords::format =
-                (logging::expressions::stream << "["
-                 << logging::expressions::attr <
-                 boost::log::attributes::current_thread_id::value_type > (
-                     "ThreadID") << " "
-                 << logging::expressions::format_date_time <
-                 boost::posix_time::ptime > ("TimeStamp",
-                     "%m-%d %H:%M:%S") << " - "
-                 << logging::trivial::severity << "] "
-                 << logging::expressions::smessage));
-    }
-
-    SinkPtr sink;
-    if (fileActive) {
-        sink = logging::add_file_log(filelog, logging::keywords::format =
-                (logging::expressions::stream << "["
-                 << logging::expressions::attr <
-                 boost::log::attributes::current_thread_id::value_type > (
-                     "ThreadID") << " "
-                 << logging::expressions::format_date_time <
-                 boost::posix_time::ptime > ("TimeStamp",
-                     "%m-%d %H:%M:%S") << " - "
-                 << logging::trivial::severity << "] "
-                 << logging::expressions::smessage));
-    }
-
-    boost::shared_ptr<logging::core> core = logging::core::get();
-    core->set_filter(logging::trivial::severity >= level);
-    return sink;
-}*/
-
 void lookup(DictMgmt *dict, po::variables_map &vm) {
     if (vm.count("text")) {
         nTerm value;

@@ -34,15 +34,9 @@
 #include <trident/kb/kbconfig.h>
 #include <kognac/factory.h>
 
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
-#include<boost/iostreams/device/mapped_file.hpp>
 #include <string>
 
 #define THRESHOLD_USEGLOBALFILES 1000000
-
-namespace bip = boost::interprocess;
-namespace memmap = boost::iostreams;
 
 class Querier;
 class Root;
@@ -52,7 +46,7 @@ class DiffScanItr;
 class RWMappedFile {
 private:
     const std::string file;
-    memmap::mapped_file_sink sink;
+    std::unique_ptr<MemoryMappedFile> mf;
 
     uint64_t currentposition;
     char *currentbuffer;
@@ -75,15 +69,12 @@ public:
 
 class ROMappedFile {
 private:
-    bip::file_mapping mapping;
-    bip::mapped_region mapped_rgn;
+    MemoryMappedFile mf;
     const char *buffer;
 
 public:
-    ROMappedFile(std::string file) :
-        mapping(file.c_str(), bip::read_only),
-        mapped_rgn(mapping, bip::read_only) {
-        buffer = static_cast<const char*>(mapped_rgn.get_address());
+    ROMappedFile(std::string file) : mf(file) {
+        buffer = mf.getData();
     }
     const char *getBuffer() {
         return buffer;

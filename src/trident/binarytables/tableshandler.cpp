@@ -24,9 +24,6 @@
 
 #include <kognac/utils.h>
 
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -34,7 +31,6 @@
 #include <stdio.h>
 
 using namespace std;
-namespace bip = boost::interprocess;
 
 void FileMarks::parse(string path) {
     if (!Utils::exists(path)) {
@@ -42,10 +38,12 @@ void FileMarks::parse(string path) {
         throw 10;
     }
 
-    this->filemapping = new bip::file_mapping(path.c_str(), bip::read_only);
-    this->mappedrgn = new bip::mapped_region(*(this->filemapping),
-            bip::read_only);
-    char *raw_input = static_cast<char*>(this->mappedrgn->get_address());
+    this->mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(path));
+    //this->filemapping = new bip::file_mapping(path.c_str(), bip::read_only);
+    //this->mappedrgn = new bip::mapped_region(*(this->filemapping),
+    //        bip::read_only);
+    //char *raw_input = static_cast<char*>(this->mappedrgn->get_address());
+    char *raw_input = this->mappedFile->getData();
 
     //Size marks
     this->sizefile = Utils::fileSize(path.substr(0, path.size() - 4));
@@ -241,12 +239,15 @@ void TableStorage::storeFileIndex(const std::vector<WrittenMarks> &input,
     ofstream oFile;
     if (Utils::exists(pathFile)) {
         {
-            bip::file_mapping mapping(pathFile.c_str(), bip::read_write);
-            bip::mapped_region mapped_rgn(mapping, bip::read_write, 0, 8);
-            char *buffer = static_cast<char*>(mapped_rgn.get_address());
+            //bip::file_mapping mapping(pathFile.c_str(), bip::read_write);
+            //bip::mapped_region mapped_rgn(mapping, bip::read_write, 0, 8);
+            //char *buffer = static_cast<char*>(mapped_rgn.get_address());
+            MemoryMappedFile mf(pathFile, false, 0, 8);
+            char *buffer = mf.getData();
             long existing_n = Utils::decode_long(buffer);
             Utils::encode_long(buffer, existing_n + input.size());
-            mapped_rgn.flush(0, 8);
+            mf.flush(0, 8);
+            //mapped_rgn.flush(0, 8);
         }
         oFile.open(pathFile, std::ios_base::app);
     } else {

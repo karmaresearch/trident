@@ -65,8 +65,6 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
         ilFactory = NULL;
         ilBufferFactory = NULL;
     }
-//  boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
-//          - start;
 //  LOG(DEBUGL)<< "Time init node factories: " << (sec.count() * 1000);
 
     context = new TreeContext(cache, stringbuffer, readOnly, maxElementsPerNode,

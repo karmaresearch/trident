@@ -137,10 +137,10 @@ void BatchCreator::start() {
     }
 
     //Load the file into a memory-mapped file
-    this->mapping = bip::file_mapping(fin.c_str(), bip::read_only);
-    this->mapped_rgn = bip::mapped_region(this->mapping, bip::read_only);
-    this->rawtriples = static_cast<char*>(this->mapped_rgn.get_address());
-    this->ntriples = (uint64_t)this->mapped_rgn.get_size() / 15; //triples
+    this->mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(
+                fin));
+    this->rawtriples = this->mappedFile->getData();
+    this->ntriples = this->mappedFile->getLength() / 15;
 
     LOG(DEBUGL) << "Creating index array ...";
     this->indices.resize(this->ntriples);
@@ -217,10 +217,9 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
 }
 
 void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
-    bip::file_mapping mapping(path.c_str(), bip::read_only);
-    bip::mapped_region mapped_rgn(mapping, bip::read_only);
-    char *start = static_cast<char*>(mapped_rgn.get_address());
-    char *end = start + (uint64_t)mapped_rgn.get_size();
+    MemoryMappedFile mf(path);
+    char *start = mf.getData();
+    char *end = start + mf.getLength();
     while (start < end) {
         long s = *(long*)(start);
         s = s & 0xFFFFFFFFFFl;

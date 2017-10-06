@@ -41,9 +41,6 @@
 
 #include <zstr/zstr.hpp>
 
-#include <boost/timer.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <tbb/parallel_sort.h>
 #include <tbb/task_scheduler_init.h>
 
@@ -56,8 +53,6 @@
 #include <cstdio>
 #include <unordered_map>
 #include <cstdlib>
-
-namespace io = boost::iostreams;
 
 bool _sorter_spo(const Triple &a, const Triple &b) {
     if (a.s < b.s) {
@@ -2901,9 +2896,11 @@ void Loader::loadFlatTree(string sop,
 
     //WRITE OSP
     ftw = std::unique_ptr<FlatTreeWriter>();
-    bip::file_mapping mapping(flatfile.c_str(), bip::read_write);
-    bip::mapped_region mapped_rgn(mapping, bip::read_write);
-    char *rawbuffer = static_cast<char*>(mapped_rgn.get_address());
+    MemoryMappedFile mf(flatfile, false);
+    //bip::file_mapping mapping(flatfile.c_str(), bip::read_write);
+    //bip::mapped_region mapped_rgn(mapping, bip::read_write);
+    //char *rawbuffer = static_cast<char*>(mapped_rgn.get_address());
+    char *rawbuffer = mf.getData();
 
     for (int i = 0; i < maxPossibleIdx; ++i) {
         if (i > std::numeric_limits<short>::max()) {
@@ -2962,7 +2959,8 @@ void Loader::loadFlatTree(string sop,
             ifs.close();
         }
     }
-    mapped_rgn.flush();
+    //mapped_rgn.flush();
+    mf.flushAll();
     delete itr;
 }
 

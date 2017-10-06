@@ -20,8 +20,7 @@ class Trident_UTNGraph {
         KB *kb;
         Querier *q;
 
-        bip::file_mapping mapping;
-        bip::mapped_region mapped_rgn;
+        std::unique_ptr<MemoryMappedFile> mf;
         const char *rawnodes;
         long nnodes;
 

@@ -6,13 +6,11 @@
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 #include <trident/tree/treeitr.h>
+#include <trident/utils/memoryfile.h>
 
 #include <snap/tnode.h>
 #include <snap/tedge.h>
 #include <snap/readers.h>
-
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
 
 /*****************************
  ****** DIRECTED GRAPH *******
@@ -46,8 +44,7 @@ class Trident_TNGraph {
         KB *kb;
         Querier *q;
 
-        bip::file_mapping mapping;
-        bip::mapped_region mapped_rgn;
+        std::unique_ptr<MemoryMappedFile> mf;
         const char *rawnodes;
         long nnodes;
 
