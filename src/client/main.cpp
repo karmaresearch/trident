@@ -230,10 +230,7 @@ void testkb(string kbDir, po::variables_map &vm) {
     }
 
     KBConfig config;
-    //string updatesDir = vm["updates"].as<string>();
     std::vector<string> locUpdates;
-    //if (updatesDir.length() > 0)
-    //    locUpdates.push_back(updatesDir);
     KB kb(kbDir.c_str(), true, false, true, config, locUpdates);
 
     std::vector<int> permutations;
@@ -336,24 +333,26 @@ int main(int argc, const char** argv) {
     if (!initParams(argc, argv, vm)) {
         return EXIT_FAILURE;
     }
-
-    /*//Init logging system
-    logging::trivial::severity_level level =
-        vm.count("logLevel") ?
-        vm["logLevel"].as<logging::trivial::severity_level>() :
-        logging::trivial::warning;
-    string filelog = vm["logfile"].as<string>();
-    auto logptr = initLogging(level, true, filelog != "", filelog);
-
+    //Set logging level
+    string ll = vm["logLevel"].as<string>();
+    if (ll == "debug") {
+        Logger::setMinLevel(DEBUGL);
+    } else if (ll == "info") {
+        Logger::setMinLevel(INFOL);
+    } else if (ll == "warning") {
+        Logger::setMinLevel(WARNL);
+    } else if (ll == "error") {
+        Logger::setMinLevel(ERRORL);
+    }
+    
     //Print params
-    if (level <= logging::trivial::debug) {
+    if (Logger::getMinLevel() <= DEBUGL) {
         string params = "";
         for(int i = 0; i < argc; ++i) {
             params += string(argv[i]) + " ";
         }
         LOG(DEBUGL) << "PARAMS: " << params;
-    }*/
-    Logger::setMinLevel(INFOL);
+    }
 
     //Init the knowledge base
     string cmd = string(argv[1]);

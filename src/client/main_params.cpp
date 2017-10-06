@@ -433,10 +433,9 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     sections.insert(make_pair("ml",ml_options));
 
     cmdline_options.add_options()("input,i", po::value<string>(),
-            "The path of the KB directory. This parameter is REQUIRED.");
-    /*(
-                "logLevel,l", po::value<logging::trivial::severity_level>(),
-                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");*/
+            "The path of the KB directory. This parameter is REQUIRED.")(
+                "logLevel,l", po::value<string>()->default_value("info"),
+                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");
     cmdline_options.add_options()("logfile",
             po::value<string>()->default_value(""),
             "Set if you want to store the logs in a file");

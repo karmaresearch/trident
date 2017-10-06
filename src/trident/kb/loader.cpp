@@ -1693,7 +1693,9 @@ void Loader::load(ParamsLoad p) {
     isFinished = true;
     cv.notify_all();
     lck.unlock();
-    monitor.join();
+    if (monitor.joinable()) {
+        monitor.join();
+    }
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(INFOL) << "Loading is finished: Time (sec) " << sec.count();
 }
