@@ -35,6 +35,7 @@
 #include <kognac/utils.h>
 
 #include <snap/tasks.h>
+#include <zstr/zstr.hpp>
 
 //SNAP dependencies
 #include <snap/analytics.h>
@@ -141,11 +142,7 @@ void dump(KB *kb, string outputdir) {
 
     //Create output file
     string filename = outputdir + "/graph.gz";
-    ofstream ntFile;
-    ntFile.open(filename, std::ios_base::out);
-    boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    out.push(boost::iostreams::gzip_compressor());
-    out.push(ntFile);
+    zstr::ofstream out(filename, std::ios_base::out);
 
     //Get dictionary
     Querier *q = kb->query();

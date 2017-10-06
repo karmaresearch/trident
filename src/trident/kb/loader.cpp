@@ -39,9 +39,9 @@
 #include <kognac/schemaextractor.h>
 #include <kognac/kognac.h>
 
+#include <zstr/zstr.hpp>
+
 #include <boost/timer.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <tbb/parallel_sort.h>
@@ -222,6 +222,45 @@ void FlatTreeWriter::write(const long key,
     }
 }
 
+void __parseLineSnapFile(string &line, string &origline,
+        std::map<long, long> &dictionary, std::vector<Triple> &triples, long &counter) {
+    origline = line;
+    char delim = '\t';
+    if (line[0] != '#') {
+        long s,o;
+        auto pos = line.find(delim);
+        if (pos == string::npos) {
+            if (delim == '\t') {
+                delim = ' ';
+                pos = line.find(delim);
+                if (pos == string::npos) {
+                    LOG(ERRORL) << "Failed parsing the SNAP file (no delim)";
+                    throw 10;
+                }
+            }
+        }
+        string ss = line.substr(0, pos);
+        s = stol(ss);
+        line = line.substr(pos + 1);
+        o = stol(line);
+
+        if (dictionary.count(s)) {
+            s = dictionary.find(s)->second;
+        } else {
+            dictionary.insert(std::make_pair(s, counter));
+            s = counter++;
+        }
+
+        if (dictionary.count(o)) {
+            o = dictionary.find(o)->second;
+        } else {
+            dictionary.insert(std::make_pair(o, counter));
+            o = counter++;
+        }
+        triples.push_back(Triple(s, 0, o));
+    }
+}
+
 long Loader::parseSnapFile(string inputtriples,
         string inputdict,
         string *permDirs,
@@ -230,58 +269,25 @@ long Loader::parseSnapFile(string inputtriples,
         string fileNameDictionaries,
         int maxReadingThreads,
         int parallelProcesses) {
-    long counter = 0;
-    std::map<long, long> dictionary;
     LOG(DEBUGL) << "Loading input graph from " << inputtriples;
 
     //Create the permutations
+    long counter = 0;
+    std::map<long, long> dictionary;
     std::vector<Triple> triples;
-    ifstream rawFile2;
-    rawFile2.open(inputtriples);
-    boost::iostreams::filtering_istream compressedFile2;
-    if (boost::algorithm::ends_with(inputtriples, ".gz")) {
-        compressedFile2.push(io::gzip_decompressor());
-    }
-    compressedFile2.push(rawFile2);
     string line, origline;
-
-    while(std::getline(compressedFile2, line)) {
-        origline = line;
-        char delim = '\t';
-        if (line[0] != '#') {
-            long s,o;
-            auto pos = line.find(delim);
-            if (pos == string::npos) {
-                if (delim == '\t') {
-                    delim = ' ';
-                    pos = line.find(delim);
-                    if (pos == string::npos) {
-                        LOG(ERRORL) << "Failed parsing the SNAP file (no delim)";
-                        throw 10;
-                    }
-                }
-            }
-            string ss = line.substr(0, pos);
-            s = stol(ss);
-            line = line.substr(pos + 1);
-            o = stol(line);
-
-            if (dictionary.count(s)) {
-                s = dictionary.find(s)->second;
-            } else {
-                dictionary.insert(std::make_pair(s, counter));
-                s = counter++;
-            }
-
-            if (dictionary.count(o)) {
-                o = dictionary.find(o)->second;
-            } else {
-                dictionary.insert(std::make_pair(o, counter));
-                o = counter++;
-            }
-            triples.push_back(Triple(s, 0, o));
+    if (Utils::ends_with(inputtriples, ".gz")) {
+        zstr::ifstream inputreader(inputtriples);
+        while(std::getline(inputreader, line)) {
+            __parseLineSnapFile(line, origline, dictionary, triples, counter);
+        }
+    } else {
+        ifstream inputreader(inputtriples);
+        while(std::getline(inputreader, line)) {
+            __parseLineSnapFile(line, origline, dictionary, triples, counter);
         }
     }
+
     LOG(DEBUGL) << "Loaded a vocabulary of " << dictionary.size();
     int detailPerms[6];
     Compressor::parsePermutationSignature(signaturePerm, detailPerms);
@@ -356,13 +362,15 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         size_t sizeinput = 0;
         if (gzipped) {
             //LOG(DEBUGL) << "Uncompressing buffer ...";
-            io::filtering_ostream os;
-            os.push(io::gzip_decompressor());
-            os.push(io::back_inserter(uncompressedByteArray));
-            io::write(os, buffer, sizebuffer);
-            os.flush();
-            input = &(uncompressedByteArray[0]);
-            sizeinput = uncompressedByteArray.size();
+            /*io::filtering_ostream os;
+              os.push(io::gzip_decompressor());
+              os.push(io::back_inserter(uncompressedByteArray));
+              io::write(os, buffer, sizebuffer);
+              os.flush();
+              input = &(uncompressedByteArray[0]);
+              sizeinput = uncompressedByteArray.size();*/
+            LOG(ERRORL) << "Not implemented yet"; //TODO
+            throw 10;
             //LOG(DEBUGL) << "Uncompressing buffer (done)";
         } else {
             input = buffer;
@@ -438,14 +446,10 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
 
 void _convertDictFile(std::vector<string> ins, string out) {
     char *support = new char[MAX_TERM_SIZE + 2];
-    ifstream rawFile;
     LZ4Writer outputDict(out);
     for (auto f : ins) {
         LOG(DEBUGL) << "Converting " << f;
-        rawFile.open(f);
-        boost::iostreams::filtering_istream compressedFile;
-        compressedFile.push(io::gzip_decompressor());
-        compressedFile.push(rawFile);
+        zstr::ifstream compressedFile(f, std::ios_base::in);
         string line;
         while (std::getline(compressedFile,line)) {
             int pos = line.find(' ');
@@ -462,7 +466,6 @@ void _convertDictFile(std::vector<string> ins, string out) {
             memcpy(support + 2, line.c_str(), len);
             outputDict.writeString(support, len + 2);
         }
-        rawFile.close();
     }
     delete[] support;
 }
@@ -518,11 +521,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
     //Create the permutations
     long ntriples = 0;
     if (Utils::exists(inputtriples)) {
-        ifstream rawFile2;
-        rawFile2.open(inputtriples);
-        boost::iostreams::filtering_istream compressedFile2;
-        compressedFile2.push(io::gzip_decompressor());
-        compressedFile2.push(rawFile2);
+        zstr::ifstream compressedFile2(inputtriples);
         string line;
         LOG(DEBUGL) << "Start converting triple file";
         LZ4Writer writer(permDirs[0] + "/input-0");
@@ -1410,12 +1409,8 @@ void Loader::exportFiles(string tripleDir, string* dictFiles,
 
     Kognac::sortCompressedGraph(tripleDir, outputFileTriple, 2);
 
-    std::ofstream fileDict(outputFileDict, ios_base::binary);
     {
-        boost::iostreams::filtering_ostream out;
-        out.push(boost::iostreams::gzip_compressor());
-        out.push(fileDict);
-
+        zstr::ofstream out(outputFileDict, std::ios_base::binary);
         for (int i = 0; i < ndicts; ++i) {
             string dictFile = dictFiles[i];
             LOG(DEBUGL) << "Exporting dict file " << dictFile;
@@ -1447,9 +1442,7 @@ void Loader::exportFiles(string tripleDir, string* dictFiles,
                 }
             }
         }
-
     }
-    fileDict.close();
 }
 
 void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictMgmt *dict) {
