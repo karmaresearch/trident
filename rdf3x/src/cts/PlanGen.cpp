@@ -1088,6 +1088,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
                     for (Plan* leftPlan = iter->plans; leftPlan; leftPlan = leftPlan->next) {
                         for (Plan* rightPlan = iter2->plans; rightPlan; rightPlan = rightPlan->next) {
                             // Try a merge joins
+			    /*
                             if (leftPlan->ordering == rightPlan->ordering) {
                                 for (vector<unsigned>::const_iterator iter = joinOrderings.begin(), limit = joinOrderings.end(); iter != limit; ++iter) {
                                     if (leftPlan->ordering == (*iter)) {
@@ -1105,6 +1106,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
                                     }
                                 }
                             }
+			    */
                             // Try a hash join
                             if (selectivity >= 0) {
                                 Plan* p = plans->alloc();

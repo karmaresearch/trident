@@ -226,7 +226,7 @@ uint64_t HashJoin::next()
                 for (uint64_t index = 0, limit = leftTail.size();
                         index < limit; ++index)
                     leftTail[index]->value = e->values[index];
-                return 1;
+                return e->count;
             }
         }
         return false;
@@ -283,7 +283,10 @@ uint64_t HashJoin::next()
 void HashJoin::print(PlanPrinter& out)
     // Print the operator tree. Debugging only.
 {
-    out.beginOperator("HashJoin", expectedOutputCardinality, observedOutputCardinality);
+    std::string s = "HashJoin";
+    if (leftOptional) s += "-leftOptional";
+    if (rightOptional) s += "-rightOptional";
+    out.beginOperator(s,expectedOutputCardinality,observedOutputCardinality);
     out.addEqualPredicateAnnotation(leftValue, rightValue);
     out.addMaterializationAnnotation(leftTail);
     out.addMaterializationAnnotation(rightTail);
