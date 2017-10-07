@@ -1058,6 +1058,9 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
                 }
             }
         }
+        if (itr != NULL) {
+            q->releaseItr(itr);
+        }
     }
 }
 
