@@ -36,6 +36,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <condition_variable>
 
 struct eqint {
     bool operator()(int i1, int i2) const {

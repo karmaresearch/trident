@@ -1503,7 +1503,7 @@ void Loader::load(ParamsLoad p) {
     if (/*p.logPtr != NULL &&*/ p.timeoutStats != -1) {
         //Activate it only for Linux systems
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-        monitor = std::thread(std::bind(Loader::monitorPerformance, p.logPtr, p.timeoutStats, &cv, &mtx, &isFinished));
+        monitor = std::thread(std::bind(Loader::monitorPerformance, /*p.logPtr,*/ p.timeoutStats, &cv, &mtx, &isFinished));
 #endif
     }
 

@@ -24,6 +24,8 @@
 
 #include <vector>
 #include <assert.h>
+#include <algorithm>
+
 
 bool CompositeItr::hasNext() {
     if (!hnc) {
