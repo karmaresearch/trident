@@ -301,6 +301,9 @@ int main(int argc, const char** argv) {
     } else if (ll == "error") {
         Logger::setMinLevel(ERRORL);
     }
+    if (vm["logfile"].as<string>() != "") {
+        Logger::logToFile(vm["logfile"].as<string>());
+    }
     
     //Print params
     if (Logger::getMinLevel() <= DEBUGL) {
