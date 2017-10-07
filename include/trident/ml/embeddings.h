@@ -15,6 +15,7 @@
 #include <thread>
 #include <mutex>
 #include <fstream>
+#include <algorithm>
 
 typedef enum { L1, L2, COSINE, KG } DIST;
 
