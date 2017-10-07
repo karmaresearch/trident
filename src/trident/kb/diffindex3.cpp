@@ -330,9 +330,8 @@ void _sort(std::vector <uint32_t> &idx1,
     f.seekp(sizetable);
     f.put(0);
     f.close();
-    memmap::mapped_file_sink sink;
-    sink.open(file, sizetable);
-    char *currentbuffer = sink.data();
+    MemoryMappedFile mf(file, false);
+    char *currentbuffer = mf.getData();
 
     start = std::chrono::system_clock::now();
     std::vector<std::pair<uint64_t, uint64_t>> secondlevel;
@@ -398,7 +397,7 @@ void _sort(std::vector <uint32_t> &idx1,
             nvalid++;
         }
     }
-    sink.close();
+    mf.flushAll();
     sec = std::chrono::system_clock::now() - start;
     LOG(DEBUGL) << "Runtime sorting = " << sec.count() * 1000 << " nvalid=" << nvalid;
 }
@@ -1562,10 +1561,10 @@ RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
         Utils::resizeFile(file, currentposition + spaceleft);
     }
 
-    const size_t alignment = memmap::mapped_file_sink::alignment();
+    const size_t alignment = MemoryMappedFile::alignment();
     const size_t offset = currentposition % alignment;
-    sink.open(file, spaceleft + offset, currentposition - offset);
-    currentbuffer = sink.data() + offset;
+    this->mf = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file, false, currentposition - offset, spaceleft + offset));
+    currentbuffer = mf->getData() + offset;
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(DEBUGL) << "Runtime init file = " << sec.count() * 1000;
 }
@@ -1573,14 +1572,15 @@ RWMappedFile::RWMappedFile(std::string file, size_t initialsize) : file(file) {
 RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
     if (maxTableSize > spaceleft) {
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        sink.close();
+        mf->flushAll();
+        mf = NULL;
         size_t incr = max((size_t)64 * 1014 * 1024, maxTableSize);
         Utils::resizeFile(file, currentposition + incr);
         spaceleft = incr;
-        const size_t alignment = memmap::mapped_file_sink::alignment();
+        const size_t alignment = MemoryMappedFile::alignment();
         const size_t offset = currentposition % alignment;
-        sink.open(file, spaceleft + offset, currentposition - offset);
-        currentbuffer = sink.data() + offset;
+        mf = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file, false, currentposition - offset, spaceleft + offset));
+        currentbuffer = mf->getData() + offset;
         std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
         LOG(DEBUGL) << "Runtime resize file = " << sec.count() * 1000;
     }
@@ -1593,7 +1593,8 @@ RWMappedFile::Block RWMappedFile::getNewBlock(const size_t maxTableSize) {
 RWMappedFile::~RWMappedFile() {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     currentbuffer = NULL;
-    sink.close();
+    mf->flushAll();
+    mf = NULL;
     Utils::resizeFile(file, currentposition);
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(DEBUGL) << "Runtime close file = " << sec.count() * 1000;

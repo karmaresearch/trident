@@ -187,7 +187,6 @@ patterns = newList;
 std::vector<int> NestedJoinPlan::reorder(std::vector<Pattern*> patterns,
         std::vector<std::shared_ptr<SPARQLOperator>> scans) {
     //Rearrange the order execution of the patterns
-    //timens::system_clock::time_point start = timens::system_clock::now();
 
     std::vector<std::pair<Pattern *, uint64_t> > pairs;
     LOG(DEBUGL) << "UNOPTIMIZED ORDER OF PATTERNS:";
@@ -221,11 +220,6 @@ std::vector<int> NestedJoinPlan::reorder(std::vector<Pattern*> patterns,
 
         LOG(DEBUGL) << " " << itr->first->toString() << " card: " << itr->second;
     }
-
-    //boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
-    //                                      - start;
-    //LOG(INFOL) << "Time optimizing the query = " << sec.count() * 1000
-    //                        << " milliseconds";
 
     return output;
 }

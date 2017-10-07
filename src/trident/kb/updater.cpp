@@ -30,8 +30,6 @@
 
 #include <kognac/filereader.h>
 
-#include <boost/algorithm/string/predicate.hpp>
-
 #include <string>
 
 void Updater::parseUpdate(std::string update,
@@ -55,7 +53,7 @@ void Updater::parseUpdate(std::string update,
         filei.start = 0;
         filei.size = Utils::fileSize(file);
         //Check whether the file terminates in *.gz
-        if (boost::ends_with(file, ".gz")) {
+        if (Utils::ends_with(file, ".gz")) {
             filei.splittable = false;
         } else {
             filei.splittable = true;

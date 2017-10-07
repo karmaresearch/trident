@@ -35,6 +35,7 @@
 #include <kognac/utils.h>
 
 #include <snap/tasks.h>
+#include <zstr/zstr.hpp>
 
 //SNAP dependencies
 #include <snap/analytics.h>
@@ -72,46 +73,6 @@ extern void subgraphEval(KB &kb, po::variables_map &vm);
 //Implemented in kb.cpp
 extern bool _sort_by_number(const string &s1, const string &s2);
 
-/*SinkPtr initLogging(
-        logging::trivial::severity_level level,
-        bool consoleActive,
-        bool fileActive,
-        string filelog) {
-
-    logging::add_common_attributes();
-
-    if (consoleActive) {
-        logging::add_console_log(std::cerr, logging::keywords::format =
-                (logging::expressions::stream << "["
-                 << logging::expressions::attr <
-                 boost::log::attributes::current_thread_id::value_type > (
-                     "ThreadID") << " "
-                 << logging::expressions::format_date_time <
-                 boost::posix_time::ptime > ("TimeStamp",
-                     "%m-%d %H:%M:%S") << " - "
-                 << logging::trivial::severity << "] "
-                 << logging::expressions::smessage));
-    }
-
-    SinkPtr sink;
-    if (fileActive) {
-        sink = logging::add_file_log(filelog, logging::keywords::format =
-                (logging::expressions::stream << "["
-                 << logging::expressions::attr <
-                 boost::log::attributes::current_thread_id::value_type > (
-                     "ThreadID") << " "
-                 << logging::expressions::format_date_time <
-                 boost::posix_time::ptime > ("TimeStamp",
-                     "%m-%d %H:%M:%S") << " - "
-                 << logging::trivial::severity << "] "
-                 << logging::expressions::smessage));
-    }
-
-    boost::shared_ptr<logging::core> core = logging::core::get();
-    core->set_filter(logging::trivial::severity >= level);
-    return sink;
-}*/
-
 void lookup(DictMgmt *dict, po::variables_map &vm) {
     if (vm.count("text")) {
         nTerm value;
@@ -141,11 +102,7 @@ void dump(KB *kb, string outputdir) {
 
     //Create output file
     string filename = outputdir + "/graph.gz";
-    ofstream ntFile;
-    ntFile.open(filename, std::ios_base::out);
-    boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    out.push(boost::iostreams::gzip_compressor());
-    out.push(ntFile);
+    zstr::ofstream out(filename, std::ios_base::out);
 
     //Get dictionary
     Querier *q = kb->query();
@@ -343,6 +300,9 @@ int main(int argc, const char** argv) {
         Logger::setMinLevel(WARNL);
     } else if (ll == "error") {
         Logger::setMinLevel(ERRORL);
+    }
+    if (vm["logfile"].as<string>() != "") {
+        Logger::logToFile(vm["logfile"].as<string>());
     }
     
     //Print params

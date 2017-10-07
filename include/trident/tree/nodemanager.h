@@ -26,15 +26,12 @@
 #include <trident/tree/treecontext.h>
 #include <trident/files/filemanager.h>
 #include <trident/files/filedescriptor.h>
-
-#include <boost/unordered_map.hpp>
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include <trident/utils/memoryfile.h>
 
 #include <string>
+#include <unordered_map>
 
 using namespace std;
-namespace bip = boost::interprocess;
 
 class TreeContext;
 
@@ -69,14 +66,15 @@ private:
     const int nodeMinSize;
 
     //Used during the writing
-    boost::unordered_map<long, CachedNode*, StoredNodesKeyHasher,
+    std::unordered_map<long, CachedNode*, StoredNodesKeyHasher,
           StoredNodesKeyCmp> storedNodes;
 
     //Used in cache it's read-only
     CachedNode *readOnlyStoredNodes;
     bool *nodesLoaded;
-    bip::file_mapping *mapping;
-    bip::mapped_region *mapped_rgn;
+    //bip::file_mapping *mapping;
+    //bip::mapped_region *mapped_rgn;
+    std::unique_ptr<MemoryMappedFile> mappedFile;
     char *rawInput;
 
     std::vector<CachedNode*> firstElementsPerFile;

@@ -2,16 +2,13 @@
 #define BATCH_H_
 
 #include <trident/ml/feedback.h>
-
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include <trident/utils/memoryfile.h>
 
 #include <string>
 #include <vector>
 #include <random>
 
 using namespace std;
-namespace bip = boost::interprocess;
 
 class BatchCreator {
     private:
@@ -24,8 +21,7 @@ class BatchCreator {
         const bool filter;
         const std::shared_ptr<Feedback> feedback;
 
-        bip::file_mapping mapping;
-        bip::mapped_region mapped_rgn;
+        std::unique_ptr<MemoryMappedFile> mappedFile;
         const char* rawtriples;
         uint64_t ntriples;
         std::vector<uint64_t> indices;

@@ -22,13 +22,9 @@
 
 #include <trident/tree/nodemanager.h>
 
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
-
 #include <iostream>
 #include <fstream>
 
-namespace bip = boost::interprocess;
 char one[1] = { 1 };
 char zero[1] = { 0 };
 
@@ -61,15 +57,18 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
         if (!readOnly) {
             readOnlyStoredNodes = NULL;
             nodesLoaded = NULL;
-            mapping = NULL;
-            mapped_rgn = NULL;
+            //mapping = NULL;
+            //mapped_rgn = NULL;
             rawInput = NULL;
 
             //Load existing nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                rawInput = static_cast<char*>(mapped_rgn->get_address());
+                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
+                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
+                //rawInput = static_cast<char*>(mapped_rgn->get_address());
+                mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
+                rawInput = mappedFile->getData();
+
                 int nNodes = Utils::decode_int(rawInput, 0);
                 nodesLoaded = new bool[nNodes];
                 memset(nodesLoaded, 0, nNodes * sizeof(bool));
@@ -79,9 +78,12 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
         } else {
             //Load the nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                rawInput = static_cast<char*>(mapped_rgn->get_address());
+                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
+                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
+                //rawInput = static_cast<char*>(mapped_rgn->get_address());
+                mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
+                rawInput = mappedFile->getData();
+
                 int nNodes = Utils::decode_int(rawInput, 0);
                 nodesLoaded = new bool[nNodes];
                 memset(nodesLoaded, 0, nNodes * sizeof(bool));
@@ -142,7 +144,7 @@ CachedNode *NodeManager::getCachedNode(long id) {
         }
         return readOnlyStoredNodes + id;
     } else {
-        boost::unordered_map<long, CachedNode*>::iterator itr =
+        std::unordered_map<long, CachedNode*>::iterator itr =
             storedNodes.find(id);
         if (itr != storedNodes.end())
             return itr->second;
@@ -216,12 +218,17 @@ void NodeManager::compressSpace(string path) {
     string sFileIdx = path + string("/idx");
     int totalNumberNodes = 0;
     if (Utils::exists(path) && Utils::fileSize(sFileIdx) > 0) {
-        bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
-                bip::read_only);
-        bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
-                bip::read_only);
-        long size = mapped_rgn->get_size();
-        char *raw_input = static_cast<char*>(mapped_rgn->get_address());
+        MemoryMappedFile mf(sFileIdx);
+        long size = mf.getLength();
+        char *raw_input = mf.getData();
+
+        //bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
+        //        bip::read_only);
+        //bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
+        //        bip::read_only);
+        //long size = mapped_rgn->get_size();
+        //char *raw_input = static_cast<char*>(mapped_rgn->get_address());
+        
         int nnodes = Utils::decode_int(raw_input, 0);
         long pos = 4 + 4 * nnodes;
 
@@ -238,8 +245,8 @@ void NodeManager::compressSpace(string path) {
             nodes[currentFile].push_back(node);
             totalNumberNodes++;
         }
-        delete mapped_rgn;
-        delete mapping;
+        //delete mapped_rgn;
+        //delete mapping;
     }
 
     //2-- Rewrite each file eliminating the blank spaces
@@ -353,7 +360,7 @@ NodeManager::~NodeManager() {
         out.close();
 
         //Clean the stored nodes
-        for (boost::unordered_map<long, CachedNode*>::iterator itr =
+        for (std::unordered_map<long, CachedNode*>::iterator itr =
                 storedNodes.begin(); itr != storedNodes.end(); ++itr) {
             delete itr->second;
         }
@@ -362,8 +369,8 @@ NodeManager::~NodeManager() {
         delete[] readOnlyStoredNodes;
         delete[] nodesLoaded;
         rawInput = NULL;
-        delete mapped_rgn;
-        delete mapping;
+        //delete mapped_rgn;
+        //delete mapping;
     }
 
     delete manager;

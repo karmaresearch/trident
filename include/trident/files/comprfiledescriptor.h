@@ -27,8 +27,6 @@
 #include <trident/utils/memorymgr.h>
 
 #include <kognac/utils.h>
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
 
 #include <fstream>
 #include <sstream>
@@ -37,7 +35,6 @@
 #define COMPRESSION_ENABLED 0
 #define MAX_N_MAPPINGS  5000
 
-namespace bip = boost::interprocess;
 
 struct FileSegment {
     char block[BLOCK_SIZE];

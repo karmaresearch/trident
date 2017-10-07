@@ -6,10 +6,10 @@
 #include <kognac/utils.h>
 #include <kognac/logs.h>
 
+#include <zstr/zstr.hpp>
+
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -200,13 +200,12 @@ class Embeddings {
         static void _store_params(std::string path, bool compress,
                 const uint16_t dim, const double *b, const double *e,
                 const uint32_t *cb, const uint32_t *up) {
+            if (compress) {
+                LOG(ERRORL) << "Not implemented";
+                throw 10;
+            }
             std::ofstream ofs;
             ofs.open(path, std::ofstream::out);
-            boost::iostreams::filtering_stream<boost::iostreams::output> out;
-            if (compress) {
-                out.push(boost::iostreams::gzip_compressor());
-            }
-            out.push(ofs);
             uint64_t counter = 0;
             while (b != e) {
                 if (counter % dim == 0) {
@@ -226,24 +225,28 @@ class Embeddings {
 
         void store(std::string path, bool compress, uint16_t nthreads) {
             if (nthreads == 1) {
-                std::ofstream ofs;
                 if (compress) {
                     path = path + ".gz";
-                }
-                ofs.open(path, std::ofstream::out);
-                boost::iostreams::filtering_stream<
-                    boost::iostreams::output> out;
-                if (compress) {
-                    out.push(boost::iostreams::gzip_compressor());
-                }
-                out.push(ofs);
-                out.write((char*)&n, 4);
-                out.write((char*)&dim, 2);
-                K* start  = raw.data();
-                K* end = raw.data() + raw.size();
-                while (start != end) {
-                    out.write((char*)start, 8);
-                    start++;
+                    zstr::ofstream out(path, std::ofstream::out);
+                    out.write((char*)&n, 4);
+                    out.write((char*)&dim, 2);
+                    K* start  = raw.data();
+                    K* end = raw.data() + raw.size();
+                    while (start != end) {
+                        out.write((char*)start, 8);
+                        start++;
+                    }
+                } else {
+                    ofstream out;
+                    out.open(path, std::ofstream::out);
+                    out.write((char*)&n, 4);
+                    out.write((char*)&dim, 2);
+                    K* start  = raw.data();
+                    K* end = raw.data() + raw.size();
+                    while (start != end) {
+                        out.write((char*)start, 8);
+                        start++;
+                    }
                 }
             } else {
                 K* data = raw.data();
@@ -253,23 +256,21 @@ class Embeddings {
                 uint64_t batchsize = ((long)n * dim) / nthreads;
 
                 {
-                    std::ofstream ofs;
                     std::string metapath = path;
                     if (compress) {
                         metapath = metapath + "-meta.gz";
+                        zstr::ofstream ofs(metapath, std::ofstream::out);
+                        ofs.write((char*)&batchsize, 4);
+                        ofs.write((char*)&n, 4);
+                        ofs.write((char*)&dim, 2);
                     } else {
                         metapath = metapath + "-meta";
+                        std::ofstream ofs;
+                        ofs.open(metapath, std::ofstream::out);
+                        ofs.write((char*)&batchsize, 4);
+                        ofs.write((char*)&n, 4);
+                        ofs.write((char*)&dim, 2);
                     }
-                    ofs.open(metapath, std::ofstream::out);
-                    boost::iostreams::filtering_stream<
-                        boost::iostreams::output> out;
-                    if (compress) {
-                        out.push(boost::iostreams::gzip_compressor());
-                    }
-                    out.push(ofs);
-                    out.write((char*)&batchsize, 4);
-                    out.write((char*)&n, 4);
-                    out.write((char*)&dim, 2);
                 }
                 uint64_t begin = 0;
                 uint16_t idx = 0;
@@ -311,14 +312,12 @@ class Embeddings {
             uint16_t dim;
             uint32_t embperblock = 0;
             for (auto f : files) {
-                if (boost::algorithm::ends_with(f, "-meta")) {
+                if (Utils::ends_with(f, "-meta")) {
                     //Get the metadata
                     std::ifstream ifs;
                     ifs.open(f, std::ifstream::in);
-                    boost::iostreams::filtering_stream<boost::iostreams::input> in;
-                    in.push(ifs);
                     char buffer[10];
-                    in.read(buffer, 10);
+                    ifs.read(buffer, 10);
                     embperblock = *(uint32_t*) buffer;
                     n = *(uint32_t*)(buffer + 4);
                     dim = *(uint16_t*)(buffer + 8);
@@ -344,13 +343,11 @@ class Embeddings {
                 while (Utils::exists(filetoload)) {
                     std::ifstream ifs;
                     ifs.open(filetoload, std::ifstream::in);
-                    boost::iostreams::filtering_stream<boost::iostreams::input> in;
-                    in.push(ifs);
                     const uint16_t sizeline = 8 + dim * 8;
                     std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
                     while(true) {
-                        in.read(buffer.get(), sizeline);
-                        if (in.eof()) {
+                        ifs.read(buffer.get(), sizeline);
+                        if (ifs.eof()) {
                             break;
                         }
                         //Parse the line
@@ -367,64 +364,6 @@ class Embeddings {
                 return emb;
             }
         }
-
-        /* std::pair<std::shared_ptr<Embeddings<double>>,std::shared_ptr<Embeddings<double>>>
-           Learner::loadModel(string path) {
-           ifstream ifs;
-           ifs.open(path);
-           boost::iostreams::filtering_stream<boost::iostreams::input> inp;
-           inp.push(boost::iostreams::gzip_decompressor());
-           inp.push(ifs);
-           boost::archive::text_iarchive ia(inp);
-           uint16_t dim;
-           ia >> dim;
-           uint32_t nr;
-           ia >> nr;
-           std::vector<double> emb_r;
-           ia >> emb_r;
-           uint32_t ne;
-           ia >> ne;
-        //Load R
-        std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(
-        new Embeddings<double>(nr, dim, emb_r)
-        );
-
-        std::vector<double> emb_e;
-        emb_e.resize(ne * dim);
-        fs::path bpath(path);
-        string dirname = bpath.parent_path().string();
-        std::vector<string> files_e = Utils::getFilesWithPrefix(
-        dirname,
-        bpath.filename().string() + ".");
-
-        //Load the files one by one
-        uint32_t idxe = 0;
-        uint16_t processedfiles = 0;
-        while (processedfiles < files_e.size()) {
-        string file = dirname + "/" + bpath.filename().string() + "." + to_string(processedfiles);
-        LOG(DEBUGL) << "Processing file " << file;
-        ifstream ifs2;
-        ifs2.open(file);
-        boost::iostreams::filtering_stream<boost::iostreams::input> inp2;
-        inp2.push(boost::iostreams::gzip_decompressor());
-        inp2.push(ifs2);
-        boost::archive::text_iarchive ia(inp2);
-        std::vector<double> values;
-        ia >> values;
-        //Copy the values into emb_e
-        for(size_t i = 0; i < values.size(); ++i) {
-        emb_e[idxe++] = values[i];
-        }
-        processedfiles++;
-        }
-
-        //Load E
-        std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(
-        new Embeddings<double>(ne,dim,emb_e)
-        );
-        return std::make_pair(E,R);
-        }*/
-
 };
 
 #endif

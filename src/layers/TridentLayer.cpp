@@ -809,9 +809,7 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
 
     if (i >= limit && limit != -1) {
         //Set the sample rate
-        //boost::chrono::system_clock::time_point start = boost::chrono::system_clock::now();
         const long card = querier->estCard(s, p, o);
-        //boost::chrono::duration<double> dur = boost::chrono::system_clock::now() - start;
         sample = (double) limit / card;
         //LOG(DEBUGL) << "Sample " << sample << " card=" << card << " " << limit << " time=" << dur.count() * 1000;
     } else {

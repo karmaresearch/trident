@@ -20,8 +20,6 @@
 **/
 
 
-#include <boost/foreach.hpp>
-
 #include <trident/tests/timings.h>
 
 #include <iostream>

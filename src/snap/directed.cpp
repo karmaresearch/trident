@@ -5,10 +5,11 @@ Trident_TNGraph::Trident_TNGraph(KB *kb) {
     this->q = kb->query();
     SnapReaders::loadAllFiles(kb);
     string path = kb->getPath() + string("/tree/flat");
-    mapping = bip::file_mapping(path.c_str(), bip::read_only);
-    mapped_rgn = bip::mapped_region(mapping, bip::read_only);
-    rawnodes = static_cast<char*>(mapped_rgn.get_address());
-    nnodes = (uint64_t)mapped_rgn.get_size() / 31;
+    //mapping = bip::file_mapping(path.c_str(), bip::read_only);
+    //mapped_rgn = bip::mapped_region(mapping, bip::read_only);
+    mf = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(path));
+    rawnodes = mf->getData();
+    nnodes = mf->getLength() / 31;
 }
 
 bool Trident_TNGraph::getNodeInfo(TermCoordinates &coord,

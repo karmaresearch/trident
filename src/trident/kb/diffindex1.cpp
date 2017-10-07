@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/kb/diffindex.h>
@@ -26,8 +26,6 @@
 #include <trident/iterators/emptyitr.h>
 
 #include <kognac/lz4io.h>
-
-#include<boost/iostreams/device/mapped_file.hpp>
 
 #include <chrono>
 
@@ -74,42 +72,42 @@ DiffIndex1::DiffIndex1(string dir, DiffIndex::TypeUpdate type) : DiffIndex(type,
 
 extern EmptyItr emptyItr;
 PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
-                                 long &nfirstterms) {
+        long &nfirstterms) {
     assert(factory != NULL);
     //nfirstterms = 0;
     long permutedTriple[3];
     permutedTriple[0] = permutedTriple[1] = permutedTriple[2] = 0;
     switch (idx) {
-    case IDX_SPO:
-        permutedTriple[0] = triple[0];
-        permutedTriple[1] = triple[1];
-        permutedTriple[2] = triple[2];
-        break;
-    case IDX_SOP:
-        permutedTriple[0] = triple[0];
-        permutedTriple[1] = triple[2];
-        permutedTriple[2] = triple[1];
-        break;
-    case IDX_POS:
-        permutedTriple[0] = triple[1];
-        permutedTriple[1] = triple[2];
-        permutedTriple[2] = triple[0];
-        break;
-    case IDX_PSO:
-        permutedTriple[0] = triple[1];
-        permutedTriple[1] = triple[0];
-        permutedTriple[2] = triple[2];
-        break;
-    case IDX_OPS:
-        permutedTriple[0] = triple[2];
-        permutedTriple[1] = triple[1];
-        permutedTriple[2] = triple[0];
-        break;
-    case IDX_OSP:
-        permutedTriple[0] = triple[2];
-        permutedTriple[1] = triple[0];
-        permutedTriple[2] = triple[1];
-        break;
+        case IDX_SPO:
+            permutedTriple[0] = triple[0];
+            permutedTriple[1] = triple[1];
+            permutedTriple[2] = triple[2];
+            break;
+        case IDX_SOP:
+            permutedTriple[0] = triple[0];
+            permutedTriple[1] = triple[2];
+            permutedTriple[2] = triple[1];
+            break;
+        case IDX_POS:
+            permutedTriple[0] = triple[1];
+            permutedTriple[1] = triple[2];
+            permutedTriple[2] = triple[0];
+            break;
+        case IDX_PSO:
+            permutedTriple[0] = triple[1];
+            permutedTriple[1] = triple[0];
+            permutedTriple[2] = triple[2];
+            break;
+        case IDX_OPS:
+            permutedTriple[0] = triple[2];
+            permutedTriple[1] = triple[1];
+            permutedTriple[2] = triple[0];
+            break;
+        case IDX_OSP:
+            permutedTriple[0] = triple[2];
+            permutedTriple[1] = triple[0];
+            permutedTriple[2] = triple[1];
+            break;
     }
     if (first != -1 && permutedTriple[0] != -1 &&
             first != permutedTriple[0]) {
@@ -134,16 +132,16 @@ PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
             } else {
                 Diff1Itr *itr = factory->get();
                 itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                          values->getBuffer() + pos * nbytes,
-                          nbytes, 1, 0);
+                        values->getBuffer() + pos * nbytes,
+                        nbytes, 1, 0);
                 nfirstterms += getNFirstTerms(idx, first, pos, second);
                 return itr;
             }
         } else {
             Diff1Itr *itr = factory->get();
             itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                      values->getBuffer(),
-                      nbytes, size, 0);
+                    values->getBuffer(),
+                    nbytes, size, 0);
             nfirstterms += getNFirstTerms(idx, first, -1, second);
             return itr;
         }
@@ -155,16 +153,16 @@ PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
             } else {
                 Diff1Itr *itr = factory->get();
                 itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                          values->getBuffer() + pos * nbytes,
-                          nbytes, 1, 1);
+                        values->getBuffer() + pos * nbytes,
+                        nbytes, 1, 1);
                 nfirstterms += getNFirstTerms(idx, first, pos, second);
                 return itr;
             }
         } else {
             Diff1Itr *itr = factory->get();
             itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                      values->getBuffer(),
-                      nbytes, size, 1);
+                    values->getBuffer(),
+                    nbytes, size, 1);
             nfirstterms += getNFirstTerms(idx, first, -1, second);
             return itr;
         }
@@ -177,16 +175,16 @@ PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
             } else {
                 Diff1Itr *itr = factory->get();
                 itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                          values->getBuffer() + pos * nbytes,
-                          nbytes, 1, 2);
+                        values->getBuffer() + pos * nbytes,
+                        nbytes, 1, 2);
                 nfirstterms += getNFirstTerms(idx, first, pos, second);
                 return itr;
             }
         } else {
             Diff1Itr *itr = factory->get();
             itr->init(permutedTriple[0], permutedTriple[1], permutedTriple[2],
-                      values->getBuffer(),
-                      nbytes, size, 2);
+                    values->getBuffer(),
+                    nbytes, size, 2);
             nfirstterms += getNFirstTerms(idx, first, -1, second);
             return itr;
         }
@@ -194,7 +192,7 @@ PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
 }
 
 long DiffIndex1::getNFirstTerms(const int idx, const long first,
-                                const long posfirst, const long second) {
+        const long posfirst, const long second) {
     if (first == -1)
         return 0;
     if (second >= 0)
@@ -202,52 +200,52 @@ long DiffIndex1::getNFirstTerms(const int idx, const long first,
 
     if (posValues == 0) {
         switch (idx) {
-        case IDX_SPO:
-            assert(posfirst >= 0);
-            //must check the PS list
-            return newpairs1->getBuffer()[posfirst];
-        case IDX_SOP:
-            assert(posfirst >= 0);
-            //must check the OS list
-            return newpairs2->getBuffer()[posfirst];
-        case IDX_OPS:
-            return nuniquefirstterms[IDX_OPS];
-        case IDX_OSP:
-            return nuniquefirstterms[IDX_OSP];
-        case IDX_POS:
-            return nuniquefirstterms[IDX_POS];
-        case IDX_PSO:
-            return nuniquefirstterms[IDX_PSO];
+            case IDX_SPO:
+                assert(posfirst >= 0);
+                //must check the PS list
+                return newpairs1->getBuffer()[posfirst];
+            case IDX_SOP:
+                assert(posfirst >= 0);
+                //must check the OS list
+                return newpairs2->getBuffer()[posfirst];
+            case IDX_OPS:
+                return nuniquefirstterms[IDX_OPS];
+            case IDX_OSP:
+                return nuniquefirstterms[IDX_OSP];
+            case IDX_POS:
+                return nuniquefirstterms[IDX_POS];
+            case IDX_PSO:
+                return nuniquefirstterms[IDX_PSO];
         }
     } else if (posValues == 1) {
         switch (idx) {
-        case IDX_SPO:
-            return nuniquefirstterms[IDX_SPO];
-        case IDX_SOP:
-            return nuniquefirstterms[IDX_SOP];
-        case IDX_OPS:
-            return nuniquefirstterms[IDX_OPS];
-        case IDX_OSP:
-            return nuniquefirstterms[IDX_OSP];
-        case IDX_POS:
-            return newpairs2->getBuffer()[posfirst];
-        case IDX_PSO:
-            return newpairs1->getBuffer()[posfirst];
+            case IDX_SPO:
+                return nuniquefirstterms[IDX_SPO];
+            case IDX_SOP:
+                return nuniquefirstterms[IDX_SOP];
+            case IDX_OPS:
+                return nuniquefirstterms[IDX_OPS];
+            case IDX_OSP:
+                return nuniquefirstterms[IDX_OSP];
+            case IDX_POS:
+                return newpairs2->getBuffer()[posfirst];
+            case IDX_PSO:
+                return newpairs1->getBuffer()[posfirst];
         }
     } else { //posvalues = 2
         switch (idx) {
-        case IDX_SPO:
-            return nuniquefirstterms[IDX_SPO];
-        case IDX_SOP:
-            return nuniquefirstterms[IDX_SOP];
-        case IDX_OPS:
-            return newpairs2->getBuffer()[posfirst];
-        case IDX_OSP:
-            return newpairs1->getBuffer()[posfirst];
-        case IDX_POS:
-            return nuniquefirstterms[IDX_OPS];
-        case IDX_PSO:
-            return nuniquefirstterms[IDX_OSP];
+            case IDX_SPO:
+                return nuniquefirstterms[IDX_SPO];
+            case IDX_SOP:
+                return nuniquefirstterms[IDX_SOP];
+            case IDX_OPS:
+                return newpairs2->getBuffer()[posfirst];
+            case IDX_OSP:
+                return newpairs1->getBuffer()[posfirst];
+            case IDX_POS:
+                return nuniquefirstterms[IDX_OPS];
+            case IDX_PSO:
+                return nuniquefirstterms[IDX_OSP];
         }
     }
     return 0;
@@ -383,11 +381,11 @@ long DiffIndex1::getNFirstTables(int idx) {
 }
 
 void DiffIndex1::createDiffIndex(string outputdir,
-                                 bool dumpRawFormat,
-                                 Querier *q,
-                                 long triple[3],
-                                 std::vector<uint64_t> &values,
-                                 uint8_t posvalues) {
+        bool dumpRawFormat,
+        Querier *q,
+        long triple[3],
+        std::vector<uint64_t> &values,
+        uint8_t posvalues) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     //Write an empty file to indicate this is a type 1 update
     ofstream f;
@@ -424,20 +422,21 @@ void DiffIndex1::createDiffIndex(string outputdir,
     f.close();
 
     //Write down the values
-    memmap::mapped_file_sink sink;
-    sink.open(outputdir + "/values", values.size() * nbytes);
-    char *currentbuffer = sink.data();
-    for (size_t i = 0; i < values.size(); ++i) {
-        uint64_t v = values[i];
-        if (nbytes == 4) {
-            Utils::encode_int(currentbuffer, v);
-            currentbuffer += 4;
-        } else {
-            Utils::encode_long(currentbuffer, v);
-            currentbuffer += 8;
+    {
+        MemoryMappedFile mf(outputdir + "/values", false, 0, values.size() * nbytes);
+        char *currentbuffer = mf.getData();
+        for (size_t i = 0; i < values.size(); ++i) {
+            uint64_t v = values[i];
+            if (nbytes == 4) {
+                Utils::encode_int(currentbuffer, v);
+                currentbuffer += 4;
+            } else {
+                Utils::encode_long(currentbuffer, v);
+                currentbuffer += 8;
+            }
         }
+        mf.flushAll();
     }
-    sink.close();
 
     //Calculate the new keys on the values
     long valuesnewkeys = 0;
@@ -502,7 +501,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
         }
         /*** FIRST TERMS ***/
         nfirstterms[IDX_PSO] = nfirstterms[IDX_OSP] = nfirstterms[IDX_SPO]
-                               = nfirstterms[IDX_SOP] = size;
+            = nfirstterms[IDX_SOP] = size;
         //Try PS
         assert(triple[1] >= 0);
         PairItr *itr = q->getPermuted(IDX_PSO, triple[1], -1, -1, true);
@@ -541,7 +540,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
         }
         /*** FIRST TERMS ***/
         nfirstterms[IDX_SPO] = nfirstterms[IDX_OPS] = nfirstterms[IDX_PSO] =
-                                   nfirstterms[IDX_POS] = size;
+            nfirstterms[IDX_POS] = size;
         //Try SP
         PairItr *itr = q->getPermuted(IDX_SPO, triple[0], -1, -1, true);
         string fout = outputdir + "/newsp";
@@ -578,7 +577,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
         }
         /*** FIRST TERMS ***/
         nfirstterms[IDX_POS] = nfirstterms[IDX_SOP] = nfirstterms[IDX_OSP] =
-                                   nfirstterms[IDX_OPS] = size;
+            nfirstterms[IDX_OPS] = size;
         //Try SO
         PairItr *itr = q->getPermuted(IDX_SOP, triple[0], -1, -1, true);
         string fout = outputdir + "/newso";
@@ -625,7 +624,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     }
     f.close();
     std::chrono::duration<double> sec = std::chrono::system_clock::now()
-                                          - start;
+        - start;
     LOG(INFOL) << "Runtime creating indices one column = " << sec.count() * 1000;
 }
 
@@ -660,7 +659,7 @@ long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string f
         }
     }
     std::chrono::duration<double> sec = std::chrono::system_clock::now()
-                                          - start;
+        - start;
     LOG(INFOL) << "Runtime checking first pairs = " << sec.count() * 1000;
     return out;
 }

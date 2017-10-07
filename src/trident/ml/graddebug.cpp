@@ -2,10 +2,10 @@
 
 #include <kognac/logs.h>
 
+#include <zstr/zstr.hpp>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 
 void GradTracer::add(uint16_t epoch, uint32_t id,
         std::vector<float> &features,
@@ -59,9 +59,6 @@ void GradTracer::store(std::string file) {
     pt.add_child("traces", traces);
 
     //Store in gzip format
-    std::ofstream ofs(file);
-    boost::iostreams::filtering_stream<boost::iostreams::output> out;
-    out.push(boost::iostreams::gzip_compressor());
-    out.push(ofs);
-    write_json(out, pt, false);
+    zstr::ofstream ofs(file);
+    write_json(ofs, pt, false);
 }

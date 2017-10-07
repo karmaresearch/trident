@@ -14,8 +14,7 @@
 
 #include <kognac/logs.h>
 
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
+#include <zstr/zstr.hpp>
 
 #include <functional>
 
@@ -34,11 +33,8 @@ class Analytics {
                     std::vector<float> &values2,
                     string outputfile) {
                 LOG(INFOL) << "Saving the results on " << outputfile << " ...";
-                std::ofstream file_out(outputfile, ios_base::binary);
                 {
-                    boost::iostreams::filtering_ostream out;
-                    out.push(boost::iostreams::gzip_compressor());
-                    out.push(file_out);
+                    zstr::ofstream out(outputfile, ios_base::binary);
 
                     //First write the output value (if any)
                     switch (retValue) {
@@ -82,7 +78,6 @@ class Analytics {
                         }
                     }
                 }
-                file_out.close();
                 LOG(INFOL) << "Done.";
             }
 

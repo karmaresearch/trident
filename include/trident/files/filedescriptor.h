@@ -24,13 +24,9 @@
 #define FILEDESCRIPTOR_H_
 
 #include <trident/utils/memorymgr.h>
-
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
+#include <trident/utils/memoryfile.h>
 
 #include <string>
-
-namespace bip = boost::interprocess;
 
 //#define SMALLEST_INCR 1*1024*1024
 #define SMALLEST_INCR (uint64_t)16*1024*1024
@@ -46,9 +42,10 @@ private:
 
     const int id;
 
-    bip::file_mapping *mapping;
+    //bip::file_mapping *mapping;
 
-    bip::mapped_region* mapped_rgn;
+    //bip::mapped_region* mapped_rgn;
+    std::unique_ptr<MemoryMappedFile> mappedFile;
 
     char* buffer;
 

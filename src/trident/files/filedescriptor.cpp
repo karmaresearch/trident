@@ -38,14 +38,20 @@ using namespace std;
 
 void FileDescriptor::mapFile(uint64_t requiredIncrement) {
     if (requiredIncrement > 0) {
-        mapped_rgn->flush();
-        delete mapped_rgn;
+        mappedFile->flushAll();
+        mappedFile = NULL;
+        //mapped_rgn->flush();
+        //delete mapped_rgn;
         Utils::resizeFile(filePath, sizeFile + requiredIncrement);
     }
-    mapped_rgn = new bip::mapped_region(*mapping,
-                                        readOnly ? bip::read_only : bip::read_write);
-    buffer = static_cast<char*>(mapped_rgn->get_address());
-    sizeFile = (uint64_t)mapped_rgn->get_size();
+    //mapped_rgn = new bip::mapped_region(*mapping,
+    //                                    readOnly ? bip::read_only : bip::read_write);
+    //buffer = static_cast<char*>(mapped_rgn->get_address());
+    //sizeFile = (uint64_t)mapped_rgn->get_size();
+
+    mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filePath, readOnly));
+    buffer = mappedFile->getData();
+    sizeFile = mappedFile->getLength();
 
     if (tracker) {
         if (memoryTrackerId != -1) {
@@ -71,9 +77,10 @@ FileDescriptor::FileDescriptor(bool readOnly, int id, std::string file,
         oFile.put(0);
         newFile = true;
     }
-    mapping = new bip::file_mapping(file.c_str(),
-                                    readOnly ? bip::read_only : bip::read_write);
-    mapped_rgn = NULL;
+    //mapping = new bip::file_mapping(file.c_str(),
+    //                                readOnly ? bip::read_only : bip::read_write);
+    //mapped_rgn = NULL;
+    
     size = 0;
     mapFile(0);
 
@@ -212,13 +219,17 @@ FileDescriptor::~FileDescriptor() {
     }
 
     buffer = NULL;
-    if (mapped_rgn != NULL) {
-        mapped_rgn->flush(0, size);
-        delete mapped_rgn;
-        mapped_rgn = NULL;
+    if (mappedFile != NULL) {
+        mappedFile->flushAll();
+        mappedFile = NULL;
     }
+    //if (mapped_rgn != NULL) {
+    //    mapped_rgn->flush(0, size);
+    //    delete mapped_rgn;
+    //    mapped_rgn = NULL;
+    //}
 
-    delete mapping;
+    //delete mapping;
 
     if (!readOnly) {
         if (size == 0) {
