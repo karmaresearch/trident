@@ -17,6 +17,7 @@ set(CMAKE_C_COMPILER "gcc")
 
 #Add support for multithreading ... Comment the following line to disable it
 add_definitions(-DMT)
+#-DPYTHON=1 enable python support
 
 #Set to release mode if nothing is specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -49,50 +50,50 @@ IF (${exitstatus} EQUAL 0)
 ENDIF()
 
 #Python
-pkg_check_modules(PY3 REQUIRED QUIET python3)
-IF(PY3_FOUND)
-    INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})
-    LINK_DIRECTORIES(${PY3_LIBRARY_DIRS})
+if (PYTHON)
+    pkg_check_modules(PY3 REQUIRED QUIET python3)
+    IF(PY3_FOUND)
+        INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})
+        LINK_DIRECTORIES(${PY3_LIBRARY_DIRS})
+    ENDIF()
+    #NumPY
+    if(NOT PYTHON_EXECUTABLE)
+      if(NumPy_FIND_QUIETLY)
+        find_package(PythonInterp 3 QUIET)
+      else()
+        find_package(PythonInterp 3)
+        set(__numpy_out 1)
+      endif()
+    endif()
+    if (PYTHON_EXECUTABLE)
+      # Find out the include path
+      execute_process(
+        COMMAND "${PYTHON_EXECUTABLE}" -c
+                "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
+                OUTPUT_VARIABLE __numpy_path)
+      # And the version
+      execute_process(
+        COMMAND "${PYTHON_EXECUTABLE}" -c
+                "from __future__ import print_function\ntry: import numpy; print(numpy.__version__, end='')\nexcept:pass\n"
+        OUTPUT_VARIABLE __numpy_version)
+    elseif(__numpy_out)
+      message(STATUS "Python executable not found.")
+    endif(PYTHON_EXECUTABLE)
+    find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
+      HINTS "${__numpy_path}" "${PYTHON_INCLUDE_PATH}" NO_DEFAULT_PATH)
+
+    if(PYTHON_NUMPY_INCLUDE_DIR)
+      set(PYTHON_NUMPY_FOUND 1 CACHE INTERNAL "Python numpy found")
+      include_directories(${PYTHON_NUMPY_INCLUDE_DIR} SYSTEM)
+    endif(PYTHON_NUMPY_INCLUDE_DIR)
+
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(NumPy REQUIRED_VARS PYTHON_NUMPY_INCLUDE_DIR
+    VERSION_VAR __numpy_version)
 ENDIF()
 
 #ZLIB
 find_package(ZLIB REQUIRED)
-
-#NumPY
-if(NOT PYTHON_EXECUTABLE)
-  if(NumPy_FIND_QUIETLY)
-    find_package(PythonInterp 3 QUIET)
-  else()
-    find_package(PythonInterp 3)
-    set(__numpy_out 1)
-  endif()
-endif()
-if (PYTHON_EXECUTABLE)
-  # Find out the include path
-  execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" -c
-            "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
-            OUTPUT_VARIABLE __numpy_path)
-  # And the version
-  execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" -c
-            "from __future__ import print_function\ntry: import numpy; print(numpy.__version__, end='')\nexcept:pass\n"
-    OUTPUT_VARIABLE __numpy_version)
-elseif(__numpy_out)
-  message(STATUS "Python executable not found.")
-endif(PYTHON_EXECUTABLE)
-
-find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
-  HINTS "${__numpy_path}" "${PYTHON_INCLUDE_PATH}" NO_DEFAULT_PATH)
-
-if(PYTHON_NUMPY_INCLUDE_DIR)
-  set(PYTHON_NUMPY_FOUND 1 CACHE INTERNAL "Python numpy found")
-  include_directories(${PYTHON_NUMPY_INCLUDE_DIR} SYSTEM)
-endif(PYTHON_NUMPY_INCLUDE_DIR)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(NumPy REQUIRED_VARS PYTHON_NUMPY_INCLUDE_DIR
-VERSION_VAR __numpy_version)
 
 #SPARSEHASH
 find_path (sparsehash sparsehash/sparse_hash_map)
@@ -116,7 +117,6 @@ IF ((${lz4} STREQUAL "lz4-NOTFOUND") OR (${lz4h} STREQUAL "lz4h-NOTFOUND"))
 ELSE()
     include_directories(lz4h)
     message("Found LZ4")
-
 ENDIF()
 
 #TBB
@@ -189,18 +189,25 @@ ENDIF()
 file(GLOB trident_SRC
     "src/trident/**/*.cpp" "src/layers/*.cpp" "rdf3x/src/**/*.cpp"  src/snap/*.cpp src/trident/mining/miner.cpp
     )
+
+IF(PYTHON)
 file(GLOB tridentp_SRC
     "src/python/*.cpp")
+ENDIF()
+
 include_directories(include/ rdf3x/include)
 
 #Create both a library and the executable program
 add_library(trident STATIC ${trident_SRC})
-add_library(tridentp SHARED ${tridentp_SRC}) #Python library
-set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
-add_executable(trident_exec src/client/main.cpp src/client/main_params.cpp src/client/main_sparql.cpp src/client/main_ml.cpp)
 set_target_properties(trident PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
+add_executable(trident_exec src/client/main.cpp src/client/main_params.cpp src/client/main_sparql.cpp src/client/main_ml.cpp)
 set_target_properties(trident_exec PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
+
+IF(PYTHON)
+    add_library(tridentp SHARED ${tridentp_SRC}) #Python library
+    set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
+    set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
+ENDIF()
 
 #Add last dependencies that need trident
 #PTHREADS
@@ -214,5 +221,7 @@ endif()
 
 #Create both a library and the executable program
 TARGET_LINK_LIBRARIES(trident curl kognac lz4 tbb snap ${rt} ${Boost_LIBRARIES} ${ZLIB_LIBRARIES})
-TARGET_LINK_LIBRARIES(tridentp trident ${PY3_LIBRARIES})
 TARGET_LINK_LIBRARIES(trident_exec trident)
+IF(PYTHON)
+    TARGET_LINK_LIBRARIES(tridentp trident ${PY3_LIBRARIES})
+ENDIF()

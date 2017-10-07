@@ -23,8 +23,6 @@
 
 #include <kognac/logs.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -150,8 +148,8 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
     while (std::getline(ifs, line)) {
         long value;
         try {
-            value = boost::lexical_cast<long>(line);
-        } catch (boost::bad_lexical_cast &) {
+            value = TridentUtils::lexical_cast<long>(line);
+        } catch (int &v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }
@@ -168,9 +166,9 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
         long v1, v2;
         try {
             auto pos = line.find(sep);
-            v1 = boost::lexical_cast<long>(line.substr(0, pos));
-            v2 = boost::lexical_cast<long>(line.substr(pos+1, line.size()));
-        } catch (boost::bad_lexical_cast &) {
+            v1 = TridentUtils::lexical_cast<long>(line.substr(0, pos));
+            v2 = TridentUtils::lexical_cast<long>(line.substr(pos+1, line.size()));
+        } catch (int &v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }

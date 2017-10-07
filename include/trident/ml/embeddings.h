@@ -8,11 +8,6 @@
 
 #include <zstr/zstr.hpp>
 
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-
 #include <vector>
 #include <random>
 #include <math.h>

@@ -1,5 +1,7 @@
 #include <snap/tasks.h>
 
+#include <trident/utils/tridentutils.h>
+
 #include <kognac/logs.h>
 #include <kognac/utils.h>
 
@@ -149,16 +151,16 @@ void AnalyticsTasks::Param::set(string value) {
     try {
         switch (type) {
             case DOUBLE:
-                boost::lexical_cast<double>(value);
+                TridentUtils::lexical_cast<double>(value);
                 break;
             case INT:
-                boost::lexical_cast<int>(value);
+                TridentUtils::lexical_cast<int>(value);
                 break;
             case LONG:
-                boost::lexical_cast<long>(value);
+                TridentUtils::lexical_cast<long>(value);
                 break;
             case BOOL:
-                boost::lexical_cast<bool>(value);
+                TridentUtils::lexical_cast<bool>(value);
                 break;
             case PATH:
                 if (!Utils::exists(value)) {
@@ -167,7 +169,7 @@ void AnalyticsTasks::Param::set(string value) {
                 }
                 break;
         }
-    } catch (boost::bad_lexical_cast &) {
+    } catch (int e) {
         LOG(ERRORL) << "Failed conversion of " << value;
         throw 10;
     }

@@ -24,9 +24,6 @@ void launchML(KB &kb, string op, string algo, string params) {
         LOG(ERRORL) << "Parsing params " << params << " has failed!";
         return;
     }
-    //string str = boost::spirit::karma::format(*(boost::spirit::karma::string << '=' <<
-    //            boost::spirit::karma::string), mapparams);
-    //LOG(DEBUGL) << "Parsed params: " << str.c_str();
 
     if (!kb.areRelIDsSeparated()) {
         LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
@@ -64,58 +61,58 @@ void launchML(KB &kb, string op, string algo, string params) {
     string nametestset;
 
     if (mapparams.count("dim")) {
-        dim = boost::lexical_cast<uint16_t>(mapparams["dim"]);
+        dim = TridentUtils::lexical_cast<uint16_t>(mapparams["dim"]);
     }
     if (mapparams.count("epochs")) {
-        epochs = boost::lexical_cast<uint16_t>(mapparams["epochs"]);
+        epochs = TridentUtils::lexical_cast<uint16_t>(mapparams["epochs"]);
     }
     if (mapparams.count("batchsize")) {
-        batchsize = boost::lexical_cast<uint32_t>(mapparams["batchsize"]);
+        batchsize = TridentUtils::lexical_cast<uint32_t>(mapparams["batchsize"]);
     }
     if (mapparams.count("nthreads")) {
-        nthreads = boost::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
     }
     if (mapparams.count("nstorethreads")) {
-        nstorethreads = boost::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
+        nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
     }
     if (mapparams.count("margin")) {
-        margin = boost::lexical_cast<float>(mapparams["margin"]);
+        margin = TridentUtils::lexical_cast<float>(mapparams["margin"]);
     }
     if (mapparams.count("learningrate")) {
-        learningrate = boost::lexical_cast<float>(mapparams["learningrate"]);
+        learningrate = TridentUtils::lexical_cast<float>(mapparams["learningrate"]);
     }
     if (mapparams.count("storefolder")) {
         storefolder = mapparams["storefolder"];
     }
     if (mapparams.count("storeits")) {
-        storeits = boost::lexical_cast<uint32_t>(mapparams["storeits"]);
+        storeits = TridentUtils::lexical_cast<uint32_t>(mapparams["storeits"]);
     }
     if (mapparams.count("evalits")) {
-        evalits = boost::lexical_cast<uint32_t>(mapparams["evalits"]);
+        evalits = TridentUtils::lexical_cast<uint32_t>(mapparams["evalits"]);
     }
     if (mapparams.count("validperc")) {
-        valid = boost::lexical_cast<float>(mapparams["validperc"]);
+        valid = TridentUtils::lexical_cast<float>(mapparams["validperc"]);
     }
     if (mapparams.count("testperc")) {
-        test = boost::lexical_cast<float>(mapparams["testperc"]);
+        test = TridentUtils::lexical_cast<float>(mapparams["testperc"]);
     }
     if (mapparams.count("adagrad")) {
-        adagrad = boost::lexical_cast<bool>(mapparams["adagrad"]);
+        adagrad = TridentUtils::lexical_cast<bool>(mapparams["adagrad"]);
     }
     if (mapparams.count("compress")) {
-        compresstorage = boost::lexical_cast<bool>(mapparams["compress"]);
+        compresstorage = TridentUtils::lexical_cast<bool>(mapparams["compress"]);
     }
     if (mapparams.count("feedback")) {
-        usefeedback = boost::lexical_cast<bool>(mapparams["feedback"]);
+        usefeedback = TridentUtils::lexical_cast<bool>(mapparams["feedback"]);
     }
     if (mapparams.count("feedback_threshold")) {
-        feedback_threshold = boost::lexical_cast<uint32_t>(mapparams["feedback_threshold"]);
+        feedback_threshold = TridentUtils::lexical_cast<uint32_t>(mapparams["feedback_threshold"]);
     }
     if (mapparams.count("feedback_minfullep")) {
-        feedback_minfulle = boost::lexical_cast<uint32_t>(mapparams["feedback_minfulle"]);
+        feedback_minfulle = TridentUtils::lexical_cast<uint32_t>(mapparams["feedback_minfulle"]);
     }
     if (mapparams.count("numneg")) {
-        numneg = boost::lexical_cast<uint64_t>(mapparams["numneg"]);
+        numneg = TridentUtils::lexical_cast<uint64_t>(mapparams["numneg"]);
     }
     if (mapparams.count("debugout")) {
         fileout = mapparams["debugout"];

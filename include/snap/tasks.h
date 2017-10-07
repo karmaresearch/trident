@@ -1,11 +1,11 @@
 #ifndef _METH_H
 #define _METH_H
 
+#include <trident/utils/tridentutils.h>
+
 #include <string>
 #include <vector>
 #include <map>
-
-#include <boost/lexical_cast.hpp>
 
 using namespace std;
 
@@ -33,7 +33,7 @@ class AnalyticsTasks {
 
             template<typename K>
                 K as() {
-                    return boost::lexical_cast<K>(getRawValue());
+                    return TridentUtils::lexical_cast<K>(getRawValue());
                 }
         };
 

@@ -23,8 +23,11 @@
 #ifndef _RES_STATS_H
 #define _RES_STATS_H
 
+#include <kognac/logs.h>
+
 #include <vector>
 #include <string>
+#include <sstream>
 
 class TridentUtils {
     public:
@@ -48,6 +51,19 @@ class TridentUtils {
                 std::vector<std::pair<long,long>> &values, char sep);
 
         static uint64_t spaceLeft(std::string location);
+
+        template<typename K>
+            static K lexical_cast(std::string v) {
+                K var;
+                std::istringstream iss;
+                iss.str(v);
+                iss >> var;
+                if (iss.fail()) {
+                    LOG(ERRORL) << "Failed conversion of " << v << " " << var;
+                    throw 10;
+                }
+                return var;
+            }
 };
 
 #endif
