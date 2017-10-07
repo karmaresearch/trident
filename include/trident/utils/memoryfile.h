@@ -19,16 +19,16 @@ class MemoryMappedFile {
 
     public:
         MemoryMappedFile(std::string file, bool ro, long start,
-                long length) {
+                long len) {
             fd = ::open(file.c_str(), ro ?  O_RDONLY : (O_RDWR | O_CREAT) );
             if (fd == -1) {
                 LOG(ERRORL) << "Failed opening the file " << file;
                 throw 10;
             }
-            this->length = length;
-            data = static_cast<char*>(::mmap(NULL, length,
+            this->length = len;
+            data = static_cast<char*>(::mmap(NULL, len,
                         ro ? PROT_READ : (PROT_READ | PROT_WRITE),
-                        MAP_PRIVATE, fd, start));
+                        MAP_SHARED, fd, start));
             if (data == MAP_FAILED) {
                 LOG(ERRORL) << "Failed mapping the file " << file;
                 throw 10;
