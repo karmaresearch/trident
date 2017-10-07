@@ -22,6 +22,8 @@
 
 #include <trident/binarytables/storagestrat.h>
 
+#include <climits>
+
 /*unsigned StorageStrat::getStrat1() {
   unsigned output = 0;
   output = StorageStrat::setStorageType(output, CLUSTER_ITR);

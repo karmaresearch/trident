@@ -144,8 +144,7 @@ CachedNode *NodeManager::getCachedNode(long id) {
         }
         return readOnlyStoredNodes + id;
     } else {
-        std::unordered_map<long, CachedNode*>::iterator itr =
-            storedNodes.find(id);
+        auto itr = storedNodes.find(id);
         if (itr != storedNodes.end())
             return itr->second;
         else
@@ -360,8 +359,7 @@ NodeManager::~NodeManager() {
         out.close();
 
         //Clean the stored nodes
-        for (std::unordered_map<long, CachedNode*>::iterator itr =
-                storedNodes.begin(); itr != storedNodes.end(); ++itr) {
+        for (auto itr = storedNodes.begin(); itr != storedNodes.end(); ++itr) {
             delete itr->second;
         }
         storedNodes.clear();
