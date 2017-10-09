@@ -76,7 +76,8 @@ class FlatRoot : public Root {
 
         static void writeOtherPerm(string otherperm, string output,
                 int offset,
-                int blocksize);
+                int blocksize,
+                bool unlabeled);
 
         const bool unlabeled;
         const bool undirected;

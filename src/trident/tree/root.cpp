@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/tree/root.h>
@@ -39,68 +39,68 @@ using namespace std;
 
 Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) :
     readOnly(readOnly), path(path) {
-    cache = new Cache(conf.getInt(MAX_NODES_IN_CACHE, 4),
-                      conf.getBool(COMPRESSED_NODES, false));
+        cache = new Cache(conf.getInt(MAX_NODES_IN_CACHE, 4),
+                conf.getBool(COMPRESSED_NODES, false));
 
-    stringbuffer = buffer;
-    bool textKeys = conf.getBool(TEXT_KEYS);
-    bool textValues = conf.getBool(TEXT_VALUES);
-    int maxElementsPerNode = conf.getInt(MAX_EL_PER_NODE, 2048);
+        stringbuffer = buffer;
+        bool textKeys = conf.getBool(TEXT_KEYS);
+        bool textValues = conf.getBool(TEXT_VALUES);
+        int maxElementsPerNode = conf.getInt(MAX_EL_PER_NODE, 2048);
 
-    nodesKeysFactory = new PreallocatedArraysFactory<long>(maxElementsPerNode,
-            conf.getInt(NODE_KEYS_FACTORY_SIZE, 10),
-            conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE, 10));
+        nodesKeysFactory = new PreallocatedArraysFactory<long>(maxElementsPerNode,
+                conf.getInt(NODE_KEYS_FACTORY_SIZE, 10),
+                conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE, 10));
 
-//  LOG(DEBUGL)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
+        //  LOG(DEBUGL)<< "Size factory for the nodes keys " << conf.getInt(NODE_KEYS_FACTORY_SIZE) << " preallocated " << conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE);
 
-//  timens::system_clock::time_point start = timens::system_clock::now();
-    if (!textKeys && !textValues) {
-        ilFactory = new PreallocatedFactory<Coordinates>(
-            conf.getInt(LEAF_MAX_INTERNAL_LINES, 10),
-            conf.getInt(LEAF_MAX_PREALL_INTERNAL_LINES, 10));
-        ilBufferFactory = new PreallocatedArraysFactory<Coordinates*>(
-            maxElementsPerNode / 2, conf.getInt(LEAF_ARRAYS_FACTORY_SIZE, 10),
-            conf.getInt(LEAF_ARRAYS_PREALL_FACTORY_SIZE, 10));
-    } else {
-        ilFactory = NULL;
-        ilBufferFactory = NULL;
-    }
-//  LOG(DEBUGL)<< "Time init node factories: " << (sec.count() * 1000);
+        //  timens::system_clock::time_point start = timens::system_clock::now();
+        if (!textKeys && !textValues) {
+            ilFactory = new PreallocatedFactory<Coordinates>(
+                    conf.getInt(LEAF_MAX_INTERNAL_LINES, 10),
+                    conf.getInt(LEAF_MAX_PREALL_INTERNAL_LINES, 10));
+            ilBufferFactory = new PreallocatedArraysFactory<Coordinates*>(
+                    maxElementsPerNode / 2, conf.getInt(LEAF_ARRAYS_FACTORY_SIZE, 10),
+                    conf.getInt(LEAF_ARRAYS_PREALL_FACTORY_SIZE, 10));
+        } else {
+            ilFactory = NULL;
+            ilBufferFactory = NULL;
+        }
+        //  LOG(DEBUGL)<< "Time init node factories: " << (sec.count() * 1000);
 
-    context = new TreeContext(cache, stringbuffer, readOnly, maxElementsPerNode,
-                              textKeys, textValues, ilFactory, ilBufferFactory, nodesKeysFactory);
-    cache->init(context, path, conf.getInt(FILE_MAX_SIZE, 64 * 1024 * 1024),
+        context = new TreeContext(cache, stringbuffer, readOnly, maxElementsPerNode,
+                textKeys, textValues, ilFactory, ilBufferFactory, nodesKeysFactory);
+        cache->init(context, path, conf.getInt(FILE_MAX_SIZE, 64 * 1024 * 1024),
                 conf.getInt(MAX_N_OPENED_FILES, 2), conf.getLong(CACHE_MAX_SIZE, 32 * 1024 * 1024),
                 conf.getInt(LEAF_SIZE_FACTORY, 1),
                 conf.getInt(LEAF_SIZE_PREALL_FACTORY, 10), conf.getInt(NODE_MIN_BYTES, 0));
 
-    // Check the directory to see whether the intermediate nodes are stored
-    // on disk
-    std::string f = path + string("/tree");
-    std::ifstream is(f.c_str());
+        // Check the directory to see whether the intermediate nodes are stored
+        // on disk
+        std::string f = path + string("/tree");
+        std::ifstream is(f.c_str());
 
-    if (is.good()) {
-        is.seekg(0, std::ios_base::end);
-        std::size_t size = is.tellg();
-        is.seekg(0, std::ios_base::beg);
-        char raw_input[size];
-        is.read(raw_input, size);
-        long id = Utils::decode_long(raw_input, 0);
-        is.close();
-        rootNode = cache->getNodeFromCache(id);
-    } else { // new tree
-        rootNode = cache->newLeaf();
-        rootNode->setId(context->getNewNodeID());
-        rootNode->setParent(NULL);
-        rootNode->setState(STATE_MODIFIED);
-        cache->registerNode(rootNode);
+        if (is.good()) {
+            is.seekg(0, std::ios_base::end);
+            std::size_t size = is.tellg();
+            is.seekg(0, std::ios_base::beg);
+            char raw_input[size];
+            is.read(raw_input, size);
+            long id = Utils::decode_long(raw_input, 0);
+            is.close();
+            rootNode = cache->getNodeFromCache(id);
+        } else { // new tree
+            rootNode = cache->newLeaf();
+            rootNode->setId(context->getNewNodeID());
+            rootNode->setParent(NULL);
+            rootNode->setState(STATE_MODIFIED);
+            cache->registerNode(rootNode);
 
-        //Create the directory if it does not exist
-        if (!readOnly && !Utils::exists(path)) {
-            Utils::create_directories(path);
+            //Create the directory if it does not exist
+            if (!readOnly && !Utils::exists(path)) {
+                Utils::create_directories(path);
+            }
         }
     }
-}
 
 bool Root::get(nTerm key, TermCoordinates *value) {
     Node *node = rootNode;
@@ -273,18 +273,19 @@ Root::~Root() {
     }
 
     // Now all the leaves are offloaded. Time to save also the other nodes.
-    if (rootNode->canHaveChildren()) {
+    if (rootNode && rootNode->canHaveChildren()) {
         // Save the intermediate nodes
         if (!readOnly) {
             flushChildrenToCache();
         } else {
             delete rootNode;
         }
-    } else {
+    } else if (cache) {
         cache->releaseLeaf(rootNode);
     }
 
-    delete cache;
+    if (cache)
+        delete cache;
 
     if (ilFactory != NULL) {
         delete ilFactory;
@@ -294,6 +295,8 @@ Root::~Root() {
         delete ilBufferFactory;
     }
 
-    delete nodesKeysFactory;
-    delete context;
+    if (nodesKeysFactory)
+        delete nodesKeysFactory;
+    if (context)
+        delete context;
 }

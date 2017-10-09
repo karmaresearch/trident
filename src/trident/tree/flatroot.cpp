@@ -16,11 +16,13 @@ FlatRoot::FlatRoot(string path, bool unlabeled, bool undirected) :
     }
 
 void __set(int permid, char *block, TermCoordinates *value) {
-    const short file = *((short*)(block + 6));
-    const long pos = *((long*)(block + 8)) & 0XFFFFFFFFFFl;
     const long nels = *((long*)(block)) & 0XFFFFFFFFFFl;
-    const char strat = *(block + 5);
-    value->set(permid, file, pos, nels, strat);
+    if (nels > 0) {
+        const short file = *((short*)(block + 6));
+        const long pos = *((long*)(block + 8)) & 0XFFFFFFFFFFl;
+        const char strat = *(block + 5);
+        value->set(permid, file, pos, nels, strat);
+    }
 }
 
 bool FlatRoot::get(nTerm key, TermCoordinates *value) {
@@ -112,18 +114,25 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
             for(long entry = 0; entry < nentries; ++entry) {
                 ifs.read(tmpbuffer, 11);
                 const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                const long pos_sop = Utils::decode_longFixedBytes(tmpbuffer, 5);
+                long pos_sop;
+                if (unlabeled) {
+                    pos_sop = Utils::decode_longFixedBytes(tmpbuffer, 5);
+                } else {
+                    pos_sop = entry;
+                }
                 char strat_sop = tmpbuffer[10];
-                if (StorageStrat::getStorageType(strat_sop) == NEWCOLUMN_ITR) {
-                    //Open the file
-                    if (!rawfileOpened) {
-                        rawfile.open(sop + "/" + to_string(i));
-                        rawfileOpened = true;
+                if (unlabeled) {
+                    if (StorageStrat::getStorageType(strat_sop) == NEWCOLUMN_ITR) {
+                        //Open the file
+                        if (!rawfileOpened) {
+                            rawfile.open(sop + "/" + to_string(i));
+                            rawfileOpened = true;
+                        }
+                        rawfile.seekg(pos_sop);
+                        char tmpbuffer[2];
+                        rawfile.read(tmpbuffer, 2);
+                        strat_sop = rewriteNewColumnStrategy(tmpbuffer);
                     }
-                    rawfile.seekg(pos_sop);
-                    char tmpbuffer[2];
-                    rawfile.read(tmpbuffer, 2);
-                    strat_sop = rewriteNewColumnStrategy(tmpbuffer);
                 }
                 const short file_sop = i;
                 long ntree_sop = -1;
@@ -177,9 +186,18 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
                             ntree_pso = 0;
                         }
 
-                        if (ntree_osp == 0 && ntree_sop == 0) {
-                            LOG(DEBUGL) << "Cannot happen (3). (loadFlatTree)";
-                            throw 10;
+                        if (unlabeled) {
+                            if (ntree_osp == 0 && ntree_sop == 0) {
+                                LOG(DEBUGL) << "Cannot happen (3). (loadFlatTree)";
+                                throw 10;
+                            }
+                        } else {
+                            if (ntree_osp == 0 && ntree_sop == 0
+                                    && ntree_spo == 0 && ntree_ops == 0
+                                    && ntree_pos == 0 && ntree_pso == 0) {
+                                LOG(DEBUGL) << "Cannot happen (3). (loadFlatTree)";
+                                throw 10;
+                            }
                         }
                     }
 
@@ -208,7 +226,16 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
                         break;
                     }
                 }
-                ftw->write(key, ntree_sop, strat_sop, file_sop, pos_sop, ntree_osp, 0, 0, 0);
+                if (unlabeled) {
+                    ftw->write(key, ntree_sop, strat_sop, file_sop, pos_sop, ntree_osp, 0, 0, 0);
+                } else {
+                    ftw->write(key, ntree_sop, strat_sop, file_sop, pos_sop,
+                            ntree_osp, 0, 0, 0,
+                            ntree_spo, 0, 0, 0,
+                            ntree_ops, 0, 0, 0,
+                            ntree_pos, 0, 0, 0,
+                            ntree_pso, 0, 0, 0);
+                }
             }
             ifs.close();
             if (rawfileOpened) {
@@ -223,24 +250,59 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
             throw 10;
         }
         long ntree_osp = 0;
+        long ntree_spo = 0;
+        long ntree_ops = 0;
+        long ntree_pos = 0;
+        long ntree_pso = 0;
         if (coord.exists(IDX_OSP)) {
             ntree_osp = coord.getNElements(IDX_OSP);
-        } else {
+        } else if (unlabeled) {
             LOG(DEBUGL) << "Cannot happen (5). (loadFlatTree)";
             throw 10;
         }
+        if (!unlabeled) {
+            if (coord.exists(IDX_SPO)) {
+                ntree_spo = coord.getNElements(IDX_SPO);
+            } else {
+                ntree_spo = 0;
+            }
+            if (coord.exists(IDX_OPS)) {
+                ntree_ops = coord.getNElements(IDX_OPS);
+            } else {
+                ntree_ops = 0;
+            }
+            if (coord.exists(IDX_POS)) {
+                ntree_pos = coord.getNElements(IDX_POS);
+            } else {
+                ntree_pos = 0;
+            }
+            if (coord.exists(IDX_PSO)) {
+                ntree_pso = coord.getNElements(IDX_PSO);
+            } else {
+                ntree_pso = 0;
+            }
+        }
         //First make sure we have a contiguous array (graph can be disconnected)
         while (++keyToAdd < treeKey) {
-            ftw->write(keyToAdd, 0, 0, 0, 0, 0, 0, 0, 0);
+            ftw->writeOnlyKey(keyToAdd);
         }
-        ftw->write(treeKey, 0, 0, 0, 0, ntree_osp, 0, 0, 0);
+        if (unlabeled) {
+            ftw->write(treeKey, 0, 0, 0, 0, ntree_osp, 0, 0, 0);
+        } else {
+            ftw->write(treeKey, 0, 0, 0, 0, ntree_osp, 0, 0, 0,
+                    ntree_spo, 0, 0, 0,
+                    ntree_ops, 0, 0, 0,
+                    ntree_pos, 0, 0, 0,
+                    ntree_pso, 0, 0, 0);
+        }
     }
     delete itr;
 }
 
 void FlatRoot::writeOtherPerm(string otherperm, string output,
         int offset,
-        int blocksize) {
+        int blocksize,
+        bool unlabeled) {
     std::vector<string> files = Utils::getFiles(otherperm);
     if (files.size() == 0) {
         //Nothing to do, exit
@@ -271,34 +333,41 @@ void FlatRoot::writeOtherPerm(string otherperm, string output,
             for(long entry = 0; entry < nentries; ++entry) {
                 ifs.read(tmpbuffer, 11);
                 const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                const long pos = Utils::decode_longFixedBytes(tmpbuffer, 5);
+                long pos;
+                if (unlabeled) {
+                    pos = Utils::decode_longFixedBytes(tmpbuffer, 5);
+                } else {
+                    pos = entry;
+                }
                 char strat = tmpbuffer[10];
                 const short file = i;
 
-                //overwrite strat and pos
-                char *baseblock = rawbuffer + key * blocksize;
-                if (StorageStrat::getStorageType(strat) == NEWCOLUMN_ITR) {
-                    //Open the file
-                    if (!rawfileOpened) {
-                        rawfile.open(otherperm + "/" + to_string(i));
-                        rawfileOpened = true;
+                //overwrite strat and pos. I do it only for unlabeled graphs because the analytics operations require that.
+                char *baseblock = rawbuffer + key * blocksize + offset;
+                if (unlabeled) {
+                    if (StorageStrat::getStorageType(strat) == NEWCOLUMN_ITR) {
+                        //Open the file
+                        if (!rawfileOpened) {
+                            rawfile.open(otherperm + "/" + to_string(i));
+                            rawfileOpened = true;
+                        }
+                        rawfile.seekg(pos);
+                        char tmpbuffer[2];
+                        rawfile.read(tmpbuffer, 2);
+                        strat = rewriteNewColumnStrategy(tmpbuffer);
                     }
-                    rawfile.seekg(pos);
-                    char tmpbuffer[2];
-                    rawfile.read(tmpbuffer, 2);
-                    strat = rewriteNewColumnStrategy(tmpbuffer);
                 }
 
-                baseblock[offset++] = strat;
+                baseblock[0] = strat;
                 char *cfile = (char *)&file;
-                baseblock[offset++] = cfile[0];
-                baseblock[offset++] = cfile[1];
+                baseblock[1] = cfile[0];
+                baseblock[2] = cfile[1];
                 char *cpos = (char *)&pos;
-                baseblock[offset++] = cpos[0];
-                baseblock[offset++] = cpos[1];
-                baseblock[offset++] = cpos[2];
-                baseblock[offset++] = cpos[3];
-                baseblock[offset++] = cpos[4];
+                baseblock[3] = cpos[0];
+                baseblock[4] = cpos[1];
+                baseblock[5] = cpos[2];
+                baseblock[6] = cpos[3];
+                baseblock[7] = cpos[4];
             }
             if (rawfileOpened) {
                 rawfile.close();
@@ -325,15 +394,15 @@ void FlatRoot::loadFlatTree(string sop,
     //OSP
     if (unlabeled) {
         if (!undirected) {
-            writeOtherPerm(osp, flatfile, 23, 31);
+            writeOtherPerm(osp, flatfile, 23, 31, unlabeled);
         }
         //if undirected do nothing nothing
     } else {
-        writeOtherPerm(osp, flatfile, 23, 83);
-        writeOtherPerm(spo, flatfile, 36, 83);
-        writeOtherPerm(ops, flatfile, 49, 83);
-        writeOtherPerm(pos, flatfile, 62, 83);
-        writeOtherPerm(pso, flatfile, 75, 83);
+        writeOtherPerm(osp, flatfile, 23, 83, unlabeled);
+        writeOtherPerm(spo, flatfile, 36, 83, unlabeled);
+        writeOtherPerm(ops, flatfile, 49, 83, unlabeled);
+        writeOtherPerm(pos, flatfile, 62, 83, unlabeled);
+        writeOtherPerm(pso, flatfile, 75, 83, unlabeled);
     }
 }
 
@@ -528,7 +597,7 @@ void FlatRoot::FlatTreeWriter::write(const long key,
                 supportBuffer[22] = 0;
             }
 
-            int idx = 23;
+            int idx = 31;
             if (n_spo > 0) {
                 char *cnels = (char*) &n_spo;
                 supportBuffer[idx++] = cnels[0];
@@ -552,7 +621,7 @@ void FlatRoot::FlatTreeWriter::write(const long key,
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
-                idx += 13;
+                idx += 8;
             }
 
             if (n_ops > 0) {
@@ -578,7 +647,7 @@ void FlatRoot::FlatTreeWriter::write(const long key,
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
-                idx += 13;
+                idx += 8;
             }
 
             if (n_pos > 0) {
@@ -604,7 +673,7 @@ void FlatRoot::FlatTreeWriter::write(const long key,
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
-                idx += 13;
+                idx += 8;
             }
 
             if (n_pso > 0) {
@@ -630,7 +699,7 @@ void FlatRoot::FlatTreeWriter::write(const long key,
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
                 supportBuffer[idx++] = 0;
-                idx += 13;
+                idx += 8;
             }
 
             assert(idx == 83);
