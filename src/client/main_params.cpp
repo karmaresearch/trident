@@ -337,6 +337,10 @@ bool initParams(int argc, const char** argv, po::variables_map &vm) {
     load_options.add_options()("relsOwnIDs",
             po::value<bool>()->default_value(false),
             "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED");
+    load_options.add_options()("flatTree",
+            po::value<bool>()->default_value(false),
+            "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED");    
+
 
     po::options_description lookup_options("Options for <lookup>");
     lookup_options.add_options()("text,t", po::value<string>(),

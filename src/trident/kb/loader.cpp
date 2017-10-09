@@ -25,9 +25,8 @@
 #include <trident/kb/kb.h>
 #include <trident/kb/schema.h>
 #include <trident/kb/permsorter.h>
-
 #include <trident/tree/nodemanager.h>
-
+#include <trident/tree/flatroot.h>
 #include <trident/utils/tridentutils.h>
 
 #include <kognac/lz4io.h>
@@ -142,79 +141,6 @@ bool _sorter_pso(const Triple &a, const Triple &b) {
         }
     }
     return false;
-}
-
-void FlatTreeWriter::write(const long key,
-        long n_sop,
-        char strat_sop,
-        short file_sop,
-        long pos_sop,
-        long n_osp,
-        char strat_osp,
-        short file_osp,
-        long pos_osp) {
-    char supportBuffer[40];
-    //key (5 bytes), [nelements (5bytes) strat (1 byte), file (2 bytes), pos (5 bytes)]*2. Written little endian
-    char *cKey = (char*) &key;
-    supportBuffer[0] = cKey[0];
-    supportBuffer[1] = cKey[1];
-    supportBuffer[2] = cKey[2];
-    supportBuffer[3] = cKey[3];
-    supportBuffer[4] = cKey[4];
-
-    if (n_sop > 0) {
-        char *cnels = (char*) &n_sop;
-        supportBuffer[5] = cnels[0];
-        supportBuffer[6] = cnels[1];
-        supportBuffer[7] = cnels[2];
-        supportBuffer[8] = cnels[3];
-        supportBuffer[9] = cnels[4];
-        supportBuffer[10] = strat_sop;
-        char *cfile = (char*) &file_sop;
-        supportBuffer[11] = cfile[0];
-        supportBuffer[12] = cfile[1];
-        cnels = (char*) &pos_sop;
-        supportBuffer[13] = cnels[0];
-        supportBuffer[14] = cnels[1];
-        supportBuffer[15] = cnels[2];
-        supportBuffer[16] = cnels[3];
-        supportBuffer[17] = cnels[4];
-    } else {
-        supportBuffer[5] = 0;
-        supportBuffer[6] = 0;
-        supportBuffer[7] = 0;
-        supportBuffer[8] = 0;
-        supportBuffer[9] = 0;
-    }
-    if (n_osp > 0) {
-        char *cnels = (char*) &n_osp;
-        supportBuffer[18] = cnels[0];
-        supportBuffer[19] = cnels[1];
-        supportBuffer[20] = cnels[2];
-        supportBuffer[21] = cnels[3];
-        supportBuffer[22] = cnels[4];
-        supportBuffer[23] = strat_osp;
-        char *cfile = (char*) &file_osp;
-        supportBuffer[24] = cfile[0];
-        supportBuffer[25] = cfile[1];
-        cnels = (char*) &pos_osp;
-        supportBuffer[26] = cnels[0];
-        supportBuffer[27] = cnels[1];
-        supportBuffer[28] = cnels[2];
-        supportBuffer[29] = cnels[3];
-        supportBuffer[30] = cnels[4];
-    } else {
-        supportBuffer[18] = 0;
-        supportBuffer[19] = 0;
-        supportBuffer[20] = 0;
-        supportBuffer[21] = 0;
-        supportBuffer[22] = 0;
-    }
-    if (!undirected) {
-        ofs.write(supportBuffer, 31);
-    } else {
-        ofs.write(supportBuffer, 18); //I only use SOP, since the other is always 0
-    }
 }
 
 void __parseLineSnapFile(string &line, string &origline,
@@ -1746,6 +1672,7 @@ void Loader::loadKB(KB &kb,
     int parallelProcesses = p.parallelThreads;
     int maxReadingThreads = p.maxReadingThreads;
     string graphTransformation = p.graphTransformation;
+    bool flatTree = p.flatTree;
     //this->logPtr = logPtr;
     //End init params
 
@@ -1953,15 +1880,21 @@ void Loader::loadKB(KB &kb,
     delete ins;
     delete[] threads;
 
-    if (graphTransformation != "") {
+    if (flatTree || graphTransformation != "") {
         LOG(DEBUGL) << "Load flat representation ...";
         kb.close();
         string flatfile = kbDir + "/tree/flat";
         //Create a tree itr to go through the tree
         std::unique_ptr<Root> root(kb.getRootTree());
-        loadFlatTree(kbDir + "/p" + to_string(IDX_SOP),
+        FlatRoot::loadFlatTree(kbDir + "/p" + to_string(IDX_SOP),
                 kbDir + "/p" +  to_string(IDX_OSP),
-                flatfile, root.get(), graphTransformation == "undirected");
+                kbDir + "/p" +  to_string(IDX_SPO),
+                kbDir + "/p" +  to_string(IDX_OPS),
+                kbDir + "/p" +  to_string(IDX_POS),
+                kbDir + "/p" +  to_string(IDX_PSO),
+                flatfile, root.get(),
+                graphTransformation != "",
+                graphTransformation == "undirected");
     }
 
     if (sample) {
@@ -2769,237 +2702,6 @@ void Loader::processTermCoordinates(Inserter *ins,
         }
         releaseBunchTermCoordinates(buffer, structs);
     }
-}
-
-void Loader::loadFlatTree(string sop,
-        string osp,
-        string flatfile,
-        Root *root,
-        bool undirected) {
-    //Write SOP
-    long keyToAdd = -1;
-    std::vector<string> files = Utils::getFiles(sop);
-    if (files.size() == 0) {
-        //Nothing to do, exit
-        return;
-    }
-    const int maxPossibleIdx = files.size();
-    std::unique_ptr<FlatTreeWriter> ftw =
-        std::unique_ptr<FlatTreeWriter>(new FlatTreeWriter(flatfile, undirected));
-    TreeItr *itr = root->itr();
-    TermCoordinates coord;
-
-    for (int i = 0; i < maxPossibleIdx; ++i) {
-        if (i > std::numeric_limits<short>::max()) {
-            LOG(DEBUGL) << "Too many idx files in sop. Cannot create a flat tree";
-            throw 10;
-        }
-        string fidx = sop + "/" + to_string(i) + ".idx";
-        if (Utils::exists(fidx)) {
-            //Open it, and read the coordinates
-            char tmpbuffer[16];
-            ifstream ifs;
-            ifs.open(fidx);
-            ifs.read(tmpbuffer, 8);
-            const long nentries = Utils::decode_long(tmpbuffer);
-
-            ifstream rawfile;
-            bool rawfileOpened = false;
-
-            for(long entry = 0; entry < nentries; ++entry) {
-                ifs.read(tmpbuffer, 11);
-                const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                const long pos_sop = Utils::decode_longFixedBytes(tmpbuffer, 5);
-                char strat_sop = tmpbuffer[10];
-                if (StorageStrat::getStorageType(strat_sop) == NEWCOLUMN_ITR) {
-                    //Open the file
-                    if (!rawfileOpened) {
-                        rawfile.open(sop + "/" + to_string(i));
-                        rawfileOpened = true;
-                    }
-                    rawfile.seekg(pos_sop);
-                    char tmpbuffer[2];
-                    rawfile.read(tmpbuffer, 2);
-                    strat_sop = Loader::rewriteNewColumnStrategy(tmpbuffer);
-                }
-                const short file_sop = i;
-                long ntree_sop = -1;
-                long ntree_osp = -1;
-                while (true) {
-                    if(!itr->hasNext()) {
-                        LOG(DEBUGL) << "Cannot happen. (loadFlatTree)";
-                        throw 10;
-                    }
-                    const long treeKey = itr->next(&coord);
-                    if (treeKey > key) {
-                        LOG(DEBUGL) << "Cannot happen (2). (loadFlatTree)";
-                        throw 10;
-                    }
-                    if (coord.exists(IDX_SOP)) {
-                        ntree_sop = coord.getNElements(IDX_SOP);
-                    } else {
-                        ntree_sop = 0;
-                    }
-                    if (coord.exists(IDX_OSP)) {
-                        ntree_osp = coord.getNElements(IDX_OSP);
-                    } else {
-                        ntree_osp = 0;
-                    }
-                    if (ntree_osp == 0 && ntree_sop == 0) {
-                        LOG(DEBUGL) << "Cannot happen (3). (loadFlatTree)";
-                        throw 10;
-                    }
-
-                    //First make sure we have a contiguous array (graph can be disconnected)
-                    while (++keyToAdd < treeKey) {
-                        ftw->write(keyToAdd, 0, 0, 0, 0, 0, 0, 0, 0);
-                    }
-                    if (keyToAdd != treeKey) {
-                        LOG(DEBUGL) << "Cannot happen (10). (loadFlatTree)";
-                        throw 10;
-                    }
-
-                    if (treeKey < key) {
-                        //Write the current treekey
-                        ftw->write(treeKey, ntree_sop, 0, 0, 0, ntree_osp, 0, 0, 0);
-                    } else {
-                        break;
-                    }
-                }
-                ftw->write(key, ntree_sop, strat_sop, file_sop, pos_sop, ntree_osp, 0, 0, 0);
-            }
-            ifs.close();
-            if (rawfileOpened) {
-                rawfile.close();
-            }
-        }
-    }
-    while (itr->hasNext()) {
-        const long treeKey = itr->next(&coord);
-        if (coord.exists(IDX_SOP)) {
-            LOG(DEBUGL) << "Cannot happen (4). (loadFlatTree)";
-            throw 10;
-        }
-        long ntree_osp = 0;
-        if (coord.exists(IDX_OSP)) {
-            ntree_osp = coord.getNElements(IDX_OSP);
-        } else {
-            LOG(DEBUGL) << "Cannot happen (5). (loadFlatTree)";
-            throw 10;
-        }
-        //First make sure we have a contiguous array (graph can be disconnected)
-        while (++keyToAdd < treeKey) {
-            ftw->write(keyToAdd, 0, 0, 0, 0, 0, 0, 0, 0);
-        }
-        ftw->write(treeKey, 0, 0, 0, 0, ntree_osp, 0, 0, 0);
-    }
-
-    //WRITE OSP
-    ftw = std::unique_ptr<FlatTreeWriter>();
-    MemoryMappedFile mf(flatfile, false);
-    //bip::file_mapping mapping(flatfile.c_str(), bip::read_write);
-    //bip::mapped_region mapped_rgn(mapping, bip::read_write);
-    //char *rawbuffer = static_cast<char*>(mapped_rgn.get_address());
-    char *rawbuffer = mf.getData();
-
-    for (int i = 0; i < maxPossibleIdx; ++i) {
-        if (i > std::numeric_limits<short>::max()) {
-            LOG(DEBUGL) << "Too many idx files in sop. Cannot create a flat tree";
-            throw 10;
-        }
-        string fidx = osp + "/" + to_string(i) + ".idx";
-        if (Utils::exists(fidx)) {
-            //Open it, and read the coordinates
-            char tmpbuffer[16];
-            ifstream ifs;
-            ifs.open(fidx);
-            ifs.read(tmpbuffer, 8);
-            const long nentries = Utils::decode_long(tmpbuffer);
-
-            ifstream rawfile;
-            bool rawfileOpened = false;
-
-            for(long entry = 0; entry < nentries; ++entry) {
-                ifs.read(tmpbuffer, 11);
-                const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                const long pos_osp = Utils::decode_longFixedBytes(tmpbuffer, 5);
-                char strat_osp = tmpbuffer[10];
-                const short file_osp = i;
-
-                //overwrite strat and pos
-                char *baseblock = rawbuffer + key * 31;
-                if (StorageStrat::getStorageType(strat_osp) == NEWCOLUMN_ITR) {
-                    //Open the file
-                    if (!rawfileOpened) {
-                        rawfile.open(osp + "/" + to_string(i));
-                        rawfileOpened = true;
-                    }
-                    rawfile.seekg(pos_osp);
-                    char tmpbuffer[2];
-                    rawfile.read(tmpbuffer, 2);
-                    strat_osp = Loader::rewriteNewColumnStrategy(tmpbuffer);
-                }
-                baseblock[23] = strat_osp;
-
-                char *cfile_osp = (char *)&file_osp;
-                baseblock[24] = cfile_osp[0];
-                baseblock[25] = cfile_osp[1];
-                //Utils::encode_short(baseblock + 24, file_osp);
-                char *cpos_osp = (char *)&pos_osp;
-                baseblock[26] = cpos_osp[0];
-                baseblock[27] = cpos_osp[1];
-                baseblock[28] = cpos_osp[2];
-                baseblock[29] = cpos_osp[3];
-                baseblock[30] = cpos_osp[4];
-                //Utils::encode_longNBytes(baseblock + 26, 5, pos_osp);
-            }
-            if (rawfileOpened) {
-                rawfile.close();
-            }
-            ifs.close();
-        }
-    }
-    //mapped_rgn.flush();
-    mf.flushAll();
-    delete itr;
-}
-
-char Loader::rewriteNewColumnStrategy(const char *table) {
-    const uint8_t header1 = (uint8_t) table[0];
-    const uint8_t bytesPerFirstEntry = (header1 >> 3) & 7;
-    const uint8_t header2 = (uint8_t) table[1];
-    const uint8_t bytesPerStartingPoint =  header2 & 7;
-    const uint8_t bytesPerCount = (header2 >> 3) & 7;
-    const uint8_t remBytes = bytesPerCount + bytesPerStartingPoint;
-    if (bytesPerFirstEntry < 1 || bytesPerFirstEntry > 5) {
-        LOG(ERRORL) << "I calculated a maximum of 5 bytes per first entry" << (int) bytesPerFirstEntry;
-        throw 10;
-    }
-    if (remBytes > 16 || remBytes < 2) {
-        LOG(ERRORL) << "remBytes range wrong " << (int) remBytes;
-        throw 10;
-    }
-    char out = 0;
-    if (bytesPerFirstEntry < 3) {
-        out = StorageStrat::setStorageType(out, 1);
-        if (bytesPerFirstEntry == 2) {
-            out |= 1 << 4;
-        }
-        out |= remBytes - 2;
-    } else if (bytesPerFirstEntry < 5) {
-        out = StorageStrat::setStorageType(out, 2);
-        if (bytesPerFirstEntry == 4) {
-            out |= 1 << 4;
-        }
-        out |= remBytes - 2;
-    } else {
-        out = StorageStrat::setStorageType(out, NEWCOLUMN_ITR);
-        if (bytesPerFirstEntry == 6) {
-            out |= 1 << 4;
-        }
-        out |= remBytes - 2;
-    }
-    return out;
 }
 
 void Loader::mergeTermCoordinates(ParamsMergeCoordinates params) {

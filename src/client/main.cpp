@@ -182,6 +182,7 @@ void testkb(string kbDir, po::variables_map &vm) {
         p.limitSpace = 0;
         p.graphTransformation = vm["gf"].as<string>();
         p.storeDicts = vm["storedicts"].as<bool>();
+        p.flatTree = vm["flatTree"].as<bool>();
 
         loader.load(p);
     }
@@ -425,6 +426,7 @@ int main(int argc, const char** argv) {
         p.graphTransformation = vm["gf"].as<string>();
         p.storeDicts = vm["storedicts"].as<bool>();
         p.relsOwnIDs = vm["relsOwnIDs"].as<bool>();
+        p.flatTree = vm["flatTree"].as<bool>();
 
         loader.load(p);
 

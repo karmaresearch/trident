@@ -29,7 +29,6 @@
 #include <trident/utils/propertymap.h>
 
 #include <string>
-#include <mutex>
 
 class Node;
 class TreeContext;
@@ -65,25 +64,28 @@ class Root {
         const bool readOnly;
         const string path;
 
-        //std::mutex mutex;
-
         PreallocatedArraysFactory<long> *nodesKeysFactory;
         PreallocatedFactory<Coordinates> *ilFactory;
         PreallocatedArraysFactory<Coordinates*> *ilBufferFactory;
 
         void flushChildrenToCache();
 
+    protected:
+        Root() : readOnly(true), path("") {
+            cache = NULL;
+            stringbuffer = NULL;
+            rootNode = NULL;
+            context = NULL;
+            nodesKeysFactory = NULL;
+            ilFactory = NULL;
+            ilBufferFactory = NULL;
+        }
+
     public:
         Root(std::string path, StringBuffer *buffer, bool readOnly,
                 PropertyMap &conf);
 
         bool get(tTerm *key, const int sizeKey, nTerm *value);
-
-        bool get(nTerm key, TermCoordinates *value);
-
-        bool get(nTerm key, long &coordinates);
-
-        void put(nTerm key, TermCoordinates *value);
 
         void append(tTerm *key, int sizeKey, nTerm &value);
 
@@ -93,11 +95,18 @@ class Root {
 
         void append(nTerm key, long coordinates);
 
-        void append(nTerm key, TermCoordinates *value);
-
         TreeItr *itr();
 
-        ~Root();
+        virtual ~Root();
+
+        void append(nTerm key, TermCoordinates *value);
+
+        void put(nTerm key, TermCoordinates *value);
+
+        virtual bool get(nTerm key, TermCoordinates *value);
+
+        bool get(nTerm key, long &coordinates);
+
 };
 
 #endif /* ROOT_H_ */

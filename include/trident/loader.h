@@ -201,32 +201,6 @@ class BufferCoordinates {
     }
 };
 
-class FlatTreeWriter {
-    private:
-        ofstream ofs;
-        const bool undirected;
-
-    public:
-        FlatTreeWriter(string f, bool undirected) : undirected(undirected) {
-            ofs.open(f);
-        }
-
-        void write(const long key,
-                long n_sop,
-                char strat_sop,
-                short file_sop,
-                long pos_sop,
-                long n_osp,
-                char strat_osp,
-                short file_osp,
-                long pos_osp);
-
-        ~FlatTreeWriter() {
-            ofs.flush();
-            ofs.close();
-        }
-};
-
 class SimpleTripleWriter;
 struct ParamSortAndInsert {
     ParamSortAndInsert() {}
@@ -432,6 +406,7 @@ struct ParamsLoad {
     int timeoutStats;
     bool storeDicts;
     bool relsOwnIDs;
+    bool flatTree;
 };
 
 class Loader {
@@ -494,13 +469,6 @@ class Loader {
 
         static void processTermCoordinates(Inserter *ins,
                 SharedStructs *structs);
-
-        static void loadFlatTree(string sop, string osp,
-                string output,
-                Root *tree,
-                bool undirected);
-
-        static char rewriteNewColumnStrategy(const char *table);
 
         static void mergeTermCoordinates(ParamsMergeCoordinates params);
     private:
