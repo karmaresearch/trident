@@ -33,7 +33,9 @@ class MergeJoin : public Operator
       loopEmptyLeft,loopEmptyRight,loopEmptyRightHasData,
       loopEqualLeftHasData,loopEqualLeft,
       loopEqualRightHasData,loopEqualRight,
-      loopSpooledRightEmpty,loopSpooledRightHasData
+      loopSpooledRightEmpty,loopSpooledRightHasData,
+      scanStepLeftCopyRight, scanStepRightCopyLeft,
+      loopEmptyLeftCopyLeft, loopEmptyRightCopyRight
     };
 
    /// Tuple counts

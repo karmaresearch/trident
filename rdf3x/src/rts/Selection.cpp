@@ -339,7 +339,6 @@ void Selection::Less::eval(Result& result)
     left->eval(l);
     right->eval(r);
 
-    // XXX implement type based comparisons!
     l.ensureString(selection);
     r.ensureString(selection);
     if (isNumericComparison(l,r)) {
@@ -362,10 +361,13 @@ void Selection::LessOrEqual::eval(Result& result)
     left->eval(l);
     right->eval(r);
 
-    // XXX implement type based comparisons!
     l.ensureString(selection);
     r.ensureString(selection);
-    result.setBoolean(l.value <= r.value);
+    if (isNumericComparison(l,r)) {
+        result.setBoolean(! numLess(r,l));
+    } else {
+	result.setBoolean(l.value <= r.value);
+    }
 }
 //---------------------------------------------------------------------------
 string Selection::LessOrEqual::print(PlanPrinter& out)

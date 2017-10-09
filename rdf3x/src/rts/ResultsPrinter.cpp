@@ -365,7 +365,7 @@ uint64_t ResultsPrinter::first()
             for (uint64_t index = 0; index < count; index++) {
                 nrows++;
                 printResult(stringCache, iter, iter + columns, (outputMode == Embedded));
-                cout << endl;
+                cout << '\n';
             }
             iter += columns;
         }
@@ -378,7 +378,7 @@ uint64_t ResultsPrinter::first()
             printResult(stringCache, iter, iter + columns, (outputMode == Embedded));
             if (duplicateHandling != ReduceDuplicates)
                 cout << " " << count;
-            cout << endl;
+            cout << '\n';
             iter += columns;
         }
     }
