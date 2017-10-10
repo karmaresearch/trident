@@ -2273,8 +2273,11 @@ void Loader::parallel_createIndices(
     for (int i = 0; i < 3; ++i) {
         ts[i].join();
     }
-    at1.join();
-    at2.join();
+
+    if (!aggrIndices) {
+	at1.join();
+	at2.join();
+    }
 
     //Aggregated
     if (aggrIndices) {
