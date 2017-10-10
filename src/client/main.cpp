@@ -21,7 +21,6 @@
 
 
 #include <trident/loader.h>
-
 #include <trident/kb/kb.h>
 #include <trident/kb/statistics.h>
 #include <trident/kb/inserter.h>
@@ -33,15 +32,12 @@
 #include <trident/server/server.h>
 
 #include <kognac/utils.h>
+#include <kognac/progargs.h>
 
-#include <snap/tasks.h>
-#include <zstr/zstr.hpp>
-
-//SNAP dependencies
 #include <snap/analytics.h>
-//END SNAP dependencies
+#include <snap/tasks.h>
 
-#include <boost/program_options.hpp>
+#include <zstr/zstr.hpp>
 
 #include <iostream>
 #include <cstdlib>
@@ -49,31 +45,24 @@
 #include <fstream>
 
 using namespace std;
-namespace po = boost::program_options;
 
 //Implemented in main_params.cpp
+extern bool initParams(int argc, const char** argv, ProgramArgs &vm);
 extern bool checkMachineConstraints();
-extern bool checkParams(po::variables_map &vm, int argc, const char** argv,
-        po::options_description &desc,
-        std::map<string,po::options_description> &sections);
-extern bool initParams(int argc, const char** argv, po::variables_map &vm);
-extern void printHelp(const char *programName, string section,
-        po::options_description &desc,
-        std::map<string,po::options_description> &sections);
 
 //Implemented in main_sparql.cpp
-extern void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent);
+extern void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent);
 extern void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         bool disableBifocalSampling, bool resultslookup);
 
 //Implemented in main_ml.cpp
 extern void launchML(KB &kb, string op, string algo, string params);
-extern void subgraphEval(KB &kb, po::variables_map &vm);
+extern void subgraphEval(KB &kb, ProgramArgs &vm);
 
 //Implemented in kb.cpp
 extern bool _sort_by_number(const string &s1, const string &s2);
 
-void lookup(DictMgmt *dict, po::variables_map &vm) {
+void lookup(DictMgmt *dict, ProgramArgs &vm) {
     if (vm.count("text")) {
         nTerm value;
         string textTerm = vm["text"].as<string>();
@@ -144,7 +133,7 @@ void dump(KB *kb, string outputdir) {
     delete q;
 }
 
-void testkb(string kbDir, po::variables_map &vm) {
+void testkb(string kbDir, ProgramArgs &vm) {
     if (!Utils::exists(kbDir)) {
         //Load the KB
         Loader loader;
@@ -287,7 +276,7 @@ int main(int argc, const char** argv) {
     }
 
     //Init params
-    po::variables_map vm;
+    ProgramArgs vm;
     if (!initParams(argc, argv, vm)) {
         return EXIT_FAILURE;
     }
@@ -305,7 +294,7 @@ int main(int argc, const char** argv) {
     if (vm["logfile"].as<string>() != "") {
         Logger::logToFile(vm["logfile"].as<string>());
     }
-    
+
     //Print params
     if (Logger::getMinLevel() <= DEBUGL) {
         string params = "";

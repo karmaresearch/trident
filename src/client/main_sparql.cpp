@@ -1,6 +1,8 @@
 #include <trident/sparql/query.h>
 #include <trident/sparql/plan.h>
 
+#include <kognac/progargs.h>
+
 //RDF3X dependencies
 #include <layers/TridentLayer.hpp>
 #include <cts/parser/SPARQLLexer.hpp>
@@ -16,13 +18,9 @@
 #include <rts/operator/ResultsPrinter.hpp>
 //END RDF3x dependencies
 
-#include <boost/program_options.hpp>
-
 #include <string>
 
 using namespace std;
-
-namespace po = boost::program_options;
 
 std::unique_ptr<Query> createQueryFromRF3XQueryGraph(SPARQLParser &parser,
         QueryGraph &graph) {
@@ -176,7 +174,7 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
     }
 }
 
-void execNativeQuery(po::variables_map &vm, Querier *q, KB &kb, bool silent) {
+void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent) {
     long nElements = 0;
     char bufferTerm[MAX_TERM_SIZE];
     DictMgmt *dict = kb.getDictMgmt();

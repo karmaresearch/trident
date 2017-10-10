@@ -4,12 +4,11 @@
 #include <trident/ml/subgraphhandler.h>
 #include <trident/utils/batch.h>
 
+#include <kognac/progargs.h>
+
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/karma.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
-#include <boost/program_options.hpp>
-
-namespace po = boost::program_options;
 
 void launchML(KB &kb, string op, string algo, string params) {
     LOG(INFOL) << "Launching " << op << " " << params << " ...";
@@ -161,7 +160,7 @@ void launchML(KB &kb, string op, string algo, string params) {
     }
 }
 
-void subgraphEval(KB &kb, po::variables_map &vm) {
+void subgraphEval(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.evaluate(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
             vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),

@@ -1,18 +1,17 @@
 #include <trident/kb/kbconfig.h>
 #include <trident/binarytables/storagestrat.h>
 
-#include <snap/tasks.h>
+#include <kognac/progargs.h>
 
-#include <boost/program_options.hpp>
+#include <snap/tasks.h>
 
 #include <iostream>
 
 using namespace std;
-namespace po = boost::program_options;
 
 void printHelp(const char *programName, string section,
-        po::options_description &desc,
-        std::map<string,po::options_description> &sections) {
+        ProgramArgs &vm,
+        std::map<string, ProgramArgs::GroupArgs*> &sections) {
 
     if (section != "") {
         if (sections.count(section)) {
@@ -35,7 +34,7 @@ void printHelp(const char *programName, string section,
         cout << "dump\t\t dump the graph on files." << endl << endl;
         cout << "learn\t\t launch an algorithm to calculate KG embeddings." << endl << endl;
         cout << "server\t\t start a server for SPARQL queries." << endl << endl;
-        cout << desc << endl;
+        cout << vm.tostring() << endl;
     }
 }
 
@@ -45,9 +44,9 @@ inline void printErrorMsg(const char *msg) {
         << endl;
 }
 
-bool checkParams(po::variables_map &vm, int argc, const char** argv,
-        po::options_description &desc,
-        std::map<string,po::options_description> &sections) {
+bool checkParams(ProgramArgs &vm, int argc, const char** argv,
+        ProgramArgs &desc,
+        std::map<string, ProgramArgs::GroupArgs*> &sections) {
 
     string cmd;
     if (argc < 2) {
@@ -156,12 +155,6 @@ bool checkParams(po::variables_map &vm, int argc, const char** argv,
                 return false;
             }
 
-            if (!vm.count("popArg")) {
-                printErrorMsg(
-                        "The argument to identify the popular terms is not set (-popArg)");
-                return false;
-            }
-
             if (vm["maxThreads"].as<int>() < 1) {
                 printErrorMsg(
                         "The number of threads to use must be at least 1");
@@ -239,215 +232,126 @@ bool checkMachineConstraints() {
     return true;
 }
 
-bool initParams(int argc, const char** argv, po::variables_map &vm) {
-    std::map<string, po::options_description> sections;
+bool initParams(int argc, const char** argv, ProgramArgs &vm) {
+    std::map<string, ProgramArgs::GroupArgs*> sections;
 
-    po::options_description query_options("Options for <query>");
-    query_options.add_options()("query,q", po::value<string>()->default_value(""),
-            "The path of the file with a SPARQL query. If not set then the query is read from STDIN.");
-    query_options.add_options()("repeatQuery,r",
-            po::value<int>()->default_value(0),
-            "Repeat the query <arg> times. If the argument is not specified, then the query will not be repeated.");
-    query_options.add_options()("explain,e",
-            po::value<bool>()->default_value(false),
-            "Explain the query instead of executing it. Default value is false.");
-    query_options.add_options()("decodeoutput",
-            po::value<bool>()->default_value(true),
-            "Retrieve the original values of the results of query. Default is true");
-    query_options.add_options()("disbifsampl",
-            po::value<bool>()->default_value(false),
-            "Disable bifocal sampling (accurate but expensive). Default is false");
+    ProgramArgs::GroupArgs& query_options = *vm.newGroup("Options for <query>");
+    query_options.add<string>("q","query", "",
+            "The path of the file with a SPARQL query. If not set then the query is read from STDIN.", false);
+    query_options.add<int>("r","repeatQuery",
+            0, "Repeat the query <arg> times. If the argument is not specified, then the query will not be repeated.", false);
+    query_options.add<bool>("e","explain", false,
+            "Explain the query instead of executing it. Default value is false.", false);
+    query_options.add<bool>("", "decodeoutput", true,
+            "Retrieve the original values of the results of query. Default is true", false);
+    query_options.add<bool>("", "disbifsampl", false,
+            "Disable bifocal sampling (accurate but expensive). Default is false", false);
 
-    po::options_description load_options("Options for <load>");
-    load_options.add_options()("inputformat", po::value<string>()->default_value("rdf"),
-            "Input format. Can be either 'rdf' or 'snap'. Default is 'rdf'.");
-    load_options.add_options()("comprinput", po::value<string>(),
-            "Path to a file that contains a list of compressed triples.");
-    load_options.add_options()("comprdict", po::value<string>()->default_value(""),
-            "Path to a file that contains the dictionary for the compressed triples.");
-    load_options.add_options()("comprdict_rel", po::value<string>()->default_value(""),
-            "Path to a file that contains the dictionary for the relations used in compressed triples (used only if relsOwnIDs is set to true).");
+    ProgramArgs::GroupArgs& load_options = *vm.newGroup("Options for <load>");
+    load_options.add<string>("","inputformat", "rdf", "Input format. Can be either 'rdf' or 'snap'. Default is 'rdf'.", false);
+    load_options.add<string>("","comprinput", "", "Path to a file that contains a list of compressed triples.", false);
+    load_options.add<string>("","comprdict", "", "Path to a file that contains the dictionary for the compressed triples.", false);
+    load_options.add<string>("","comprdict_rel", "", "Path to a file that contains the dictionary for the relations used in compressed triples (used only if relsOwnIDs is set to true).", false);
 
-    load_options.add_options()("tripleFiles,f", po::value<string>(),
-            "Path to the files that contain the compressed triples. This parameter is REQUIRED.");
-    load_options.add_options()("tmpdir", po::value<string>(),
-            "Path to store the temporary files used during loading. Default is the output directory.");
-    load_options.add_options()("dictMethod,d", po::value<string>()->default_value(DICT_HEURISTICS),
-            "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.");
-    load_options.add_options()("popMethod",
-            po::value<string>()->default_value("hash"),
-            "Method to use to identify the popular terms. Can be either 'sample' or 'hash'. Default is 'hash'");
-    load_options.add_options()("maxThreads",
-            po::value<int>()->default_value(8),
-            "Sets the maximum number of threads to use during the compression. Default is '8'");
-    load_options.add_options()("readThreads",
-            po::value<int>()->default_value(2),
-            "Sets the number of concurrent threads that reads the raw input. Default is '2'");
-    load_options.add_options()("ndicts",
-            po::value<int>()->default_value(1),
-            "Sets the number dictionary partitions. Default is '1'");
-    load_options.add_options()("skipTables", po::value<bool>()->default_value(false),
-            "Skip storage of some tables. Default is 'false'");
-    load_options.add_options()("thresholdSkipTable",
-            po::value<int>()->default_value(20),
-            "If dynamic strategy is enabled, this param. defines the size above which a table is not stored. Default is '10'");
-    load_options.add_options()("timeoutStats",
-            po::value<int>()->default_value(-1),
-            "If set greater than 0, it starts a new thread to log some resource statistics every n seconds. Works only under Linux. Default is '-1' (disabled)");
-    load_options.add_options()("onlyCompress",
-            po::value<bool>()->default_value(false),
-            "Only compresses the data. Works only with RDF inputs. Default is DISABLED");
-    load_options.add_options()("sample",
-            po::value<bool>()->default_value(true),
-            "Store a little sample of the data, to improve query optimization. Default is ENABLED");
-    load_options.add_options()("sampleRate",
-            po::value<double>()->default_value(0.01),
-            "If the sampling is enabled, this parameter sets the sample rate. Default is 0.01 (i.e 1%)");
-    load_options.add_options()("storeplainlist",
-            po::value<bool>()->default_value(false),
-            "Next to the indices, stores also a dump of all the input in a single file. This improves scan queries. Default is DISABLED");
-    load_options.add_options()("storedicts",
-            po::value<bool>()->default_value(true),
-            "Should I also store the dictionaries? (Maybe I don't need it, since I only want to do graph analytics. Default is ENABLED");
-    load_options.add_options()("nindices",
-            po::value<int>()->default_value(6),
-            "Set the number of indices to use. Can be 1,3,4,6. Default is '6'");
-    load_options.add_options()("incrindices", po::value<bool>()->default_value(false),
-            "Create the indices a few at the time (saves space). Default is 'false'");
-    load_options.add_options()("aggrIndices", po::value<bool>()->default_value(false),
-            "Use aggredated indices. Default is 'false'");
-    load_options.add_options()("enableFixedStrat", po::value<bool>()->default_value(false),
-            "Should we store the tables with a fixed layout?. Default is 'false'");
-    string textStrat =  "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(StorageStrat::FIXEDSTRAT5) + " for row-layout " + to_string(StorageStrat::FIXEDSTRAT6) + " for a cluster-layout " + to_string(StorageStrat::FIXEDSTRAT7);
-    load_options.add_options()("fixedStrat",
-            po::value<int>()->default_value(StorageStrat::FIXEDSTRAT5), textStrat.c_str());
+    load_options.add<string>("f","tripleFiles", "", "Path to the files that contain the compressed triples. This parameter is REQUIRED.", false);
+    load_options.add<string>("","tmpdir", "", "Path to store the temporary files used during loading. Default is the output directory.", false);
+    load_options.add<string>("d","dictMethod", DICT_HEURISTICS, "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.", false);
+    load_options.add<string>("","popMethod", "hash", "Method to use to identify the popular terms. Can be either 'sample' or 'hash'. Default is 'hash'", false);
+    load_options.add<int>("","maxThreads", 8, "Sets the maximum number of threads to use during the compression. Default is '8'", false);
+    load_options.add<int>("","readThreads", 2, "Sets the number of concurrent threads that reads the raw input. Default is '2'", false);
+    load_options.add<int>("","ndicts", 1, "Sets the number dictionary partitions. Default is '1'", false);
+    load_options.add<bool>("","skipTables", false, "Skip storage of some tables. Default is 'false'", false);
+    load_options.add<int>("","thresholdSkipTable", 20, "If dynamic strategy is enabled, this param. defines the size above which a table is not stored. Default is '10'", false);
+    load_options.add<int>("","timeoutStats", -1, "If set greater than 0, it starts a new thread to log some resource statistics every n seconds. Works only under Linux. Default is '-1' (disabled)", false);
+    load_options.add<bool>("","onlyCompress", false, "Only compresses the data. Works only with RDF inputs. Default is DISABLED", false);
+    load_options.add<bool>("","sample", true, "Store a little sample of the data, to improve query optimization. Default is ENABLED", false);
+    load_options.add<double>("","sampleRate", 0.01, "If the sampling is enabled, this parameter sets the sample rate. Default is 0.01 (i.e 1%)", false);
+    load_options.add<bool>("","storeplainlist", false, "Next to the indices, stores also a dump of all the input in a single file. This improves scan queries. Default is DISABLED", false);
+    load_options.add<bool>("","storedicts", true, "Should I also store the dictionaries? (Maybe I don't need it, since I only want to do graph analytics. Default is ENABLED", false);
+    load_options.add<int>("","nindices", 6, "Set the number of indices to use. Can be 1,3,4,6. Default is '6'", false);
+    load_options.add<bool>("","incrindices", false, "Create the indices a few at the time (saves space). Default is 'false'", false);
+    load_options.add<bool>("","aggrIndices", false, "Use aggredated indices. Default is 'false'", false);
+    load_options.add<bool>("","enableFixedStrat", false, "Should we store the tables with a fixed layout?. Default is 'false'", false);
+    string textStrat = "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(StorageStrat::FIXEDSTRAT5) + " for row-layout " + to_string(StorageStrat::FIXEDSTRAT6) + " for a cluster-layout " + to_string(StorageStrat::FIXEDSTRAT7);
+    load_options.add<int>("","fixedStrat", StorageStrat::FIXEDSTRAT5, textStrat.c_str(), false);
 
-    load_options.add_options()("popArg", po::value<int>()->default_value(128),
+    load_options.add<int>("","popArg", 128,
             "Argument for the method to identify the popular terms. If the method is sample, then it represents the sample percentage (x/10000)."
             "If it it hash, then it indicates the number of popular terms."
-            "Default value is 128.");
+            "Default value is 128.", false);
 
-    load_options.add_options()("remoteLoc", po::value<string>()->default_value(""),
-            "");
-    load_options.add_options()("limitSpace", po::value<long>()->default_value(0),
-            "");
-    load_options.add_options()("gf",
-            po::value<string>()->default_value(""),
-            "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels");
-    load_options.add_options()("relsOwnIDs",
-            po::value<bool>()->default_value(false),
-            "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED");
-    load_options.add_options()("flatTree",
-            po::value<bool>()->default_value(false),
-            "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED");    
+    load_options.add<string>("","remoteLoc", "", "", false);
+    load_options.add<long>("","limitSpace", 0, "", false);
+    load_options.add<string>("","gf", "", "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels", false);
+    load_options.add<bool>("","relsOwnIDs", false, "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED", false);
+    load_options.add<bool>("","flatTree", false, "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED", false);
 
+    ProgramArgs::GroupArgs& lookup_options = *vm.newGroup("Options for <lookup>");
+    lookup_options.add<string>("t","text", "", "Textual term to search", false);
+    lookup_options.add<long>("n","number", 0, "Numeric term to search", false);
 
-    po::options_description lookup_options("Options for <lookup>");
-    lookup_options.add_options()("text,t", po::value<string>(),
-            "Textual term to search")("number,n", po::value<long>(),
-                "Numeric term to search");
+    ProgramArgs::GroupArgs& test_options = *vm.newGroup("Options for <tests> (only advanced usage)");
+    test_options.add<string>("", "testqueryfile", "", "Path file to store/load test queries", false);
+    test_options.add<string>("", "testperms", "0;1;2;3;4;5", "Permutations to test", false);
+    test_options.add<int>("", "testsystem", 0, "Test system. 0=Trident 1=RDF3X", false);
 
-    po::options_description test_options("Options for <tests> (only advanced usage)");
-    test_options.add_options()("testqueryfile",
-            po::value<string>()->default_value(""),
-            "Path file to store/load test queries");
-    test_options.add_options()("testperms",
-            po::value<string>()->default_value("0;1;2;3;4;5"),
-            "Permutations to test.");
-    test_options.add_options()("testsystem",
-            po::value<int>()->default_value(0),
-            "Test system. 0=Trident 1=RDF3X");
+    ProgramArgs::GroupArgs& update_options = *vm.newGroup("Options for <add> or <rm>");
+    update_options.add<string>("", "update", "", "Path to the file/dir that contains the triples to update", false);
 
-    po::options_description update_options("Options for <add> or <rm>");
-    update_options.add_options()("update",
-            po::value<string>()->default_value(""),
-            "Path to the file/dir that contains the triples to update");
+    ProgramArgs::GroupArgs& server_options = *vm.newGroup("Options for <server>");
+    server_options.add<int>("", "port", 8080, "Port to listen to", false);
 
-    po::options_description server_options("Options for <server>");
-    server_options.add_options()("port",
-            po::value<int>()->default_value(8080),
-            "Port to listen to.");
+    ProgramArgs::GroupArgs& ml_options = *vm.newGroup("Options for <learn> or <predict>");
+    ml_options.add<string>("", "algo", "", "The task to perform", false);
+    ml_options.add<string>("","args", "", "arguments for the task, separated by ;", false);
 
-    po::options_description ml_options("Options for <learn> or <predict>");
-    ml_options.add_options()("algo",
-            po::value<string>()->default_value(""),
-            "The task to perform This parameter is REQUIRED.");
-    ml_options.add_options()("args",
-            po::value<string>()->default_value(""),
-            "arguments for the task, separated by ;");
+    ProgramArgs::GroupArgs& mine_options = *vm.newGroup("Options for <mine>");
+    mine_options.add<long>("", "minSupport", 1000, "Min support for the patterns to mine", false);
+    mine_options.add<int>("", "minLen", 2, "Min lengths of the patterns", false);
+    mine_options.add<int>("", "maxLen", 10, "Max lengths of the patterns", false);
 
-
-    po::options_description mine_options("Options for <mine>");
-    mine_options.add_options()("minSupport",
-            po::value<long>()->default_value(1000),
-            "Min support for the patterns to mine.");
-    mine_options.add_options()("minLen",
-            po::value<int>()->default_value(2),
-            "Min lengths of the patterns.");
-    mine_options.add_options()("maxLen",
-            po::value<int>()->default_value(10),
-            "Max lengths of the patterns.");
-
-    po::options_description ana_options("Options for <analytics>");
-    ana_options.add_options()("op",
-            po::value<string>()->default_value(""),
-            "The analytical operation to perform This parameter is REQUIRED.");
-    ana_options.add_options()("oparg1",
-            po::value<string>()->default_value(""),
-            "First argument for the analytical operation. Normally it is the path to output the results of the computation.");
+    ProgramArgs::GroupArgs& ana_options = *vm.newGroup("Options for <analytics>");
+    ana_options.add<string>("", "op", "", "The analytical operation to perform", false);
+    ana_options.add<string>("", "oparg1", "", "First argument for the analytical operation. Normally it is the path to output the results of the computation", false);
     string helpstring = "List of values to give to additional parameters. The list of details depends on the action. Parameters should be split by ';', e.g., src=0;dst=10 for bfs. Notice that the character ';' should be escaped ('\\;').\n" + AnalyticsTasks::getInstance().getTaskDetails();
-    ana_options.add_options()("oparg2",
-            po::value<string>()->default_value(""),
-            helpstring.c_str());
+    ana_options.add<string>("", "oparg2", "", helpstring.c_str(), false);
 
-    po::options_description dump_options("Options for <dump>");
-    dump_options.add_options()("output",
-            po::value<string>()->default_value(""),
-            "Output directory to store the graph");
+    ProgramArgs::GroupArgs& dump_options = *vm.newGroup("Options for <dump>");
+    dump_options.add<string>("", "output", "", "Output directory to store the graph", false);
 
-    po::options_description subeval_options("Options for <subeval>");
-    subeval_options.add_options()("subeval_algo",
-            po::value<string>()->default_value(""),
-            "The algorithm used to create embeddings. This parameter is REQUIRED.");
-    subeval_options.add_options()("embdir",
-            po::value<string>()->default_value(""),
-            "The directory that contains the embeddings.");
-    subeval_options.add_options()("nametest",
-            po::value<string>()->default_value(""),
-            "The path (or name) of the dataset to use to test the performance.");
-    subeval_options.add_options()("sgfile",
-            po::value<string>()->default_value(""),
-            "The path of the file that contains embeddings of the subgraphs.");
-    subeval_options.add_options()("sgformat",
-            po::value<string>()->default_value(""),
-            "The format of the subgraphs (for now only 'cikm').");
+    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subeval>");
+    subeval_options.add<string>("", "subeval_algo", "",
+            "The algorithm used to create embeddings", false);
+    subeval_options.add<string>("", "embdir", "",
+            "The directory that contains the embeddings", false);
+    subeval_options.add<string>("", "nametest", "",
+            "The path (or name) of the dataset to use to test the performance", false);
+    subeval_options.add<string>("", "sgfile", "",
+            "The path of the file that contains embeddings of the subgraphs", false);
+    subeval_options.add<string>("", "sgformat", "",
+            "The format of the subgraphs (for now only 'cikm')", false);
 
-    po::options_description cmdline_options("Generic options");
-    cmdline_options.add(query_options).add(lookup_options).add(load_options).add(test_options).add(update_options).add(ana_options).add(dump_options).add(mine_options).add(server_options).add(ml_options).add(subeval_options);
+    ProgramArgs::GroupArgs& cmdline_options = *vm.newGroup("General options");
+    cmdline_options.add<string>("i","input", "",
+            "The path of the KB directory",true);
+    cmdline_options.add<string>("l", "logLevel", "info",
+            "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is info", false);
+    cmdline_options.add<string>("", "logfile","",
+            "Set if you want to store the logs in a file", false);
 
-    sections.insert(make_pair("query",query_options));
-    sections.insert(make_pair("lookup",lookup_options));
-    sections.insert(make_pair("load",load_options));
-    sections.insert(make_pair("test",test_options));
-    sections.insert(make_pair("update",update_options));
-    sections.insert(make_pair("analytics",ana_options));
-    sections.insert(make_pair("dump",dump_options));
-    sections.insert(make_pair("mine",mine_options));
-    sections.insert(make_pair("server",server_options));
-    sections.insert(make_pair("ml",ml_options));
+    sections.insert(make_pair("query",&query_options));
+    sections.insert(make_pair("lookup",&lookup_options));
+    sections.insert(make_pair("load",&load_options));
+    sections.insert(make_pair("test",&test_options));
+    sections.insert(make_pair("add",&update_options));
+    sections.insert(make_pair("rm",&update_options));
+    sections.insert(make_pair("analytics",&ana_options));
+    sections.insert(make_pair("dump",&dump_options));
+    sections.insert(make_pair("mine",&mine_options));
+    sections.insert(make_pair("server",&server_options));
+    sections.insert(make_pair("learn",&ml_options));
+    sections.insert(make_pair("predict",&ml_options));
 
-    cmdline_options.add_options()("input,i", po::value<string>(),
-            "The path of the KB directory. This parameter is REQUIRED.")(
-                "logLevel,l", po::value<string>()->default_value("info"),
-                "Set the log level (accepted values: trace, debug, info, warning, error, fatal). Default is warning.");
-    cmdline_options.add_options()("logfile",
-            po::value<string>()->default_value(""),
-            "Set if you want to store the logs in a file");
-
-    po::store(
-            po::command_line_parser(argc, argv).options(cmdline_options).run(),
-            vm);
-
-    return checkParams(vm, argc, argv, cmdline_options, sections);
+    vm.parse(argc, argv);
+    return checkParams(vm, argc, argv, vm, sections);
 }
-
