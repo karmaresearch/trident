@@ -2275,8 +2275,8 @@ void Loader::parallel_createIndices(
     }
 
     if (!aggrIndices) {
-	at1.join();
-	at2.join();
+        at1.join();
+        at2.join();
     }
 
     //Aggregated
@@ -2777,26 +2777,34 @@ void Loader::releaseBunchTermCoordinates(BufferCoordinates *cord,
 }
 
 void Loader::testLoadingTree(string tmpDir, Inserter *ins, int nindices) {
-    /*string *sTreeWriters = new string[nindices];
-      std::thread *threads = new std::thread[1];
-      for (int i = 0; i < nindices; ++i) {
-      sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
-      }
+    string *sTreeWriters = new string[nindices];
+    std::thread *threads = new std::thread[1];
+    for (int i = 0; i < nindices; ++i) {
+        sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
+    }
 
+    SharedStructs structs;
+    structs.bufferToFill = structs.bufferToReturn = &structs.buffer1;
+    structs.isFinished = false;
+    structs.buffersReady = 0;
 
-      bufferToFill = bufferToReturn = &buffer1;
-      isFinished = false;
-      buffersReady = 0;
-      threads[0] = std::thread(
-      std::bind(&Loader::mergeTermCoordinates, this,
-      sTreeWriters, nindices));
-      processTermCoordinates(ins);
-      for (int i = 0; i < 1; ++i) {
-      threads[i].join();
-      }
+    ParamsMergeCoordinates params;
+    params.coordinates = sTreeWriters;
+    params.ncoordinates = 6;
 
-      delete[] sTreeWriters;
-      delete[] threads;*/
+    params.bufferToFill = structs.bufferToFill;
+    params.isFinished = &structs.isFinished;
+    params.buffersReady = &structs.buffersReady;
+    params.buffer1 = &structs.buffer1;
+    params.buffer2 = &structs.buffer2;
+    params.cond = &structs.cond;
+    params.mut = &structs.mut;
+    threads[0] = std::thread(
+            std::bind(&Loader::mergeTermCoordinates, params));
+    processTermCoordinates(ins, &structs);
+    threads[0].join();
+    delete[] sTreeWriters;
+    delete[] threads;
 }
 
 TermCoordinates *CoordinatesMerger::get(nTerm &key) {

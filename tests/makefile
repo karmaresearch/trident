@@ -1,7 +1,7 @@
 KOGNAC_BUILDIR=../build/kognac/
 TRIDENT_BUILDIR=../build_debug
-CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/glib-core
-CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core 
+CINCLUDES= -I../include -I../build/kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
+CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/kognac/external/lz4/lib -L../build/kognac/external/sparsehash/src
 CPLUS=g++
 
 test_multi:
@@ -72,7 +72,7 @@ testinsertdictionary:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -I.. -I../include -O3 -g -o testInsertDictionary -DBOOST_LOG_DYN_LINK -lboost_filesystem-mt -llz4 -lboost_system -lboost_chrono -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread test_insertdictionary.cpp -std=c++0x $(OBJS) $(OBJC)
 
 testinserttree:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -I.. -I../include -O3 -g -o testInsertTree -DBOOST_LOG_DYN_LINK -ltcmalloc -lboost_filesystem-mt -llz4 -lboost_system -lboost_chrono -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread test_insert_tree.cpp -std=c++0x $(OBJS) $(OBJC)
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -I.. -I../include -O3 -g -o testInsertTree -ltrident -llz4 -lpthread test_insert_tree.cpp -std=c++0x $(OBJS) $(OBJC) ../build_debug/kognac/libkognac.a
 
 testinsertindex:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -I.. -I../include -I../../kognac/include -O3 -g -o testInsertIndex -DBOOST_LOG_DYN_LINK -ltcmalloc -lboost_filesystem-mt -llz4 -lboost_system -lboost_chrono -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread test_insertindex.cpp -std=c++0x $(OBJS) $(OBJC)
