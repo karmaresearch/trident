@@ -15,7 +15,7 @@ void printHelp(const char *programName, string section,
 
     if (section != "") {
         if (sections.count(section)) {
-            cout << sections[section] << endl;
+            cout << sections[section]->tostring() << endl;
         } else {
             cout << "Command " << section << " not recognized" << endl;
         }

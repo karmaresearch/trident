@@ -20,7 +20,7 @@ test_transe:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testTranse -std=c++0x -DBOOST_LOG_DYN_LINK -g -O0 test_transe.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
 
 test_snap:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testSnap -std=c++0x -DBOOST_LOG_DYN_LINK  -O3 test_snap.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testSnap -std=c++0x -DBOOST_LOG_DYN_LINK  -O3 test_snap.cpp $(OBJS) -ltrident -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap ../..//kognac/build/libkognac.a
 
 test_insert5:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testInsert5 -std=c++0x -DBOOST_LOG_DYN_LINK  -O0 test_insert5.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4

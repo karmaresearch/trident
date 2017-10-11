@@ -1510,7 +1510,7 @@ void Loader::load(ParamsLoad p) {
 
     if (p.inputformat == "snap") { /*** LOAD SNAP FILES ***/
         if (p.graphTransformation == "") {
-            p.graphTransformation = "not_multigraph";
+            p.graphTransformation = "undirected";
         }
         totalCount = parseSnapFile(p.triplesInputDir,
                 p.dictDir,
