@@ -48,7 +48,7 @@ private:
     long nodeCounter;
 
 #ifdef MT
-    std::mutex mutex;
+    std::recursive_mutex mutex;
 #endif
 
 public:
@@ -110,7 +110,7 @@ public:
     }
 
 #ifdef MT
-    std::mutex &getMutex() {
+    std::recursive_mutex &getMutex() {
         return mutex;
     }
 #endif

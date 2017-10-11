@@ -394,8 +394,8 @@ Node *IntermediateNode::putOrGet(tTerm *key, int sizeKey, nTerm &value,
 void IntermediateNode::ensureChildIsLoaded(int p) {
     if (children[p] == NULL) {
 #ifdef MT
-        std::mutex &mutex = getContext()->getMutex();
-        std::unique_lock<std::mutex> lock(mutex);
+        std::recursive_mutex &mutex = getContext()->getMutex();
+        std::unique_lock<std::recursive_mutex> lock(mutex);
         if (children[p] == NULL) {
 #endif
             children[p] = getContext()->getCache()->getNodeFromCache(idChildren[p]);

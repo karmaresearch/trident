@@ -649,8 +649,8 @@ const char NCOMBS[64] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2
 
 Coordinates *Leaf::parseInternalLine(const int pos) {
 #ifdef MT
-        std::mutex &mutex = getContext()->getMutex();
-        std::unique_lock<std::mutex> lock(mutex);
+        std::recursive_mutex &mutex = getContext()->getMutex();
+        std::unique_lock<std::recursive_mutex> lock(mutex);
 #endif
 
     unsigned char permutations = rawNode[pos];
