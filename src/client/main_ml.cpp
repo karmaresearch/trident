@@ -6,20 +6,26 @@
 
 #include <kognac/progargs.h>
 
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/karma.hpp>
-#include <boost/fusion/adapted/std_pair.hpp>
+bool _parseParams(std::string raw, std::map<std::string,std::string> &out) {
+    //Tokenize depending on ;
+    std::istringstream is(raw);
+    string part;
+    while (getline(is, part, ';')) {
+        auto pos = part.find('=');
+        if (pos != std::string::npos) {
+            auto name = part.substr(0,pos);
+            auto value = part.substr(pos+1);
+            out.insert(std::make_pair(name, value));
+        }
+    }
+    return true;
+}
 
 void launchML(KB &kb, string op, string algo, string params) {
     LOG(INFOL) << "Launching " << op << " " << params << " ...";
     //Parse the params
     std::map<std::string,std::string> mapparams;
-    std::string::iterator first = params.begin();
-    std::string::iterator last  = params.end();
-    const bool result = boost::spirit::qi::phrase_parse(first, last,
-            *( *(boost::spirit::qi::char_-"=")  >> boost::spirit::qi::lit("=") >> *(boost::spirit::qi::char_-";") >> -boost::spirit::qi::lit(";") ),
-            boost::spirit::ascii::space, mapparams);
-    if (!result) {
+    if (!_parseParams(params, mapparams)) {
         LOG(ERRORL) << "Parsing params " << params << " has failed!";
         return;
     }
@@ -166,4 +172,3 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),
             vm["nametest"].as<string>(), "python");
 }
-
