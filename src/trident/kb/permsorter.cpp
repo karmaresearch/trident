@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/kb/permsorter.h>
@@ -347,7 +347,8 @@ void PermSorter::dumpPermutation(char *input, long end,
         currentEnd = nextEnd;
     }
     for(int i = 0; i < parallelProcesses; ++i) {
-        threads[i].join();
+        if (threads[i].joinable())
+            threads[i].join();
     }
     for(int i = 0; i < maxReadingThreads; ++i) {
         delete writers[i];
@@ -600,36 +601,36 @@ void PermSorter::sortChunks_seq(const int idReader,
         }
     } else {
         /************* OSP (unlabelled graph) ************/
-            int idxOSP = 0;
-            for(auto p : additionalPermutations) {
-                if (p.second == IDX_OSP) {
-                    break;
-                }
-                idxOSP++;
+        int idxOSP = 0;
+        for(auto p : additionalPermutations) {
+            if (p.second == IDX_OSP) {
+                break;
             }
-            if (idxOSP < additionalPermutations.size()) { //Found OSP
-                char *startOSP = rawTriples->at(idxOSP + 1).get() + startIdx;
-                memcpy(startOSP, start, endIdx - startIdx);
-                for(long j = 0; j < i; ++j) {
-                    //swap o and s
-                    char tmp[5];
-                    tmp[0] = startOSP[5]; //copy o in tmp
-                    tmp[1] = startOSP[6];
-                    tmp[2] = startOSP[7];
-                    tmp[3] = startOSP[8];
-                    tmp[4] = startOSP[9];
-                    startOSP[5] = startOSP[0]; //copy s in o
-                    startOSP[6] = startOSP[1];
-                    startOSP[7] = startOSP[2];
-                    startOSP[8] = startOSP[3];
-                    startOSP[9] = startOSP[4];
-                    startOSP[0] = tmp[0]; //copy s in o
-                    startOSP[1] = tmp[1];
-                    startOSP[2] = tmp[2];
-                    startOSP[3] = tmp[3];
-                    startOSP[4] = tmp[4];
-                    startOSP += 15;
-                }
+            idxOSP++;
+        }
+        if (idxOSP < additionalPermutations.size()) { //Found OSP
+            char *startOSP = rawTriples->at(idxOSP + 1).get() + startIdx;
+            memcpy(startOSP, start, endIdx - startIdx);
+            for(long j = 0; j < i; ++j) {
+                //swap o and s
+                char tmp[5];
+                tmp[0] = startOSP[5]; //copy o in tmp
+                tmp[1] = startOSP[6];
+                tmp[2] = startOSP[7];
+                tmp[3] = startOSP[8];
+                tmp[4] = startOSP[9];
+                startOSP[5] = startOSP[0]; //copy s in o
+                startOSP[6] = startOSP[1];
+                startOSP[7] = startOSP[2];
+                startOSP[8] = startOSP[3];
+                startOSP[9] = startOSP[4];
+                startOSP[0] = tmp[0]; //copy s in o
+                startOSP[1] = tmp[1];
+                startOSP[2] = tmp[2];
+                startOSP[3] = tmp[3];
+                startOSP[4] = tmp[4];
+                startOSP += 15;
+            }
         }
     }
 }
