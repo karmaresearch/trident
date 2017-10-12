@@ -15,7 +15,7 @@ namespace timens = std::chrono;
 
 int main(int argc, const char** argv) {
 
-    Logger::setMinLevel(INFOL);
+    Logger::setMinLevel(DEBUGL);
 	//First test all 6 permutations
 	char *supportBuffer;
 	supportBuffer = new char[23];
@@ -39,8 +39,7 @@ int main(int argc, const char** argv) {
 		s.close();
 	}
 
-
-    /*KBConfig config;
+    KBConfig config;
     config.setParamInt(DICTPARTITIONS, 1);
     config.setParamInt(NINDICES, 6);
     config.setParamBool(AGGRINDICES, false);
@@ -51,5 +50,5 @@ int main(int argc, const char** argv) {
     KB kb(argv[1], false, false, true, config);
 
     Loader loader;
-    loader.testLoadingTree(argv[2], kb.insert(), 6);*/
+    loader.testLoadingTree(argv[2], kb.insert(), 6);
 }

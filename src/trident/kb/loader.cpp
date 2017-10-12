@@ -286,7 +286,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         size_t sizeinput = 0;
         if (gzipped) {
             LOG(DEBUGL) << "Uncompressing buffer ...";
-            istringstream raw(buffer, sizebuffer);
+            istringstream raw(string(buffer, sizebuffer));
             zstr::istream is(raw);
             std::copy(isitr(is), isitr(), std::back_inserter(uncompressedByteArray));
             input = &(uncompressedByteArray[0]);
