@@ -48,6 +48,7 @@
 #include <sstream>
 #include <limits>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <cstdio>
 #include <unordered_map>
@@ -271,6 +272,8 @@ long Loader::parseSnapFile(string inputtriples,
 
 void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         DiskLZ4Writer *writer, int id, long *output) {
+    typedef std::istream_iterator<char> isitr;
+
     size_t sizebuffer = 0;
     bool gzipped = false;
     char *buffer = reader->getfile(sizebuffer, gzipped);
@@ -282,17 +285,13 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         char *input = NULL;
         size_t sizeinput = 0;
         if (gzipped) {
-            //LOG(DEBUGL) << "Uncompressing buffer ...";
-            /*io::filtering_ostream os;
-              os.push(io::gzip_decompressor());
-              os.push(io::back_inserter(uncompressedByteArray));
-              io::write(os, buffer, sizebuffer);
-              os.flush();
-              input = &(uncompressedByteArray[0]);
-              sizeinput = uncompressedByteArray.size();*/
-            LOG(ERRORL) << "Not implemented yet"; //TODO
-            throw 10;
-            //LOG(DEBUGL) << "Uncompressing buffer (done)";
+            LOG(DEBUGL) << "Uncompressing buffer ...";
+            istringstream raw(buffer, sizebuffer);
+            zstr::istream is(raw);
+            std::copy(isitr(is), isitr(), std::back_inserter(uncompressedByteArray));
+            input = &(uncompressedByteArray[0]);
+            sizeinput = uncompressedByteArray.size();
+            LOG(DEBUGL) << "Uncompressing buffer (done)";
         } else {
             input = buffer;
             sizeinput = sizebuffer;
