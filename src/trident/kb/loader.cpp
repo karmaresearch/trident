@@ -49,6 +49,7 @@
 #include <limits>
 #include <fstream>
 #include <sstream>
+#include <ios>
 #include <iostream>
 #include <cstdio>
 #include <unordered_map>
@@ -286,9 +287,12 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         size_t sizeinput = 0;
         if (gzipped) {
             LOG(DEBUGL) << "Uncompressing buffer ...";
+            uncompressedByteArray.clear();
             istringstream raw(string(buffer, sizebuffer));
             zstr::istream is(raw);
-            std::copy(isitr(is), isitr(), std::back_inserter(uncompressedByteArray));
+            is.unsetf(std::ios_base::skipws);
+            isitr itrstream(is);
+            std::copy(itrstream, isitr(), std::back_inserter(uncompressedByteArray));
             input = &(uncompressedByteArray[0]);
             sizeinput = uncompressedByteArray.size();
             LOG(DEBUGL) << "Uncompressing buffer (done)";
