@@ -1,11 +1,9 @@
 #include <trident/ml/graddebug.h>
+#include <trident/utils/json.h>
 
 #include <kognac/logs.h>
 
 #include <zstr/zstr.hpp>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 void GradTracer::add(uint16_t epoch, uint32_t id,
         std::vector<float> &features,
@@ -26,39 +24,37 @@ void GradTracer::add(uint16_t epoch, uint32_t id,
 void GradTracer::store(std::string file) {
     LOG(DEBUGL) << "Storing the debug info about the gradients in " << file;
     //Write down the content as a JSON file
-    boost::property_tree::ptree pt;
+    JSON pt;
     pt.put("nents", std::to_string(updates_meta.size()));
-    boost::property_tree::ptree traces;
+    JSON traces;
 
     for(uint32_t idx = 0; idx < updates_meta.size(); ++idx) {
         uint32_t entityId = idx;
         LOG(DEBUGL) << "Process entity " << entityId << " ...";
         auto trace = updates_meta[entityId];
-        boost::property_tree::ptree enttraces;
+        JSON enttraces;
         for (auto t : trace) {
-            boost::property_tree::ptree pent;
+            JSON pent;
             pent.put("epoch", t.epoch);
             pent.put("n", t.n);
             pent.put("startidx", t.startidx);
             if (s_entities.count(entityId)) {
-                boost::property_tree::ptree grad;
+                JSON grad;
                 for(uint16_t j = 0; j < dim; ++j) {
-                    boost::property_tree::ptree el;
-                    el.put("", std::to_string(updates_values[entityId][t.startidx + j]));
-                    grad.push_back(std::make_pair("", el));
+                    grad.push_back(std::to_string(updates_values[entityId][t.startidx + j]));
                 }
                 pent.add_child("gradient", grad);
             }
-            enttraces.push_back(std::make_pair("", pent));
+            enttraces.push_back(pent);
         }
-        boost::property_tree::ptree ent;
+        JSON ent;
         ent.put("entity", std::to_string(entityId));
         ent.add_child("trace", enttraces);
-        traces.push_back(std::make_pair("", ent));
+        traces.push_back(ent);
     }
     pt.add_child("traces", traces);
 
     //Store in gzip format
     zstr::ofstream ofs(file);
-    write_json(ofs, pt, false);
+    JSON::write(ofs, pt);
 }
