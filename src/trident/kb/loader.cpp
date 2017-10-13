@@ -507,6 +507,8 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
             ntriples += outputs[i];
         }
         for (int i = 0; i < nreadThreads; ++i) {
+            if (threadReaders[i].joinable())
+                threadReaders[i].join();
             delete readers[i];
             delete writers[i];
         }
@@ -1574,6 +1576,10 @@ void Loader::load(ParamsLoad p) {
                     fileNameDictionaries[0],
                     p.maxReadingThreads,
                     p.parallelThreads);
+            if (p.dictDir == "" && p.dictDir_rel == "" && p.storeDicts) {
+                LOG(INFOL) << "I force storeDicts to false since no directory for the dictionary was given";
+                p.storeDicts = false;
+            }
         }
     }
 
