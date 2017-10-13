@@ -37,6 +37,7 @@ KBConfig::KBConfig() {
     internalMap.setBool(USEFIXEDSTRAT, false);
     internalMap.setInt(FIXEDSTRAT, 0);
     internalMap.setInt(THRESHOLD_SKIP_TABLE, 10);
+    internalMap.setBool(RELSOWNIDS, false);
 
     //Parameters about the main tree
     internalMap.setInt(TREE_MAXELEMENTSNODE, 2048);

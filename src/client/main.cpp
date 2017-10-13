@@ -213,14 +213,21 @@ void testkb(string kbDir, ProgramArgs &vm) {
 }
 
 void printInfo(KB &kb) {
-    cout << "N. Terms: " << kb.getNTerms() << endl;
-    cout << "N. Triples: " << kb.getSize() << endl;
-    if (kb.getGraphType() == GraphType::DIRECTED) {
-        cout << "Type: Directed Graph without labelled predicates" << endl;
-    } else if (kb.getGraphType() == GraphType::UNDIRECTED) {
-        cout << "Type: Undirected Graph without labelled predicates" << endl;
+    if (kb.areRelIDsSeparated()) {
+        cout << "Dictionary: entities and relations have different dictionaries" << endl;
+        cout << "N. Entities: " << kb.getNTerms() << endl;
+        cout << "N. Rels: " << kb.getNRels() << endl;
     } else {
-        cout << "Type: Generic Graph" << endl;
+        cout << "Dictionary: shared between entities and relations" << endl;
+        cout << "N. Terms: " << kb.getNTerms() << endl;
+    }
+    cout << "N. Edges: " << kb.getSize() << endl;
+    if (kb.getGraphType() == GraphType::DIRECTED) {
+        cout << "Type: Directed Graph without labeled relations" << endl;
+    } else if (kb.getGraphType() == GraphType::UNDIRECTED) {
+        cout << "Type: Undirected Graph without labeled relations" << endl;
+    } else {
+        cout << "Type: Directed Graph with labeled relations" << endl;
     }
 }
 

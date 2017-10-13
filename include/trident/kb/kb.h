@@ -145,6 +145,10 @@ class KB {
             return totalNumberTerms;
         }
 
+        uint64_t getNRels() const {
+            return dictManager->getNRels();
+        }
+
         bool areRelIDsSeparated() const {
             return relsIDsSep;
         }

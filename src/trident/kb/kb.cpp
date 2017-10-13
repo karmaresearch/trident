@@ -110,7 +110,7 @@ KB::KB(const char *path,
             totalNumberTriples = 0;
             nextID = 0;
             graphType = GraphType::DEFAULT;
-            relsIDsSep = false;
+            relsIDsSep = config.getParamBool(RELSOWNIDS);
             nindices = config.getParamInt(NINDICES);
             aggrIndices = config.getParamBool(AGGRINDICES);
             incompleteIndices = config.getParamBool(INCOMPLINDICES);
@@ -549,7 +549,7 @@ KB::~KB() {
         fos.write(data, 4);
 
         //Write down whether separate IDs were used for the relations
-        if (Utils::exists(string(path) + "/e2r")) {
+        if (relsIDsSep) {
             data[0] = 1;
         } else {
             data[0] = 0;

@@ -41,6 +41,7 @@ typedef enum {
     FIXEDSTRAT, //If the previous is true, this sets the strategy
 
     THRESHOLD_SKIP_TABLE, //Define the threshold when a table can be skipped
+    RELSOWNIDS, //If set to true, then the relations have independent IDs
 
     TREE_MAXELEMENTSNODE, //Max elements inside a node
     TREE_MAXSIZECACHETREE, //Max size of the cache in bytes

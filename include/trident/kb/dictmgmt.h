@@ -150,7 +150,7 @@ public:
     }
 
     uint64_t getNRels() {
-        return r2e.size();
+        return r2e.size() + r2s.size(); //Either one or the others are populated
     }
 
     uint64_t getLargestGUDTerm() {

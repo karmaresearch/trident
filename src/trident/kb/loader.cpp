@@ -1566,6 +1566,10 @@ void Loader::load(ParamsLoad p) {
                 return;
             }
         } else {
+            if (p.dictDir_rel != "") {
+                LOG(INFOL) << "I force the parameter relsOwnIDs to true since the path to a dictionary for the relations is not null";
+                p.relsOwnIDs = true;
+            }
             totalCount = createPermsAndDictsFromFiles(p.triplesInputDir,
                     p.relsOwnIDs,
                     p.dictDir,
@@ -1590,6 +1594,7 @@ void Loader::load(ParamsLoad p) {
     config.setParamBool(USEFIXEDSTRAT, p.enableFixedStrat);
     config.setParamInt(FIXEDSTRAT, p.fixedStrat);
     config.setParamInt(THRESHOLD_SKIP_TABLE, p.thresholdSkipTable);
+    config.setParamBool(RELSOWNIDS, p.relsOwnIDs);
     LOG(DEBUGL) << "Optimizing memory management for " << totalCount << " triples";
     MemoryOptimizer::optimizeForWriting(totalCount, config);
     if (p.dictMethod == DICT_HASH) {
