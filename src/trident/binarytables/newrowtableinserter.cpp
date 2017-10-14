@@ -64,5 +64,8 @@ void NewRowTableInserter::writeSecondTerm(long t) {
     case 3:
         writeLongInt(t);
         return;
+    case 4:
+        writeLong(t);
+        return;
     }
 }

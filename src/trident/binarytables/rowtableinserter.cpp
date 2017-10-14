@@ -32,7 +32,7 @@ void RowTableInserter::append(long t1, long t2) {
     long keyToStore = 0;
     if (t1 != previousValue1 && nElements >= FIRST_INDEX_SIZE) {
         keyToStore = previousValue1;
-        writeIndexEntry = true;
+        writeIndexEntry = index != NULL;
         nElements = 0;
     }
 

@@ -627,6 +627,7 @@ struct FactoryNewRowTable {
     Factory<NewRowTable<LongIntReader, ShortReader>> f82;
     Factory<NewRowTable<LongIntReader, IntReader>> f84;
     Factory<NewRowTable<LongIntReader, LongIntReader>> f88;
+    Factory<NewRowTable<LongIntReader, LongReader>> fspecial;
 
     static void getReaderName(const char nbytes1,
             const char nbytes2) {
@@ -693,6 +694,9 @@ struct FactoryNewRowTable {
                     case 3:
                         std::cout << "&NewRowTable<LongIntReader, LongIntReader>::s_getValue1AtRow";
                         break;
+                    case 4:
+                        std::cout << "&NewRowTable<LongIntReader, LongReader>::s_getValue1AtRow";
+                        break;
                 }
                 break;
         }
@@ -700,6 +704,7 @@ struct FactoryNewRowTable {
     static void getReader(const char nbytes1,
             const char nbytes2,
             long (**output)(const char*, const long)) {
+        output = NULL;
         switch (nbytes1) {
             case 0:
                 switch (nbytes2) {
@@ -763,6 +768,9 @@ struct FactoryNewRowTable {
                     case 3:
                         *output = &NewRowTable<LongIntReader, LongIntReader>::s_getValue1AtRow;
                         break;
+                    case 4:
+                        *output = &NewRowTable<LongIntReader, LongReader>::s_getValue1AtRow;
+                        break;
                 }
                 break;
         }
@@ -816,6 +824,8 @@ struct FactoryNewRowTable {
                         return f84.get();
                     case 3:
                         return f88.get();
+                    case 4:
+                        return fspecial.get();
                 }
                 break;
         }
@@ -891,6 +901,9 @@ struct FactoryNewRowTable {
                         break;
                     case 5:
                         f88.release((NewRowTable<LongIntReader, LongIntReader> *)table);
+                        break;
+                    case 8:
+                        fspecial.release((NewRowTable<LongIntReader, LongReader> *)table);
                         break;
                     default:
                         throw 10;

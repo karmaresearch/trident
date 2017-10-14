@@ -142,9 +142,6 @@ private:
         }
     }
 
-    /*Factory<RowTable> *f1;
-    Factory<ClusterTable> *f2;
-    Factory<ColumnTable> *f3;*/
     Factory<NewColumnTable> *f4;
     FactoryNewRowTable *f5;
     FactoryNewClusterTable *f6;
@@ -157,10 +154,6 @@ private:
     Factory<NewClusterTableInserter> *f6i;
 
 public:
-    /*static const unsigned FIXEDSTRAT1;
-    static const unsigned FIXEDSTRAT2;
-    static const unsigned FIXEDSTRAT3;
-    static const unsigned FIXEDSTRAT4;*/
     static const unsigned FIXEDSTRAT5;
     static const unsigned FIXEDSTRAT6;
     static const unsigned FIXEDSTRAT7;
@@ -208,9 +201,6 @@ public:
     }
 
     StorageStrat() {
-        /*f1 = NULL;
-        f2 = NULL;
-        f3 = NULL;*/
         f4 = NULL;
         f5 = NULL;
         f6 = NULL;
@@ -221,9 +211,7 @@ public:
         statsCluster = statsRow = statsColumn = 0;
     }
 
-    void init(/*Factory<RowTable> *listFactory,
-              Factory<ClusterTable> *comprFactory,
-              Factory<ColumnTable> *list2Factory,*/
+    void init(
               Factory<NewColumnTable> *ncFactory,
               FactoryNewRowTable *newRowFactories,
               FactoryNewClusterTable *newClusterFactories,
@@ -233,9 +221,6 @@ public:
               Factory<NewColumnTableInserter> *ncFactory_i,
               Factory<NewRowTableInserter> *nrFactory_i,
               Factory<NewClusterTableInserter> *ncluFactory_i) {
-        /*this->f1 = listFactory;
-        this->f2 = comprFactory;
-        this->f3 = list2Factory;*/
         this->f4 = ncFactory;
         this->f5 = newRowFactories;
         this->f6 = newClusterFactories;

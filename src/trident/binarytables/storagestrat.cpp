@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/binarytables/storagestrat.h>
@@ -90,22 +90,27 @@ const unsigned StorageStrat::FIXEDSTRAT7 = getStrat7();
 PairItr *StorageStrat::getBinaryTable(const char signature) {
     int storageType = getStorageType(signature);
     if (storageType == NEWCOLUMN_ITR) {
-          NewColumnTable *ph = f4->get();
-          return ph;
-      } else if (storageType == NEWROW_ITR) {
-          const char nbytes1 = (signature >> 3) & 3;
-          const char nbytes2 = (signature >> 1) & 3;
-          return f5->get(nbytes1, nbytes2);
-      } else if (storageType == NEWCLUSTER_ITR) {
-          const char nbytes1 = (signature >> 3) & 3;
-          const char nbytes2 = (signature >> 1) & 3;
-          char ncount = 1;
-          if (signature & 1)
-              ncount = 4;
-          return f6->get(nbytes1, nbytes2, ncount);
-      } else {
-          throw 10;
-      }
+        NewColumnTable *ph = f4->get();
+        return ph;
+    } else if (storageType == NEWROW_ITR) {
+        const char nbytes1 = (signature >> 3) & 3;
+        char nbytes2;
+        if (!isAggregated(signature)) {
+            nbytes2  = (signature >> 1) & 3;
+        } else {
+            nbytes2 = 4;
+        }
+        return f5->get(nbytes1, nbytes2);
+    } else if (storageType == NEWCLUSTER_ITR) {
+        const char nbytes1 = (signature >> 3) & 3;
+        const char nbytes2 = (signature >> 1) & 3;
+        char ncount = 1;
+        if (signature & 1)
+            ncount = 4;
+        return f6->get(nbytes1, nbytes2, ncount);
+    } else {
+        throw 10;
+    }
 }
 
 BinaryTableInserter *StorageStrat::getBinaryTableInserter(const char signature) {
@@ -133,7 +138,12 @@ BinaryTableInserter *StorageStrat::getBinaryTableInserter(const char signature) 
     } else if (storageType == NEWROW_ITR) {
         NewRowTableInserter *ph = f5i->get();
         const char nbytes1 = (signature >> 3) & 3;
-        const char nbytes2 = (signature >> 1) & 3;
+        char nbytes2;
+        if (!isAggregated(signature)) {
+            nbytes2  = (signature >> 1) & 3;
+        } else {
+            nbytes2 = 4;
+        }
         ph->setReaderSizes(nbytes1, nbytes2);
         return ph;
     } else if (storageType == NEWCLUSTER_ITR) {

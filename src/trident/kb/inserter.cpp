@@ -27,7 +27,7 @@
 
 //means: newrow layout with 8 bytes + 8 bytes
 char Inserter::STRATEGY_FOR_POS =
-StorageStrat::getStrategy(NEWROW_ITR, NO_DIFFERENCE, 3, 3, true);
+StorageStrat::getStrategy(NEWROW_ITR, NO_DIFFERENCE, 3, 4, true);
 
 bool Inserter::insert(const int permutation,
         const long t1,
