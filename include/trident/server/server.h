@@ -3,6 +3,8 @@
 
 /* Code inspired by the tutorial available at http://pastebin.com/1KLsjJLZ */
 
+#include <trident/utils/json.h>
+
 #include <layers/TridentLayer.hpp>
 
 #include <cts/infra/QueryGraph.hpp>
@@ -12,8 +14,6 @@
 #include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <map>
 
@@ -117,8 +117,8 @@ public:
                                 TridentLayer &db,
                                 bool printstdout,
                                 bool jsonoutput,
-                                boost::property_tree::ptree *jsonvars,
-                                boost::property_tree::ptree *jsonresults,
-                                boost::property_tree::ptree *jsonstats);
+                                JSON *jsonvars,
+                                JSON *jsonresults,
+                                JSON *jsonstats);
 };
 #endif

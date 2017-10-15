@@ -3,7 +3,7 @@
 
 #include <trident/ml/embeddings.h>
 #include <trident/ml/graddebug.h>
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 #include <trident/kb/querier.h>
 
 #include <tbb/concurrent_queue.h>

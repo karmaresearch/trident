@@ -3,7 +3,9 @@
 
 #include <kognac/progargs.h>
 
+#ifdef ANALYTICS
 #include <snap/tasks.h>
+#endif
 
 #include <iostream>
 
@@ -62,7 +64,9 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "info"
             && cmd != "add"
             && cmd != "rm"
+#ifdef ANALYTICS
             && cmd != "analytics"
+#endif
             && cmd != "mine"
             && cmd != "server"
             && cmd != "dump"
@@ -310,11 +314,13 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     mine_options.add<int>("", "minLen", 2, "Min lengths of the patterns", false);
     mine_options.add<int>("", "maxLen", 10, "Max lengths of the patterns", false);
 
+#ifdef ANALYTICS
     ProgramArgs::GroupArgs& ana_options = *vm.newGroup("Options for <analytics>");
     ana_options.add<string>("", "op", "", "The analytical operation to perform", false);
     ana_options.add<string>("", "oparg1", "", "First argument for the analytical operation. Normally it is the path to output the results of the computation", false);
     string helpstring = "List of values to give to additional parameters. The list of details depends on the action. Parameters should be split by ';', e.g., src=0;dst=10 for bfs. Notice that the character ';' should be escaped ('\\;').\n" + AnalyticsTasks::getInstance().getTaskDetails();
     ana_options.add<string>("", "oparg2", "", helpstring.c_str(), false);
+#endif
 
     ProgramArgs::GroupArgs& dump_options = *vm.newGroup("Options for <dump>");
     dump_options.add<string>("", "output", "", "Output directory to store the graph", false);
@@ -345,7 +351,9 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     sections.insert(make_pair("test",&test_options));
     sections.insert(make_pair("add",&update_options));
     sections.insert(make_pair("rm",&update_options));
+#ifdef ANALYTICS
     sections.insert(make_pair("analytics",&ana_options));
+#endif
     sections.insert(make_pair("dump",&dump_options));
     sections.insert(make_pair("mine",&mine_options));
     sections.insert(make_pair("server",&server_options));

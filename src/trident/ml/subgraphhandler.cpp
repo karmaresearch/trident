@@ -1,6 +1,6 @@
 #include <trident/ml/subgraphhandler.h>
 #include <trident/kb/querier.h>
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");

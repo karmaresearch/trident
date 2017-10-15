@@ -1,4 +1,4 @@
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 

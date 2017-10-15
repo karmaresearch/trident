@@ -2,7 +2,7 @@
 #include <trident/ml/learner.h>
 #include <trident/ml/tester.h>
 #include <trident/ml/subgraphhandler.h>
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 
 #include <kognac/progargs.h>
 

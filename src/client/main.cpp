@@ -39,8 +39,10 @@
 #include <kognac/utils.h>
 #include <kognac/progargs.h>
 
+#ifdef ANALYTICS
 #include <snap/analytics.h>
 #include <snap/tasks.h>
+#endif
 
 #include <zstr/zstr.hpp>
 
@@ -267,6 +269,7 @@ void printStats(KB &kb, Querier *q) {
     LOG(DEBUGL) << "Process IO Read char = " << Utils::getIOReadChars();
 }
 
+#ifdef ANALYTICS
 void launchAnalytics(KB &kb, string op, string param1, string param2) {
     if (!AnalyticsTasks::getInstance().isValidTask(op)) {
         LOG(ERRORL) << "Task " << op << " not recognized";
@@ -275,13 +278,16 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
     AnalyticsTasks::getInstance().load(op, param2);
     Analytics::run(kb, op, param1, param2);
 }
+#endif
 
+#ifdef ML
 void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
     LOG(INFOL) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
     miner.getFrequentPatterns(minLen, maxLen, minSupport);
 }
+#endif
 
 int main(int argc, const char** argv) {
     //Check some constraints
@@ -323,6 +329,7 @@ int main(int argc, const char** argv) {
     string kbDir = vm["input"].as<string>();
 
     if (cmd == "query") {
+#ifdef SPARQL
         KBConfig config;
         std::vector<string> locUpdates;
         KB kb(kbDir.c_str(), true, false, true, config, locUpdates);
@@ -341,7 +348,12 @@ int main(int argc, const char** argv) {
         }
         cout.rdbuf(strm_buffer);
         printStats(kb, layer.getQuerier());
+#else
+        LOG(ERRORL) << "Trident is not compiled with support to advanced SPARQL querying. Add -DSPARQL=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "query_native") {
+#ifdef SPARQL
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         Querier *q = kb.query();
@@ -358,6 +370,10 @@ int main(int argc, const char** argv) {
         cout.rdbuf(strm_buffer);
         printStats(kb, q);
         delete q;
+#else
+        LOG(ERRORL) << "Trident is not compiled with support to advanced SPARQL querying. Add -DSPARQL=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "lookup") {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
@@ -446,15 +462,25 @@ int main(int argc, const char** argv) {
         Updater up;
         up.creatediffupdate(DiffIndex::TypeUpdate::DELETE, kbDir, updatedir);
     } else if (cmd == "analytics") {
+#ifdef ANALYTICS
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         launchAnalytics(kb, vm["op"].as<string>(), vm["oparg1"].as<string>(),
                 vm["oparg2"].as<string>());
+#else
+        LOG(ERRORL) << "Trident was not compiled with the analytics enabled. Add -DANALYTICS=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "mine")  {
+#ifdef ML
         long minSupport = vm["minSupport"].as<long>();
         int minLen = vm["minLen"].as<int>();
         int maxLen = vm["maxLen"].as<int>();
         mineFrequentPatterns(kbDir, minLen, maxLen, minSupport);
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "dump") {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
@@ -469,17 +495,32 @@ int main(int argc, const char** argv) {
         return EXIT_FAILURE;
 #endif
     } else if (cmd == "learn") {
+#ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "predict") {
+#ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "subeval") {
+#ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         subgraphEval(kb, vm);
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     }
 
     //Print other stats

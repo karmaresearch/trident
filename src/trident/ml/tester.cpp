@@ -1,6 +1,6 @@
 #include <trident/ml/tester.h>
 #include <trident/ml/transetester.h>
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 
 void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     //Load model

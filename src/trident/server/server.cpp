@@ -15,8 +15,6 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <curl/curl.h>
 
@@ -24,10 +22,6 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
-
-using boost::property_tree::ptree;
-using boost::property_tree::read_json;
-using boost::property_tree::write_json;
 
 TridentServer::TridentServer(KB &kb, string htmlfiles) : kb(kb),
     dirhtmlfiles(htmlfiles),
@@ -143,9 +137,9 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         TridentLayer &db,
         bool printstdout,
         bool jsonoutput,
-        boost::property_tree::ptree *jsonvars,
-        boost::property_tree::ptree *jsonresults,
-        boost::property_tree::ptree *jsonstats) {
+        JSON *jsonvars,
+        JSON *jsonresults,
+        JSON *jsonstats) {
     std::unique_ptr<QueryDict> queryDict = std::unique_ptr<QueryDict>(new QueryDict(nterms));
     std::unique_ptr<QueryGraph> queryGraph = std::unique_ptr<QueryGraph>(new QueryGraph());
     bool parsingOk;
@@ -170,9 +164,9 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         for (QueryGraph::projection_iterator itr = queryGraph->projectionBegin();
                 itr != queryGraph->projectionEnd(); ++itr) {
             string namevar = parser->getVariableName(*itr);
-            boost::property_tree::ptree var;
+            JSON var;
             var.put("", namevar);
-            jsonvars->push_back(std::make_pair("", var));
+            jsonvars->push_back(var);
             jsonnamevars.push_back(namevar);
         }
     }
@@ -284,10 +278,10 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             curl_easy_cleanup(curl);
 
             //Execute the SPARQL query
-            ptree pt;
-            ptree vars;
-            ptree bindings;
-            ptree stats;
+            JSON pt;
+            JSON vars;
+            JSON bindings;
+            JSON stats;
             bool jsonoutput = printresults != string("false");
             TridentServer::execSPARQLQuery(sparqlquery,
                     false,
@@ -303,7 +297,7 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             pt.add_child("stats", stats);
 
             std::ostringstream buf;
-            write_json(buf, pt, false);
+            JSON::write(buf, pt);
             page = buf.str();
             isjson = true;
         } else if (path == "/lookup") {
@@ -311,10 +305,10 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             string id = _getValueParam(form, "id");
             //Lookup the value
             string value = lookup(id, inter->kb);
-            ptree pt;
+            JSON pt;
             pt.put("value", value);
             std::ostringstream buf;
-            write_json(buf, pt, false);
+            JSON::write(buf, pt);
             page = buf.str();
             isjson = true;
         } else {

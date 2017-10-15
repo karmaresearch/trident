@@ -26,7 +26,7 @@
 #include <Python.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
-#include <trident/utils/batch.h>
+#include <trident/ml/batch.h>
 
 typedef struct {
     PyObject_HEAD
