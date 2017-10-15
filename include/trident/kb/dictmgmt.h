@@ -30,8 +30,6 @@
 #include <kognac/utils.h>
 #include <kognac/logs.h>
 
-#include <boost/unordered_map.hpp>
-
 #include <sparsehash/sparse_hash_map>
 #include <sparsehash/dense_hash_map>
 

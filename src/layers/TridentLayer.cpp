@@ -29,7 +29,10 @@
 #include <infra/util/Type.hpp>
 #include <string>
 #include <map>
+#include <cmath>
 #include <limits>
+#include <inttypes.h>
+#include <set>
 
 bool TridentLayer::lookup(const std::string& text,
                           ::Type::ID type,
