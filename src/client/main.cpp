@@ -231,6 +231,7 @@ void printInfo(KB &kb) {
     }
 }
 
+#ifdef SERVER
 void startServer(KB &kb, int port) {
     std::unique_ptr<TridentServer> webint;
     webint = std::unique_ptr<TridentServer>(
@@ -239,6 +240,7 @@ void startServer(KB &kb, int port) {
     LOG(INFOL) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
 }
+#endif
 
 void printStats(KB &kb, Querier *q) {
     LOG(DEBUGL) << "Max mem (MB) " << Utils::get_max_mem();
@@ -453,9 +455,14 @@ int main(int argc, const char** argv) {
         KB kb(kbDir.c_str(), true, false, true, config);
         dump(&kb, vm["output"].as<string>());
     } else if (cmd == "server") {
+#ifdef SERVER
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         startServer(kb, vm["port"].as<int>());
+#else
+        LOG(ERRORL) << "Trident was not compiled with the webserver. Add -DSERVER=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     } else if (cmd == "learn") {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);

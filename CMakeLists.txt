@@ -1,3 +1,8 @@
+#Add support for multithreading ... Comment the following line to disable it
+#-DMT=1 to enable multithreading support
+#-DPYTHON=1 enable python support
+#-DSERVER=1 to start the webserver
+
 cmake_minimum_required (VERSION 2.8)
 project (Trident)
 include(ExternalProject)
@@ -8,16 +13,16 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
+if(SERVER)
+    LIST(APPEND COMPILE_FLAGS "-DSERVER=1")
+ENDIF()
+
 #Set compiler options
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_C_COMPILER "gcc")
-
-#Add support for multithreading ... Comment the following line to disable it
-add_definitions(-DMT)
-#-DPYTHON=1 enable python support
 
 #Set to release mode if nothing is specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -187,18 +192,40 @@ ENDIF()
 
 #add files to compile
 file(GLOB trident_SRC
-    "src/trident/**/*.cpp" "src/layers/*.cpp" "rdf3x/src/**/*.cpp"  src/snap/*.cpp src/trident/mining/miner.cpp
+    "src/trident/binarytables/*.cpp"
+    "src/trident/files/*.cpp"
+    "src/trident/iterators/*.cpp"
+    "src/trident/kb/*.cpp"
+    "src/trident/mining/*.cpp"
+    "src/trident/ml/*.cpp"
+    "src/trident/model/*.cpp"
+    "src/trident/sparql/*.cpp"
+    "src/trident/tests/*.cpp"
+    "src/trident/tree/*.cpp"
+    "src/trident/utils/*.cpp"
+    "src/layers/*.cpp"
+    "rdf3x/src/**/*.cpp"
+    src/snap/*.cpp
+    src/trident/mining/miner.cpp
     )
 
+IF (SERVER)
+    file(GLOB webserver_SRC
+        "src/trident/server/*.cpp")
+ENDIF()
+
 IF(PYTHON)
-file(GLOB tridentp_SRC
-    "src/python/*.cpp")
+    file(GLOB tridentp_SRC "src/python/*.cpp")
 ENDIF()
 
 include_directories(include/ rdf3x/include)
 
 #Create both a library and the executable program
-add_library(trident STATIC ${trident_SRC})
+if (SERVER)
+    add_library(trident STATIC ${trident_SRC} ${webserver_SRC})
+ELSE()
+    add_library(trident STATIC ${trident_SRC})
+ENDIF()
 set_target_properties(trident PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
 add_executable(trident_exec src/client/main.cpp src/client/main_params.cpp src/client/main_sparql.cpp src/client/main_ml.cpp)
 set_target_properties(trident_exec PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
