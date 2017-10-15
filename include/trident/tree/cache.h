@@ -28,10 +28,9 @@
 #include <trident/tree/leaffactory.h>
 #include <trident/kb/consts.h>
 
-#include <boost/circular_buffer.hpp>
-
 #include <list>
 #include <string>
+#include <deque>
 
 class Node;
 class TreeContext;
@@ -43,7 +42,8 @@ private:
 
     const bool compressedNodes;
 
-    boost::circular_buffer<Node*> registeredNodes;
+    std::deque<Node*> registeredNodes;
+    const int maxNodesInCache;
 
     NodeManager *manager;
 
@@ -54,8 +54,7 @@ private:
 public:
 
     Cache(int maxNodesInCache, bool compressedNodes) :
-        compressedNodes(compressedNodes), registeredNodes(maxNodesInCache) {
-//      LOG(DEBUGL)<< "Init cache: maxNodesInCache=" << maxNodesInCache << " compressed? " << compressedNodes;
+        compressedNodes(compressedNodes), maxNodesInCache(maxNodesInCache) {
         context = NULL;
         factory = NULL;
         manager = NULL;

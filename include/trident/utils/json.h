@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <iostream>
 
 class JSON {
     private:
@@ -36,7 +37,7 @@ class JSON {
             listchildren.push_back(value);
         }
 
-        static void write(zstr::ofstream &out, JSON &value) {
+        static void write(std::ostream &out, JSON &value) {
             LOG(ERRORL) << "Not implemented yet";
         }
 };

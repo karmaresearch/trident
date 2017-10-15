@@ -12,7 +12,6 @@
 #include <set>
 #include <cstring>
 #include <sstream>
-#include <boost/property_tree/ptree.hpp>
 //---------------------------------------------------------------------------
 // RDF-3X
 // (c) 2008 Thomas Neumann. Web site: http://www.mpi-inf.mpg.de/~neumann/rdf3x
@@ -147,12 +146,12 @@ void formatJSONRow(const std::vector<std::string> &columns,
         map<uint64_t, CacheEntry> &stringCache,
         vector<uint64_t>::const_iterator start,
         vector<uint64_t>::const_iterator stop,
-        boost::property_tree::ptree *output) {
+        JSON *output) {
     if (start == stop) return;
-    boost::property_tree::ptree row;
+    JSON row;
     if (start != stop) {
         int idx = 0;
-        boost::property_tree::ptree fbinding;
+        JSON fbinding;
         if (!~(*start)) {
             fbinding.put("type", "literal");
             fbinding.put("value", "NULL");
@@ -166,10 +165,10 @@ void formatJSONRow(const std::vector<std::string> &columns,
                 fbinding.put("value", el);
             }
         }
-        row.push_back(std::make_pair(columns[idx++], fbinding));
+        row.add_child(columns[idx++], fbinding);
 
         for (++start; start != stop; ++start) {
-            boost::property_tree::ptree binding;
+            JSON binding;
             if (!~(*start)) {
                 binding.put("type", "literal");
                 binding.put("value", "NULL");
@@ -183,17 +182,17 @@ void formatJSONRow(const std::vector<std::string> &columns,
                     binding.put("value", el);
                 }
             }
-            row.push_back(std::make_pair(columns[idx++], binding));
+            row.add_child(columns[idx++], binding);
         }
     }
-    output->push_back(std::make_pair("", row));
+    output->push_back(row);
 }
 //---------------------------------------------------------------------------
 void ResultsPrinter::formatJSON(const std::vector<string> &columns,
         vector<uint64_t> &results,
         map<uint64_t, CacheEntry> &stringCache,
         ResultsPrinter::DuplicateHandling duplicateHandling,
-        boost::property_tree::ptree *output) {
+        JSON *output) {
     const int ncolumns = columns.size();
     if (duplicateHandling == ResultsPrinter::ExpandDuplicates) {
         for (vector<uint64_t>::const_iterator iter = results.begin(),

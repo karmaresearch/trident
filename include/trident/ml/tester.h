@@ -3,11 +3,9 @@
 
 #include <trident/ml/embeddings.h>
 #include <trident/kb/kb.h>
+#include <trident/utils/json.h>
 
 #include <kognac/logs.h>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -222,7 +220,7 @@ class Tester {
             LOG(INFOL) << "Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
 
             //Write JSON output
-            boost::property_tree::ptree jsonresults;
+            JSON jsonresults;
             jsonresults.put("epoch", to_string(epoch + 1));
             jsonresults.put("timesec", elapsed_seconds.count());
             jsonresults.put("sizetestset", testset.size());
@@ -237,9 +235,8 @@ class Tester {
             jsonresults.put("hit3o", avghit3o);
             jsonresults.put("hit3", avghit3);
             std::stringstream output;
-            write_json(output, jsonresults);
+            jsonresults.write(output, jsonresults);
             LOG(DEBUGL) << "JSON: " << output.str();
-
 
             std::shared_ptr<OutputTest> results(new OutputTest());
             results->loss = (positionsS + positionsO) / (double)2;

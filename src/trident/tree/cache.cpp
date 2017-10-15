@@ -110,7 +110,7 @@ void Cache::registerNode(Node *node) {
         return;
     }
 
-    if (registeredNodes.full()) {
+    if (registeredNodes.size() == maxNodesInCache) {
         Node *n = registeredNodes.front();
         registeredNodes.pop_front();
 

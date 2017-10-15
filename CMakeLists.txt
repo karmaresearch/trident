@@ -131,15 +131,6 @@ IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
     message(FATAL_ERROR "Could not find TBB (thread building blocks)")
 ENDIF()
 
-#Boost
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-FIND_PACKAGE(Boost COMPONENTS system REQUIRED)
-IF (Boost_FOUND)
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} SYSTEM)
-ENDIF()
-
 #SNAP
 add_library(snap STATIC IMPORTED)
 IF(NOT EXISTS "${CMAKE_SOURCE_DIR}/snap/snap-core/libsnap.a")
@@ -212,6 +203,14 @@ file(GLOB trident_SRC
 IF (SERVER)
     file(GLOB webserver_SRC
         "src/trident/server/*.cpp")
+    #Boost
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_MULTITHREADED ON)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+    FIND_PACKAGE(Boost COMPONENTS system REQUIRED)
+    IF (Boost_FOUND)
+        INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} SYSTEM)
+    ENDIF()
 ENDIF()
 
 IF(PYTHON)

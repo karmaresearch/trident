@@ -12,14 +12,15 @@
 //---------------------------------------------------------------------------
 #include "rts/operator/Operator.hpp"
 #include <dblayer.hpp>
+
+#include <trident/utils/json.h>
+
 #include <vector>
 #include <map>
 #include <unordered_set>
 #include <string>
 #include <sstream>
 #include <vector>
-
-#include <boost/property_tree/ptree.hpp>
 //---------------------------------------------------------------------------
 class DictionarySegment;
 class Register;
@@ -75,7 +76,7 @@ private:
     /// Count the printed rows
     uint64_t nrows;
     //Used for JSON output
-    boost::property_tree::ptree *jsonoutput;
+    JSON *jsonoutput;
     std::vector<std::string> jsonvars;
     //Used for set output
     std::unordered_set<uint64_t> *outputset;
@@ -85,7 +86,7 @@ private:
                 std::vector<uint64_t> &results,
                 std::map<uint64_t, CacheEntry> &stringCache,
                 ResultsPrinter::DuplicateHandling duplicateHandling,
-                boost::property_tree::ptree *output);
+                JSON *output);
 
 public:
     /// Constructor
@@ -106,7 +107,7 @@ public:
         silent = flag;
     }
 
-    void setJSONOutput(boost::property_tree::ptree *jsonoutput,
+    void setJSONOutput(JSON *jsonoutput,
             const std::vector<std::string> &jsonvars) {
         this->jsonoutput = jsonoutput;
         this->jsonvars = jsonvars;

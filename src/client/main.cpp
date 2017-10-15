@@ -29,7 +29,12 @@
 #include <trident/kb/querier.h>
 #include <trident/mining/miner.h>
 #include <trident/tests/common.h>
+
+#ifdef SERVER
 #include <trident/server/server.h>
+#endif
+
+#include <layers/TridentLayer.hpp>
 
 #include <kognac/utils.h>
 #include <kognac/progargs.h>
