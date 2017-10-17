@@ -84,6 +84,7 @@ struct LearnParams {
     bool feedback;
     uint32_t feedback_threshold;
     uint32_t feedback_minFullEpochs;
+    bool regenerateBatch;
 
     std::unique_ptr<GradTracer> gradDebugger;
 

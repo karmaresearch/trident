@@ -53,6 +53,7 @@ void launchML(KB &kb, string op, string algo, string params) {
     bool usefeedback = false;
     uint32_t feedback_threshold = 10;
     uint32_t feedback_minfulle = 20;
+    bool regenerateBatch = true;
 
     uint32_t evalits = 10;
     uint32_t storeits = 10;
@@ -131,6 +132,10 @@ void launchML(KB &kb, string op, string algo, string params) {
     if (mapparams.count("nametestset")) {
         nametestset = mapparams["nametestset"];
     }
+    if (mapparams.count("optibatch")) {
+        regenerateBatch = TridentUtils::lexical_cast<bool>(mapparams["optibatch"]);
+    }
+
     if (op == "learn") {
         LearnParams p;
         p.epochs = epochs;
@@ -155,6 +160,8 @@ void launchML(KB &kb, string op, string algo, string params) {
         p.feedback = usefeedback;
         p.feedback_threshold = feedback_threshold;
         p.feedback_minFullEpochs = feedback_minfulle;
+        p.regenerateBatch = regenerateBatch;
+
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
         PredictParams p;

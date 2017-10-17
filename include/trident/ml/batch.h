@@ -17,6 +17,7 @@ class BatchCreator {
         const uint16_t nthreads;
         const float valid;
         const float test;
+        const bool createBatchFile;
 
         const bool filter;
         const std::shared_ptr<Feedback> feedback;
@@ -30,15 +31,18 @@ class BatchCreator {
 
         bool shouldBeUsed(long s, long p, long o);
 
-        void createInputForBatch(const float valid, const float test);
+        void createInputForBatch(bool createTraining,
+                const float valid,
+                const float test);
 
     public:
         BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads,
                 const float valid, const float test, const bool filter,
+                const bool createBatchFile,
                 shared_ptr<Feedback> feedback);
 
         BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads) :
-            BatchCreator(kbdir, batchsize, nthreads, 0, 0, false,
+            BatchCreator(kbdir, batchsize, nthreads, 0, 0, false, true,
                     std::shared_ptr<Feedback>()) {
             }
 

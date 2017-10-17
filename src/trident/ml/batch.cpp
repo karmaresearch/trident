@@ -11,8 +11,10 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         const float valid,
         const float test,
         const bool filter,
+        const bool createBatchFile,
         std::shared_ptr<Feedback> feedback) : kbdir(kbdir), batchsize(batchsize),
-    nthreads(nthreads), valid(valid), test(test), filter(filter),
+    nthreads(nthreads), valid(valid), test(test),
+    createBatchFile(createBatchFile), filter(filter),
     feedback(feedback) {
         rawtriples = NULL;
         ntriples = 0;
@@ -39,9 +41,8 @@ string BatchCreator::getTestPath(string kbdir) {
     return kbdir + "/_batch_test";
 }
 
-void BatchCreator::createInputForBatch(const float valid, const float test) {
-    //Create a file called '_batch' in the maindir with a fixed-length record size
-    LOG(INFOL) << "Store the input for the batch process in " << kbdir + "/_batch ...";
+void BatchCreator::createInputForBatch(bool createTraining,
+        const float valid, const float test) {
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
@@ -60,8 +61,12 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis(0.0, 1.0);
 
+    //Create a file called '_batch' in the maindir with a fixed-length record size
     ofstream ofs;
-    ofs.open(this->kbdir + "/_batch", ios::out | ios::app | ios::binary);
+    if (createTraining) {
+        LOG(INFOL) << "Store the input for the batch process in " << kbdir + "/_batch ...";
+        ofs.open(this->kbdir + "/_batch", ios::out | ios::app | ios::binary);
+    }
     while (itr->hasNext()) {
         itr->next();
         s = itr->getKey();
@@ -78,7 +83,7 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
             ofs_test.write(cs, 5); //Max numbers have 5 bytes
             ofs_test.write(cp, 5);
             ofs_test.write(co, 5);
-        } else {
+        } else if (createTraining) {
             ofs.write(cs, 5); //Max numbers have 5 bytes
             ofs.write(cp, 5);
             ofs.write(co, 5);
@@ -86,7 +91,9 @@ void BatchCreator::createInputForBatch(const float valid, const float test) {
     }
     q->releaseItr(itr);
 
-    ofs.close();
+    if (createTraining) {
+        ofs.close();
+    }
     if (valid > 0) {
         ofs_valid.close();
     }
@@ -129,11 +136,9 @@ void BatchCreator::start() {
     //First check if the file exists
     string fin = this->kbdir + "/_batch";
     if (Utils::exists(fin)) {
-        //if (valid > 0 || test > 0) {
-        //}
     } else {
         LOG(INFOL) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
-        createInputForBatch(valid, test);
+        createInputForBatch(createBatchFile, valid, test);
     }
 
     //Load the file into a memory-mapped file

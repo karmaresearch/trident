@@ -324,6 +324,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
             p.valid,
             p.test,
             filter,
+            p.regenerateBatch,
             feedback);
     if (op == "transe") {
         TranseLearner tr(kb, p);
