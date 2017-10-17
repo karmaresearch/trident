@@ -131,7 +131,6 @@ struct _pso {
     }
 };
 
-
 void BatchCreator::start() {
     //First check if the file exists
     string fin = this->kbdir + "/_batch";
@@ -141,11 +140,16 @@ void BatchCreator::start() {
         createInputForBatch(createBatchFile, valid, test);
     }
 
-    //Load the file into a memory-mapped file
-    this->mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(
-                fin));
-    this->rawtriples = this->mappedFile->getData();
-    this->ntriples = this->mappedFile->getLength() / 15;
+    if (createBatchFile) {
+        //Load the file into a memory-mapped file
+        this->mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(
+                    fin));
+        this->rawtriples = this->mappedFile->getData();
+        this->ntriples = this->mappedFile->getLength() / 15;
+    } else {
+        this->kbbatch = std::unique_ptr<KBBatch>(new KBBatch(kbdir));
+        this->kbbatch->populateCoordinates();
+    }
 
     LOG(DEBUGL) << "Creating index array ...";
     this->indices.resize(this->ntriples);
@@ -165,12 +169,17 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
     //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
     while (i < batchsize && currentidx < ntriples) {
         long idx = indices[currentidx];
-        long s = *(long*)(rawtriples + idx * 15);
-        s = s & 0xFFFFFFFFFFl;
-        long p = *(long*)(rawtriples + idx * 15 + 5);
-        p = p & 0xFFFFFFFFFFl;
-        long o = *(long*)(rawtriples + idx * 15 + 10);
-        o = o & 0xFFFFFFFFFFl;
+        uint64_t s,p,o;
+        if (createBatchFile) {
+            s = *(uint64_t*)(rawtriples + idx * 15);
+            s = s & 0xFFFFFFFFFFl;
+            p = *(uint64_t*)(rawtriples + idx * 15 + 5);
+            p = p & 0xFFFFFFFFFFl;
+            o = *(uint64_t*)(rawtriples + idx * 15 + 10);
+            o = o & 0xFFFFFFFFFFl;
+        } else {
+            kbbatch->getAt(idx, s, p, o);
+        }
         if (filter && shouldBeUsed(s,p,o)) {
             output[i*3] = s;
             output[i*3+1] = p;
@@ -196,15 +205,21 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
     output1.resize(this->batchsize);
     output2.resize(this->batchsize);
     output3.resize(this->batchsize);
-    //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
+    //The output vector is already supposed to contain batchsize elements.
+    //Otherwise, resize it
     while (i < batchsize && currentidx < ntriples) {
         long idx = indices[currentidx];
-        long s = *(long*)(rawtriples + idx * 15);
-        s = s & 0xFFFFFFFFFFl;
-        long p = *(long*)(rawtriples + idx * 15 + 5);
-        p = p & 0xFFFFFFFFFFl;
-        long o = *(long*)(rawtriples + idx * 15 + 10);
-        o = o & 0xFFFFFFFFFFl;
+        uint64_t s,p,o;
+        if (createBatchFile) {
+            s = *(uint64_t *)(rawtriples + idx * 15);
+            s = s & 0xFFFFFFFFFFl;
+            p = *(uint64_t *)(rawtriples + idx * 15 + 5);
+            p = p & 0xFFFFFFFFFFl;
+            o = *(uint64_t *)(rawtriples + idx * 15 + 10);
+            o = o & 0xFFFFFFFFFFl;
+        } else {
+            kbbatch->getAt(idx, s, p, o);
+        }
         if (filter && shouldBeUsed(s,p,o)) {
             output1[i] = s;
             output2[i] = p;
@@ -237,4 +252,93 @@ void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
         output.push_back(o);
         start += 15;
     }
+}
+
+BatchCreator::KBBatch::KBBatch(string kbdir) {
+    KBConfig config;
+    this->kb = std::unique_ptr<KB>(new KB(kbdir.c_str(), true, false, false, config));
+    this->querier = std::unique_ptr<Querier>(kb->query());
+}
+
+void BatchCreator::KBBatch::populateCoordinates() {
+    //Load all files
+    allposfiles = kb->openAllFiles(IDX_POS);
+    auto itr = (TermItr*)querier->getTermList(IDX_POS);
+    string kbdir = kb->getPath();
+    string posdir = kbdir + "/pos";
+    //Get all the predicates
+    uint64_t current = 0;
+    while (itr->hasNext()) {
+        itr->next();
+        uint64_t pred = itr->getKey();
+        uint64_t card = itr->getCount();
+        PredCoordinates info;
+        info.pred = pred;
+        info.boundary = current + card;
+
+        //Get beginning of the table
+        short currentFile = itr->getCurrentFile();
+        long currentMark = itr->getCurrentMark();
+        string fdidx = posdir + "/" + to_string(currentFile) + ".idx";
+        if (Utils::exists(fdidx)) {
+            ifstream idxfile(fdidx);
+            idxfile.seekg(8 + 11 * currentMark);
+            char buffer[5];
+            idxfile.read(buffer, 5);
+            long pos = Utils::decode_longFixedBytes(buffer, 5);
+            info.buffer = allposfiles[currentFile] + pos;
+        } else {
+            LOG(ERRORL) << "Cannot happen!";
+            throw 10;
+        }
+        char currentStrat = itr->getCurrentStrat();
+        int storageType = StorageStrat::getStorageType(currentStrat);
+        if (storageType == NEWCOLUMN_ITR) {
+            //Get reader and offset
+            char header1 = info.buffer[0];
+            char header2 = info.buffer[1];
+            const uint8_t bytesPerStartingPoint =  header2 & 7;
+            const uint8_t bytesPerCount = (header2 >> 3) & 7;
+            const uint8_t remBytes = bytesPerCount + bytesPerStartingPoint;
+            const uint8_t bytesPerFirstEntry = (header1 >> 3) & 7;
+            const uint8_t bytesPerSecondEntry = (header1) & 7;
+            info.offset = remBytes;
+            FactoryNewColumnTable::get12Reader(bytesPerFirstEntry, 
+                    bytesPerSecondEntry, &info.reader);
+        } else if (storageType == NEWROW_ITR) {
+            const char nbytes1 = (currentStrat >> 3) & 3;
+            const char nbytes2 = (currentStrat >> 1) & 3;
+            FactoryNewRowTable::get12Reader(nbytes1, nbytes2, &info.reader);
+        } else {
+            LOG(ERRORL) << "Not supported";
+            throw 10;
+        }
+        predicates.push_back(info);
+        current += card;
+    }
+    querier->releaseItr(itr);
+}
+
+void BatchCreator::KBBatch::getAt(uint64_t pos,
+        uint64_t &s,
+        uint64_t &p,
+        uint64_t &o) {
+    auto itr = predicates.begin();
+    uint64_t offset = 0;
+    while(itr != predicates.end() && pos >= itr->boundary) {
+        pos -= itr->boundary;
+        offset = itr->boundary;
+        itr++;
+    }
+    if (itr != predicates.end()) {
+        //Take the reader and read the values
+        itr->reader(itr->boundary - offset, itr->offset,
+                itr->buffer, pos,o,s);
+        p = itr->pred;
+    }
+}
+
+BatchCreator::KBBatch::~KBBatch() {
+    querier = NULL;
+    kb = NULL;
 }

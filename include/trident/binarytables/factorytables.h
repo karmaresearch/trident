@@ -17,17 +17,147 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _FACTORYTABLE_H
 #define _FACTORYTABLE_H
 
 #include <kognac/factory.h>
+#include <trident/binarytables/newcolumntable.h>
 #include <trident/binarytables/newrowtable.h>
 #include <trident/binarytables/newclustertable.h>
 #include <trident/binarytables/binarytablereaders.h>
 #include <trident/binarytables/newtable.h>
+
+struct FactoryNewColumnTable {
+    static void get12Reader(const char nbytes1,
+            const char nbytes2,
+            void (**output)(const uint64_t ,
+                const uint8_t ,
+                const char *,
+                const uint64_t,
+                uint64_t &,
+                uint64_t &)) {
+
+        output = NULL;
+        switch (nbytes1) {
+            case 1:
+                switch (nbytes2) {
+                    case 1:
+                        *output = &NewColumnTable::s_getValue12AtRow<1,1>;
+                        break;
+                    case 2:
+                        *output = &NewColumnTable::s_getValue12AtRow<1,2>;
+                        break;
+                    case 3:
+                        *output = &NewColumnTable::s_getValue12AtRow<1,3>;
+                        break;
+                    case 4:
+                        *output = &NewColumnTable::s_getValue12AtRow<1,4>;
+                        break;
+                    case 5:
+                        *output = &NewColumnTable::s_getValue12AtRow<1,5>;
+                        break;
+                    default:
+                        LOG(ERRORL) << "Not supported";
+                        throw 10;
+                }
+                break;
+            case 2:
+                switch (nbytes2) {
+                    case 1:
+                        *output = &NewColumnTable::s_getValue12AtRow<2,1>;
+                        break;
+                    case 2:
+                        *output = &NewColumnTable::s_getValue12AtRow<2,2>;
+                        break;
+                    case 3:
+                        *output = &NewColumnTable::s_getValue12AtRow<2,3>;
+                        break;
+                    case 4:
+                        *output = &NewColumnTable::s_getValue12AtRow<2,4>;
+                        break;
+                    case 5:
+                        *output = &NewColumnTable::s_getValue12AtRow<2,5>;
+                        break;
+                    default:
+                        LOG(ERRORL) << "Not supported";
+                        throw 10;
+                }
+                break;
+            case 3:
+                switch (nbytes2) {
+                    case 1:
+                        *output = &NewColumnTable::s_getValue12AtRow<3,1>;
+                        break;
+                    case 2:
+                        *output = &NewColumnTable::s_getValue12AtRow<3,2>;
+                        break;
+                    case 3:
+                        *output = &NewColumnTable::s_getValue12AtRow<3,3>;
+                        break;
+                    case 4:
+                        *output = &NewColumnTable::s_getValue12AtRow<3,4>;
+                        break;
+                    case 5:
+                        *output = &NewColumnTable::s_getValue12AtRow<3,5>;
+                        break;
+                    default:
+                        LOG(ERRORL) << "Not supported";
+                        throw 10;
+                }
+                break;
+            case 4:
+                switch (nbytes2) {
+                    case 1:
+                        *output = &NewColumnTable::s_getValue12AtRow<4,1>;
+                        break;
+                    case 2:
+                        *output = &NewColumnTable::s_getValue12AtRow<4,2>;
+                        break;
+                    case 3:
+                        *output = &NewColumnTable::s_getValue12AtRow<4,3>;
+                        break;
+                    case 4:
+                        *output = &NewColumnTable::s_getValue12AtRow<4,4>;
+                        break;
+                    case 5:
+                        *output = &NewColumnTable::s_getValue12AtRow<4,5>;
+                        break;
+                    default:
+                        LOG(ERRORL) << "Not supported";
+                        throw 10;
+                }
+                break;
+            case 5:
+                switch (nbytes2) {
+                    case 1:
+                        *output = &NewColumnTable::s_getValue12AtRow<5,1>;
+                        break;
+                    case 2:
+                        *output = &NewColumnTable::s_getValue12AtRow<5,2>;
+                        break;
+                    case 3:
+                        *output = &NewColumnTable::s_getValue12AtRow<5,3>;
+                        break;
+                    case 4:
+                        *output = &NewColumnTable::s_getValue12AtRow<5,4>;
+                        break;
+                    case 5:
+                        *output = &NewColumnTable::s_getValue12AtRow<5,5>;
+                        break;
+                    default:
+                        LOG(ERRORL) << "Not supported";
+                        throw 10;
+                }
+                break;
+            default:
+                LOG(ERRORL) << "Not supported";
+                throw 10;
+        }
+    }
+};
 
 struct FactoryNewClusterTable {
     Factory<NewClusterTable<ByteReader, ByteReader, ByteReader>> f111;
@@ -775,6 +905,88 @@ struct FactoryNewRowTable {
                 break;
         }
     }
+
+    static void get12Reader(const char nbytes1,
+            const char nbytes2,
+            void (**output)(const uint64_t ,
+                const uint8_t ,
+                const char *,
+                const uint64_t,
+                uint64_t &,
+                uint64_t &)) {
+
+        output = NULL;
+        switch (nbytes1) {
+            case 0:
+                switch (nbytes2) {
+                    case 0:
+                        *output = &NewRowTable<ByteReader, ByteReader>::s_getValue12AtRow;
+                        break;
+                    case 1:
+                        *output = &NewRowTable<ByteReader, ShortReader>::s_getValue12AtRow;
+                        break;
+                    case 2:
+                        *output = &NewRowTable<ByteReader, IntReader>::s_getValue12AtRow;
+                        break;
+                    case 3:
+                        *output = &NewRowTable<ByteReader, LongIntReader>::s_getValue12AtRow;
+                        break;
+                }
+                break;
+            case 1:
+                switch (nbytes2) {
+                    case 0:
+                        *output = &NewRowTable<ShortReader, ByteReader>::s_getValue12AtRow;
+                        break;
+                    case 1:
+                        *output = &NewRowTable<ShortReader, ShortReader>::s_getValue12AtRow;
+                        break;
+                    case 2:
+                        *output = &NewRowTable<ShortReader, IntReader>::s_getValue12AtRow;
+                        break;
+                    case 3:
+                        *output = &NewRowTable<ShortReader, LongIntReader>::s_getValue12AtRow;
+                        break;
+                }
+                break;
+            case 2:
+                switch (nbytes2) {
+                    case 0:
+                        *output = &NewRowTable<IntReader, ByteReader>::s_getValue12AtRow;
+                        break;
+                    case 1:
+                        *output = &NewRowTable<IntReader, ShortReader>::s_getValue12AtRow;
+                        break;
+                    case 2:
+                        *output = &NewRowTable<IntReader, IntReader>::s_getValue12AtRow;
+                        break;
+                    case 3:
+                        *output = &NewRowTable<IntReader, LongIntReader>::s_getValue12AtRow;
+                        break;
+                }
+                break;
+            case 3:
+                switch (nbytes2) {
+                    case 0:
+                        *output = &NewRowTable<LongIntReader, ByteReader>::s_getValue12AtRow;
+                        break;
+                    case 1:
+                        *output = &NewRowTable<LongIntReader, ShortReader>::s_getValue12AtRow;
+                        break;
+                    case 2:
+                        *output = &NewRowTable<LongIntReader, IntReader>::s_getValue12AtRow;
+                        break;
+                    case 3:
+                        *output = &NewRowTable<LongIntReader, LongIntReader>::s_getValue12AtRow;
+                        break;
+                    case 4:
+                        *output = &NewRowTable<LongIntReader, LongReader>::s_getValue12AtRow;
+                        break;
+                }
+                break;
+        }
+    }
+
 
     PairItr *get(const char nbytes1, const char nbytes2) {
         switch (nbytes1) {

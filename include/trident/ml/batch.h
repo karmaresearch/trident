@@ -12,12 +12,50 @@ using namespace std;
 
 class BatchCreator {
     private:
+        class KBBatch {
+            private:
+                typedef void (*pReader)(
+                        const uint64_t sizetable,
+                        const uint8_t offset,
+                        const char *start,
+                        const uint64_t rowId,
+                        uint64_t &v1,
+                        uint64_t &v2);
+
+                struct PredCoordinates {
+                    uint64_t pred;
+                    uint64_t boundary;
+                    uint8_t offset; //Used only for the column label
+                    const char *buffer;
+                    pReader reader;
+                };
+
+                std::unique_ptr<KB> kb;
+                std::unique_ptr<Querier> querier;
+                std::vector<PredCoordinates> predicates;
+                std::vector<const char*> allposfiles;
+
+            public:
+
+                KBBatch(string kbdir);
+
+                void populateCoordinates();
+
+                void getAt(uint64_t pos,
+                        uint64_t &s,
+                        uint64_t &p,
+                        uint64_t &o);
+
+                ~KBBatch();
+        };
+
         const string kbdir;
         const uint64_t batchsize;
         const uint16_t nthreads;
         const float valid;
         const float test;
         const bool createBatchFile;
+        std::unique_ptr<KBBatch> kbbatch;
 
         const bool filter;
         const std::shared_ptr<Feedback> feedback;

@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _NEWCOLUMNTABLE_H
@@ -376,7 +376,7 @@ class NewColumnTable: public AbsNewTable {
                 uint8_t columnOther, SequenceWriter *output);
 
         void setup(const char* start, const char *end) {
-	    initializeConstraints();
+            initializeConstraints();
             this->start = start;
             this->end = end;
             currentValue1 = currentValue2 = -1;
@@ -473,31 +473,28 @@ class NewColumnTable: public AbsNewTable {
             return Utils::decode_longFixedBytes(pos, bytesPerSecondEntry);
         }
 
-        /*
-        static long s_getValue1AtRow(const char *start,
-                const long rowId) {
-            const uint8_t header1 = (uint8_t) start[0];
-            const uint8_t bytesPerFirstEntry = (header1 >> 3) & 7;
-            const uint8_t header2 = (uint8_t) start[1];
-            const uint8_t bytesPerStartingPoint =  header2 & 7;
-            const uint8_t bytesPerCount = (header2 >> 3) & 7;
-            const uint8_t bytesFirstBlock = bytesPerFirstEntry + bytesPerCount + bytesPerStartingPoint;
-            int offset = 2;
-            Utils::decode_vlong2(start, &offset); //unused
-            Utils::decode_vlong2(start, &offset); //unused
-            const char *currentpos1= start + offset + bytesFirstBlock * rowId;
-            const long v = Utils::decode_longFixedBytes(currentpos1, bytesPerFirstEntry);
-            return v;
-        }
-        */
-
         template<int nbytes, int nskip>
-        static long s_getValue1AtRow(const char *start,
-                const long rowId) {
-            const char *currentpos1= start + (nbytes + nskip) * rowId;
-            const long v = Utils::decode_longFixedBytes(currentpos1, nbytes);
-            return v;
-        }
+            static long s_getValue1AtRow(const char *start,
+                    const long rowId) {
+                const char *currentpos1= start + (nbytes + nskip) * rowId;
+                const long v = Utils::decode_longFixedBytes(currentpos1, nbytes);
+                return v;
+            }
+
+        template<int nbytes1, int nbytes2>
+            static void s_getValue12AtRow(const uint64_t sizetable,
+                    const uint8_t offset,
+                    const char *start,
+                    const uint64_t rowId,
+                    uint64_t &v1,
+                    uint64_t &v2) {
+                const char *currentpos1 = start + (nbytes1 + offset) * rowId;
+                v1 = Utils::decode_longFixedBytes(currentpos1, nbytes1);
+                const char *currentpos2 = start + (nbytes1 + offset) * sizetable +
+                    rowId * nbytes2;
+                v2 = Utils::decode_longFixedBytes(currentpos2, nbytes2);
+            }
+
 };
 
 #endif

@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _NEW_ROWTABLE_H
@@ -153,7 +153,7 @@ class NewRowTable: public AbsNewTable {
         }
 
         void setup(const char* start, const char *end) {
-	    initializeConstraints();
+            initializeConstraints();
             this->start = start;
             current = start;
             this->end = end;
@@ -317,6 +317,15 @@ class NewRowTable: public AbsNewTable {
         static long s_getValue1AtRow(const char *start, const long rowId) {
             const char *pos = start + (Reader1::size() + Reader2::size()) * rowId;
             return Reader1::read(pos);
+        }
+
+        static void s_getValue12AtRow(const uint64_t sizetable,
+                const uint8_t offset,
+                const char *start, const uint64_t rowId,
+                uint64_t &v1, uint64_t &v2) {
+            const char *pos = start + (Reader1::size() + Reader2::size()) * rowId;
+            v1 = Reader1::read(pos);
+            v2 = Reader2::read(pos + Reader1::size());
         }
 };
 
