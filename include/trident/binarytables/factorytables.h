@@ -39,8 +39,6 @@ struct FactoryNewColumnTable {
                 const uint64_t,
                 uint64_t &,
                 uint64_t &)) {
-
-        output = NULL;
         switch (nbytes1) {
             case 1:
                 switch (nbytes2) {

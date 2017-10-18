@@ -37,8 +37,6 @@ class JSON {
             listchildren.push_back(value);
         }
 
-        static void write(std::ostream &out, JSON &value) {
-            LOG(ERRORL) << "Not implemented yet";
-        }
+        static void write(std::ostream &out, JSON &value);
 };
 #endif

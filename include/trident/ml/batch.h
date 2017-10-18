@@ -26,6 +26,7 @@ class BatchCreator {
                     uint64_t pred;
                     uint64_t boundary;
                     uint8_t offset; //Used only for the column label
+                    uint64_t nfirstterms; //Same as before
                     const char *buffer;
                     pReader reader;
                 };
@@ -45,6 +46,8 @@ class BatchCreator {
                         uint64_t &s,
                         uint64_t &p,
                         uint64_t &o);
+
+                uint64_t ntriples();
 
                 ~KBBatch();
         };

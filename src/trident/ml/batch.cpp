@@ -136,8 +136,10 @@ void BatchCreator::start() {
     string fin = this->kbdir + "/_batch";
     if (Utils::exists(fin)) {
     } else {
-        LOG(INFOL) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
-        createInputForBatch(createBatchFile, valid, test);
+        if (createBatchFile) {
+            LOG(INFOL) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
+            createInputForBatch(createBatchFile, valid, test);
+        }
     }
 
     if (createBatchFile) {
@@ -149,6 +151,7 @@ void BatchCreator::start() {
     } else {
         this->kbbatch = std::unique_ptr<KBBatch>(new KBBatch(kbdir));
         this->kbbatch->populateCoordinates();
+        this->ntriples = this->kbbatch->ntriples();
     }
 
     LOG(DEBUGL) << "Creating index array ...";
@@ -220,7 +223,7 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
         } else {
             kbbatch->getAt(idx, s, p, o);
         }
-        if (filter && shouldBeUsed(s,p,o)) {
+        if (!filter || shouldBeUsed(s,p,o)) {
             output1[i] = s;
             output2[i] = p;
             output3[i] = o;
@@ -265,7 +268,7 @@ void BatchCreator::KBBatch::populateCoordinates() {
     allposfiles = kb->openAllFiles(IDX_POS);
     auto itr = (TermItr*)querier->getTermList(IDX_POS);
     string kbdir = kb->getPath();
-    string posdir = kbdir + "/pos";
+    string posdir = kbdir + "/p" + to_string(IDX_POS);
     //Get all the predicates
     uint64_t current = 0;
     while (itr->hasNext()) {
@@ -303,7 +306,14 @@ void BatchCreator::KBBatch::populateCoordinates() {
             const uint8_t bytesPerFirstEntry = (header1 >> 3) & 7;
             const uint8_t bytesPerSecondEntry = (header1) & 7;
             info.offset = remBytes;
-            FactoryNewColumnTable::get12Reader(bytesPerFirstEntry, 
+            
+            //update the buffer
+            int offset = 2;
+            info.nfirstterms = Utils::decode_vlong2(info.buffer, &offset);
+            int ntripl = Utils::decode_vlong2(info.buffer, &offset);
+            info.buffer = info.buffer + offset;
+
+            FactoryNewColumnTable::get12Reader(bytesPerFirstEntry,
                     bytesPerSecondEntry, &info.reader);
         } else if (storageType == NEWROW_ITR) {
             const char nbytes1 = (currentStrat >> 3) & 3;
@@ -332,8 +342,8 @@ void BatchCreator::KBBatch::getAt(uint64_t pos,
     }
     if (itr != predicates.end()) {
         //Take the reader and read the values
-        itr->reader(itr->boundary - offset, itr->offset,
-                itr->buffer, pos,o,s);
+        itr->reader(itr->nfirstterms, itr->offset,
+                itr->buffer, pos, o, s);
         p = itr->pred;
     }
 }
@@ -341,4 +351,8 @@ void BatchCreator::KBBatch::getAt(uint64_t pos,
 BatchCreator::KBBatch::~KBBatch() {
     querier = NULL;
     kb = NULL;
+}
+
+uint64_t BatchCreator::KBBatch::ntriples() {
+    return kb->getSize();
 }

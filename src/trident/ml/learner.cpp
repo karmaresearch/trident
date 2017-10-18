@@ -171,9 +171,14 @@ void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
         R->postprocessUpdates();
 
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-        LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
-            elapsed_seconds.count() << "sec. Violations=" << totalV <<
-            " Conflicts=" << totalC;
+        if (nthreads > 1) {
+            LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
+                elapsed_seconds.count() << "sec. Violations=" << totalV <<
+                " Conflicts=" << totalC;
+        } else {
+            LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
+                elapsed_seconds.count() << "sec. Violations=" << totalV;
+        }
 
         if (shouldStoreModel && (epoch + 1) % storeits == 0) {
             string pathmodel = storefolder + "/model-" + to_string(epoch+1);
@@ -312,11 +317,11 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
         p.gradDebugger = std::move(debugger);
     }
     std::shared_ptr<Feedback> feedback;
+    bool filter = p.feedback;
     if (p.feedback) {
         feedback = std::shared_ptr<Feedback>(new Feedback(p.feedback_threshold,
                     p.feedback_minFullEpochs));
     }
-    bool filter = true;
     LOG(DEBUGL) << "Launching " << op << " with params: " << p.tostring();
     BatchCreator batcher(kb.getPath(),
             p.batchsize,
