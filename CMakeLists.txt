@@ -119,13 +119,15 @@ ELSE()
         SOURCE_DIR kognac
         BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
-        CMAKE_CACHE_ARGS -DBOOST_ROOT:string=${BOOST_ROOT} -DBoost_NO_BOOST_CMAKE:string=${Boost_NO_BOOST_CMAKE} -DBOOST_NO_SYSTEM_PATHS:string=${BOOST_NO_SYSTEM_PATHS}
         )
     ExternalProject_Get_Property(git-kognac SOURCE_DIR)
     include_directories(${SOURCE_DIR}/include)
     add_library(kognac STATIC IMPORTED)
     add_dependencies(kognac git-kognac)
     set_property(TARGET kognac PROPERTY IMPORTED_LOCATION kognac/libkognac.a)
+    add_library(kognac-log SHARED IMPORTED)
+    add_dependencies(kognac-log kognac)
+    set_property(TARGET kognac-log PROPERTY IMPORTED_LOCATION "kognac/libkognac-log${CMAKE_SHARED_LIBRARY_SUFFIX}")
 ENDIF()
 
 #Create the core library
@@ -147,7 +149,7 @@ find_package(Threads REQUIRED)
 if (THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC trident-core "-pthread")
 endif()
-TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac lz4 tbb)
+TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac kognac-log lz4 tbb)
 if (CMAKE_THREAD_LIBS_INIT)
     target_link_libraries(trident-core "${CMAKE_THREAD_LIBS_INIT}")
 endif()
