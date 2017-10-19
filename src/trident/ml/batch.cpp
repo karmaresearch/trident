@@ -13,7 +13,7 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         const bool filter,
         const bool createBatchFile,
         std::shared_ptr<Feedback> feedback) : kbdir(kbdir), batchsize(batchsize),
-    nthreads(nthreads), valid(valid), test(test),
+    /*nthreads(nthreads),*/ valid(valid), test(test),
     createBatchFile(createBatchFile), filter(filter),
     feedback(feedback) {
         rawtriples = NULL;
@@ -46,7 +46,7 @@ void BatchCreator::createInputForBatch(bool createTraining,
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
-    auto itr = q->get(IDX_SPO, -1, -1, -1);
+    auto itr = q->get(IDX_POS, -1, -1, -1);
     long s,p,o;
 
     ofstream ofs_valid;
@@ -69,9 +69,9 @@ void BatchCreator::createInputForBatch(bool createTraining,
     }
     while (itr->hasNext()) {
         itr->next();
-        s = itr->getKey();
-        p = itr->getValue1();
-        o = itr->getValue2();
+        p = itr->getKey();
+        o = itr->getValue1();
+        s = itr->getValue2();
         const char *cs = (const char*)&s;
         const char *cp = (const char*)&p;
         const char *co = (const char*)&o;
@@ -306,11 +306,11 @@ void BatchCreator::KBBatch::populateCoordinates() {
             const uint8_t bytesPerFirstEntry = (header1 >> 3) & 7;
             const uint8_t bytesPerSecondEntry = (header1) & 7;
             info.offset = remBytes;
-            
+
             //update the buffer
             int offset = 2;
             info.nfirstterms = Utils::decode_vlong2(info.buffer, &offset);
-            int ntripl = Utils::decode_vlong2(info.buffer, &offset);
+            Utils::decode_vlong2(info.buffer, &offset);
             info.buffer = info.buffer + offset;
 
             FactoryNewColumnTable::get12Reader(bytesPerFirstEntry,
@@ -336,10 +336,10 @@ void BatchCreator::KBBatch::getAt(uint64_t pos,
     auto itr = predicates.begin();
     uint64_t offset = 0;
     while(itr != predicates.end() && pos >= itr->boundary) {
-        pos -= itr->boundary;
         offset = itr->boundary;
         itr++;
     }
+    pos -= offset;
     if (itr != predicates.end()) {
         //Take the reader and read the values
         itr->reader(itr->nfirstterms, itr->offset,

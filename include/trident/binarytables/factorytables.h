@@ -913,7 +913,6 @@ struct FactoryNewRowTable {
                 uint64_t &,
                 uint64_t &)) {
 
-        output = NULL;
         switch (nbytes1) {
             case 0:
                 switch (nbytes2) {

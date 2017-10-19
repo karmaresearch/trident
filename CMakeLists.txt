@@ -126,8 +126,9 @@ ELSE()
     add_dependencies(kognac git-kognac)
     set_property(TARGET kognac PROPERTY IMPORTED_LOCATION kognac/libkognac.a)
     add_library(kognac-log SHARED IMPORTED)
-    add_dependencies(kognac-log kognac)
-    set_property(TARGET kognac-log PROPERTY IMPORTED_LOCATION "kognac/libkognac-log${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    add_dependencies(kognac-log git-kognac)
+    LINK_DIRECTORIES("${CMAKE_BINARY_DIR}/kognac/")
+    set_property(TARGET kognac-log PROPERTY IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/kognac/libkognac-log${CMAKE_SHARED_LIBRARY_SUFFIX}")
 ENDIF()
 
 #Create the core library

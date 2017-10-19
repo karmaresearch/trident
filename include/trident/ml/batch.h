@@ -54,7 +54,7 @@ class BatchCreator {
 
         const string kbdir;
         const uint64_t batchsize;
-        const uint16_t nthreads;
+        //const uint16_t nthreads;
         const float valid;
         const float test;
         const bool createBatchFile;
