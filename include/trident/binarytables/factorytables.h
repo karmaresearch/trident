@@ -24,6 +24,7 @@
 #define _FACTORYTABLE_H
 
 #include <kognac/factory.h>
+#include <kognac/logs.h>
 #include <trident/binarytables/newcolumntable.h>
 #include <trident/binarytables/newrowtable.h>
 #include <trident/binarytables/newclustertable.h>
