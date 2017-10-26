@@ -68,8 +68,9 @@ public:
             Not, UnaryPlus, UnaryMinus, Literal, Variable, IRI, Function, ArgumentList,
             Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
             Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_notexists, Builtin_contains,
-            Builtin_xsddecimal
-        };
+            Builtin_xsddecimal, Builtin_xsdstring,
+	    Aggregate_min, Aggregate_max, Aggregate_sum, Aggregate_avg, Aggregate_sample, Aggregate_count, Aggregate_group_concat
+	};
 
         /// The type
         Type type;
@@ -81,6 +82,8 @@ public:
         std::string valueType;
         /// Possible subtypes or variable ids
         unsigned valueArg;
+	// For aggregates:
+	bool distinct;
         /// subqueries or anything else
         std::shared_ptr<SPARQLParser> pointerToSubquery;
         std::shared_ptr<PatternGroup> pointerToSubPattern;
@@ -224,6 +227,10 @@ private:
     void parseFrom();
     /// Parse the where part if any
     void parseWhere();
+    /// Parse the group by part if any
+    void parseGroupBy(std::map<std::string, unsigned>& localVars);
+    /// Parse the having part if any
+    void parseHaving(std::map<std::string, unsigned>& localVars);
     /// Parse the order by part if any
     void parseOrderBy();
     /// Parse the limit part if any
