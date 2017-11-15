@@ -30,6 +30,8 @@
 #include <trident/binarytables/binarytablereaders.h>
 #include <trident/binarytables/newtable.h>
 
+#include <kognac/logs.h>
+
 struct FactoryNewColumnTable {
     static void get12Reader(const char nbytes1,
             const char nbytes2,
