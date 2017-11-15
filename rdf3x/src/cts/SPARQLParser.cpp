@@ -749,6 +749,7 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
           result->arg2 = args.release();
           }*/
 } else {
+    LOG(INFOL) << "token value is " << lexer.getTokenValue();
     throw ParserException("unknown function '" + lexer.getTokenValue() + "'");
 }
 
@@ -1560,36 +1561,41 @@ void SPARQLParser::parseGroupBy(std::map<std::string, unsigned>& localVars)
         throw ParserException("'by' expected");
 
     while(true) {
+	GroupBy g;
+	g.id = ~0u;
+	g.expr = NULL;
 	token = lexer.getNext();
 	if (token == SPARQLLexer::Identifier) {
+	    if (lexer.isKeyword("having") || lexer.isKeyword("order") || lexer.isKeyword("limit")
+		    || lexer.isKeyword("offset")) {
+		lexer.unget(token);
+		break;
+	    }
 	    lexer.unget(token);
-	    parseBuiltInCall(localVars);
-	    // TODO
+	    g.expr = parseBuiltInCall(localVars);
 	} else if (token == SPARQLLexer::IRI) {
 	    lexer.unget(token);
-	    SPARQLParser::parseIRIrefOrFunction(localVars, false);
-	    // TODO
+	    g.expr = SPARQLParser::parseIRIrefOrFunction(localVars, false);
 	} else if (token == SPARQLLexer::Variable) {
-	    // TODO
+	    g.id = nameVariable(lexer.getTokenValue());
 	} else if (token == SPARQLLexer::LParen) {
-	    parseExpression(localVars);
+	    g.expr = parseExpression(localVars);
 	    token = lexer.getNext();
-	    if (!lexer.isKeyword("AS")) {
-		lexer.unget(token);
-		continue;
-	    }
-	    lexer.getNext();
-	    if (token != SPARQLLexer::Variable) {
-		throw ParserException("variable expected after AS");
+	    if (lexer.isKeyword("AS")) {
+		lexer.getNext();
+		if (token != SPARQLLexer::Variable) {
+		    throw ParserException("variable expected after AS");
+		}
+		g.id = nameVariable(lexer.getTokenValue());
 	    }
 	    if (lexer.getNext() != SPARQLLexer::RParen) {
 		throw ParserException("')' expected");
 	    }
-	    // TODO
 	} else {
 	    lexer.unget(token);
 	    break;
 	}
+	groupBy.push_back(g);
     }
 }
 //---------------------------------------------------------------------------
@@ -1601,8 +1607,9 @@ void SPARQLParser::parseHaving(std::map<std::string, unsigned>& localVars)
         lexer.unget(token);
         return;
     }
-    parseConstraint(localVars);
     while(true) {
+	SPARQLParser::Filter* constraint = parseConstraint(localVars);
+	having.push_back(constraint);
 	token = lexer.getNext();
 	lexer.unget(token);
 	if (token != SPARQLLexer::LParen && token != SPARQLLexer::Identifier && token != SPARQLLexer::IRI) {
@@ -1611,7 +1618,7 @@ void SPARQLParser::parseHaving(std::map<std::string, unsigned>& localVars)
     }
 }
 //---------------------------------------------------------------------------
-void SPARQLParser::parseOrderBy()
+void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
     // Parse the order by part if any
 {
     SPARQLLexer::Token token = lexer.getNext();
@@ -1625,19 +1632,14 @@ void SPARQLParser::parseOrderBy()
     while (true) {
         token = lexer.getNext();
         if (token == SPARQLLexer::Identifier) {
+	    if (lexer.isKeyword("limit") || lexer.isKeyword("offset")) {
+		lexer.unget(token);
+		break;
+	    }
             if (lexer.isKeyword("asc") || lexer.isKeyword("desc")) {
                 Order o;
                 o.descending = lexer.isKeyword("desc");
-                if (lexer.getNext() != SPARQLLexer::LParen)
-                    throw ParserException("'(' expected");
-                token = lexer.getNext();
-                if ((token == SPARQLLexer::Identifier) && (lexer.isKeyword("count"))) {
-                    o.id = ~0u;
-                } else if (token == SPARQLLexer::Variable) {
-                    o.id = nameVariable(lexer.getTokenValue());
-                } else throw ParserException("variable expected in order-by clause");
-                if (lexer.getNext() != SPARQLLexer::RParen)
-                    throw ParserException("')' expected");
+		o.expr = parseBrackettedExpression(localVars);
                 order.push_back(o);
             } else if (lexer.isKeyword("count")) {
                 Order o;
@@ -1702,7 +1704,7 @@ void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
     parseHaving(namedVariables);
 
     // Parse the order by clause
-    parseOrderBy();
+    parseOrderBy(namedVariables);
 
     // Parse the limit clause
     parseLimit();

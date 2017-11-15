@@ -135,10 +135,18 @@ public:
         Modifier_Reduced, Modifier_Count, Modifier_Duplicates };
     /// Sort order
     struct Order {
+	Filter *expr;
         /// Variable id
         unsigned id;
         /// Desending
         bool descending;
+    };
+
+    struct GroupBy {
+	// built-in or IRI or "AS".
+	Filter *expr;
+	//  Variable id
+	unsigned id;
     };
 
 private:
@@ -164,6 +172,10 @@ private:
     PatternGroup patterns;
     /// The sort order
     std::vector<Order> order;
+    // Constraints in having clause
+    std::vector<Filter *> having;
+    // GroupBy clause(s)
+    std::vector<GroupBy> groupBy;
     /// The result limit
     unsigned limit;
     // Silent output variables
@@ -232,7 +244,7 @@ private:
     /// Parse the having part if any
     void parseHaving(std::map<std::string, unsigned>& localVars);
     /// Parse the order by part if any
-    void parseOrderBy();
+    void parseOrderBy(std::map<std::string, unsigned>& localVars);
     /// Parse the limit part if any
     void parseLimit();
 
