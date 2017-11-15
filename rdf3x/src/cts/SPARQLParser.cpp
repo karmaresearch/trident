@@ -446,10 +446,80 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
     // Parse a "BuiltInCall" production
 {
     if (lexer.getNext() != SPARQLLexer::Identifier)
-        throw ParserException("function name expected");
+        throw ParserException("function or aggregate name expected");
 
     unique_ptr<Filter> result(new Filter);
-    if (lexer.isKeyword("STR")) {
+    bool aggregate = false;
+    if (lexer.isKeyword("MIN")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_min;
+    } else if (lexer.isKeyword("SUM")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_sum;
+    } else if (lexer.isKeyword("MAX")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_max;
+    } else if (lexer.isKeyword("AVG")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_avg;
+    } else if (lexer.isKeyword("SAMPLE")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_sample;
+    } else if (lexer.isKeyword("COUNT")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_count;
+    } else if (lexer.isKeyword("GROUP_CONCAT")) {
+	aggregate = true;
+	result->type = Filter::Aggregate_group_concat;
+    }
+    if (aggregate) {
+	// '('
+	if (lexer.getNext() != SPARQLLexer::LParen) {
+	    throw ParserException("'(' expected");
+	}
+	// Optional DISTINCT
+	auto tkn = lexer.getNext();
+	if (lexer.isKeyword("DISTINCT")) {
+	    result->distinct = true;
+	} else {
+	    lexer.unget(tkn);
+	}
+	bool exprDone = false;
+	if (result->type == Filter::Aggregate_count) {
+	    // May be '*'
+	    auto tkn = lexer.getNext();
+	    if (tkn == SPARQLLexer::Mul) {
+		exprDone = true;
+		// arg1 remains NULL.
+	    } else {
+		lexer.unget(tkn);
+	    }
+	}
+	if (! exprDone) {
+	    result->arg1 = parseExpression(localVars);
+	    if (result->type == Filter::Aggregate_group_concat) {
+		auto tkn = lexer.getNext();
+		if (tkn == SPARQLLexer::Semicolon) {
+		    lexer.getNext();
+		    if (! lexer.isKeyword("SEPARATOR")) {
+			throw ParserException("'Separator' expected");
+		    }
+		    if (lexer.getNext() != SPARQLLexer::Equal) {
+			throw ParserException("'=' expected");
+		    }
+		    if (lexer.getNext() != SPARQLLexer::String) {
+			throw ParserException("string expected");
+		    }
+		    result->value = lexer.getLiteralValue();
+		} else {
+		    lexer.unget(tkn);
+		}
+	    }
+	}
+	// ')'
+	if (lexer.getNext() != SPARQLLexer::RParen)
+	    throw ParserException("')' expected");
+    } else if (lexer.isKeyword("STR")) {
         result->type = Filter::Builtin_str;
         result->arg1 = parseBrackettedExpression(localVars);
     } else if (lexer.isKeyword("xsd")) {
@@ -463,6 +533,12 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
             result->arg1 = parseBrackettedExpression(localVars);
         } else if (lexer.isKeyword("double")) {
             result->type = Filter::Builtin_xsddecimal;
+            result->arg1 = parseBrackettedExpression(localVars);
+        } else if (lexer.isKeyword("float")) {
+            result->type = Filter::Builtin_xsddecimal;
+            result->arg1 = parseBrackettedExpression(localVars);
+        } else if (lexer.isKeyword("string")) {
+            result->type = Filter::Builtin_xsdstring;
             result->arg1 = parseBrackettedExpression(localVars);
         } else {
             throw ParserException("unknown function '" + lexer.getTokenValue() + "'");
@@ -692,6 +768,11 @@ SPARQLParser::Filter* SPARQLParser::parsePrimaryExpression(map<string, unsigned>
         //It could be the prefix of a IRI
         if (prefixes.find(lexer.getTokenValue()) != prefixes.end()) {
             std::string prefix = lexer.getTokenValue();
+	    if (prefix == "xsd") {
+		// Hack .... --Ceriel
+		lexer.unget(token);
+		return parseBuiltInCall(localVars);
+	    }
             SPARQLLexer::Token dotToken = lexer.getNext();
             if (dotToken != SPARQLLexer::Token::Colon) {
                 throw ParserException("Expected :");
@@ -1467,6 +1548,69 @@ void SPARQLParser::parseWhere()
 
 }
 //---------------------------------------------------------------------------
+void SPARQLParser::parseGroupBy(std::map<std::string, unsigned>& localVars)
+    // Parse the group by part if any
+{
+    SPARQLLexer::Token token = lexer.getNext();
+    if ((token != SPARQLLexer::Identifier) || (!lexer.isKeyword("group"))) {
+        lexer.unget(token);
+        return;
+    }
+    if ((lexer.getNext() != SPARQLLexer::Identifier) || (!lexer.isKeyword("by")))
+        throw ParserException("'by' expected");
+
+    while(true) {
+	token = lexer.getNext();
+	if (token == SPARQLLexer::Identifier) {
+	    lexer.unget(token);
+	    parseBuiltInCall(localVars);
+	    // TODO
+	} else if (token == SPARQLLexer::IRI) {
+	    lexer.unget(token);
+	    SPARQLParser::parseIRIrefOrFunction(localVars, false);
+	    // TODO
+	} else if (token == SPARQLLexer::Variable) {
+	    // TODO
+	} else if (token == SPARQLLexer::LParen) {
+	    parseExpression(localVars);
+	    token = lexer.getNext();
+	    if (!lexer.isKeyword("AS")) {
+		lexer.unget(token);
+		continue;
+	    }
+	    lexer.getNext();
+	    if (token != SPARQLLexer::Variable) {
+		throw ParserException("variable expected after AS");
+	    }
+	    if (lexer.getNext() != SPARQLLexer::RParen) {
+		throw ParserException("')' expected");
+	    }
+	    // TODO
+	} else {
+	    lexer.unget(token);
+	    break;
+	}
+    }
+}
+//---------------------------------------------------------------------------
+void SPARQLParser::parseHaving(std::map<std::string, unsigned>& localVars)
+    // Parse the having part if any
+{
+    SPARQLLexer::Token token = lexer.getNext();
+    if ((token != SPARQLLexer::Identifier) || (!lexer.isKeyword("having"))) {
+        lexer.unget(token);
+        return;
+    }
+    parseConstraint(localVars);
+    while(true) {
+	token = lexer.getNext();
+	lexer.unget(token);
+	if (token != SPARQLLexer::LParen && token != SPARQLLexer::Identifier && token != SPARQLLexer::IRI) {
+	    break;
+	}
+    }
+}
+//---------------------------------------------------------------------------
 void SPARQLParser::parseOrderBy()
     // Parse the order by part if any
 {
@@ -1550,6 +1694,12 @@ void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
 
     // Parse the where clause
     parseWhere();
+
+    // Parse the group by clause
+    parseGroupBy(namedVariables);
+
+    // Parse the having clause
+    parseHaving(namedVariables);
 
     // Parse the order by clause
     parseOrderBy();
