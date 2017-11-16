@@ -18,10 +18,14 @@ class JSON {
 
     public:
         void put(std::string name, std::string value) {
+            if (name=="")
+                throw 10;
             values.insert(std::make_pair(name, value));
         }
 
         void put(std::string name, long value) {
+            if (name=="")
+                throw 10;
             put(name, std::to_string(value));
         }
 
