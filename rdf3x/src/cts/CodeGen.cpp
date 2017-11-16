@@ -11,6 +11,7 @@
 #include <rts/operator/FullyAggregatedIndexScan.hpp>
 #include <rts/operator/HashGroupify.hpp>
 #include <rts/operator/HashJoin.hpp>
+#include <rts/operator/CartProd.hpp>
 #include <rts/operator/IndexScan.hpp>
 #include <rts/operator/MergeJoin.hpp>
 #include <rts/operator/MergeUnion.hpp>
@@ -175,6 +176,7 @@ static void collectVariables(const map<unsigned, Register*>& context, set<unsign
         case Plan::HashJoin:
         case Plan::Union:
         case Plan::MergeUnion:
+        case Plan::CartProd:
                                              collectVariables(context, variables, plan->left);
                                              collectVariables(context, variables, plan->right);
                                              break;
@@ -392,6 +394,35 @@ static Operator* translateHashJoin(Runtime& runtime, const map<unsigned, Registe
     // And apply additional selections if necessary
     result = addAdditionalSelections(runtime, result, joinVariables, leftBindings, rightBindings, joinOn);
 
+    return result;
+}
+//---------------------------------------------------------------------------
+static Operator* translateCartProd(Runtime& runtime,
+        const map<unsigned, Register*>& context,
+        const set<unsigned>& projection,
+        map<unsigned, Register*>& bindings,
+        const map<const QueryGraph::Node*, unsigned>& registers,
+        Plan* plan)
+{
+    // Build the input trees
+    int bitset = 0;
+    map<unsigned, Register*> leftBindings, rightBindings;
+    Operator* leftTree = translatePlan(runtime, context, projection, leftBindings, registers, plan->left);
+    Operator* rightTree = translatePlan(runtime, context, projection, rightBindings, registers, plan->right);
+    mergeBindings(projection, bindings, leftBindings, rightBindings);
+
+    // Prepare the tails
+    vector<Register*> leftTail, rightTail;
+    for (map<unsigned, Register*>::const_iterator iter = leftBindings.begin(), limit = leftBindings.end(); iter != limit; ++iter)
+        leftTail.push_back((*iter).second);
+    for (map<unsigned, Register*>::const_iterator iter = rightBindings.begin(), limit = rightBindings.end(); iter != limit; ++iter)
+        rightTail.push_back((*iter).second);
+
+    // Build the operator
+    Operator* result = new CartProd(leftTree,
+            leftTail, rightTree,
+            rightTail, plan->cardinality, plan->left->optional,
+            plan->right->optional, bitset);
     return result;
 }
 //---------------------------------------------------------------------------
@@ -890,6 +921,9 @@ static Operator* translatePlan(Runtime& runtime, const map<unsigned, Register*>&
             break;
         case Plan::HashJoin:
             result = translateHashJoin(runtime, context, projection, bindings, registers, plan);
+            break;
+        case Plan::CartProd:
+            result = translateCartProd(runtime, context, projection, bindings, registers, plan);
             break;
         case Plan::HashGroupify:
             result = translateHashGroupify(runtime, context, projection, bindings, registers, plan);

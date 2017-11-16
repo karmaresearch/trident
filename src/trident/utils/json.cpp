@@ -29,6 +29,20 @@ void JSON::write(std::ostream &out, JSON &value) {
             firstel = false;
         }
         out << "]";
+    } else if (value.listvalues.size() > 0) {
+        if (!value.values.empty() ||
+                !value.children.empty()) {
+            throw 10;
+        }
+        out << "[";
+        bool firstel = true;
+        for(auto v : value.listvalues) {
+            if (!firstel)
+                out << ",";
+            out << "\"" << escape_json(v) << "\"";
+            firstel = false;
+        }
+        out << "]";
     } else {
         out << "{";
         bool first = true;
@@ -44,20 +58,6 @@ void JSON::write(std::ostream &out, JSON &value) {
             out << "\"" << escape_json(v.first) << "\" : ";
             write(out, v.second);
             first = false;
-        }
-        if (!value.listvalues.empty()) {
-            if (!first) {
-                out << ",";
-            }
-            out << "[";
-            bool firstel = true;
-            for(auto v : value.listvalues) {
-                if (!firstel)
-                    out << ",";
-                out << "\"" << escape_json(v) << "\"";
-                firstel = false;
-            }
-            out << "]";
         }
         out << "}";
     }

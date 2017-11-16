@@ -866,7 +866,9 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     bool singletonNeeded = (!(query.nodes.size() + query.optional.size() + query.unions.size())) && query.tableFunctions.size();
 
     // Check if we could handle the query
-    if ((query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() + query.tableFunctions.size() + singletonNeeded) > BitSet::maxWidth)
+    if ((query.nodes.size() + query.optional.size() + query.unions.size() +
+                query.subqueries.size() + query.tableFunctions.size() +
+                singletonNeeded) > BitSet::maxWidth)
         return 0;
 
     //Is it a subselect?
@@ -1146,16 +1148,56 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
                 }
             }
         }
+        if (dpTable[index] == NULL) { //No join was found. Yet, I need to include some problems that are not considered. Use cartesian product.
+            for (unsigned index2 = 0; index2 < index && !dpTable[index]; index2++) {
+                for (Problem* iter = dpTable[index2]; iter && !dpTable[index]; iter = iter->next) {
+                    BitSet leftRel = iter->relations;
+                    for (Problem* iter2 = dpTable[index - index2 - 1]; iter2; iter2 = iter2->next) {
+                        BitSet rightRel = iter2->relations;
+                        if (leftRel.overlapsWith(rightRel))
+                            continue;
+                        Problem* problem = 0;
+                        BitSet relations = leftRel.unionWith(rightRel);
+                        lookup[relations] = problem = problems.alloc();
+                        problem->relations = relations;
+                        problem->plans = 0;
+                        problem->next = dpTable[index];
+                        dpTable[index] = problem;
+
+                        //Create a plan for the two
+                        for (Plan* leftPlan = iter->plans; leftPlan; leftPlan = leftPlan->next) {
+                            for (Plan* rightPlan = iter2->plans; rightPlan; rightPlan = rightPlan->next) {
+                                Plan* p = plans->alloc();
+                                p->op = Plan::CartProd;
+                                p->opArg = 0;
+                                p->left = leftPlan;
+                                p->right = rightPlan;
+                                p->next = 0;
+                                p->cardinality = leftPlan->cardinality * rightPlan->cardinality;
+                                p->costs = leftPlan->costs * rightPlan->costs;
+                                p->ordering = ~0u;
+                                addPlan(problem, p);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     // Apparently, dpTable has null entries at the end??? --Ceriel
-    while (! dpTable.empty() && dpTable.back() == NULL) {
-        dpTable.pop_back();
-    }
+    //while (! dpTable.empty() && dpTable.back() == NULL) {
+    //    dpTable.pop_back();
+    //}
 
     // Extract the bestplan
     if (dpTable.empty())
         return 0;
+    if (dpTable.back() == NULL) {
+        cerr << "Something went wrong...";
+        throw 10;
+    }
     Plan* plan =  dpTable.back()->plans;
 
     // Add all remaining filters

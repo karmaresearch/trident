@@ -164,9 +164,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         for (QueryGraph::projection_iterator itr = queryGraph->projectionBegin();
                 itr != queryGraph->projectionEnd(); ++itr) {
             string namevar = parser->getVariableName(*itr);
-            JSON var;
-            var.put("", namevar);
-            jsonvars->push_back(var);
+            jsonvars->push_back(namevar);
             jsonnamevars.push_back(namevar);
         }
     }
@@ -292,8 +290,12 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
                     &vars,
                     &bindings,
                     &stats);
-            pt.add_child("head.vars", vars);
-            pt.add_child("results.bindings", bindings);
+            JSON head;
+            head.add_child("vars", vars);
+            pt.add_child("head", head);
+            JSON results;
+            results.add_child("bindings", bindings);
+            pt.add_child("results", results);
             pt.add_child("stats", stats);
 
             std::ostringstream buf;
