@@ -17,6 +17,10 @@ class CartProd: public Operator {
         std::vector<Register*> leftTail, rightTail;
         bool leftOptional, rightOptional;
 
+        uint64_t leftCount, rightCount;
+        std::vector<uint64_t> buffer;
+        uint64_t idxbuffer;
+
     public:
         /// Constructor
         CartProd(Operator* left,

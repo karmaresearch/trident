@@ -31,8 +31,48 @@ CartProd::~CartProd()
 uint64_t CartProd::first()
     // Produce the first tuple
 {
+    //Need to store all the first entries in a vector
+    if ((leftCount = left->first()) == 0) {
+        if (leftOptional) {
+            for(int i = 0; i < leftTail.size(); ++i) {
+                leftTail[i]->value = ~0lu;
+            }
+            leftCount = 1;
+        } else {
+            return 0;
+        }
+    } else {
+        if ((rightCount = right->first()) == 0) {
+            if (rightOptional) {
+                rightCount = 1;
+                buffer.push_back(rightCount);
+                for(int i = 0; i < rightTail.size(); ++i) {
+                    buffer.push_back(~0lu);
+                }
+            } else {
+                return 0;
+            }
+        } else {
+            //Read all the tuples on the right side
+            do {
+                buffer.push_back(rightCount);
+                for(int i = 0; i < rightTail.size(); ++i) {
+                    buffer.push_back(rightTail[i]->value);
+                }
+            } while ((rightCount = right->next()) != 0);
+
+            //Restore the first line
+            for(int i = 0; i < rightTail.size(); ++i) {
+                rightTail[i]->value = buffer[1 + i];
+            }
+            idxbuffer = 1 + rightTail.size();
+        }
+    }
+
+    observedOutputCardinality = leftCount * buffer[0];
+    return observedOutputCardinality;
+
     /*    currentIdx = -1;
-          observedOutputCardinality = 0;
     // Build the hash table if not already done
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     buildHashTableTask.run();
@@ -54,12 +94,28 @@ uint64_t CartProd::first()
     }
 
     return next();*/
-    return 0;
 }
 //---------------------------------------------------------------------------
 uint64_t CartProd::next()
     // Produce the next tuple
 {
+    if (idxbuffer == buffer.size()) {
+        //Move to the next left entry
+        if ((leftCount = left->next()) == 0) {
+            return 0;
+        }
+        idxbuffer = 0;
+    }
+    rightCount = buffer[idxbuffer++];
+    for(int i = 0; i < rightTail.size(); ++i) {
+        rightTail[i]->value = buffer[idxbuffer++];
+    }
+    observedOutputCardinality += leftCount * rightCount;
+    return leftCount * rightCount;
+
+
+
+
     /*   if (currentIdx != -1) {
          Entry *e;
          while (currentIdx < (long)hashTable.size()) {

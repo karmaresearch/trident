@@ -41,33 +41,33 @@ uint64_t MergeJoin::first()
 
     // Read the first tuples
     if ((leftCount=left->first())==0) {
-	if (leftOptional) {
-	    if ((rightCount=right->first())==0) {
-		return false;
-	    }
-	    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-		leftTail[index]->value = ~0u;
-	    }
-	    leftValue->value = ~0u;
-	    scanState = loopEmptyLeft;
-	    observedOutputCardinality += rightCount;
-	    return rightCount;
-	} else {
-	    return false;
-	}
+        if (leftOptional) {
+            if ((rightCount=right->first())==0) {
+                return false;
+            }
+            for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                leftTail[index]->value = ~0u;
+            }
+            leftValue->value = ~0u;
+            scanState = loopEmptyLeft;
+            observedOutputCardinality += rightCount;
+            return rightCount;
+        } else {
+            return false;
+        }
     }
     if ((rightCount=right->first())==0) {
-	if (rightOptional) {
-	    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-		rightTail[index]->value = ~0u;
-	    }
-	    rightValue->value = ~0u;
-	    scanState = loopEmptyRight;
-	    observedOutputCardinality += leftCount;
-	    return leftCount;
-	} else {
-	    return false;
-	}
+        if (rightOptional) {
+            for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                rightTail[index]->value = ~0u;
+            }
+            rightValue->value = ~0u;
+            scanState = loopEmptyRight;
+            observedOutputCardinality += leftCount;
+            return leftCount;
+        } else {
+            return false;
+        }
     }
 
     // The rest is done by next
@@ -163,14 +163,14 @@ uint64_t MergeJoin::next()
     while (true) {
         switch (scanState) {
             case empty: return false;
-	    case scanStepLeftCopyRight:
-			swapRight();
-			scanState = scanStepLeft;
-			continue;
-	    case scanStepRightCopyLeft:
-			swapLeft();
-			scanState = scanStepRight;
-			continue;
+            case scanStepLeftCopyRight:
+                        swapRight();
+                        scanState = scanStepLeft;
+                        continue;
+            case scanStepRightCopyLeft:
+                        swapLeft();
+                        scanState = scanStepRight;
+                        continue;
             case scanHasBothSwapped:
                         // Move the copies back in
                         swapLeft();
@@ -180,30 +180,30 @@ uint64_t MergeJoin::next()
                         // Left side
                         if (scanState>scanHasBothSwapped) {
                             if ((leftCount=left->next())==0) {
-				if (leftOptional) {
-				    leftValue->value = ~0u;
-				    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-					leftTail[index]->value = ~0u;
-				    }
-				} else {
-				    return false;
-				}
-			    }
+                                if (leftOptional) {
+                                    leftValue->value = ~0u;
+                                    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                                        leftTail[index]->value = ~0u;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            }
                         }
                         // Fallthrough...
             case scanStepRight:
                         // Right side...
                         if (scanState>scanStepLeft) {
                             if ((rightCount=right->next())==0) {
-				if (rightOptional) {
-				    rightValue->value = ~0u;
-				    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-					rightTail[index]->value = ~0u;
-				    }
-				} else {
-				    return false;
-				}
-			    }
+                                if (rightOptional) {
+                                    rightValue->value = ~0u;
+                                    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                                        rightTail[index]->value = ~0u;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            }
                         }
                         // Fallthrough...
             case scanHasBoth:
@@ -211,46 +211,46 @@ uint64_t MergeJoin::next()
                         {
                             uint64_t l=leftValue->value,r=rightValue->value;
                             if (l<r) {
-				if (rightOptional) {
-				    if (rightValue->value == ~0u) {
-					// Means that right side is exhausted
-					scanState = scanStepLeft;
-					observedOutputCardinality += leftCount;
-					return leftCount;
-				    }
-				    // Right side is not exhausted. Push value aside.
-				    copyRight();
-				    rightValue->value = ~0u;
-				    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-					rightTail[index]->value = ~0u;
-				    }
-				    // But now, what is the next scanState? It should step left, and get right from the shadow.
-				    scanState = scanStepLeftCopyRight;
-				    observedOutputCardinality += leftCount;
-				    return leftCount;
-				}
+                                if (rightOptional) {
+                                    if (rightValue->value == ~0u) {
+                                        // Means that right side is exhausted
+                                        scanState = scanStepLeft;
+                                        observedOutputCardinality += leftCount;
+                                        return leftCount;
+                                    }
+                                    // Right side is not exhausted. Push value aside.
+                                    copyRight();
+                                    rightValue->value = ~0u;
+                                    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                                        rightTail[index]->value = ~0u;
+                                    }
+                                    // But now, what is the next scanState? It should step left, and get right from the shadow.
+                                    scanState = scanStepLeftCopyRight;
+                                    observedOutputCardinality += leftCount;
+                                    return leftCount;
+                                }
                                 scanState=scanStepLeft;
                                 continue;
                             }
                             if (l>r) {
-				if (leftOptional) {
-				    if (leftValue->value == ~0u) {
-					// Means that left side is exhausted
-					scanState = scanStepRight;
-					observedOutputCardinality += rightCount;
-					return rightCount;
-				    }
-				    // Left side is not exhausted. Push value aside.
-				    copyLeft();
-				    leftValue->value = ~0u;
-				    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-					leftTail[index]->value = ~0u;
-				    }
-				    // But now, what is the next scanState? It should step right, and get left from the shadow.
-				    scanState = scanStepRightCopyLeft;
-				    observedOutputCardinality += rightCount;
-				    return rightCount;
-				}
+                                if (leftOptional) {
+                                    if (leftValue->value == ~0u) {
+                                        // Means that left side is exhausted
+                                        scanState = scanStepRight;
+                                        observedOutputCardinality += rightCount;
+                                        return rightCount;
+                                    }
+                                    // Left side is not exhausted. Push value aside.
+                                    copyLeft();
+                                    leftValue->value = ~0u;
+                                    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                                        leftTail[index]->value = ~0u;
+                                    }
+                                    // But now, what is the next scanState? It should step right, and get left from the shadow.
+                                    scanState = scanStepRightCopyLeft;
+                                    observedOutputCardinality += rightCount;
+                                    return rightCount;
+                                }
                                 scanState=scanStepRight;
                                 continue;
                             }
@@ -301,9 +301,9 @@ uint64_t MergeJoin::next()
                             observedOutputCardinality+=count;
                             return count; }
             case loopEmptyLeftCopyLeft:
-			swapLeft();
-			scanState = loopEmptyLeft;
-			// Fall through
+                        swapLeft();
+                        scanState = loopEmptyLeft;
+                        // Fall through
             case loopEmptyLeft:
                         // Left side is empty, compare with the right side
                         if ((rightCount=right->next())==0) {
@@ -316,21 +316,21 @@ uint64_t MergeJoin::next()
                                 observedOutputCardinality+=count;
                                 return count;
                             }
-			    if (leftOptional) {
-				if (l != ~0u) {
-				    if (l > r) {
-					// We need to compare the next "right" with this left as well.
-					swapLeft();
-					scanState = loopEmptyLeftCopyLeft;
-				    }
-				    leftValue->value = ~0u;
-				    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-					leftTail[index]->value = ~0u;
-				    }
-				}
+                            if (leftOptional) {
+                                if (l != ~0u) {
+                                    if (l > r) {
+                                        // We need to compare the next "right" with this left as well.
+                                        swapLeft();
+                                        scanState = loopEmptyLeftCopyLeft;
+                                    }
+                                    leftValue->value = ~0u;
+                                    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                                        leftTail[index]->value = ~0u;
+                                    }
+                                }
                                 observedOutputCardinality+=rightCount;
-				return rightCount;
-			    }
+                                return rightCount;
+                            }
                             if (l<r) {
                                 if (Operator::disableSkipping) {
                                     while (right->next()) ;
@@ -340,9 +340,9 @@ uint64_t MergeJoin::next()
                             }}
                         continue;
             case loopEmptyRightCopyRight:
-			swapRight();
-			scanState = loopEmptyRight;
-			// Fall through
+                        swapRight();
+                        scanState = loopEmptyRight;
+                        // Fall through
             case loopEmptyRight:
                         // Right side is empty, compare with the left side
                         if ((leftCount=left->next())==0) {
@@ -359,22 +359,22 @@ uint64_t MergeJoin::next()
                                 uint64_t count=leftCount*rightCount;
                                 observedOutputCardinality+=count;
                                 return count;
-			    }
-			    if (rightOptional) {
-				if (r != ~0u) {
-				    if (r > l) {
-					swapRight();
-					scanState = loopEmptyRightCopyRight;
-					// We need to compare the next "left" with this right as well.
-				    }
-				    rightValue->value = ~0u;
-				    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-					rightTail[index]->value = ~0u;
-				    }
-				}
-				observedOutputCardinality += leftCount;
-				return leftCount;
-			    }
+                            }
+                            if (rightOptional) {
+                                if (r != ~0u) {
+                                    if (r > l) {
+                                        swapRight();
+                                        scanState = loopEmptyRightCopyRight;
+                                        // We need to compare the next "left" with this right as well.
+                                    }
+                                    rightValue->value = ~0u;
+                                    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                                        rightTail[index]->value = ~0u;
+                                    }
+                                }
+                                observedOutputCardinality += leftCount;
+                                return leftCount;
+                            }
                             if (l>r) {
                                 if (Operator::disableSkipping) {
                                     while (left->next()) ;
@@ -391,16 +391,16 @@ uint64_t MergeJoin::next()
                         // Block on the left hand side
                         if (scanState==loopEqualLeft) {
                             if ((leftCount=left->next())==0) {
-				if (leftOptional) {
-				    if (leftValue->value != ~0u) {
-					leftValue->value = ~0u;
-					for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-					    leftTail[index]->value = ~0u;
-					}
-				    }
-				    scanState = scanStepRight;
-				    continue;
-				}
+                                if (leftOptional) {
+                                    if (leftValue->value != ~0u) {
+                                        leftValue->value = ~0u;
+                                        for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                                            leftTail[index]->value = ~0u;
+                                        }
+                                    }
+                                    scanState = scanStepRight;
+                                    continue;
+                                }
                                 if (Operator::disableSkipping) {
                                     while (right->next()) ;
                                 }
@@ -425,16 +425,16 @@ uint64_t MergeJoin::next()
                         // Block on the right hand side
                         if (scanState==loopEqualRight) {
                             if ((rightCount=right->next())==0) {
-				if (rightOptional) {
-				    if (rightValue->value != ~0u) {
-					rightValue->value = ~0u;
-					for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-					    rightTail[index]->value = ~0u;
-					}
-				    }
-				    scanState = scanStepLeft;
-				    continue;
-				}
+                                if (rightOptional) {
+                                    if (rightValue->value != ~0u) {
+                                        rightValue->value = ~0u;
+                                        for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                                            rightTail[index]->value = ~0u;
+                                        }
+                                    }
+                                    scanState = scanStepLeft;
+                                    continue;
+                                }
                                 if (Operator::disableSkipping) {
                                     while (left->next()) ;
                                 }
@@ -469,16 +469,16 @@ uint64_t MergeJoin::next()
                                 leftInCopy=false;
                             } else {
                                 if ((leftCount=left->next())==0) {
-				    if (leftOptional) {
-					if (leftValue->value != ~0u) {
-					    leftValue->value = ~0u;
-					    for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
-						leftTail[index]->value = ~0u;
-					    }
-					}
-					scanState = loopEmptyLeft;
-					continue;
-				    }
+                                    if (leftOptional) {
+                                        if (leftValue->value != ~0u) {
+                                            leftValue->value = ~0u;
+                                            for (int index = 0, limit = leftTail.size(); index < limit; ++index) {
+                                                leftTail[index]->value = ~0u;
+                                            }
+                                        }
+                                        scanState = loopEmptyLeft;
+                                        continue;
+                                    }
                                     if (Operator::disableSkipping) {
                                         while (right->next()) ;
                                     }
@@ -494,16 +494,16 @@ uint64_t MergeJoin::next()
                             } else {
                                 // No, right hand side empty?
                                 if (scanState==loopSpooledRightEmpty) {
-				    if (rightOptional) {
-					if (rightValue->value != ~0u) {
-					    rightValue->value = ~0u;
-					    for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
-						rightTail[index]->value = ~0u;
-					    }
-					}
-					scanState = loopEmptyRight;
-					continue;
-				    }
+                                    if (rightOptional) {
+                                        if (rightValue->value != ~0u) {
+                                            rightValue->value = ~0u;
+                                            for (int index = 0, limit = rightTail.size(); index < limit; ++index) {
+                                                rightTail[index]->value = ~0u;
+                                            }
+                                        }
+                                        scanState = loopEmptyRight;
+                                        continue;
+                                    }
                                     if (Operator::disableSkipping) {
                                         while (left->next()) ;
                                     }
