@@ -111,7 +111,10 @@ IF(KOGNAC_LIB)
     message("Using KOGNAC provided installation: ${KOGNAC_LIB} ${KOGNAC_INC}")
     include_directories(${KOGNAC_INC})
     add_library(kognac STATIC IMPORTED)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION ${KOGNAC_LIB})
+    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION ${KOGNAC_LIB}/libkognac.a)
+    LINK_DIRECTORIES("${KOGNAC_LIB}/")
+    add_library(kognac-log SHARED IMPORTED)
+    set_property(TARGET kognac-log PROPERTY IMPORTED_LOCATION "${KOGNAC_LIB}/libkognac-log${CMAKE_SHARED_LIBRARY_SUFFIX}")
 ELSE()
     ExternalProject_Add(git-kognac
         DOWNLOAD_COMMAND git clone https://github.com/karmaresearch/kognac.git
