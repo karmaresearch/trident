@@ -152,6 +152,11 @@ private:
 /// Is the query known to produce an empty result?
     bool knownEmptyResult;
 
+    //Variables used to create groups
+    std::vector<TableFunction> aggregates;
+    std::vector<unsigned> groupby;
+    std::vector<Filter*> having; //Criteria to filter out some groups
+
     QueryGraph(const QueryGraph&);
     void operator=(const QueryGraph&);
 

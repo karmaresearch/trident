@@ -61,6 +61,9 @@ void Plan::print(unsigned indent) const
         case HashJoin:
             cout << "HashJoin";
             break;
+        case CartProd:
+            cout << "CartesianProduct";
+            break;
         case HashGroupify:
             cout << "HashGroupify";
             break;
@@ -98,6 +101,7 @@ void Plan::print(unsigned indent) const
         case NestedLoopJoin:
         case MergeJoin:
         case HashJoin:
+        case CartProd:
             left->print(indent + 1);
             right->print(indent + 1);
             break;

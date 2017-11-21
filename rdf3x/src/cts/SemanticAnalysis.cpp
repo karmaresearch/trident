@@ -577,6 +577,14 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
             break;
     }
 
+    // Add GroupBy variables
+    for(auto &gv : input.groupBy) {
+        output.groupby(gv.id);
+    }
+    for(auto hv: input.having) { //Having constraints are the same
+        output.having.push_back(hv);
+    }
+
     // Order by clause
     for (SPARQLParser::order_iterator iter = input.orderBegin(), limit = input.orderEnd(); iter != limit; ++iter) {
         QueryGraph::Order o;

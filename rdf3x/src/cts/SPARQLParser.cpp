@@ -451,74 +451,74 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
     unique_ptr<Filter> result(new Filter);
     bool aggregate = false;
     if (lexer.isKeyword("MIN")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_min;
+        aggregate = true;
+        result->type = Filter::Aggregate_min;
     } else if (lexer.isKeyword("SUM")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_sum;
+        aggregate = true;
+        result->type = Filter::Aggregate_sum;
     } else if (lexer.isKeyword("MAX")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_max;
+        aggregate = true;
+        result->type = Filter::Aggregate_max;
     } else if (lexer.isKeyword("AVG")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_avg;
+        aggregate = true;
+        result->type = Filter::Aggregate_avg;
     } else if (lexer.isKeyword("SAMPLE")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_sample;
+        aggregate = true;
+        result->type = Filter::Aggregate_sample;
     } else if (lexer.isKeyword("COUNT")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_count;
+        aggregate = true;
+        result->type = Filter::Aggregate_count;
     } else if (lexer.isKeyword("GROUP_CONCAT")) {
-	aggregate = true;
-	result->type = Filter::Aggregate_group_concat;
+        aggregate = true;
+        result->type = Filter::Aggregate_group_concat;
     }
     if (aggregate) {
-	// '('
-	if (lexer.getNext() != SPARQLLexer::LParen) {
-	    throw ParserException("'(' expected");
-	}
-	// Optional DISTINCT
-	auto tkn = lexer.getNext();
-	if (lexer.isKeyword("DISTINCT")) {
-	    result->distinct = true;
-	} else {
-	    lexer.unget(tkn);
-	}
-	bool exprDone = false;
-	if (result->type == Filter::Aggregate_count) {
-	    // May be '*'
-	    auto tkn = lexer.getNext();
-	    if (tkn == SPARQLLexer::Mul) {
-		exprDone = true;
-		// arg1 remains NULL.
-	    } else {
-		lexer.unget(tkn);
-	    }
-	}
-	if (! exprDone) {
-	    result->arg1 = parseExpression(localVars);
-	    if (result->type == Filter::Aggregate_group_concat) {
-		auto tkn = lexer.getNext();
-		if (tkn == SPARQLLexer::Semicolon) {
-		    lexer.getNext();
-		    if (! lexer.isKeyword("SEPARATOR")) {
-			throw ParserException("'Separator' expected");
-		    }
-		    if (lexer.getNext() != SPARQLLexer::Equal) {
-			throw ParserException("'=' expected");
-		    }
-		    if (lexer.getNext() != SPARQLLexer::String) {
-			throw ParserException("string expected");
-		    }
-		    result->value = lexer.getLiteralValue();
-		} else {
-		    lexer.unget(tkn);
-		}
-	    }
-	}
-	// ')'
-	if (lexer.getNext() != SPARQLLexer::RParen)
-	    throw ParserException("')' expected");
+        // '('
+        if (lexer.getNext() != SPARQLLexer::LParen) {
+            throw ParserException("'(' expected");
+        }
+        // Optional DISTINCT
+        auto tkn = lexer.getNext();
+        if (lexer.isKeyword("DISTINCT")) {
+            result->distinct = true;
+        } else {
+            lexer.unget(tkn);
+        }
+        bool exprDone = false;
+        if (result->type == Filter::Aggregate_count) {
+            // May be '*'
+            auto tkn = lexer.getNext();
+            if (tkn == SPARQLLexer::Mul) {
+                exprDone = true;
+                // arg1 remains NULL.
+            } else {
+                lexer.unget(tkn);
+            }
+        }
+        if (! exprDone) {
+            result->arg1 = parseExpression(localVars);
+            if (result->type == Filter::Aggregate_group_concat) {
+                auto tkn = lexer.getNext();
+                if (tkn == SPARQLLexer::Semicolon) {
+                    lexer.getNext();
+                    if (! lexer.isKeyword("SEPARATOR")) {
+                        throw ParserException("'Separator' expected");
+                    }
+                    if (lexer.getNext() != SPARQLLexer::Equal) {
+                        throw ParserException("'=' expected");
+                    }
+                    if (lexer.getNext() != SPARQLLexer::String) {
+                        throw ParserException("string expected");
+                    }
+                    result->value = lexer.getLiteralValue();
+                } else {
+                    lexer.unget(tkn);
+                }
+            }
+        }
+        // ')'
+        if (lexer.getNext() != SPARQLLexer::RParen)
+            throw ParserException("')' expected");
     } else if (lexer.isKeyword("STR")) {
         result->type = Filter::Builtin_str;
         result->arg1 = parseBrackettedExpression(localVars);
@@ -769,11 +769,11 @@ SPARQLParser::Filter* SPARQLParser::parsePrimaryExpression(map<string, unsigned>
         //It could be the prefix of a IRI
         if (prefixes.find(lexer.getTokenValue()) != prefixes.end()) {
             std::string prefix = lexer.getTokenValue();
-	    if (prefix == "xsd") {
-		// Hack .... --Ceriel
-		lexer.unget(token);
-		return parseBuiltInCall(localVars);
-	    }
+            if (prefix == "xsd") {
+                // Hack .... --Ceriel
+                lexer.unget(token);
+                return parseBuiltInCall(localVars);
+            }
             SPARQLLexer::Token dotToken = lexer.getNext();
             if (dotToken != SPARQLLexer::Token::Colon) {
                 throw ParserException("Expected :");
@@ -1561,41 +1561,41 @@ void SPARQLParser::parseGroupBy(std::map<std::string, unsigned>& localVars)
         throw ParserException("'by' expected");
 
     while(true) {
-	GroupBy g;
-	g.id = ~0u;
-	g.expr = NULL;
-	token = lexer.getNext();
-	if (token == SPARQLLexer::Identifier) {
-	    if (lexer.isKeyword("having") || lexer.isKeyword("order") || lexer.isKeyword("limit")
-		    || lexer.isKeyword("offset")) {
-		lexer.unget(token);
-		break;
-	    }
-	    lexer.unget(token);
-	    g.expr = parseBuiltInCall(localVars);
-	} else if (token == SPARQLLexer::IRI) {
-	    lexer.unget(token);
-	    g.expr = SPARQLParser::parseIRIrefOrFunction(localVars, false);
-	} else if (token == SPARQLLexer::Variable) {
-	    g.id = nameVariable(lexer.getTokenValue());
-	} else if (token == SPARQLLexer::LParen) {
-	    g.expr = parseExpression(localVars);
-	    token = lexer.getNext();
-	    if (lexer.isKeyword("AS")) {
-		lexer.getNext();
-		if (token != SPARQLLexer::Variable) {
-		    throw ParserException("variable expected after AS");
-		}
-		g.id = nameVariable(lexer.getTokenValue());
-	    }
-	    if (lexer.getNext() != SPARQLLexer::RParen) {
-		throw ParserException("')' expected");
-	    }
-	} else {
-	    lexer.unget(token);
-	    break;
-	}
-	groupBy.push_back(g);
+        GroupBy g;
+        g.id = ~0u;
+        g.expr = NULL;
+        token = lexer.getNext();
+        if (token == SPARQLLexer::Identifier) {
+            if (lexer.isKeyword("having") || lexer.isKeyword("order") || lexer.isKeyword("limit")
+                    || lexer.isKeyword("offset")) {
+                lexer.unget(token);
+                break;
+            }
+            lexer.unget(token);
+            g.expr = parseBuiltInCall(localVars);
+        } else if (token == SPARQLLexer::IRI) {
+            lexer.unget(token);
+            g.expr = SPARQLParser::parseIRIrefOrFunction(localVars, false);
+        } else if (token == SPARQLLexer::Variable) {
+            g.id = nameVariable(lexer.getTokenValue());
+        } else if (token == SPARQLLexer::LParen) {
+            g.expr = parseExpression(localVars);
+            token = lexer.getNext();
+            if (lexer.isKeyword("AS")) {
+                lexer.getNext();
+                if (token != SPARQLLexer::Variable) {
+                    throw ParserException("variable expected after AS");
+                }
+                g.id = nameVariable(lexer.getTokenValue());
+            }
+            if (lexer.getNext() != SPARQLLexer::RParen) {
+                throw ParserException("')' expected");
+            }
+        } else {
+            lexer.unget(token);
+            break;
+        }
+        groupBy.push_back(g);
     }
 }
 //---------------------------------------------------------------------------
@@ -1608,13 +1608,13 @@ void SPARQLParser::parseHaving(std::map<std::string, unsigned>& localVars)
         return;
     }
     while(true) {
-	SPARQLParser::Filter* constraint = parseConstraint(localVars);
-	having.push_back(constraint);
-	token = lexer.getNext();
-	lexer.unget(token);
-	if (token != SPARQLLexer::LParen && token != SPARQLLexer::Identifier && token != SPARQLLexer::IRI) {
-	    break;
-	}
+        SPARQLParser::Filter* constraint = parseConstraint(localVars);
+        having.push_back(constraint);
+        token = lexer.getNext();
+        lexer.unget(token);
+        if (token != SPARQLLexer::LParen && token != SPARQLLexer::Identifier && token != SPARQLLexer::IRI) {
+            break;
+        }
     }
 }
 //---------------------------------------------------------------------------
@@ -1632,14 +1632,14 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
     while (true) {
         token = lexer.getNext();
         if (token == SPARQLLexer::Identifier) {
-	    if (lexer.isKeyword("limit") || lexer.isKeyword("offset")) {
-		lexer.unget(token);
-		break;
-	    }
+            if (lexer.isKeyword("limit") || lexer.isKeyword("offset")) {
+                lexer.unget(token);
+                break;
+            }
             if (lexer.isKeyword("asc") || lexer.isKeyword("desc")) {
                 Order o;
                 o.descending = lexer.isKeyword("desc");
-		o.expr = parseBrackettedExpression(localVars);
+                o.expr = parseBrackettedExpression(localVars);
                 order.push_back(o);
             } else if (lexer.isKeyword("count")) {
                 Order o;

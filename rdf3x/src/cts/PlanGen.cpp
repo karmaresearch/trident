@@ -843,6 +843,7 @@ static void findFilters(Plan* plan, set<const QueryGraph::Filter*>& filters)
         case Plan::NestedLoopJoin:
         case Plan::MergeJoin:
         case Plan::HashJoin:
+        case Plan::CartProd:
             findFilters(plan->left, filters);
             findFilters(plan->right, filters);
             break;
