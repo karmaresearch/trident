@@ -89,7 +89,7 @@ string _getValueParam(string req, string param) {
 
 void TridentServer::parseQuery(bool &success,
         SPARQLParser &parser,
-        QueryGraph &queryGraph,
+        std::unique_ptr<QueryGraph> &queryGraph,
         QueryDict &queryDict,
         TridentLayer &db) {
 
@@ -101,17 +101,17 @@ void TridentServer::parseQuery(bool &success,
         success = false;
         return;
     }
-
+    queryGraph = std::unique_ptr<QueryGraph>(new QueryGraph(parser.getVarCount()));
     // And perform the semantic anaylsis
     try {
         SemanticAnalysis semana(db, queryDict);
-        semana.transform(parser, queryGraph);
+        semana.transform(parser, *queryGraph.get());
     } catch (const SemanticAnalysis::SemanticException& e) {
         cerr << "semantic error: " << e.message << endl;
         success = false;
         return;
     }
-    if (queryGraph.knownEmpty()) {
+    if (queryGraph->knownEmpty()) {
         cout << "<empty result -- known empty>" << endl;
         success = false;
         return;
@@ -141,7 +141,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         JSON *jsonresults,
         JSON *jsonstats) {
     std::unique_ptr<QueryDict> queryDict = std::unique_ptr<QueryDict>(new QueryDict(nterms));
-    std::unique_ptr<QueryGraph> queryGraph = std::unique_ptr<QueryGraph>(new QueryGraph());
+    std::unique_ptr<QueryGraph> queryGraph;
     bool parsingOk;
 
     std::unique_ptr<SPARQLLexer> lexer =
@@ -149,7 +149,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
     std::unique_ptr<SPARQLParser> parser = std::unique_ptr<SPARQLParser>(
             new SPARQLParser(*lexer.get()));
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    parseQuery(parsingOk, *parser.get(), *queryGraph.get(), *queryDict.get(), db);
+    parseQuery(parsingOk, *parser.get(), queryGraph, *queryDict.get(), db);
     if (!parsingOk) {
         std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
         LOG(INFOL) << "Runtime query: 0ms.";

@@ -157,8 +157,9 @@ bool QueryGraph::Filter::isApplicable(const std::set<unsigned>& variables) const
     return true;
 }
 //---------------------------------------------------------------------------
-QueryGraph::QueryGraph()
-    : duplicateHandling(AllDuplicates), limit(~0u), knownEmptyResult(false)
+QueryGraph::QueryGraph(unsigned varcount)
+    : duplicateHandling(AllDuplicates), limit(~0u), knownEmptyResult(false),
+    hdl(varcount)
       // Constructor
 {
 }

@@ -65,7 +65,7 @@ private:
     //OK
     static void parseQuery(bool &success,
                            SPARQLParser &parser,
-                           QueryGraph &queryGraph,
+                           std::unique_ptr<QueryGraph> &queryGraph,
                            QueryDict &queryDict,
                            TridentLayer &db);
 public:

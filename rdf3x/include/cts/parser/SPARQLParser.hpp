@@ -308,6 +308,8 @@ class SPARQLParser {
         unsigned getLimit() const {
             return limit;
         }
+
+        unsigned getVarCount() const;
 };
 //---------------------------------------------------------------------------
 #endif

@@ -14,6 +14,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <trident/sparql/aggrhandler.h>
 //---------------------------------------------------------------------------
 /// A query graph representing a SPARQL query
 class QueryGraph {
@@ -153,7 +154,8 @@ class QueryGraph {
         bool knownEmptyResult;
 
         //Variables used to create groups
-        std::vector<TableFunction> aggregates;
+        AggregateHandler hdl;
+
         std::vector<unsigned> groupby;
         std::vector<Filter> having; //Criteria to filter out some groups
 
@@ -162,7 +164,7 @@ class QueryGraph {
 
     public:
         /// Constructor
-        QueryGraph();
+        QueryGraph(unsigned varcount);
         /// Destructor
         ~QueryGraph();
 
@@ -243,6 +245,14 @@ class QueryGraph {
         /// Iterator over the sort order
         order_iterator orderEnd() const {
             return order.end();
+        }
+
+        unsigned getVarCount() {
+            return hdl.getVarCount();
+        }
+
+        AggregateHandler &getAggredateHandler() {
+            return hdl;
         }
 };
 //---------------------------------------------------------------------------

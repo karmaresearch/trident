@@ -1729,3 +1729,6 @@ string SPARQLParser::getVariableName(unsigned id) const
     return "";
 }
 //---------------------------------------------------------------------------
+unsigned SPARQLParser::getVarCount() const {
+    return variableCount;
+}

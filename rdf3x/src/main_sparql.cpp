@@ -64,7 +64,7 @@ std::unique_ptr<Query> createQueryFromRF3XQueryGraph(SPARQLParser &parser,
 
 void parseQuery(bool &success,
         SPARQLParser &parser,
-        QueryGraph &queryGraph,
+        std::shared_ptr<QueryGraph> &queryGraph,
         QueryDict &queryDict,
         TridentLayer &db) {
 
@@ -76,17 +76,18 @@ void parseQuery(bool &success,
         success = false;
         return;
     }
+    queryGraph = std::shared_ptr<QueryGraph>(new QueryGraph(parser.getVarCount()));
 
     // And perform the semantic anaylsis
     try {
         SemanticAnalysis semana(db, queryDict);
-        semana.transform(parser, queryGraph);
+        semana.transform(parser, *queryGraph.get());
     } catch (const SemanticAnalysis::SemanticException& e) {
         cerr << "semantic error: " << e.message << endl;
         success = false;
         return;
     }
-    if (queryGraph.knownEmpty()) {
+    if (queryGraph->knownEmpty()) {
         cout << "<empty result -- known empty>" << endl;
         success = false;
         return;
@@ -99,7 +100,6 @@ void parseQuery(bool &success,
 void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         bool disableBifocalSampling, bool resultslookup) {
     QueryDict queryDict(db.getNextId());
-    QueryGraph queryGraph;
     bool parsingOk;
 
     // Parse the query
@@ -119,6 +119,7 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
 
     SPARQLLexer lexer(queryContent);
     SPARQLParser parser(lexer);
+    std::shared_ptr<QueryGraph> queryGraph;
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     parseQuery(parsingOk, parser, queryGraph,
@@ -136,10 +137,10 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
     PlanGen plangen;
     Plan* plan = NULL;
     if (!disableBifocalSampling) {
-        plan = plangen.translate(db, queryGraph);
+        plan = plangen.translate(db, *queryGraph.get());
     } else {
         db.disableBifocalSampling();
-        plan = plangen.translate(db, queryGraph, false);
+        plan = plangen.translate(db, *queryGraph.get(), false);
     }
 
     if (!plan) {
@@ -150,7 +151,7 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
 
     // Build a physical plan
     Runtime runtime(db, NULL, &queryDict);
-    Operator* operatorTree = CodeGen().translate(runtime, queryGraph, plan, !resultslookup);
+    Operator* operatorTree = CodeGen().translate(runtime, *queryGraph.get(), plan, !resultslookup);
 
     // Execute it
     if (explain) {
@@ -183,7 +184,6 @@ void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent) {
 
     //Parse the query
     QueryDict queryDict(db.getNextId());
-    QueryGraph queryGraph;
     bool parsingOk;
 
     std::fstream inFile;
@@ -192,6 +192,7 @@ void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent) {
     strStream << inFile.rdbuf();//read the file
     SPARQLLexer lexer(strStream.str());
     SPARQLParser parser(lexer);
+    std::shared_ptr<QueryGraph> queryGraph;
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
@@ -205,7 +206,7 @@ void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent) {
     }
 
     std::unique_ptr<Query> query  = createQueryFromRF3XQueryGraph(parser,
-            queryGraph);
+            *queryGraph.get());
     TridentQueryPlan plan(q);
     plan.create(*query.get(), SIMPLE);
     std::chrono::duration<double> durationO = std::chrono::system_clock::now() - start;
