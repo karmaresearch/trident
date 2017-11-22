@@ -292,6 +292,14 @@ class SPARQLParser {
             return order.end();
         }
 
+        const std::vector<GroupBy> &getGroupBys() const {
+            return groupBy;
+        }
+
+        const std::vector<Filter*> &getHavings() const {
+            return having;
+        }
+
         /// The projection modifier
         ProjectionModifier getProjectionModifier() const {
             return projectionModifier;

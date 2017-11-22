@@ -578,11 +578,13 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
     }
 
     // Add GroupBy variables
-    for(auto &gv : input.groupBy) {
-        output.groupby(gv.id);
+    for(auto &gv : input.getGroupBys()) {
+        output.addGroupBy(gv.id);
     }
-    for(auto hv: input.having) { //Having constraints are the same
-        output.having.push_back(hv);
+    for(auto hv: input.getHavings()) { //Having constraints are the same
+        QueryGraph::Filter f;
+        encodeFilter(this, dict, NULL, input.getPatterns(), *hv, f, tempDict);
+        output.addHaving(f);
     }
 
     // Order by clause
