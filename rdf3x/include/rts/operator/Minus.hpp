@@ -10,7 +10,6 @@
 #include <vector>
 
 //---------------------------------------------------------------------------
-/// A sort operator
 class Minus : public Operator
 {
     private:

@@ -97,7 +97,6 @@ void Minus::print(PlanPrinter& out) {
     mainTree->print(out);
     minusTree->print(out);
     out.endOperator();
-
 }
 
 void Minus::addMergeHint(Register* reg1, Register* reg2) {

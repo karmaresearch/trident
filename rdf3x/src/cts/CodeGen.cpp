@@ -27,6 +27,7 @@
 #include <rts/operator/TableFunction.hpp>
 #include <rts/operator/Union.hpp>
 #include <rts/operator/DuplLimit.hpp>
+#include <rts/operator/GroupBy.hpp>
 
 #include <cstdlib>
 #include <map>
@@ -201,6 +202,11 @@ static void collectVariables(const map<unsigned, Register*>& context, set<unsign
                                   for (auto v : ((QueryGraph::ValuesNode*) plan->left)->variables) {
                                       variables.insert(v);
                                   }
+                                  break;
+        case Plan::GroupBy:
+        case Plan::Aggregates:
+        case Plan::Having:
+                                  collectVariables(context, variables, plan->left);
                                   break;
         case Plan::Subselect:
                                   //Here I collect only the projected variables
@@ -609,6 +615,27 @@ static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned
     throw; // Cannot happen
 }
 //---------------------------------------------------------------------------
+static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
+    Operator* tree = translatePlan(runtime, context, projection, bindings,
+            registers, plan->left);
+    Operator *result = new GroupBy(tree, tree->getExpectedOutputCardinality());
+    return result;
+}
+//---------------------------------------------------------------------------
+static Operator* translateAggregates(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
+    Operator* tree = translatePlan(runtime, context, projection, bindings,
+            registers, plan->left);
+    //TODO: Add the operator
+    return tree;
+}
+//---------------------------------------------------------------------------
+static Operator* translateHaving(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
+    Operator* tree = translatePlan(runtime, context, projection, bindings,
+            registers, plan->left);
+    //TODO: Add the operator
+    return tree;
+}
+//---------------------------------------------------------------------------
 static Operator* translateFilter(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)
     // Translate a filter into an operator tree
 {
@@ -951,6 +978,15 @@ static Operator* translatePlan(Runtime& runtime, const map<unsigned, Register*>&
             break;
         case Plan::Singleton:
             result = new SingletonScan();
+            break;
+        case Plan::GroupBy:
+            result = translateGroupBy(runtime, context, projection, bindings, registers, plan);
+            break;
+        case Plan::Having:
+            result = translateHaving(runtime, context, projection, bindings, registers, plan);
+            break;
+        case Plan::Aggregates:
+            result = translateAggregates(runtime, context, projection, bindings, registers, plan);
             break;
     }
     return result;
