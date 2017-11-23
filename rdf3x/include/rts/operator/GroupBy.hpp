@@ -3,15 +3,22 @@
 
 #include <rts/operator/Operator.hpp>
 
+#include <vector>
+
 //---------------------------------------------------------------------------
 class GroupBy : public Operator
 {
     private:
         Operator *child;
+        std::vector<Register*> regs;
+        const bool distinct;
 
     public:
         /// Constructor
-        GroupBy(Operator* child, double expectedOutputCardinality);
+        GroupBy(Operator* child,
+                std::vector<Register*> regs,
+                bool distinct,
+                double expectedOutputCardinality);
 
         /// Destructor
         ~GroupBy();

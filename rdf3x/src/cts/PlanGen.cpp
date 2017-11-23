@@ -1261,7 +1261,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         //Add an operator that groups the variables in some groups
         Plan* p = plans->alloc();
         p->op = Plan::GroupBy;
-        p->opArg = 0;
+        p->opArg = entirePlan.c_getAggredateHandler().empty();
         p->left = plan;
         p->right = (Plan*)&entirePlan.getGroupBy();
         p->next = 0;
@@ -1306,7 +1306,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         if (!addedGroupBy) {
             Plan* p = plans->alloc();
             p->op = Plan::GroupBy;
-            p->opArg = 0;
+            p->opArg = entirePlan.c_getAggredateHandler().empty();
             p->left = plan;
             p->right = NULL;
             p->next = 0;

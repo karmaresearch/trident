@@ -618,7 +618,24 @@ static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned
 static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
     Operator* tree = translatePlan(runtime, context, projection, bindings,
             registers, plan->left);
-    Operator *result = new GroupBy(tree, tree->getExpectedOutputCardinality());
+
+    vector<Register*> regs;
+    //Get the variables
+    if (plan->right) {
+        const std::vector<unsigned>& groupByVars =
+            *reinterpret_cast<const std::vector<unsigned>*>(plan->right);
+        for (auto v : groupByVars) {
+            if (bindings.count(v)) {
+                regs.push_back(bindings[v]);
+            } else {
+                LOG(ERRORL) << "Variable not found";
+                throw 10;
+            }
+        }
+    }
+
+    Operator *result = new GroupBy(tree, regs, plan->opArg == 1,
+            tree->getExpectedOutputCardinality());
     return result;
 }
 //---------------------------------------------------------------------------

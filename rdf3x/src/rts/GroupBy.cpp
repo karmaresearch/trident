@@ -1,7 +1,10 @@
 #include <rts/operator/GroupBy.hpp>
 #include <rts/operator/PlanPrinter.hpp>
 
-GroupBy::GroupBy(Operator* child, double expectedOutputCardinality) : Operator(expectedOutputCardinality), child(child) {
+GroupBy::GroupBy(Operator* child,
+        std::vector<Register*> regs,
+        bool distinct,
+        double expectedOutputCardinality) : Operator(expectedOutputCardinality), child(child), regs(regs), distinct(distinct) {
 }
 
 /// Destructor
