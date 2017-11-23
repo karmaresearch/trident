@@ -1,8 +1,10 @@
 #ifndef H_rts_operator_groupby
 #define H_rts_operator_groupby
 
+#include <rts/runtime/Runtime.hpp>
 #include <rts/operator/Operator.hpp>
 
+#include <map>
 #include <vector>
 
 //---------------------------------------------------------------------------
@@ -10,13 +12,19 @@ class GroupBy : public Operator
 {
     private:
         Operator *child;
-        std::vector<Register*> regs;
+	std::map<unsigned, Register *> bindings;
+	std::vector<unsigned> groupByVars;
+	std::vector<unsigned> regs;
         const bool distinct;
+	std::vector<std::vector<uint64_t> *> values;
+	std::vector<unsigned> keys;
+	uint64_t index;
 
     public:
         /// Constructor
         GroupBy(Operator* child,
-                std::vector<Register*> regs,
+		std::map<unsigned, Register *> bindings,
+		std::vector<unsigned> groupByVars,
                 bool distinct,
                 double expectedOutputCardinality);
 

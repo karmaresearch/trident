@@ -619,14 +619,14 @@ static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register
     Operator* tree = translatePlan(runtime, context, projection, bindings,
             registers, plan->left);
 
-    vector<Register*> regs;
+    vector<unsigned> regs;
     //Get the variables
     if (plan->right) {
         const std::vector<unsigned>& groupByVars =
             *reinterpret_cast<const std::vector<unsigned>*>(plan->right);
         for (auto v : groupByVars) {
             if (bindings.count(v)) {
-                regs.push_back(bindings[v]);
+                regs.push_back(v);
             } else {
                 LOG(ERRORL) << "Variable not found";
                 throw 10;
@@ -634,7 +634,7 @@ static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register
         }
     }
 
-    Operator *result = new GroupBy(tree, regs, plan->opArg == 1,
+    Operator *result = new GroupBy(tree, bindings, regs, plan->opArg == 1,
             tree->getExpectedOutputCardinality());
     return result;
 }
