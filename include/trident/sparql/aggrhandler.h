@@ -19,8 +19,12 @@ class AggregateHandler {
         unsigned getNewOrExistingVar(FUNC funID,
                 std::vector<unsigned> &signature);
 
-        unsigned getVarCount() {
+        unsigned getVarCount() const {
             return varcount;
+        }
+
+        bool empty() const {
+            return assignments.empty();
         }
 };
 

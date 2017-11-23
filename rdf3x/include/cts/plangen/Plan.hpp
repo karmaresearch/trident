@@ -20,7 +20,7 @@ struct Plan
     enum Op { IndexScan, AggregatedIndexScan, FullyAggregatedIndexScan,
         NestedLoopJoin, MergeJoin, HashJoin, HashGroupify, Filter, Union,
         MergeUnion, TableFunction, Singleton, Subselect, Minus, ValuesScan,
-        CartProd };
+        CartProd, GroupBy, Having, Aggregates };
     /// The cardinalits type
     typedef double card_t;
     /// The cost type

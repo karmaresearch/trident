@@ -111,10 +111,11 @@ Plan *PlanGen::buildFilterPlan(const QueryGraph::Filter *filter) {
         //Temporary set the subquery as full query
         const QueryGraph *prevQ = fullQuery;
         fullQuery = filter->subquery.get();
-        plan = translate_int(filter->subquery->getQuery(), false);
+        plan = translate_int(filter->subquery->getQuery(), *filter->subquery.get(), false);
         fullQuery = prevQ;
     } else if (filter->subpattern) { //pattern
-        plan = translate_int(*filter->subpattern.get(), false);
+        QueryGraph q(0);
+        plan = translate_int(*filter->subpattern.get(), q, false);
     } else {
         throw; //should never happen
     }
@@ -630,11 +631,13 @@ PlanGen::JoinDescription PlanGen::buildJoinInfo(const QueryGraph::SubQuery& quer
     return result;
 }
 //---------------------------------------------------------------------------
-PlanGen::Problem* PlanGen::buildOptional(const QueryGraph::SubQuery& query, uint64_t id, bool completeEstimate)
+PlanGen::Problem* PlanGen::buildOptional(const QueryGraph::SubQuery& query,
+        const QueryGraph &entirePlan,
+        uint64_t id, bool completeEstimate)
     // Generate an optional part
 {
     // Solve the subproblem
-    Plan* p = translate_int(query, completeEstimate);
+    Plan* p = translate_int(query, entirePlan, completeEstimate);
     Plan *tmp = p;
     while (tmp) {
         tmp->optional = true;
@@ -704,13 +707,15 @@ static Plan* findOrdering(Plan* root, unsigned ordering)
     return 0;
 }
 //---------------------------------------------------------------------------
-PlanGen::Problem* PlanGen::buildUnion(const vector<QueryGraph::SubQuery>& query, uint64_t id, bool completeEstimate)
+PlanGen::Problem* PlanGen::buildUnion(const vector<QueryGraph::SubQuery>& query,
+        const QueryGraph &entirePlan,
+        uint64_t id, bool completeEstimate)
     // Generate a union part
 {
     // Solve the subproblems
     vector<Plan*> parts, solutions;
     for (unsigned index = 0; index < query.size(); index++) {
-        Plan* p = translate_int(query[index], completeEstimate), *bp = p;
+        Plan* p = translate_int(query[index], entirePlan, completeEstimate), *bp = p;
         for (Plan* iter = p; iter; iter = iter->next)
             if (iter->costs < bp->costs)
                 bp = iter;
@@ -858,13 +863,23 @@ static void findFilters(Plan* plan, set<const QueryGraph::Filter*>& filters)
         case Plan::Minus:
             findFilters(plan->left, filters);
             break;
+        case Plan::Having:
+        case Plan::GroupBy:
+        case Plan::Aggregates:
+            findFilters(plan->left, filters);
+            break;
     }
 }
 //---------------------------------------------------------------------------
-Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEstimate)
+Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
+        const QueryGraph &entirePlan,
+        bool completeEstimate)
+
     // Translate a query into an operator tree
 {
-    bool singletonNeeded = (!(query.nodes.size() + query.optional.size() + query.unions.size())) && query.tableFunctions.size();
+    bool singletonNeeded = (!(query.nodes.size() +
+                query.optional.size() +
+                query.unions.size())) && query.tableFunctions.size();
 
     // Check if we could handle the query
     if ((query.nodes.size() + query.optional.size() + query.unions.size() +
@@ -877,7 +892,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin(); itr != query.subqueries.end(); ++itr) {
         PlanGen p(plans);
         p.init(db, *itr->get());
-        Plan* childPlan = p.translate_int((*itr)->getQuery(), completeEstimate);
+        Plan* childPlan = p.translate_int((*itr)->getQuery(), *itr->get(), completeEstimate);
         Plan* plan = plans->alloc();
         plan->op = Plan::Subselect;
         plan->left = childPlan;
@@ -893,7 +908,11 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     // Seed the DP table with scans
     vector<Problem*> dpTable;
-    dpTable.resize(query.nodes.size() + query.optional.size() + query.unions.size() + query.subqueries.size() +  query.tableFunctions.size() + query.valueNodes.size() + singletonNeeded);
+    dpTable.resize(query.nodes.size() + query.optional.size() +
+            query.unions.size() + query.subqueries.size() +
+            query.tableFunctions.size() + query.valueNodes.size() +
+            singletonNeeded);
+
     Problem* last = 0;
     unsigned id = 0;
     for (vector<QueryGraph::Node>::const_iterator iter = query.nodes.begin(), limit = query.nodes.end(); iter != limit; ++iter, ++id) {
@@ -915,7 +934,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
         last = p;
     }
     for (vector<QueryGraph::SubQuery>::const_iterator iter = query.optional.begin(), limit = query.optional.end(); iter != limit; ++iter, ++id) {
-        Problem* p = buildOptional(*iter, id, completeEstimate);
+        Problem* p = buildOptional(*iter, entirePlan, id, completeEstimate);
         if (last)
             last->next = p;
         else
@@ -923,7 +942,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
         last = p;
     }
     for (vector<vector<QueryGraph::SubQuery> >::const_iterator iter = query.unions.begin(), limit = query.unions.end(); iter != limit; ++iter, ++id) {
-        Problem* p = buildUnion(*iter, id, completeEstimate);
+        Problem* p = buildUnion(*iter, entirePlan, id, completeEstimate);
         if (last)
             last->next = p;
         else
@@ -1187,11 +1206,6 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
         }
     }
 
-    // Apparently, dpTable has null entries at the end??? --Ceriel
-    //while (! dpTable.empty() && dpTable.back() == NULL) {
-    //    dpTable.pop_back();
-    //}
-
     // Extract the bestplan
     if (dpTable.empty())
         return 0;
@@ -1204,7 +1218,8 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
     // Add all remaining filters
     set<const QueryGraph::Filter*> appliedFilters;
     findFilters(plan, appliedFilters);
-    for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(), limit = query.filters.end(); iter != limit; ++iter)
+    for (vector<QueryGraph::Filter>::const_iterator iter = query.filters.begin(),
+            limit = query.filters.end(); iter != limit; ++iter)
         if (!appliedFilters.count(&(*iter))) {
             Plan* p = plans->alloc();
             p->op = Plan::Filter;
@@ -1230,13 +1245,88 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query, bool completeEst
 
     //Is there a minus
     for (const auto itr : query.minuses) {
-        Plan* subqueryPlan = translate_int(itr->getQuery(), completeEstimate);
+        Plan* subqueryPlan = translate_int(itr->getQuery(), *itr, completeEstimate);
         subqueryPlan->subquery = itr;
         Plan* p = plans->alloc();
         p->op = Plan::Minus;
         p->left = plan;
         p->right = subqueryPlan;
         p->cardinality = plan->cardinality;
+        plan = p;
+    }
+
+    //GroupBy
+    bool addedGroupBy = false;
+    if (!entirePlan.getGroupBy().empty()) {
+        //Add an operator that groups the variables in some groups
+        Plan* p = plans->alloc();
+        p->op = Plan::GroupBy;
+        p->opArg = 0;
+        p->left = plan;
+        p->right = (Plan*)&entirePlan.getGroupBy();
+        p->next = 0;
+        p->cardinality = plan->cardinality;
+        p->costs = plan->costs;
+        p->ordering = ~0u;
+        addedGroupBy = true;
+        plan = p;
+    }
+
+    //Aggregates
+    if (!entirePlan.c_getAggredateHandler().empty()) {
+        if (!addedGroupBy) {
+            Plan* p = plans->alloc();
+            p->op = Plan::GroupBy;
+            p->opArg = 0;
+            p->left = plan;
+            p->right = NULL;
+            p->next = 0;
+            p->cardinality = plan->cardinality;
+            p->costs = plan->costs;
+            p->ordering = ~0u;
+            addedGroupBy = true;
+            plan = p;
+        }
+
+        Plan* p = plans->alloc();
+        p->op = Plan::Aggregates;
+        p->opArg = 0;
+        p->left = plan;
+        p->right = (Plan*)&entirePlan.c_getAggredateHandler();
+        p->right = NULL;
+        p->next = 0;
+        p->cardinality = plan->cardinality;
+        p->costs = plan->costs;
+        p->ordering = ~0u;
+        plan = p;
+    }
+
+    //Having
+    if (!entirePlan.getHavings().empty()) {
+        if (!addedGroupBy) {
+            Plan* p = plans->alloc();
+            p->op = Plan::GroupBy;
+            p->opArg = 0;
+            p->left = plan;
+            p->right = NULL;
+            p->next = 0;
+            p->cardinality = plan->cardinality;
+            p->costs = plan->costs;
+            p->ordering = ~0u;
+            addedGroupBy = true;
+            plan = p;
+        }
+
+        Plan* p = plans->alloc();
+        p->op = Plan::Having;
+        p->opArg = 0;
+        p->left = plan;
+        p->right = (Plan*)&entirePlan.getHavings();
+        p->right = NULL;
+        p->next = 0;
+        p->cardinality = plan->cardinality;
+        p->costs = plan->costs;
+        p->ordering = ~0u;
         plan = p;
     }
 
@@ -1324,7 +1414,7 @@ Plan* PlanGen::translate(DBLayer& db, const QueryGraph& query, bool completeEsti
     fullQuery = &query;
 
     // Retrieve the base plan
-    Plan* plan = translate_int(query.getQuery(), completeEstimate);
+    Plan* plan = translate_int(query.getQuery(), query, completeEstimate);
     if (!plan)
         return 0;
     Plan* best = 0;

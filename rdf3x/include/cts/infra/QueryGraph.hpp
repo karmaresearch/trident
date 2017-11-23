@@ -60,7 +60,8 @@ class QueryGraph {
                 Or, And, Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual, Plus, Minus, Mul, Div,
                 Not, UnaryPlus, UnaryMinus, Literal, Variable, IRI, Null, Function, ArgumentList,
                 Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
-                Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in, Builtin_notin, Builtin_contains,
+                Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in,
+                Builtin_notin, Builtin_contains,
                 Builtin_xsddecimal, Builtin_notexists
             };
 
@@ -155,7 +156,6 @@ class QueryGraph {
 
         //Variables used to create groups
         AggregateHandler hdl;
-
         std::vector<unsigned> groupby;
         std::vector<Filter> having; //Criteria to filter out some groups
 
@@ -247,12 +247,24 @@ class QueryGraph {
             return order.end();
         }
 
-        unsigned getVarCount() {
+        unsigned getVarCount() const {
             return hdl.getVarCount();
         }
 
         AggregateHandler &getAggredateHandler() {
             return hdl;
+        }
+
+        const std::vector<Filter> &getHavings() const {
+            return having;
+        }
+
+        const AggregateHandler &c_getAggredateHandler() const {
+            return hdl;
+        }
+
+        const std::vector<unsigned> &getGroupBy() const {
+            return groupby;
         }
 };
 //---------------------------------------------------------------------------

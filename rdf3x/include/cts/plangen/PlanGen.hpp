@@ -52,16 +52,23 @@ class PlanGen {
         /// Generate base table accesses
         Problem* buildAssignment(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id);
 
-        Problem* buildValue(const QueryGraph::SubQuery& query, const QueryGraph::ValuesNode& node, uint64_t id);
-        Problem* buildScan(const QueryGraph::SubQuery& query, const QueryGraph::Node& node, uint64_t id);
+        Problem* buildValue(const QueryGraph::SubQuery& query, const
+                QueryGraph::ValuesNode& node, uint64_t id); Problem*
+            buildScan(const QueryGraph::SubQuery& query, const
+                    QueryGraph::Node& node, uint64_t id);
         /// Build the informaion about a join
-        JoinDescription buildJoinInfo(const QueryGraph::SubQuery& query, const QueryGraph::Edge& edge);
+        JoinDescription buildJoinInfo(const QueryGraph::SubQuery& query, const
+                QueryGraph::Edge& edge);
         /// Generate an optional part
-        Problem* buildOptional(const QueryGraph::SubQuery& query, uint64_t id, bool completeEstimate);
+        Problem* buildOptional(const QueryGraph::SubQuery& query, const QueryGraph
+                &entirePlan, uint64_t id, bool completeEstimate);
         /// Generate a union part
-        Problem* buildUnion(const std::vector<QueryGraph::SubQuery>& query, uint64_t id, bool completeEstimate);
+        Problem* buildUnion(const std::vector<QueryGraph::SubQuery>& query,
+                const QueryGraph &entirePlan,
+                uint64_t id, bool completeEstimate);
         /// Generate a table function access
-        Problem* buildTableFunction(const QueryGraph::TableFunction& function, uint64_t id);
+        Problem* buildTableFunction(const QueryGraph::TableFunction& function,
+                uint64_t id);
 
         //Add a filter
         Plan* buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint64_t value1, uint64_t value2, uint64_t value3);
@@ -79,7 +86,9 @@ class PlanGen {
         /// Translate a query into an operator tree
         Plan* translate(DBLayer& db, const QueryGraph& query, bool completeEstimate = true);
         /// Translate a query into an operator tree
-        Plan* translate_int(const QueryGraph::SubQuery& query, bool completeEstimate);
+        Plan* translate_int(const QueryGraph::SubQuery& query,
+                const QueryGraph &entirePlan,
+                bool completeEstimate);
 };
 //---------------------------------------------------------------------------
 #endif
