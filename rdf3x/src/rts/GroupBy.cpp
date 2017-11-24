@@ -6,6 +6,7 @@ GroupBy::GroupBy(Operator* child,
         std::vector<unsigned> regs,
         bool distinct,
         double expectedOutputCardinality) : Operator(expectedOutputCardinality), child(child), bindings(bindings), regs(regs), distinct(distinct) {
+    // initialize keys: index is position number, value is register number
     for (auto v = bindings.begin(); v != bindings.end(); v++) {
 	keys.push_back(v->first);
     }
@@ -95,6 +96,7 @@ uint64_t GroupBy::first() {
     delete values[0];
     values[0] = NULL;
 
+    observedOutputCardinality += cnt;
     return cnt;
 }
 
@@ -121,6 +123,7 @@ uint64_t GroupBy::next() {
     index++;
 
     // and return
+    observedOutputCardinality += sz;
     return sz;
 }
 
