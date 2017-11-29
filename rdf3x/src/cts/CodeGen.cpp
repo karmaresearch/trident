@@ -648,11 +648,25 @@ static Operator* translateAggregates(Runtime& runtime,
         map<unsigned, Register*>& bindings,
         const map<const QueryGraph::Node*, unsigned>& registers,
         Plan* plan) {
-    Operator* tree = translatePlan(runtime, context, projection, bindings,
-            registers, plan->left);
     QueryGraph *q = (QueryGraph*)plan->right;
     const AggregateHandler &hdl = q->c_getAggredateHandler();
     const auto groupkeys = q->getGroupBy();
+    auto vars = hdl.getInputOutputVars();
+    set<unsigned> newprojection = projection;
+    //Add input variables that are needed for the aggregated variables as projections
+    for(auto v : vars.first) {
+        newprojection.insert(v);
+    }
+    //Create bindings for the output variables
+    uint64_t slot = 0;
+    for(auto v : vars.second) {
+        Register* reg = runtime.getRegister((*registers.find(reinterpret_cast<const QueryGraph::Node*>(&hdl))).second + slot);
+        bindings[v] = reg;
+        slot++;
+    }
+
+    Operator* tree = translatePlan(runtime, context, newprojection, bindings,
+            registers, plan->left);
     Operator *result = new AggrFunctions(tree, bindings, hdl,
             groupkeys,
             tree->getExpectedOutputCardinality());
@@ -1022,6 +1036,7 @@ static Operator* translatePlan(Runtime& runtime, const map<unsigned, Register*>&
     return result;
 }
 //---------------------------------------------------------------------------
+static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& registers, map<unsigned, set<unsigned> >& registerClasses, const QueryGraph& query, unsigned id);
 static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& registers, map<unsigned, set<unsigned> >& registerClasses, const QueryGraph::SubQuery& query, unsigned id)
     // Allocate registers
 {
@@ -1077,8 +1092,28 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
             id = allocateRegisters(registers, registerClasses, *itr->subpattern.get(), id);
         }
         if (itr->subquery != NULL) {
-            id = allocateRegisters(registers, registerClasses, itr->subquery->getQuery(), id);
+            id = allocateRegisters(registers, registerClasses, *itr->subquery.get(), id);
         }
+    }
+    return id;
+}
+//---------------------------------------------------------------------------
+static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& registers, map<unsigned, set<unsigned> >& registerClasses, const QueryGraph& query, unsigned id)
+{
+    id = allocateRegisters(registers, registerClasses, query.getQuery(), id);
+    //Also process the global functions
+    for (vector<QueryGraph::TableFunction>::const_iterator iter = query.c_getGlobalAssignments().begin(), limit = query.c_getGlobalAssignments().end(); iter != limit; ++iter) {
+        registers[reinterpret_cast<const QueryGraph::Node*>(&(*iter))] = id;
+        unsigned slot = 0;
+        for (vector<unsigned>::const_iterator iter2 = (*iter).output.begin(), limit2 = (*iter).output.end(); iter2 != limit2; ++iter2, ++slot)
+            registerClasses[*iter2].insert(id + slot);
+        id += (*iter).output.size();
+    }
+    if (!query.c_getAggredateHandler().empty()) {
+        registers[reinterpret_cast<const QueryGraph::Node*>(&(query.c_getAggredateHandler()))] = id;
+        //Add the classes
+        auto vars = query.c_getAggredateHandler().getInputOutputVars();
+        id +=vars.second.size();
     }
     return id;
 }
@@ -1134,7 +1169,7 @@ Operator* CodeGen::translateIntern(Runtime& runtime, const QueryGraph& query, Pl
 //---------------------------------------------------------------------------
 
 void CodeGen::prepareRuntime(Runtime &runtime,
-        const QueryGraph::SubQuery& query,
+        const QueryGraph& query,
         std::map<const QueryGraph::Node*, unsigned> &registers)
 {
     map<unsigned, set<unsigned> > registerClasses;
@@ -1171,7 +1206,7 @@ Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* pl
     // Perform a naive translation of a query into an operator tree
 {
     std::map<const QueryGraph::Node*, unsigned> registers;
-    prepareRuntime(runtime, query.getQuery(), registers);
+    prepareRuntime(runtime, query, registers);
 
     // Build the tree itself
     vector<Register*> output;

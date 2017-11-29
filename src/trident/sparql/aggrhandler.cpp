@@ -107,7 +107,8 @@ bool AggregateHandler::execCount(FunctCall &call) {
     }
 }
 
-std::pair<std::vector<unsigned>,std::vector<unsigned>> AggregateHandler::getInputOutputVars() {
+std::pair<std::vector<unsigned>,
+    std::vector<unsigned>> AggregateHandler::getInputOutputVars() const {
     std::set<unsigned> inputvars;
     std::set<unsigned> outputvars;
     for(auto &assignment : assignments) {

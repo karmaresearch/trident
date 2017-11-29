@@ -55,7 +55,7 @@ class AggregateHandler {
 
         void startUpdate();
 
-        std::pair<std::vector<unsigned>,std::vector<unsigned>> getInputOutputVars();
+        std::pair<std::vector<unsigned>,std::vector<unsigned>> getInputOutputVars() const;
 
         void updateVar(unsigned var, uint64_t value, uint64_t count);
 

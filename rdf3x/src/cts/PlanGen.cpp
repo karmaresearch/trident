@@ -1328,6 +1328,30 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         plan = p;
     }
 
+    //Global functions (e.g., AS)
+    if (!entirePlan.c_getGlobalAssignments().empty()) {
+        for(const auto &t: entirePlan.c_getGlobalAssignments()) {
+            Plan* p = plans->alloc();
+            p->op = Plan::TableFunction;
+            p->opArg = 0;
+            p->right = reinterpret_cast<Plan*>(
+                    const_cast<QueryGraph::TableFunction*>(&t));
+            //Left plan must be enriched with the filtering operations
+            if (t.associatedFilter != NULL) {
+                p->left = attachFiltersToPlan(
+                        t.associatedFilter.get(),
+                        plan);
+            } else {
+                p->left = plan;
+            }
+            p->next = 0;
+            p->cardinality = plan->cardinality;
+            p->costs = plan->costs + Costs::tableFunction(plan->cardinality);
+            p->ordering = plan->ordering;
+            plan = p;
+        }
+    }
+
     // Return the complete plan
     return plan;
 }

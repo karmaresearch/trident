@@ -204,6 +204,10 @@ class QueryGraph {
             return assignments;
         }
 
+        const std::vector<TableFunction> &c_getGlobalAssignments() const {
+            return assignments;
+        }
+
         /// Get the query
         SubQuery& getQuery() {
             return query;

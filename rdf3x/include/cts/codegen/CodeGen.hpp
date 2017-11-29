@@ -26,7 +26,7 @@ class CodeGen
     public:
         /// Prepare runtime
         static void prepareRuntime(Runtime &runtime,
-                const QueryGraph::SubQuery& query,
+                const QueryGraph &query,
                 std::map<const QueryGraph::Node*, unsigned> &registers);
 
         /// Collect all variables contained in a plan
