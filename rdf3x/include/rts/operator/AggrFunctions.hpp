@@ -10,15 +10,27 @@
 #include <vector>
 
 //---------------------------------------------------------------------------
-class AggrFunctions : public Operator
-{
+class AggrFunctions : public Operator {
     private:
+        Operator *child;
+        AggregateHandler hdl;
+        std::vector<Register*> groupKeys;
+        std::vector<std::pair<unsigned,Register*>> varsToUpdate;
+        std::vector<std::pair<unsigned,Register*>> varsToReturn;
+        std::vector<uint64_t> currentGroupKeys;
+        uint64_t currentCount;
+
+        void readKeys();
+        void processGroup();
+        bool sameKeyAsCurrent();
+        void copyVars();
 
     public:
         /// Constructor
         AggrFunctions(Operator* child,
                 std::map<unsigned, Register *> bindings,
-                AggregateHandler *hdl,
+                const AggregateHandler &hdl,
+                const std::vector<unsigned> &groupKeys,
                 double expectedOutputCardinality);
 
         /// Destructor

@@ -1292,7 +1292,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         p->op = Plan::Aggregates;
         p->opArg = 0;
         p->left = plan;
-        p->right = (Plan*)&entirePlan.c_getAggredateHandler();
+        p->right = (Plan*)&entirePlan;
         p->next = 0;
         p->cardinality = plan->cardinality;
         p->costs = plan->costs;

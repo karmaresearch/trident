@@ -650,8 +650,11 @@ static Operator* translateAggregates(Runtime& runtime,
         Plan* plan) {
     Operator* tree = translatePlan(runtime, context, projection, bindings,
             registers, plan->left);
-    AggregateHandler *hdl = (AggregateHandler*)plan->right;
+    QueryGraph *q = (QueryGraph*)plan->right;
+    const AggregateHandler &hdl = q->c_getAggredateHandler();
+    const auto groupkeys = q->getGroupBy();
     Operator *result = new AggrFunctions(tree, bindings, hdl,
+            groupkeys,
             tree->getExpectedOutputCardinality());
     return result;
 }

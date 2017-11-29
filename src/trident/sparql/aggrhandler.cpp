@@ -3,6 +3,7 @@
 #include <kognac/logs.h>
 
 #include <assert.h>
+#include <set>
 
 unsigned AggregateHandler::getNewOrExistingVar(AggregateHandler::FUNC funID,
         std::vector<unsigned> &signature) {
@@ -27,6 +28,7 @@ void AggregateHandler::startUpdate() {
 }
 
 void AggregateHandler::prepare() {
+    executions.clear();
     for(auto &el : assignments) {
         FUNC id = el.first;
         for(auto &assignment : el.second) {
@@ -48,7 +50,8 @@ void AggregateHandler::reset() {
     }
 }
 
-void AggregateHandler::updateVar(unsigned var, uint64_t value) {
+void AggregateHandler::updateVar(unsigned var, uint64_t value, uint64_t count) {
+    //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
     varvalues[var] = value;
     inputmask |= (uint64_t)1 << var;
@@ -77,6 +80,14 @@ bool AggregateHandler::executeFunction(FunctCall &call) {
     switch (call.id) {
         case FUNC::COUNT:
             return execCount(call);
+        case FUNC::MIN:
+        case FUNC::MAX:
+        case FUNC::SUM:
+        case FUNC::GROUP_CONCAT:
+        case FUNC::AVG:
+        case FUNC::SAMPLE:
+            LOG(ERRORL) << "Not yet implemented";
+            throw 10;
         default:
             LOG(ERRORL) << "This should not happen. Aggregated function is unknown";
             throw 10;
@@ -93,4 +104,27 @@ bool AggregateHandler::execCount(FunctCall &call) {
         call.arg1++;
         return false;
     }
+}
+
+std::pair<std::vector<unsigned>,std::vector<unsigned>> AggregateHandler::getInputOutputVars() {
+    std::set<unsigned> inputvars;
+    std::set<unsigned> outputvars;
+    for(auto &assignment : assignments) {
+        for(auto &entry : assignment.second) {
+            outputvars.insert(entry.second);
+            inputvars.insert(entry.first);
+        }
+    }
+    std::pair<std::vector<unsigned>,std::vector<unsigned>> out;
+    for(auto &v : inputvars) {
+        if (!outputvars.count(v)) {
+            out.first.push_back(v);
+        }
+    }
+    for(auto &v : outputvars) {
+        if (!inputvars.count(v)) {
+            out.second.push_back(v);
+        }
+    }
+    return out;
 }
