@@ -1293,7 +1293,6 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         p->opArg = 0;
         p->left = plan;
         p->right = (Plan*)&entirePlan.c_getAggredateHandler();
-        p->right = NULL;
         p->next = 0;
         p->cardinality = plan->cardinality;
         p->costs = plan->costs;
@@ -1322,7 +1321,6 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         p->opArg = 0;
         p->left = plan;
         p->right = (Plan*)&entirePlan.getHavings();
-        p->right = NULL;
         p->next = 0;
         p->cardinality = plan->cardinality;
         p->costs = plan->costs;

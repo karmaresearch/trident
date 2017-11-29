@@ -28,6 +28,9 @@
 #include <rts/operator/Union.hpp>
 #include <rts/operator/DuplLimit.hpp>
 #include <rts/operator/GroupBy.hpp>
+#include <rts/operator/AggrFunctions.hpp>
+
+#include <trident/sparql/aggrhandler.h>
 
 #include <cstdlib>
 #include <map>
@@ -639,11 +642,18 @@ static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register
     return result;
 }
 //---------------------------------------------------------------------------
-static Operator* translateAggregates(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
+static Operator* translateAggregates(Runtime& runtime,
+        const map<unsigned, Register*>& context,
+        const set<unsigned>& projection,
+        map<unsigned, Register*>& bindings,
+        const map<const QueryGraph::Node*, unsigned>& registers,
+        Plan* plan) {
     Operator* tree = translatePlan(runtime, context, projection, bindings,
             registers, plan->left);
-    //TODO: Add the operator
-    return tree;
+    AggregateHandler *hdl = (AggregateHandler*)plan->right;
+    Operator *result = new AggrFunctions(tree, bindings, hdl,
+            tree->getExpectedOutputCardinality());
+    return result;
 }
 //---------------------------------------------------------------------------
 static Operator* translateHaving(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
