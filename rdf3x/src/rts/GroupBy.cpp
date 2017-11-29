@@ -102,7 +102,7 @@ uint64_t GroupBy::first() {
 
 /// Produce the next tuple
 uint64_t GroupBy::next() {
-    if (values.size() >= index) {
+    if (index >= values.size()) {
         // No more values available
         return 0;
     }
