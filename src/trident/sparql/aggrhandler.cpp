@@ -29,6 +29,7 @@ void AggregateHandler::startUpdate() {
 
 void AggregateHandler::prepare() {
     executions.clear();
+    varvalues.resize(64); //Max number of vars
     for(auto &el : assignments) {
         FUNC id = el.first;
         for(auto &assignment : el.second) {

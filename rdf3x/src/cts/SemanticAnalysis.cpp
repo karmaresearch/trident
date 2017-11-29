@@ -253,7 +253,7 @@ static bool createAggregatedFilter(QueryGraph::Filter& output,
         getVars(*args, vars);
     unsigned aggrVar = currentQueryGraph.getAggredateHandler().
         getNewOrExistingVar(
-            f, vars);
+                f, vars);
     output.type = QueryGraph::Filter::Variable;
     output.id = aggrVar;
     return true;
@@ -414,17 +414,24 @@ static bool encodeFilter(SemanticAnalysis *myself, DBLayer& dict, DifferentialIn
     return encodeFilter(myself, dict, diffIndex, group, input, output.filters.back(), tempQueryDict, currentQueryGraph);
 }
 //---------------------------------------------------------------------------
-static bool encodeAssignment(SemanticAnalysis *myself, DBLayer& dict, DifferentialIndex* diffIndex,
+static bool encodeAssignment(SemanticAnalysis *myself,
+        DBLayer& dict, DifferentialIndex* diffIndex,
         const SPARQLParser::PatternGroup& group,
-        const SPARQLParser::Assignment &input, QueryGraph::SubQuery& output, QueryDict &tempQueryDict, QueryGraph &currentQueryGraph) {
-    output.tableFunctions.resize(output.tableFunctions.size() + 1);
-    QueryGraph::TableFunction& func = output.tableFunctions.back();
+        const SPARQLParser::Assignment &input, QueryDict &tempQueryDict,
+        std::vector<QueryGraph::TableFunction> &output,
+        QueryGraph::SubQuery& currentSubQuery, QueryGraph &currentQueryGraph) {
+
+    output.resize(output.size() + 1);
+    QueryGraph::TableFunction& func = output.back();
     func.name = "BIND";
-    encodeFilter(myself, dict, diffIndex, group, *input.expression, output, tempQueryDict, currentQueryGraph);
+    encodeFilter(myself, dict, diffIndex, group,
+            *input.expression, currentSubQuery,
+            tempQueryDict, currentQueryGraph);
 
     //Copy the filter
-    func.associatedFilter = std::shared_ptr<QueryGraph::Filter>(new QueryGraph::Filter(output.filters.back()));
-    output.filters.pop_back();
+    func.associatedFilter = std::shared_ptr<QueryGraph::Filter>(
+            new QueryGraph::Filter(currentSubQuery.filters.back()));
+    currentSubQuery.filters.pop_back();
     std::set<std::pair<uint64_t, bool> > allVars = func.associatedFilter->allIdVarsAndLiterals();
     for (std::set<std::pair<uint64_t, bool> >::iterator itr = allVars.begin();
             itr != allVars.end(); ++itr) {
@@ -526,7 +533,9 @@ static bool transformSubquery(SemanticAnalysis *myself, DBLayer& dict,
     //Encode possible assignments as special table functions
     for (std::vector<SPARQLParser::Assignment>::const_iterator iter = group.assignments.begin();
             iter != group.assignments.end(); ++iter) {
-        if (!encodeAssignment(myself, dict, diffIndex, group, *iter, output, tempQueryDict, currentQueryGraph)) {
+        if (!encodeAssignment(myself, dict, diffIndex, group,
+                    *iter, tempQueryDict, output.tableFunctions, output,
+                    currentQueryGraph)) {
             return false;
         }
     }
@@ -660,6 +669,18 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
         encodeFilter(this, dict, NULL, input.getPatterns(), *hv, f, tempDict, output);
         output.addHaving(f);
     }
+
+    // Add global assignments
+    for (std::vector<SPARQLParser::Assignment>::const_iterator iter =
+            input.getGlobalAssignments().begin();
+            iter != input.getGlobalAssignments().end();
+            ++iter) {
+        if (!encodeAssignment(this, dict, NULL, input.getPatterns(), *iter,
+                    tempDict, output.getGlobalAssignments(), output.getQuery(), output)) {
+        }
+    }
+
+
 
     // Order by clause
     for (SPARQLParser::order_iterator iter = input.orderBegin(), limit = input.orderEnd(); iter != limit; ++iter) {

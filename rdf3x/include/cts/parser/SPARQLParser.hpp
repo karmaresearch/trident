@@ -176,6 +176,8 @@ class SPARQLParser {
         std::vector<Filter *> having;
         // GroupBy clause(s)
         std::vector<GroupBy> groupBy;
+        // Global assignments which need first the execution of the aggregated operators
+        std::vector<Assignment> assignments;
         /// The result limit
         unsigned limit;
         // Silent output variables
@@ -223,7 +225,7 @@ class SPARQLParser {
         // Parse a graph pattern
         void parseGraphPattern(PatternGroup& group);
         // Parse an assignment (SPARQL 1.1)
-        void parseAssignment(PatternGroup& group);
+        void parseAssignment(PatternGroup& group, std::vector<Assignment> &assignments);
         // Parse VALUES (SPARQL 1.1)
         void parseValues(PatternGroup& group);
         /// Parse the minus operator (SPARQL 1.1)
@@ -262,6 +264,10 @@ class SPARQLParser {
 
         /// Parse the input. Throws an exception in the case of an error
         void parse(bool multiQuery = false, bool silentOutputVars = false);
+
+        const std::vector<SPARQLParser::Assignment> &getGlobalAssignments() const {
+            return assignments;
+        }
 
         /// Get the patterns
         const PatternGroup& getPatterns() const {

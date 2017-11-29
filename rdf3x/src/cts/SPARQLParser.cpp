@@ -298,13 +298,13 @@ void SPARQLParser::parseProjection(PatternGroup& group)
                 // named variables after parsing
             } else if (token == SPARQLLexer::LParen) {
                 lexer.unget(token);
-                size_t sizeAssignments = group.assignments.size();
-                parseAssignment(group);
-                if (group.assignments.size() <= sizeAssignments) {
+                size_t sizeAssignments = assignments.size();
+                parseAssignment(group, assignments);
+                if (assignments.size() <= sizeAssignments) {
                     LOG(ERRORL) << "The parsing of the assignment did not go so well";
                     throw 10; //Exception. This should not occur
                 }
-                projection.push_back(group.assignments[sizeAssignments].outputVar.id);
+                projection.push_back(assignments[sizeAssignments].outputVar.id);
             } else {
                 if (first)
                     throw ParserException("projection required after select");
@@ -1318,7 +1318,7 @@ void SPARQLParser::parseGraphPattern(PatternGroup & group)
             } else if (lexer.isKeyword("filter")) {
                 parseFilter(group, localVars);
             } else if (lexer.isKeyword("bind")) {
-                parseAssignment(group);
+                parseAssignment(group, group.assignments);
             } else if (lexer.isKeyword("values")) {
                 parseValues(group);
             }
@@ -1419,7 +1419,7 @@ void SPARQLParser::parseGroupGraphPattern(PatternGroup & group)
                 parseFilter(group, localVars);
             } else if (token == SPARQLLexer::Identifier
                     && lexer.isKeyword("bind")) {
-                parseAssignment(group);
+                parseAssignment(group, group.assignments);
             } else if (token == SPARQLLexer::Identifier
                     && lexer.isKeyword("optional")) {
                 // Parser Optional
@@ -1496,7 +1496,8 @@ void SPARQLParser::parseValues(PatternGroup & group) {
     group.values.push_back(SPARQLParser::PatternGroup::ValueBindings(variables, values));
 }
 //---------------------------------------------------------------------------
-void SPARQLParser::parseAssignment(PatternGroup & group) {
+void SPARQLParser::parseAssignment(PatternGroup & group,
+        std::vector<Assignment> &assignments) {
     map<string, unsigned> localVars;
 
     Assignment assignment;
@@ -1526,7 +1527,7 @@ void SPARQLParser::parseAssignment(PatternGroup & group) {
         lexer.getNext(); //Ignore final point
     }
 
-    group.assignments.push_back(assignment);
+    assignments.push_back(assignment);
 }
 //---------------------------------------------------------------------------
 void SPARQLParser::parseWhere()

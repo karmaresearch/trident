@@ -1,4 +1,5 @@
 #include <rts/operator/AggrFunctions.hpp>
+#include <rts/operator/PlanPrinter.hpp>
 
 #include <kognac/logs.h>
 
@@ -87,6 +88,7 @@ uint64_t AggrFunctions::first() {
         //Read all the tuples in the group
         processGroup();
         //Update the variables produced by the aggregated functions
+        observedOutputCardinality++;
         return 1;
     } else {
         return 0;
@@ -98,6 +100,7 @@ uint64_t AggrFunctions::next() {
     if (currentCount) {
         readKeys();
         processGroup();
+        observedOutputCardinality++;
         return 1;
     } else {
         return 0;
@@ -106,8 +109,9 @@ uint64_t AggrFunctions::next() {
 
 /// Print the operator tree. Debugging only.
 void AggrFunctions::print(PlanPrinter& out) {
-    LOG(ERRORL) << "Not implemented yet";
-    throw 10;
+    out.beginOperator("AggrFunctions",expectedOutputCardinality, observedOutputCardinality);
+    child->print(out);
+    out.endOperator();
 }
 
 /// Add a merge join hint

@@ -12,19 +12,24 @@ class GroupBy : public Operator
 {
     private:
         Operator *child;
-	std::map<unsigned, Register *> bindings;
-	std::vector<unsigned> groupByVars;
-	std::vector<unsigned> regs;
+        std::map<unsigned, Register *> bindings;
+        std::vector<unsigned> regs;
         const bool distinct;
-	std::vector<std::vector<uint64_t> *> values;
-	std::vector<unsigned> keys;
-	uint64_t index;
+        std::vector<std::unique_ptr<std::vector<uint64_t>>> values;
+        std::vector<unsigned> keys;
+        uint64_t index;
+        std::vector<unsigned> fields;
+
+        bool sameThanPrevious(uint64_t index);
+        std::vector<unsigned> calculateFieldsToCompare(
+                std::vector<unsigned> &keys,
+                std::vector<unsigned> &regs);
 
     public:
         /// Constructor
         GroupBy(Operator* child,
-		std::map<unsigned, Register *> bindings,
-		std::vector<unsigned> groupByVars,
+                std::map<unsigned, Register *> bindings,
+                std::vector<unsigned> regs,
                 bool distinct,
                 double expectedOutputCardinality);
 

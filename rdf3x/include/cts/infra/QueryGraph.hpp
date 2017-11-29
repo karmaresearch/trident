@@ -153,6 +153,8 @@ class QueryGraph {
         unsigned limit;
         /// Is the query known to produce an empty result?
         bool knownEmptyResult;
+        /// The table functions (that occur outside the where clause)
+        std::vector<TableFunction> assignments;
 
         //Variables used to create groups
         AggregateHandler hdl;
@@ -196,6 +198,10 @@ class QueryGraph {
         /// Known empty result?
         bool knownEmpty() const {
             return knownEmptyResult;
+        }
+
+        std::vector<TableFunction> &getGlobalAssignments() {
+            return assignments;
         }
 
         /// Get the query

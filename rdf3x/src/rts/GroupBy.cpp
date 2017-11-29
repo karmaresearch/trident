@@ -17,33 +17,39 @@ GroupBy::~GroupBy() {
     delete child;
 }
 
+std::vector<unsigned> GroupBy::calculateFieldsToCompare(
+        std::vector<unsigned> &keys,
+        std::vector<unsigned> &regs) {
+    std::vector<unsigned> fields;
+    // regs contains the register numbers on which to sort, in order.
+    // We need to find them in the keys vector, and remember the index.
+    for (auto v = regs.begin(); v != regs.end(); v++) {
+        bool found = false;
+        for (unsigned i = 0; i < keys.size(); i++) {
+            if (keys[i] == *v) {
+                // Found it, remember the index
+                fields.push_back(i);
+                found = true;
+                break;
+            }
+        }
+        if (! found) {
+            // This should not happen, obviously. Trying to sort on a register that is not
+            // present???
+            throw 10;
+        }
+    }
+    return fields;
+}
+
 struct ValueSorter {
     // The sorter requires a list of indices in sort-field order
     std::vector<unsigned> fields;
-
-    ValueSorter(std::vector<unsigned> keys,
-            std::vector<unsigned> regs) {
-        // regs contains the register numbers on which to sort, in order.
-        // We need to find them in the keys vector, and remember the index.
-        for (auto v = regs.begin(); v != regs.end(); v++) {
-            bool found = false;
-            for (unsigned i = 0; i < keys.size(); i++) {
-                if (keys[i] == *v) {
-                    // Found it, remember the index
-                    fields.push_back(i);
-                    found = true;
-                    break;
-                }
-            }
-            if (! found) {
-                // This should not happen, obviously. Trying to sort on a register that is not
-                // present???
-                throw 10;
-            }
-        }
+    ValueSorter(std::vector<unsigned> &fields) : fields(fields) {
     }
 
-    bool operator() (const std::vector<uint64_t> *v1, const std::vector<uint64_t> *v2) {
+    bool operator() (const std::unique_ptr<std::vector<uint64_t>> &v1,
+            const std::unique_ptr<std::vector<uint64_t>> &v2) {
         for (auto v = fields.begin(); v != fields.end(); v++) {
             if ((*v1)[*v] < (*v2)[*v]) {
                 return true;
@@ -57,51 +63,71 @@ struct ValueSorter {
     }
 };
 
+bool GroupBy::sameThanPrevious(uint64_t index) {
+    for(uint8_t i = 0; i < fields.size(); ++i) {
+        unsigned fieldId = fields[i];
+        if (values[index-1]->at(fieldId) != values[index]->at(fieldId)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /// Produce the first tuple
 uint64_t GroupBy::first() {
     observedOutputCardinality=0;
     uint64_t cnt = child->first();
 
     while (cnt > 0) {
-        std::vector<uint64_t> *tuple = new std::vector<uint64_t>();
+        std::unique_ptr<std::vector<uint64_t>> tuple = std::unique_ptr<
+            std::vector<uint64_t>>(new std::vector<uint64_t>());
         // Get value from bindings
         for (int i = 0; i < bindings.size(); i++) {
             tuple->push_back(bindings[keys[i]]->value);
         }
         // And save count if needed
-        if (! distinct) {
+        if (!distinct) {
             tuple->push_back(cnt);
         }
         // Store into values vector
-        values.push_back(tuple);
+        values.push_back(std::move(tuple));
         // Get next value from child
         cnt = child->next();
     }
 
     // sort values vector according to regs
-    std::sort(values.begin(), values.end(), ValueSorter(keys, regs));
+    fields = calculateFieldsToCompare(keys, regs);
+    std::sort(values.begin(), values.end(), ValueSorter(fields));
 
     // initialize
     index = 1;
 
     // Restore first value into bindings
-    for (int i = 0; i < bindings.size(); i++) {
-        bindings[keys[i]]->value = (*values[0])[i];
+    if (!values.empty()) {
+        for (int i = 0; i < bindings.size(); i++) {
+            bindings[keys[i]]->value = (*values[0])[i];
+        }
+        // Restore count if needed
+        cnt = distinct ? 1 : (*values[0])[bindings.size()];
+
+        // Destroy saved value, it is no longer needed
+        //delete values[0];
+        //values[0] = NULL;
+
+        observedOutputCardinality += cnt;
+        return cnt;
+    } else {
+        return 0;
     }
-
-    // Restore count if needed
-    cnt = distinct ? 1 : (*values[0])[bindings.size()];
-
-    // Destroy saved value, it is no longer needed
-    delete values[0];
-    values[0] = NULL;
-
-    observedOutputCardinality += cnt;
-    return cnt;
 }
 
 /// Produce the next tuple
 uint64_t GroupBy::next() {
+    //if "distinct == 1" then move to the first row with a different key
+    while (distinct && index < values.size() && sameThanPrevious(index)) {
+        index++;
+    }
+
     if (index >= values.size()) {
         // No more values available
         return 0;
@@ -116,8 +142,8 @@ uint64_t GroupBy::next() {
     }
 
     // Destroy saved value, it is no longer needed
-    delete values[index];
-    values[index] = NULL;
+    //delete values[index];
+    //values[index] = NULL;
 
     // Prepare for next next() call.
     index++;
