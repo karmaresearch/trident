@@ -1,12 +1,12 @@
 #include "rts/operator/ResultsPrinter.hpp"
 #include "rts/operator/PlanPrinter.hpp"
-//#include "rts/database/Database.hpp"
-//#include "rts/runtime/DifferentialIndex.hpp"
 #include "rts/runtime/Runtime.hpp"
 #include "rts/runtime/QueryDict.hpp"
 #include "rts/runtime/TemporaryDictionary.hpp"
-//#include "rts/segment/DictionarySegment.hpp"
 #include "infra/util/Type.hpp"
+
+#include <trident/kb/dictmgmt.h>
+
 #include <iostream>
 #include <map>
 #include <set>
@@ -130,14 +130,24 @@ namespace {
         if (start == stop) return;
         if (!~(*start))
             cout << "NULL";
-        else
-            stringCache[*start].print(stringCache, escape);
+        else {
+            if (!DictMgmt::isnumeric(*start)) {
+                stringCache[*start].print(stringCache, escape);
+            } else {
+                cout << DictMgmt::tostr(*start);
+            }
+        }
         for (++start; start != stop; ++start) {
             cout << '\t';
             if (!~(*start))
                 cout << "NULL";
-            else
-                stringCache[*start].print(stringCache, escape);
+            else {
+                if (!DictMgmt::isnumeric(*start)) {
+                    stringCache[*start].print(stringCache, escape);
+                } else {
+                    cout << DictMgmt::tostr(*start);
+                }
+            }
         }
     }
 };
@@ -264,7 +274,7 @@ uint64_t ResultsPrinter::first()
         for (vector<Register*>::const_iterator iter = output.begin(), limit = output.end(); iter != limit; ++iter) {
             uint64_t id = (*iter)->value;
             results.push_back(id);
-            if (~id) stringCache[id];
+            if (~id && !DictMgmt::isnumeric(id)) stringCache[id];
         }
         if ((++entryCount) >= this->limit) break;
     } while ((count = input->next()) != 0);
@@ -279,7 +289,6 @@ uint64_t ResultsPrinter::first()
     set<unsigned> subTypes;
     TemporaryDictionary* tempDict = runtime.hasTemporaryDictionary() ?
         (&runtime.getTemporaryDictionary()) : 0;
-    //DifferentialIndex* diffIndex = runtime.hasDifferentialIndex() ? (&runtime.getDifferentialIndex()) : 0;
     QueryDict *dictQuery = runtime.getQueryDict();
     if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
     for (map<uint64_t, CacheEntry>::iterator iter = stringCache.begin(),

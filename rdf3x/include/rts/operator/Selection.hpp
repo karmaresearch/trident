@@ -297,6 +297,21 @@ class Selection : public Operator {
                 /// Print the predicate (debugging only)
                 std::string print(PlanPrinter& out);
         };
+        /// Used to compute Aggregate functions
+        class AggrFunction : public Predicate {
+            private:
+                /// The register
+                Register* reg;
+
+            public:
+                /// Constructor
+                AggrFunction(Register* reg) : reg(reg) {}
+
+                /// Evaluate the predicate
+                void eval(Result& result);
+                /// Print the predicate (debugging only)
+                std::string print(PlanPrinter& out);
+        };
         /// Constant
         class ConstantLiteral : public Predicate {
             private:

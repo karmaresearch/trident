@@ -37,6 +37,8 @@ class Root;
 class StringBuffer;
 class TreeItr;
 
+#define DICTMGMT_INTEGER  0x4000000000000000lu
+
 using namespace std;
 
 class Row {
@@ -199,6 +201,16 @@ public:
 
     void clean() {
         dictionaries.clear();
+    }
+
+    static bool isnumeric(uint64_t term) {
+        bool res = term & 0xC000000000000000lu; //check the two most significant bits are non-zero
+        return res;
+    }
+
+    static string tostr(uint64_t term) {
+        uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
+        return to_string(raw);
     }
 
     ~DictMgmt();

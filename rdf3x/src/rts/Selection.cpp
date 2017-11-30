@@ -366,7 +366,7 @@ void Selection::LessOrEqual::eval(Result& result)
     if (isNumericComparison(l,r)) {
         result.setBoolean(! numLess(r,l));
     } else {
-	result.setBoolean(l.value <= r.value);
+        result.setBoolean(l.value <= r.value);
     }
 }
 //---------------------------------------------------------------------------
@@ -1001,8 +1001,8 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 Selection::BuiltinNotExists::BuiltinNotExists(Operator *tree,
-                        std::vector<Register *> regsToLoad,
-                        std::vector<Register *> regsToCheck) :
+        std::vector<Register *> regsToLoad,
+        std::vector<Register *> regsToCheck) :
     regsToLoad(regsToLoad), regsToCheck(regsToCheck), loaded(false)
 {
     this->tree = std::unique_ptr<Operator>(tree);
@@ -1039,7 +1039,20 @@ string Selection::BuiltinNotExists::print(PlanPrinter& out)
     string result = "not_exists(<subquery>)";
     return result;
 }
-
+//---------------------------------------------------------------------------
+void Selection::AggrFunction::eval(Result& result)
+    // Evaluate the predicate
+{
+    result.setId(reg->value);
+    result.boolean = true;
+    result.flags |= Result::booleanAvailable;
+}
+//---------------------------------------------------------------------------
+string Selection::AggrFunction::print(PlanPrinter& out)
+    // Print the predicate (debugging only)
+{
+    return out.formatRegister(reg);
+}
 //---------------------------------------------------------------------------
 Selection::Selection(Operator* input, Runtime& runtime, Predicate* predicate, double expectedOutputCardinality)
     : Operator(expectedOutputCardinality), input(input), runtime(runtime), predicate(predicate)

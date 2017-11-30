@@ -254,7 +254,7 @@ static bool createAggregatedFilter(QueryGraph::Filter& output,
     unsigned aggrVar = currentQueryGraph.getAggredateHandler().
         getNewOrExistingVar(
                 f, vars);
-    output.type = QueryGraph::Filter::Variable;
+    output.type = QueryGraph::Filter::Builtin_aggr;
     output.id = aggrVar;
     return true;
 }

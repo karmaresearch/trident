@@ -614,6 +614,11 @@ static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned
 
                                                         return new Selection::BuiltinNotExists(tree, regsToLoad, regsToCheck);
                                                     }
+        case QueryGraph::Filter::Builtin_aggr:
+                                                    if (bindings.count(filter.id))
+                                                        return new Selection::AggrFunction((*bindings.find(filter.id)).second);
+                                                    else
+                                                        return new Selection::Null();
     }
     throw; // Cannot happen
 }

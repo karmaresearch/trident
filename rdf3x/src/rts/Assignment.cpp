@@ -13,14 +13,14 @@
 
 //---------------------------------------------------------------------------
 Assignment::Assignment(Operator *input, const std::vector<AssignmentArgument>& inputArgs,
-                       const std::vector<Register*>& outputVars,
-                       double expectedOutputCardinality) :
+        const std::vector<Register*>& outputVars,
+        double expectedOutputCardinality) :
     Operator(expectedOutputCardinality), input(input), inputArgs(inputArgs),
     outputVars(outputVars) {
-}
+    }
 //---------------------------------------------------------------------------
 void Assignment::print(PlanPrinter& out)
-// Print the operator tree. Debugging only.
+    // Print the operator tree. Debugging only.
 {
     out.beginOperator("Bind", expectedOutputCardinality, observedOutputCardinality);
     input->print(out);
@@ -30,8 +30,13 @@ void Assignment::print(PlanPrinter& out)
 uint64_t Assignment::first() {
     if (input->first() == 0)
         return false;
-
-    return next();
+    for (size_t j = 0; j < inputArgs.size(); ++j) {
+        if (inputArgs[j].reg != NULL)
+            outputVars[j]->value = inputArgs[j].reg->value;
+        else
+            outputVars[j]->value = inputArgs[j].defaultValue;
+    }
+    return true;
 }
 //---------------------------------------------------------------------------
 uint64_t Assignment::next() {

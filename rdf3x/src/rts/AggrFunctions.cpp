@@ -1,6 +1,8 @@
 #include <rts/operator/AggrFunctions.hpp>
 #include <rts/operator/PlanPrinter.hpp>
 
+#include <trident/kb/dictmgmt.h>
+
 #include <kognac/logs.h>
 
 #include <assert.h>
@@ -40,7 +42,9 @@ void AggrFunctions::readKeys() {
 
 void AggrFunctions::copyVars() {
     for(uint8_t i = 0; i < varsToReturn.size(); ++i) {
-        varsToReturn[i].second->value = hdl.getValue(varsToReturn[i].first);
+        uint64_t val = hdl.getValue(varsToReturn[i].first);
+        val = val | DICTMGMT_INTEGER;
+        varsToReturn[i].second->value = val;
     }
 }
 
@@ -77,6 +81,8 @@ void AggrFunctions::processGroup() {
         hdl.updateVar(var.first, ~0lu, 0);
     }
     hdl.stopUpdate();
+    copyVars();
+    hdl.reset();
 }
 
 /// Produce the first tuple

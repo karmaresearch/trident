@@ -62,7 +62,7 @@ class QueryGraph {
                 Builtin_str, Builtin_lang, Builtin_langmatches, Builtin_datatype, Builtin_bound, Builtin_sameterm,
                 Builtin_isiri, Builtin_isblank, Builtin_isliteral, Builtin_regex, Builtin_replace, Builtin_in,
                 Builtin_notin, Builtin_contains,
-                Builtin_xsddecimal, Builtin_notexists
+                Builtin_xsddecimal, Builtin_notexists, Builtin_aggr
             };
 
             /// The type

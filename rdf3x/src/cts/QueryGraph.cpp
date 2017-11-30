@@ -103,6 +103,8 @@ std::set<std::pair<uint64_t, bool> > QueryGraph::Filter::allIdVarsAndLiterals() 
     } else if (type == Literal) {
         set.insert(std::make_pair(valueid, false));
         return set;
+    } else if (type == Builtin_aggr) {
+        set.insert(std::make_pair(id, true));
     }
 
     // Check the input
