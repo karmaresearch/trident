@@ -75,6 +75,16 @@ void AggrFunctions::processGroup() {
         hdl.stopUpdate();
         currentCount = child->next();
     }
+
+    //The key values are changed need to restore them to the ones of the previous group
+    if (currentCount) {
+        for(uint8_t i = 0; i < currentGroupKeys.size(); ++i) {
+            uint64_t next = groupKeys[i]->value;
+            groupKeys[i]->value = currentGroupKeys[i];
+            currentGroupKeys[i] = next;
+        }
+    }
+
     //Add an empty row to tell the handler that the group is finished
     hdl.startUpdate();
     for(auto &var : varsToUpdate) {
@@ -104,7 +114,6 @@ uint64_t AggrFunctions::first() {
 /// Produce the next tuple
 uint64_t AggrFunctions::next() {
     if (currentCount) {
-        readKeys();
         processGroup();
         observedOutputCardinality++;
         return 1;

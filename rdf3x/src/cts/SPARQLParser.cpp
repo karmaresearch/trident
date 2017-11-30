@@ -304,7 +304,14 @@ void SPARQLParser::parseProjection(PatternGroup& group)
                     LOG(ERRORL) << "The parsing of the assignment did not go so well";
                     throw 10; //Exception. This should not occur
                 }
-                projection.push_back(assignments[sizeAssignments].outputVar.id);
+                unsigned varid = assignments[sizeAssignments].outputVar.id;
+                projection.push_back(varid);
+                if (!silentOutputVars) {
+                    for(auto &p : namedVariables) {
+                        if (p.second == varid)
+                            std::cerr << p.first << "\t";
+                    }
+                }
             } else {
                 if (first)
                     throw ParserException("projection required after select");

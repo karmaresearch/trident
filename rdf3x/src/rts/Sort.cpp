@@ -1,9 +1,9 @@
 #include "rts/operator/Sort.hpp"
 #include "infra/util/Type.hpp"
-//#include "rts/database/Database.hpp"
 #include "rts/operator/PlanPrinter.hpp"
 #include "rts/runtime/Runtime.hpp"
-//#include "rts/segment/DictionarySegment.hpp"
+
+#include <kognac/consts.h>
 #include <algorithm>
 //---------------------------------------------------------------------------
 // RDF-3X
@@ -24,10 +24,13 @@ private:
     DBLayer& dict;
     /// The sort order
     const vector<Order>& order;
+    std::unique_ptr<char> buffer1;
+    std::unique_ptr<char> buffer2;
 
 public:
     /// Constructor
-    Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order) {}
+    Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order),
+    buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
 
     /// Compare
     bool operator()(const Tuple* a, const Tuple* b);
@@ -58,10 +61,15 @@ bool Sort::Sorter::operator()(const Tuple* a, const Tuple* b)
 
             // Load the strings
             const char* start1, *stop1, *start2, *stop2;
+            size_t len1, len2;
             Type::ID type1, type2;
             unsigned subType1, subType2;
-            if (!dict.lookupById(v1, start1, stop1, type1, subType1)) continue;
-            if (!dict.lookupById(v2, start2, stop2, type2, subType2)) continue;
+            if (!dict.lookupById(v1, buffer1.get(), len1, type1, subType1)) continue;
+            if (!dict.lookupById(v2, buffer2.get(), len2, type2, subType2)) continue;
+            start1 = buffer1.get();
+            start2 = buffer2.get();
+            stop1 = start1 + len1;
+            stop2 = start2 + len2;
 
             // Compare
             if (type1 < type2) return true;
@@ -137,14 +145,14 @@ uint64_t Sort::first()
     for (uint64_t count = input->first(); count; count = input->next()) {
         Tuple* t = tuplesPool.alloc();
         t->count = count;
-        for (uint64_t index = 0, limit = values.size(); index < limit; index++)
+        for (uint64_t index = 0, limit = values.size(); index < limit; index++) {
             t->values[index] = values[index]->value;
+        }
         tuples.push_back(t);
     }
 
     // Sort it
-    Sorter sorter(dict, order);
-    sort(tuples.begin(), tuples.end(), sorter);
+    sort(tuples.begin(), tuples.end(), Sorter(dict, order));
 
     // Return the first one
     tuplesIter = tuples.begin();

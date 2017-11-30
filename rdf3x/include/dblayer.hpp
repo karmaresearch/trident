@@ -102,6 +102,12 @@ public:
                             ::Type::ID& type,
                             unsigned& subType) = 0;
 
+    virtual bool lookupById(uint64_t id,
+                            char *output,
+                            size_t &length,
+                            ::Type::ID& type,
+                            unsigned& subType) = 0;
+
     virtual uint64_t getNextId() = 0;
 
     virtual double getScanCost(DBLayer::DataOrder order,

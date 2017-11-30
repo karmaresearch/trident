@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _TRIDENT_LAYER_H
@@ -34,210 +34,216 @@
 #define LIMIT_SAMPLE 100
 
 class TridentScan : public DBLayer::Scan {
-private:
-    const DBLayer::Aggr_t a;
-    const int perm;
-    PairItr *itr;
-    Querier *q;
-    DBLayer::Hint *hint;
-    size_t countHint;
+    private:
+        const DBLayer::Aggr_t a;
+        const int perm;
+        PairItr *itr;
+        Querier *q;
+        DBLayer::Hint *hint;
+        size_t countHint;
 
-public:
-    TridentScan(const int perm, const DBLayer::Aggr_t a,
+    public:
+        TridentScan(const int perm, const DBLayer::Aggr_t a,
                 Querier *q, DBLayer::Hint *hint) : a(a), perm(perm),
         itr(NULL),
         q(q),
         hint(hint),
         countHint(0) {
-    }
+        }
 
-    uint64_t getValue1();
+        uint64_t getValue1();
 
-    uint64_t getValue2();
+        uint64_t getValue2();
 
-    uint64_t getValue3();
+        uint64_t getValue3();
 
-    uint64_t getCount();
+        uint64_t getCount();
 
-    bool next();
+        bool next();
 
-    bool first();
+        bool first();
 
-    bool first(uint64_t, bool);
+        bool first(uint64_t, bool);
 
-    bool first(uint64_t, bool, uint64_t, bool);
+        bool first(uint64_t, bool, uint64_t, bool);
 
-    bool first(uint64_t, bool, uint64_t, bool, uint64_t, bool);
+        bool first(uint64_t, bool, uint64_t, bool, uint64_t, bool);
 
-    ~TridentScan();
+        ~TridentScan();
 };
 
 class TridentLayer : public DBLayer {
-private:
-    KB &kb;
-    DictMgmt *dict;
-    std::unique_ptr<Querier> q;
-    bool bifSampl;
-    const int nindices;
+    private:
+        KB &kb;
+        DictMgmt *dict;
+        std::unique_ptr<Querier> q;
+        bool bifSampl;
+        const int nindices;
 
-    //Used to translate IDs back to strings
-    std::unique_ptr<char[]> supportBuffer;
+        //Used to translate IDs back to strings
+        std::unique_ptr<char[]> supportBuffer;
 
-    std::shared_ptr<TupleTable> query(Querier *q,
-                                      const bool cs1,
-                                      const uint64_t s1,
-                                      const bool cp1,
-                                      const uint64_t p1,
-                                      const bool co1,
-                                      const uint64_t o1,
-                                      const int limit,
-                                      double &sampleRate);
+        std::shared_ptr<TupleTable> query(Querier *q,
+                const bool cs1,
+                const uint64_t s1,
+                const bool cp1,
+                const uint64_t p1,
+                const bool co1,
+                const uint64_t o1,
+                const int limit,
+                double &sampleRate);
 
-    std::shared_ptr<TupleTable> query(const bool cs1,
-                                      const uint64_t s1,
-                                      const bool cp1,
-                                      const uint64_t p1,
-                                      const bool co1,
-                                      const uint64_t o1) {
-        double sample = 0;
-        return query(q.get(), cs1, s1, cp1, p1, co1, o1, -1, sample);
-    }
+        std::shared_ptr<TupleTable> query(const bool cs1,
+                const uint64_t s1,
+                const bool cp1,
+                const uint64_t p1,
+                const bool co1,
+                const uint64_t o1) {
+            double sample = 0;
+            return query(q.get(), cs1, s1, cp1, p1, co1, o1, -1, sample);
+        }
 
-    std::shared_ptr<TupleTable> sampleQuery(const bool cs1,
-                                            const uint64_t s1,
-                                            const bool cp1,
-                                            const uint64_t p1,
-                                            const bool co1,
-                                            const uint64_t o1,
-                                            const int limit,
-                                            double &sampleRate) {
-        return query(&q->getSampler(), cs1, s1, cp1, p1, co1, o1, limit,
-                     sampleRate);
-    }
+        std::shared_ptr<TupleTable> sampleQuery(const bool cs1,
+                const uint64_t s1,
+                const bool cp1,
+                const uint64_t p1,
+                const bool co1,
+                const uint64_t o1,
+                const int limit,
+                double &sampleRate) {
+            return query(&q->getSampler(), cs1, s1, cp1, p1, co1, o1, limit,
+                    sampleRate);
+        }
 
-    long getSizeOutput(long s, long p, long o,
-                       std::vector<uint8_t> *posToFilter,
-                       std::vector<uint64_t> *valuesToFilter);
+        long getSizeOutput(long s, long p, long o,
+                std::vector<uint8_t> *posToFilter,
+                std::vector<uint64_t> *valuesToFilter);
 
-    double bifocalSampling(bool valueL1,
-                           uint64_t value1CL,
-                           bool value2L,
-                           uint64_t value2CL,
-                           bool value3L,
-                           uint64_t value3CL,
-                           bool value1R,
-                           uint64_t value1CR,
-                           bool value2R,
-                           uint64_t value2CR,
-                           bool value3R,
-                           uint64_t value3CR,
-                           const long card1,
-                           const long card2);
+        double bifocalSampling(bool valueL1,
+                uint64_t value1CL,
+                bool value2L,
+                uint64_t value2CL,
+                bool value3L,
+                uint64_t value3CL,
+                bool value1R,
+                uint64_t value1CR,
+                bool value2R,
+                uint64_t value2CR,
+                bool value3R,
+                uint64_t value3CR,
+                const long card1,
+                const long card2);
 
-    double bifocalSampling_DenseDense(bool valueL1,
-                                      uint64_t value1CL,
-                                      bool value2L,
-                                      uint64_t value2CL,
-                                      bool value3L,
-                                      uint64_t value3CL,
-                                      bool value1R,
-                                      uint64_t value1CR,
-                                      bool value2R,
-                                      uint64_t value2CR,
-                                      bool value3R,
-                                      uint64_t value3CR,
-                                      const long card1,
-                                      const long card2);
+        double bifocalSampling_DenseDense(bool valueL1,
+                uint64_t value1CL,
+                bool value2L,
+                uint64_t value2CL,
+                bool value3L,
+                uint64_t value3CL,
+                bool value1R,
+                uint64_t value1CR,
+                bool value2R,
+                uint64_t value2CR,
+                bool value3R,
+                uint64_t value3CR,
+                const long card1,
+                const long card2);
 
-    double bifocalSampling_SparseAny(bool valueL1,
-                                     uint64_t value1CL,
-                                     bool value2L,
-                                     uint64_t value2CL,
-                                     bool value3L,
-                                     uint64_t value3CL,
-                                     bool value1R,
-                                     uint64_t value1CR,
-                                     bool value2R,
-                                     uint64_t value2CR,
-                                     bool value3R,
-                                     uint64_t value3CR,
-                                     const long card1,
-                                     const long card2);
+        double bifocalSampling_SparseAny(bool valueL1,
+                uint64_t value1CL,
+                bool value2L,
+                uint64_t value2CL,
+                bool value3L,
+                uint64_t value3CL,
+                bool value1R,
+                uint64_t value1CR,
+                bool value2R,
+                uint64_t value2CR,
+                bool value3R,
+                uint64_t value3CR,
+                const long card1,
+                const long card2);
 
-public:
-    TridentLayer(KB &kb) : kb(kb), dict(kb.getDictMgmt()), q(kb.query()),
+    public:
+        TridentLayer(KB &kb) : kb(kb), dict(kb.getDictMgmt()), q(kb.query()),
         bifSampl(true), nindices(kb.getNIndices()), supportBuffer(new
                 char[MAX_TERM_SIZE]) { }
 
-    bool lookup(const std::string& text,
+        bool lookup(const std::string& text,
                 ::Type::ID type,
                 unsigned subType,
                 uint64_t& id);
 
-    void disableBifocalSampling() {
-        bifSampl = false;
-    }
+        void disableBifocalSampling() {
+            bifSampl = false;
+        }
 
-    bool lookupById(uint64_t id,
-                    const char*& start,
-                    const char*& stop,
-                    ::Type::ID& type,
-                    unsigned& subType);
+        bool lookupById(uint64_t id,
+                const char*& start,
+                const char*& stop,
+                ::Type::ID& type,
+                unsigned& subType);
 
-    uint64_t getNextId();
+        bool lookupById(uint64_t id,
+                char *output,
+                size_t &length,
+                ::Type::ID& type,
+                unsigned& subType);
 
-    double getScanCost(DBLayer::DataOrder order,
-                       uint64_t value1,
-                       uint64_t value1C,
-                       uint64_t value2,
-                       uint64_t value2C,
-                       uint64_t value3,
-                       uint64_t value3C);
+        uint64_t getNextId();
 
-    double getScanCost(DBLayer::DataOrder order,
-                       uint64_t value1,
-                       uint64_t value1C,
-                       uint64_t value2,
-                       uint64_t value2C);
+        double getScanCost(DBLayer::DataOrder order,
+                uint64_t value1,
+                uint64_t value1C,
+                uint64_t value2,
+                uint64_t value2C,
+                uint64_t value3,
+                uint64_t value3C);
 
-    double getJoinSelectivity(bool valueL1,
-                              uint64_t value1CL,
-                              bool value2L,
-                              uint64_t value2CL,
-                              bool value3L,
-                              uint64_t value3CL,
-                              bool value1R,
-                              uint64_t value1CR,
-                              bool value2R,
-                              uint64_t value2CR,
-                              bool value3R,
-                              uint64_t value3CR);
+        double getScanCost(DBLayer::DataOrder order,
+                uint64_t value1,
+                uint64_t value1C,
+                uint64_t value2,
+                uint64_t value2C);
 
-    double getScanCost(DBLayer::DataOrder order,
-                       uint64_t value1,
-                       uint64_t value1C);
+        double getJoinSelectivity(bool valueL1,
+                uint64_t value1CL,
+                bool value2L,
+                uint64_t value2CL,
+                bool value3L,
+                uint64_t value3CL,
+                bool value1R,
+                uint64_t value1CR,
+                bool value2R,
+                uint64_t value2CR,
+                bool value3R,
+                uint64_t value3CR);
 
-    uint64_t getCardinality(uint64_t c1,
-                            uint64_t c2,
-                            uint64_t c3);
+        double getScanCost(DBLayer::DataOrder order,
+                uint64_t value1,
+                uint64_t value1C);
 
-    uint64_t getCardinality();
+        uint64_t getCardinality(uint64_t c1,
+                uint64_t c2,
+                uint64_t c3);
 
-    uint64_t getNTerms() {
-        return kb.getNTerms();
-    }
+        uint64_t getCardinality();
 
-    std::unique_ptr<DBLayer::Scan> getScan(const DBLayer::DataOrder order,
-                                           const DBLayer::Aggr_t,
-                                           Hint *hint);
+        uint64_t getNTerms() {
+            return kb.getNTerms();
+        }
 
-    Querier *getQuerier() {
-        return q.get();
-    }
+        std::unique_ptr<DBLayer::Scan> getScan(const DBLayer::DataOrder order,
+                const DBLayer::Aggr_t,
+                Hint *hint);
 
-    KB *getKB() {
-        return &kb;
-    }
+        Querier *getQuerier() {
+            return q.get();
+        }
+
+        KB *getKB() {
+            return &kb;
+        }
 };
 
 #endif
