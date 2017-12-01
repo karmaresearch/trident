@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef DICTMGMT_H_
@@ -38,182 +38,234 @@ class StringBuffer;
 class TreeItr;
 
 #define DICTMGMT_INTEGER  0x4000000000000000lu
+#define DICTMGMT_FLOAT 0x8000000000000000lu
 
 using namespace std;
 
 class Row {
-private:
-    char *bData[MAX_N_PATTERNS];
-    int size;
-public:
-    Row() {
-        size = 0;
-        for (int i = 0; i < MAX_N_PATTERNS; ++i) {
-            bData[i] = NULL;
-        }
-    }
-    void setSize(int size) {
-        if (this->size < size) {
-            for (int i = this->size; i < size; ++i) {
-                if (bData[i] == NULL) {
-                    bData[i] = new char[MAX_TERM_SIZE];
-                }
+    private:
+        char *bData[MAX_N_PATTERNS];
+        int size;
+    public:
+        Row() {
+            size = 0;
+            for (int i = 0; i < MAX_N_PATTERNS; ++i) {
+                bData[i] = NULL;
             }
         }
-        this->size = size;
-    }
-
-    char *getRawData(const int j) {
-        return bData[j];
-    }
-
-    void printRow() {
-        for (int i = 0; i < size; ++i) {
-            std::cout << bData[i] << " ";
+        void setSize(int size) {
+            if (this->size < size) {
+                for (int i = this->size; i < size; ++i) {
+                    if (bData[i] == NULL) {
+                        bData[i] = new char[MAX_TERM_SIZE];
+                    }
+                }
+            }
+            this->size = size;
         }
-        std::cout << "\n";
-    }
-    ~Row() {
-        for (int i = 0; i < MAX_N_PATTERNS; ++i) {
-            if (bData[i] != NULL)
-                delete[] bData[i];
+
+        char *getRawData(const int j) {
+            return bData[j];
         }
-    }
+
+        void printRow() {
+            for (int i = 0; i < size; ++i) {
+                std::cout << bData[i] << " ";
+            }
+            std::cout << "\n";
+        }
+        ~Row() {
+            for (int i = 0; i < MAX_N_PATTERNS; ++i) {
+                if (bData[i] != NULL)
+                    delete[] bData[i];
+            }
+        }
 };
 
 class DictMgmt {
-public:
-    struct Dict {
-        std::shared_ptr<Stats> stats;
-        std::shared_ptr<Root> dict;
-        std::shared_ptr<Root> invdict;
-        std::shared_ptr<StringBuffer> sb;
-        long size;
-        long nextid;
+    public:
+        struct Dict {
+            std::shared_ptr<Stats> stats;
+            std::shared_ptr<Root> dict;
+            std::shared_ptr<Root> invdict;
+            std::shared_ptr<StringBuffer> sb;
+            long size;
+            long nextid;
 
-        Dict() {
-            stats = std::shared_ptr<Stats>(new Stats());
-            size = nextid = 0;
+            Dict() {
+                stats = std::shared_ptr<Stats>(new Stats());
+                size = nextid = 0;
+            }
+
+            ~Dict() {
+                LOG(DEBUGL) << "Deallocating dict ...";
+                dict = std::shared_ptr<Root>();
+                LOG(DEBUGL) << "Deallocating invdict ...";
+                invdict = std::shared_ptr<Root>();
+                LOG(DEBUGL) << "Deallocating sb ...";
+                sb = std::shared_ptr<StringBuffer>();
+                LOG(DEBUGL) << "Deallocating stats ...";
+                stats = std::shared_ptr<Stats>();
+            }
+        };
+
+    private:
+
+        //Define the task to execute
+        //long* dataToProcess;
+        int nTuples;
+        int sTuples;
+        bool printTuples;
+
+        long *insertedNewTerms;
+        long largestID;
+
+        bool hash;
+
+        Row row;
+
+        //Used if additional terms are defined in the updates
+        std::vector<uint64_t> beginrange;
+        std::vector<Dict> dictionaries;
+        //
+        //global datastructures for small updates (GUD=global update dictionary)
+        google::dense_hash_map<uint64_t, string> gud_idtext;
+        google::sparse_hash_map<string, uint64_t> gud_textid;
+        google::sparse_hash_map<uint64_t, uint64_t> r2e;
+        google::sparse_hash_map<uint64_t, string> r2s;
+        bool gud_modified;
+        uint64_t gud_largestID;
+        string gudLocation;
+
+    public:
+
+        DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
+                string e2s);
+
+        void addUpdates(std::vector<Dict> &updates);
+
+        void putInUpdateDict(const uint64_t id, const char *term, const size_t len);
+
+        uint64_t getGUDSize() {
+            return gud_idtext.size();
         }
 
-        ~Dict() {
-            LOG(DEBUGL) << "Deallocating dict ...";
-            dict = std::shared_ptr<Root>();
-            LOG(DEBUGL) << "Deallocating invdict ...";
-            invdict = std::shared_ptr<Root>();
-            LOG(DEBUGL) << "Deallocating sb ...";
-            sb = std::shared_ptr<StringBuffer>();
-            LOG(DEBUGL) << "Deallocating stats ...";
-            stats = std::shared_ptr<Stats>();
+        uint64_t getNRels() {
+            return r2e.size() + r2s.size(); //Either one or the others are populated
         }
-    };
 
-private:
+        uint64_t getLargestGUDTerm() {
+            return gud_largestID;
+        }
 
-    //Define the task to execute
-    //long* dataToProcess;
-    int nTuples;
-    int sTuples;
-    bool printTuples;
+        long getNTermsInserted() {
+            return insertedNewTerms[0];
+        }
 
-    long *insertedNewTerms;
-    long largestID;
+        long getLargestIDInserted() {
+            return largestID;
+        }
 
-    bool hash;
+        TreeItr *getInvDictIterator();
 
-    Row row;
+        TreeItr *getDictIterator();
 
-    //Used if additional terms are defined in the updates
-    std::vector<uint64_t> beginrange;
-    std::vector<Dict> dictionaries;
-    //
-    //global datastructures for small updates (GUD=global update dictionary)
-    google::dense_hash_map<uint64_t, string> gud_idtext;
-    google::sparse_hash_map<string, uint64_t> gud_textid;
-    google::sparse_hash_map<uint64_t, uint64_t> r2e;
-    google::sparse_hash_map<uint64_t, string> r2s;
-    bool gud_modified;
-    uint64_t gud_largestID;
-    string gudLocation;
+        StringBuffer *getStringBuffer();
 
-public:
+        bool getText(nTerm key, char *value);
 
-    DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
-            string e2s);
+        bool getTextRel(nTerm key, char *value, int &size);
 
-    void addUpdates(std::vector<Dict> &updates);
+        bool getText(nTerm key, char *value, int &size);
 
-    void putInUpdateDict(const uint64_t id, const char *term, const size_t len);
+        void getTextFromCoordinates(long coordinates, char *output,
+                int &sizeOutput);
 
-    uint64_t getGUDSize() {
-        return gud_idtext.size();
-    }
+        bool getNumber(const char *key, const int sizeKey, nTerm *value);
 
-    uint64_t getNRels() {
-        return r2e.size() + r2s.size(); //Either one or the others are populated
-    }
+        bool putDict(const char *key, int sizeKey, nTerm &value);
 
-    uint64_t getLargestGUDTerm() {
-        return gud_largestID;
-    }
+        bool putDict(const char *key, int sizeKey, nTerm &value,
+                long &coordinates);
 
-    long getNTermsInserted() {
-        return insertedNewTerms[0];
-    }
+        bool putInvDict(const char *key, int sizeKey, nTerm &value);
 
-    long getLargestIDInserted() {
-        return largestID;
-    }
+        bool putInvDict(const nTerm key, const long coordinates);
 
-    TreeItr *getInvDictIterator();
+        bool putPair(const char *key, int sizeKey, nTerm &value);
 
-    TreeItr *getDictIterator();
+        void appendPair(const char *key, int sizeKey, nTerm &value);
 
-    StringBuffer *getStringBuffer();
+        bool useHashForCompression() {
+            return hash;
+        }
 
-    bool getText(nTerm key, char *value);
+        void clean() {
+            dictionaries.clear();
+        }
 
-    bool getTextRel(nTerm key, char *value, int &size);
+        /*** METHODS USED WHEN THE IDS ARE ACTUAL NUMBERS ***/
+        static bool isnumeric(uint64_t term) {
+            bool res = term & 0xC000000000000000lu; //check the two most significant bits are non-zero
+            return res;
+        }
 
-    bool getText(nTerm key, char *value, int &size);
+        static string tostr(uint64_t term) {
+            uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
+            return to_string(raw);
+        }
 
-    void getTextFromCoordinates(long coordinates, char *output,
-                                int &sizeOutput);
+        static uint64_t getType(uint64_t term) {
+            uint64_t type = term & 0xC000000000000000lu;
+            return type;
+        }
 
-    bool getNumber(const char *key, const int sizeKey, nTerm *value);
+        static int compare(uint64_t type1, uint64_t number1, uint64_t type2, uint64_t number2) {
+            if (type1 == DICTMGMT_INTEGER && type2 == DICTMGMT_INTEGER) {
+                number1 = number1 & 0x3FFFFFFFFFFFFFFFlu;
+                number2 = number2 & 0x3FFFFFFFFFFFFFFFlu;
+                if (number1 < number2) {
+                    return -1;
+                } else if (number1 > number2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else if (type1 == DICTMGMT_INTEGER) {
+                number1 = number1 & 0x3FFFFFFFFFFFFFFFlu;
+                float n2 = *((float*)(((char*)&number2+4)));
+                if (number1 < n2) {
+                    return -1;
+                } else if (number1 > n2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else if (type2 == DICTMGMT_INTEGER) {
+                float n1 = *((float*)(((char*)&number1+4)));
+                number2 = number2 & 0x3FFFFFFFFFFFFFFFlu;
+                if (n1 < number2) {
+                    return -1;
+                } else if (n1 > number2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else { //both floats
+                float n1 = *((float*)(((char*)&number1+4)));
+                float n2 = *((float*)(((char*)&number2+4)));
+                if (n1 < n2) {
+                    return -1;
+                } else if (n1 > n2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
 
-    bool putDict(const char *key, int sizeKey, nTerm &value);
+            }
+        }
 
-    bool putDict(const char *key, int sizeKey, nTerm &value,
-                 long &coordinates);
-
-    bool putInvDict(const char *key, int sizeKey, nTerm &value);
-
-    bool putInvDict(const nTerm key, const long coordinates);
-
-    bool putPair(const char *key, int sizeKey, nTerm &value);
-
-    void appendPair(const char *key, int sizeKey, nTerm &value);
-
-    bool useHashForCompression() {
-        return hash;
-    }
-
-    void clean() {
-        dictionaries.clear();
-    }
-
-    static bool isnumeric(uint64_t term) {
-        bool res = term & 0xC000000000000000lu; //check the two most significant bits are non-zero
-        return res;
-    }
-
-    static string tostr(uint64_t term) {
-        uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
-        return to_string(raw);
-    }
-
-    ~DictMgmt();
+        ~DictMgmt();
 };
 
 #endif

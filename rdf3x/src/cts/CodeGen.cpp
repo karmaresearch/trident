@@ -679,10 +679,35 @@ static Operator* translateAggregates(Runtime& runtime,
 }
 //---------------------------------------------------------------------------
 static Operator* translateHaving(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan) {
-    Operator* tree = translatePlan(runtime, context, projection, bindings,
-            registers, plan->left);
-    //TODO: Add the operator
-    return tree;
+    FilterArgs& filterArgs =  *reinterpret_cast<FilterArgs*>(plan->right);
+    const QueryGraph::Filter& filter = *filterArgs.filter;
+
+    // Collect all variables
+    set<unsigned> filterVariables;
+    collectVariables(filterVariables, filter);
+
+    // Build the input trees
+    set<unsigned> newProjection = projection;
+    for (set<unsigned>::const_iterator iter = filterVariables.begin(),
+            limit = filterVariables.end(); iter != limit; ++iter)
+        newProjection.insert(*iter);
+
+    Operator* tree = translatePlan(runtime, context, newProjection,
+            bindings, registers, plan->left);
+    Operator* result = 0;
+    if (!result) {
+        result = new Selection(tree, runtime,
+                buildSelection(runtime, bindings, filter, filterArgs.plan,
+                    registers), plan->cardinality);
+    }
+
+    // Cleanup the binding
+    for (set<unsigned>::const_iterator iter = filterVariables.begin(),
+            limit = filterVariables.end(); iter != limit; ++iter)
+        if (!projection.count(*iter))
+            bindings.erase(*iter);
+
+    return result;
 }
 //---------------------------------------------------------------------------
 static Operator* translateFilter(Runtime& runtime, const map<unsigned, Register*>& context, const set<unsigned>& projection, map<unsigned, Register*>& bindings, const map<const QueryGraph::Node*, unsigned>& registers, Plan* plan)

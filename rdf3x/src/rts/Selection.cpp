@@ -4,7 +4,9 @@
 #include "rts/runtime/Runtime.hpp"
 #include "cts/codegen/CodeGen.hpp"
 #include "cts/plangen/PlanGen.hpp"
-//#include "rts/segment/DictionarySegment.hpp"
+
+#include <trident/kb/dictmgmt.h>
+
 #include <sstream>
 #include <cassert>
 #include <cstdlib>
@@ -29,7 +31,12 @@
 using namespace std;
 
 long _getLong(const std::string &s) {
-    std::string number = s.substr(1, s.find_first_of('"',1)-1);
+    auto pos = s.find_first_of('"',1);
+    std::string number;
+    if (pos != string::npos)
+        number = s.substr(1, pos-1);
+    else
+        number = s;
     return std::stol(number);
 }
 
@@ -339,12 +346,57 @@ void Selection::Less::eval(Result& result)
     left->eval(l);
     right->eval(r);
 
-    l.ensureString(selection);
-    r.ensureString(selection);
-    if (isNumericComparison(l,r)) {
-        result.setBoolean(numLess(l,r));
+    bool num1 =  DictMgmt::isnumeric(l.id);
+    bool num2 =  DictMgmt::isnumeric(r.id);
+    if (!num1) {
+        l.ensureString(selection);
+    }
+    if (!num2) {
+        r.ensureString(selection);
+    }
+
+    if (!num1 && !num2) {
+        if (isNumericComparison(l,r)) {
+            result.setBoolean(numLess(l,r));
+        } else {
+            result.setBoolean(l.value < r.value);
+        }
+    } else if (num1 && !num2) {
+        //The comparison is numeric
+        auto tr = getNumType(r.value);
+        uint64_t t2;
+        uint64_t v2 = 0;
+        if (tr != NumType::DECIMAL) {
+            t2 = DICTMGMT_INTEGER;
+            v2 = _getLong(r.value);
+        } else {
+            t2 = DICTMGMT_FLOAT;
+            float v2_tmp1 = _getDouble(r.value);
+            uint32_t v2_tmp = *((uint32_t*)&v2_tmp1);
+            v2 += v2_tmp;
+        }
+        int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
+        result.setBoolean(res < 0);
+    } else if (!num1 && num2) {
+        //The comparison is numeric
+        auto tl = getNumType(l.value);
+        uint64_t t1;
+        uint64_t v1 = 0;
+        if (tl != NumType::DECIMAL) {
+            t1 = DICTMGMT_INTEGER;
+            v1 = _getLong(l.value);
+        } else {
+            t1 = DICTMGMT_FLOAT;
+            float v1_tmp1 = _getDouble(l.value);
+            uint32_t v1_tmp = *((uint32_t*)&v1_tmp1);
+            v1 += v1_tmp;
+        }
+        int res = DictMgmt::compare(t1, v1, DictMgmt::getType(r.id), r.id);
+        result.setBoolean(res < 0);
     } else {
-        result.setBoolean(l.value < r.value);
+        //Numbers can be int or float
+        int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, DictMgmt::getType(r.id), r.id);
+        result.setBoolean(res < 0);
     }
 }
 //---------------------------------------------------------------------------
@@ -357,7 +409,7 @@ string Selection::Less::print(PlanPrinter& out)
 void Selection::LessOrEqual::eval(Result& result)
     // Evaluate the predicate
 {
-    Result l, r;
+    /*Result l, r;
     left->eval(l);
     right->eval(r);
 
@@ -367,7 +419,64 @@ void Selection::LessOrEqual::eval(Result& result)
         result.setBoolean(! numLess(r,l));
     } else {
         result.setBoolean(l.value <= r.value);
+    }*/
+    Result l, r;
+    left->eval(l);
+    right->eval(r);
+
+    bool num1 =  DictMgmt::isnumeric(l.id);
+    bool num2 =  DictMgmt::isnumeric(r.id);
+    if (!num1) {
+        l.ensureString(selection);
     }
+    if (!num2) {
+        r.ensureString(selection);
+    }
+
+    if (!num1 && !num2) {
+        if (isNumericComparison(l,r)) {
+            result.setBoolean(!numLess(r,l));
+        } else {
+            result.setBoolean(l.value <= r.value);
+        }
+    } else if (num1 && !num2) {
+        //The comparison is numeric
+        auto tr = getNumType(r.value);
+        uint64_t t2;
+        uint64_t v2 = 0;
+        if (tr != NumType::DECIMAL) {
+            t2 = DICTMGMT_INTEGER;
+            v2 = _getLong(r.value);
+        } else {
+            t2 = DICTMGMT_FLOAT;
+            float v2_tmp1 = _getDouble(r.value);
+            uint32_t v2_tmp = *((uint32_t*)&v2_tmp1);
+            v2 += v2_tmp;
+        }
+        int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
+        result.setBoolean(res <= 0);
+    } else if (!num1 && num2) {
+        //The comparison is numeric
+        auto tl = getNumType(l.value);
+        uint64_t t1;
+        uint64_t v1 = 0;
+        if (tl != NumType::DECIMAL) {
+            t1 = DICTMGMT_INTEGER;
+            v1 = _getLong(l.value);
+        } else {
+            t1 = DICTMGMT_FLOAT;
+            float v1_tmp1 = _getDouble(l.value);
+            uint32_t v1_tmp = *((uint32_t*)&v1_tmp1);
+            v1 += v1_tmp;
+        }
+        int res = DictMgmt::compare(t1, v1, DictMgmt::getType(r.id), r.id);
+        result.setBoolean(res <= 0);
+    } else {
+        //Numbers can be int or float
+        int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, DictMgmt::getType(r.id), r.id);
+        result.setBoolean(res <= 0);
+    }
+
 }
 //---------------------------------------------------------------------------
 string Selection::LessOrEqual::print(PlanPrinter& out)
