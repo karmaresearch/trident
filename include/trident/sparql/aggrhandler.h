@@ -8,31 +8,45 @@ class AggregateHandler {
     public:
         typedef enum { COUNT, MIN, MAX, SUM, GROUP_CONCAT, AVG, SAMPLE } FUNC;
 
+        struct VarValue {
+            typedef enum {INT, DEC, SYMBOL, NUL} TYPE;
+            long v_int;
+            double v_dec;
+            TYPE type;
+            bool requiresNumber;
+        };
+
     private:
         struct FunctCall {
             FUNC id;
             uint64_t inputmask;
             uint64_t outputmask;
-            unsigned inputvar;
-            unsigned outputvar;
+            unsigned inputvar; //Id input var
+            unsigned outputvar; //Id output var
 
-            uint64_t arg1, arg2; //various arguments used by the functions
+            long arg1_int, arg2_int; //various arguments used by the functions
+            double arg1_dec, arg2_dec;
+            bool arg1_bool, arg2_bool;
 
             void reset() {
-                arg1 = arg2 = 0;
+                arg1_int = arg2_int = 0;
+                arg1_dec = arg2_dec = 0;
+                arg1_bool = arg2_bool = true;
             }
         };
+
 
         unsigned varcount;
         std::map<FUNC,std::map<unsigned,unsigned>> assignments;
         uint64_t inputmask;
-        std::vector<uint64_t> varvalues;
+        std::vector<VarValue> varvalues;
         std::vector<FunctCall> executions;
 
         bool executeFunction(FunctCall &call);
 
         //Concrete implementations of the various functions
         bool execCount(FunctCall &call);
+        bool execSum(FunctCall &call);
 
     public:
         AggregateHandler(unsigned varcount) : varcount(varcount) {
@@ -55,11 +69,24 @@ class AggregateHandler {
 
         void startUpdate();
 
-        std::pair<std::vector<unsigned>,std::vector<unsigned>> getInputOutputVars() const;
+        std::pair<std::vector<unsigned>,
+            std::vector<unsigned>> getInputOutputVars() const;
 
-        void updateVar(unsigned var, uint64_t value, uint64_t count);
+        void updateVarInt(unsigned var, long value, uint64_t count);
 
-        uint64_t getValue(unsigned var) const;
+        void updateVarSymbol(unsigned var, uint64_t value, uint64_t count);
+
+        void updateVarDec(unsigned var, double value, uint64_t count);
+
+        void updateVarNull(unsigned var);
+
+        long getValueInt(unsigned var) const;
+
+        double getValueDec(unsigned var) const;
+
+        VarValue::TYPE getValueType(unsigned var) const;
+
+        bool requiresNumber(unsigned var) const;
 
         void stopUpdate();
 };

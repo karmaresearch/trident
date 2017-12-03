@@ -1,4 +1,5 @@
 #include <trident/sparql/aggrhandler.h>
+#include <trident/kb/dictmgmt.h>
 
 #include <kognac/logs.h>
 
@@ -39,6 +40,11 @@ void AggregateHandler::prepare() {
             call.outputmask = (uint64_t) 1 << assignment.second;
             call.inputvar = assignment.first;
             call.outputvar = assignment.second;
+            //Update the variables and mentions if they need to be numberic
+            if (id == COUNT)
+                varvalues[assignment.first].requiresNumber = false;
+            else
+                varvalues[assignment.first].requiresNumber = true;
             executions.push_back(call);
         }
     }
@@ -51,10 +57,37 @@ void AggregateHandler::reset() {
     }
 }
 
-void AggregateHandler::updateVar(unsigned var, uint64_t value, uint64_t count) {
+void AggregateHandler::updateVarInt(unsigned var,
+        long value, uint64_t count) {
     //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
-    varvalues[var] = value;
+    varvalues[var].v_int = value;
+    varvalues[var].type = VarValue::TYPE::INT;
+    inputmask |= (uint64_t)1 << var;
+}
+
+void AggregateHandler::updateVarDec(unsigned var,
+        double value, uint64_t count) {
+    //For the moment I ignore "count" but later it might be taken into account
+    assert(var <= 63);
+    varvalues[var].v_dec = value;
+    varvalues[var].type = VarValue::TYPE::DEC;
+    inputmask |= (uint64_t)1 << var;
+}
+
+void AggregateHandler::updateVarSymbol(unsigned var,
+        uint64_t value, uint64_t count) {
+    //For the moment I ignore "count" but later it might be taken into account
+    assert(var <= 63);
+    varvalues[var].v_int = value;
+    varvalues[var].type = VarValue::TYPE::SYMBOL;
+    inputmask |= (uint64_t)1 << var;
+}
+
+
+void AggregateHandler::updateVarNull(unsigned var) {
+    assert(var <= 63);
+    varvalues[var].type = VarValue::TYPE::NUL;
     inputmask |= (uint64_t)1 << var;
 }
 
@@ -73,17 +106,31 @@ void AggregateHandler::stopUpdate() {
     } while (inputmask != 0);
 }
 
-uint64_t AggregateHandler::getValue(unsigned var) const {
-    return varvalues[var];
+long AggregateHandler::getValueInt(unsigned var) const {
+    return varvalues[var].v_int;
+}
+
+double AggregateHandler::getValueDec(unsigned var) const {
+    return varvalues[var].v_dec;
+}
+
+bool AggregateHandler::requiresNumber(unsigned var) const {
+    return varvalues[var].requiresNumber;
+}
+
+AggregateHandler::VarValue::TYPE AggregateHandler::getValueType(
+        unsigned var) const {
+    return varvalues[var].type;
 }
 
 bool AggregateHandler::executeFunction(FunctCall &call) {
     switch (call.id) {
         case FUNC::COUNT:
             return execCount(call);
+        case FUNC::SUM:
+            return execSum(call);
         case FUNC::MIN:
         case FUNC::MAX:
-        case FUNC::SUM:
         case FUNC::GROUP_CONCAT:
         case FUNC::AVG:
         case FUNC::SAMPLE:
@@ -98,35 +145,68 @@ bool AggregateHandler::executeFunction(FunctCall &call) {
 bool AggregateHandler::execCount(FunctCall &call) {
     //Get value of the var in input. If ~0lu, then return true and update the
     //output var
-    if (varvalues[call.inputvar] == ~0lu) {
-        varvalues[call.outputvar] = call.arg1;
+    if (varvalues[call.inputvar].type  == VarValue::TYPE::NUL) {
+        varvalues[call.outputvar].v_int = call.arg1_int;
+        varvalues[call.outputvar].type = VarValue::TYPE::INT;
         return true;
     } else {
-        call.arg1++;
+        call.arg1_int++;
         return false;
     }
 }
 
+bool AggregateHandler::execSum(FunctCall &call) {
+    //Get value of the var in input. If ~0lu, then return true and update the
+    //output var
+    if (varvalues[call.inputvar].type  == VarValue::TYPE::NUL) {
+        if (call.arg1_bool) { //Int
+            varvalues[call.outputvar].v_int = call.arg1_int;
+            varvalues[call.outputvar].type = VarValue::TYPE::INT;
+        } else { //Dec
+            varvalues[call.outputvar].v_dec = call.arg1_dec;
+            varvalues[call.outputvar].type = VarValue::TYPE::DEC;
+        }
+    } else {
+        //Need to get the numerical value of the input
+        if (varvalues[call.inputvar].type  == VarValue::TYPE::INT) {
+            //Check the internal value
+            if (call.arg1_bool) {
+                call.arg1_int += varvalues[call.inputvar].v_int;
+            } else {
+                call.arg1_dec += varvalues[call.inputvar].v_int;
+            }
+        } else { //Dec
+            if (call.arg1_bool) {
+                //Switch to decimal representation
+                call.arg1_dec = call.arg1_int;
+                call.arg1_bool = false;
+            }
+            call.arg1_dec += varvalues[call.inputvar].v_dec;
+        }
+    }
+    return true;
+}
+
 std::pair<std::vector<unsigned>,
     std::vector<unsigned>> AggregateHandler::getInputOutputVars() const {
-    std::set<unsigned> inputvars;
-    std::set<unsigned> outputvars;
-    for(auto &assignment : assignments) {
-        for(auto &entry : assignment.second) {
-            outputvars.insert(entry.second);
-            inputvars.insert(entry.first);
+        std::set<unsigned> inputvars;
+        std::set<unsigned> outputvars;
+        for(auto &assignment : assignments) {
+            for(auto &entry : assignment.second) {
+                outputvars.insert(entry.second);
+                inputvars.insert(entry.first);
+            }
         }
-    }
-    std::pair<std::vector<unsigned>,std::vector<unsigned>> out;
-    for(auto &v : inputvars) {
-        if (!outputvars.count(v)) {
-            out.first.push_back(v);
+        std::pair<std::vector<unsigned>,std::vector<unsigned>> out;
+        for(auto &v : inputvars) {
+            if (!outputvars.count(v)) {
+                out.first.push_back(v);
+            }
         }
-    }
-    for(auto &v : outputvars) {
-        if (!inputvars.count(v)) {
-            out.second.push_back(v);
+        for(auto &v : outputvars) {
+            if (!inputvars.count(v)) {
+                out.second.push_back(v);
+            }
         }
+        return out;
     }
-    return out;
-}

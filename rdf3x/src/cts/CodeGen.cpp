@@ -672,7 +672,8 @@ static Operator* translateAggregates(Runtime& runtime,
 
     Operator* tree = translatePlan(runtime, context, newprojection, bindings,
             registers, plan->left);
-    Operator *result = new AggrFunctions(tree, bindings, hdl,
+    Operator *result = new AggrFunctions(runtime.getDatabase(),
+            tree, bindings, hdl,
             groupkeys,
             tree->getExpectedOutputCardinality());
     return result;

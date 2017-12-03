@@ -210,6 +210,24 @@ class DictMgmt {
             return res;
         }
 
+        static uint64_t getIntValue(uint64_t term) {
+            uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
+            return raw;
+        }
+
+        static float getFloatValue(uint64_t term) {
+            float fv = *((float*)(((char*)&term+4)));
+            return fv;
+        }
+
+        static void setFloatValue(uint64_t &term) {
+            term |= DICTMGMT_FLOAT;
+        }
+
+        static void setIntValue(uint64_t &term) {
+            term |= DICTMGMT_INTEGER;
+        }
+
         static string tostr(uint64_t term) {
             uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
             return to_string(raw);

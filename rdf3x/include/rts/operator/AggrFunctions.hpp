@@ -12,6 +12,7 @@
 //---------------------------------------------------------------------------
 class AggrFunctions : public Operator {
     private:
+        DBLayer &dict;
         Operator *child;
         AggregateHandler hdl;
         std::vector<Register*> groupKeys;
@@ -25,9 +26,11 @@ class AggrFunctions : public Operator {
         bool sameKeyAsCurrent();
         void copyVars();
 
+        void updateVar(std::pair<unsigned,Register*> &var, uint64_t currentCount);
+
     public:
         /// Constructor
-        AggrFunctions(Operator* child,
+        AggrFunctions(DBLayer& db, Operator* child,
                 std::map<unsigned, Register *> bindings,
                 const AggregateHandler &hdl,
                 const std::vector<unsigned> &groupKeys,

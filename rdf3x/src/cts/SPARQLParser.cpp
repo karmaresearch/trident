@@ -1537,7 +1537,6 @@ void SPARQLParser::parseValues(PatternGroup & group) {
                 //Expect a RParen
                 unsigned id = 0;
                 while (id < variables.size()) {
-                    token = lexer.getNext();
                     SPARQLParser::Element e = parsePatternElement(group, localVars);
                     values.push_back(e);
                     id += 1;
