@@ -192,6 +192,42 @@ void SPARQLParser::parsePrefix()
     }
 }
 //---------------------------------------------------------------------------
+string _filter2string(SPARQLParser::Filter *filter) {
+    string out;
+    switch (filter->type) {
+        case SPARQLParser::Filter::Aggregate_count:
+            out += "COUNT(";
+            out += _filter2string(filter->arg1);
+            out += ")";
+            break;
+        case SPARQLParser::Filter::Aggregate_min:
+            out += "MIN(";
+            out += _filter2string(filter->arg1);
+            out += ")";
+            break;
+        case SPARQLParser::Filter::Aggregate_max:
+            out += "MAX(";
+            out += _filter2string(filter->arg1);
+            out += ")";
+            break;
+        case SPARQLParser::Filter::Aggregate_avg:
+            out += "AVG(";
+            out += _filter2string(filter->arg1);
+            out += ")";
+            break;
+        case SPARQLParser::Filter::Aggregate_sum:
+            out += "SUM(";
+            out += _filter2string(filter->arg1);
+            out += ")";
+            break;
+        case SPARQLParser::Filter::Variable:
+            out += filter->value;
+            break;
+        default:
+            out += "UNKNOWN";
+    }
+    return out;
+}
 void SPARQLParser::parseProjection(PatternGroup& group)
     // Parse the projection
 {
@@ -309,6 +345,27 @@ void SPARQLParser::parseProjection(PatternGroup& group)
                 if (!silentOutputVars) {
                     for(auto &p : namedVariables) {
                         if (p.second == varid)
+                            std::cerr << p.first << "\t";
+                    }
+                }
+            } else if (token == SPARQLLexer::Identifier &&
+                    (lexer.getTokenValue() != "where" && lexer.getTokenValue() != "WHERE")) {
+                lexer.unget(token);
+                map<string, unsigned> localVars;
+                Assignment assignment;
+                auto express = parseExpression(localVars);
+                assignment.expression = std::shared_ptr<Filter>(express);
+                Element el;
+                el.type = Element::Variable;
+                string stringRep = _filter2string(assignment.expression.get());
+                el.id = nameVariable(stringRep);
+                assignment.outputVar = el;
+                //Add the assignment
+                assignments.push_back(assignment);
+                projection.push_back(el.id);
+                if (!silentOutputVars) {
+                    for(auto &p : namedVariables) {
+                        if (p.second == el.id)
                             std::cerr << p.first << "\t";
                     }
                 }
