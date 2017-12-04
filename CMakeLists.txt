@@ -104,6 +104,10 @@ find_library(tbb tbb PATHS ENV LD_LIBRARY_PATH)
 find_path (tbbh tbb/task_scheduler_init.h PATHS ENV CPATH)
 IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
     message(FATAL_ERROR "Could not find TBB (thread building blocks)")
+ELSE()
+    # add link directory for tbb, gcc does not look in LD_LIBRARY_PATH
+    get_filename_component(pdir ${tbb} PATH)
+    LINK_DIRECTORIES(${pdir})
 ENDIF()
 
 #KOGNAC
