@@ -87,8 +87,19 @@ void Plan::print(unsigned indent) const
             break;
         case Minus:
             cout << "Minus";
+	    break;
         case ValuesScan:
             cout << "Values";
+	    break;
+	case Having:
+	    cout << "Having";
+	    break;
+	case GroupBy:
+	    cout << "GroupBy";
+	    break;
+	case Aggregates:
+	    cout << "Aggregates";
+	    break;
     }
     cout << " cardinality=" << cardinality << " costs=" << costs << endl;
     switch (op) {
@@ -107,6 +118,9 @@ void Plan::print(unsigned indent) const
             break;
         case HashGroupify:
         case Filter:
+	case Having:
+	case GroupBy:
+	case Aggregates:
             left->print(indent + 1);
             break;
         case Union:
