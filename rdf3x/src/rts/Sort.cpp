@@ -29,8 +29,9 @@ private:
 
 public:
     /// Constructor
-    Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order),
-    buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
+    Sorter(const Sorter &c) : dict(c.dict), order(c.order), buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
+
+    Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order), buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
 
     /// Compare
     bool operator()(const Tuple* a, const Tuple* b);
