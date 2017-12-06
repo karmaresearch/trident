@@ -664,8 +664,14 @@ static Operator* translateAggregates(Runtime& runtime,
     }
     //Create bindings for the output variables
     uint64_t slot = 0;
+    const QueryGraph::ValuesNode& node = *reinterpret_cast<const QueryGraph::ValuesNode*>(&hdl);
+    auto it = registers.find((QueryGraph::Node*)&node);
+    if (it == registers.end()) {
+	LOG(ERRORL) << "Register not found";
+	throw 10;
+    }
     for(auto v : vars.second) {
-        Register* reg = runtime.getRegister((*registers.find(reinterpret_cast<const QueryGraph::Node*>(&hdl))).second + slot);
+        Register* reg = runtime.getRegister(it->second + slot);
         bindings[v] = reg;
         slot++;
     }
@@ -1101,13 +1107,13 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin();
             itr != query.subqueries.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.minuses.begin();
             itr != query.minuses.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (auto itr = query.valueNodes.begin();
