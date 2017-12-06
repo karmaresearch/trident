@@ -135,10 +135,22 @@ static bool binds(const SPARQLParser::PatternGroup& group, uint64_t id)
     for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter = group.optional.begin(), limit = group.optional.end(); iter != limit; ++iter)
         if (binds(*iter, id))
             return true;
+    for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter = group.minuses.begin(), limit = group.minuses.end(); iter != limit; ++iter)
+        if (binds(*iter, id))
+            return true;
     for (std::vector<std::vector<SPARQLParser::PatternGroup> >::const_iterator iter = group.unions.begin(), limit = group.unions.end(); iter != limit; ++iter)
         for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter2 = (*iter).begin(), limit2 = (*iter).end(); iter2 != limit2; ++iter2)
             if (binds(*iter2, id))
                 return true;
+    for (std::vector<std::shared_ptr<SPARQLParser>>::const_iterator iter = group.subqueries.begin(), limit = group.subqueries.end(); iter != limit; ++iter) {
+	for (SPARQLParser::projection_iterator it = (*iter)->projectionBegin(), li = (*iter)->projectionEnd(); it != li; it++) {
+	    if (*it == id) {
+		return true;
+	    }
+	}
+	if (binds((*iter)->getPatterns(), id))
+	    return true;
+    }
     for (std::vector<SPARQLParser::Assignment>::const_iterator iter = group.assignments.begin();
             iter != group.assignments.end(); ++iter) {
         if (iter->outputVar.id == id)
@@ -685,13 +697,26 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
     // Order by clause
     for (SPARQLParser::order_iterator iter = input.orderBegin(), limit = input.orderEnd(); iter != limit; ++iter) {
         QueryGraph::Order o;
+	o.id = ~0u;
         if (~(*iter).id) {
-            if (!binds(input.getPatterns(), (*iter).id))
+	    for (SPARQLParser::projection_iterator it = input.projectionBegin(), li = input.projectionEnd(); it != li; it++) {
+		if (*it == (*iter).id) {
+		    o.id = (*iter).id;
+		    break;
+		}
+	    }
+            if (o.id == ~0u && !binds(input.getPatterns(), (*iter).id))
                 continue;
             o.id = (*iter).id;
         } else {
-            o.id = ~0u;
-        }
+	    const SPARQLParser::Filter *f = (*iter).expr;
+	    if (f->type == SPARQLParser::Filter::Variable) {
+		o.id = f->valueArg;
+	    } else {
+		LOG(ERRORL) << "Unsupported Order By clause";
+		throw 10;
+	    }
+	}
         o.descending = (*iter).descending;
         output.addOrder(o);
     }
