@@ -1145,8 +1145,10 @@ void Selection::BuiltinNotExists::eval(Result& result)
 string Selection::BuiltinNotExists::print(PlanPrinter& out)
     // Print the predicate (debugging only)
 {
-    string result = "not_exists(<subquery>)";
-    return result;
+    out.beginOperator("not_exists", 0, 0);
+    tree->print(out);
+    out.endOperator();
+    return "";
 }
 //---------------------------------------------------------------------------
 void Selection::AggrFunction::eval(Result& result)

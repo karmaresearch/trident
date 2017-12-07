@@ -403,7 +403,7 @@ static bool encodeFilter(SemanticAnalysis *myself, DBLayer& dict, DifferentialIn
                                                 input.arg1,
                                                 currentQueryGraph);
         case SPARQLParser::Filter::Builtin_xsdstring:
-                                        LOG(ERRORL) << "Not implemented";
+                                        LOG(ERRORL) << "Not implemented: xsd:string";
                                         throw 10;
     }
     return false; // XXX cannot happen

@@ -1194,7 +1194,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
                                 p->right = rightPlan;
                                 p->next = 0;
                                 p->cardinality = leftPlan->cardinality * rightPlan->cardinality;
-                                p->costs = leftPlan->costs * rightPlan->costs;
+                                p->costs = (leftPlan->costs + leftPlan->cardinality) * (rightPlan->costs + rightPlan->cardinality);
                                 p->ordering = ~0u;
                                 addPlan(problem, p);
                             }

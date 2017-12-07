@@ -31,7 +31,7 @@ class AggrFunctions : public Operator {
     public:
         /// Constructor
         AggrFunctions(DBLayer& db, Operator* child,
-                std::map<unsigned, Register *> bindings,
+                std::map<unsigned, Register *> &bindings,
                 const AggregateHandler &hdl,
                 const std::vector<unsigned> &groupKeys,
                 double expectedOutputCardinality);
