@@ -24,8 +24,8 @@ private:
     DBLayer& dict;
     /// The sort order
     const vector<Order>& order;
-    std::unique_ptr<char> buffer1;
-    std::unique_ptr<char> buffer2;
+    std::shared_ptr<char> buffer1;
+    std::shared_ptr<char> buffer2;
 
 public:
     /// Constructor
