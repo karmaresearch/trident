@@ -64,55 +64,36 @@ struct ThreadOutput {
 
 struct LearnParams {
     uint16_t epochs;
-    uint32_t ne;
-    uint32_t nr;
     uint16_t dim;
     float margin;
     float learningrate;
     uint16_t batchsize;
-    bool adagrad;;
+    bool adagrad;
     uint16_t nthreads;
     uint16_t nstorethreads;
     uint32_t evalits;
     uint32_t storeits;
     std::string storefolder;
-    bool compressstorage;
+    bool compresstorage;
     std::string filetrace;
     float valid;
     float test;
     uint32_t numneg;
-    bool feedback;
-    uint32_t feedback_threshold;
-    uint32_t feedback_minFullEpochs;
-    bool regenerateBatch;
+    bool feedbacks;
+    uint32_t feedbacks_threshold;
+    uint32_t feedbacks_minfulle;
+    bool regeneratebatch;
 
+    //Non changeable by the user
+    uint32_t ne;
+    uint32_t nr;
     std::unique_ptr<GradTracer> gradDebugger;
 
-    std::string tostring() {
-        std::string out = "";
-        out += " epochs=" + to_string(epochs);
-        out += " ne=" + to_string(ne);
-        out += " nr=" + to_string(nr);
-        out += " dim=" + to_string(dim);
-        out += " margin=" + to_string(margin);
-        out += " learningrate=" + to_string(learningrate);
-        out += " batchsize=" + to_string(batchsize);
-        out += " adagrad=" + to_string(adagrad);
-        out += " nthreads=" + to_string(nthreads);
-        out += " nstorethreads=" + to_string(nstorethreads);
-        out += " evalits=" + to_string(evalits);
-        out += " storeits=" + to_string(storeits);
-        out += " storefolder=" + storefolder;
-        out += " compresstorage=" + to_string(compressstorage);
-        out += " filetrace=" + filetrace;
-        out += " valid=" + to_string(valid);
-        out += " test=" + to_string(test);
-        out += " numneg=" + to_string(numneg);
-        out += " feedbacks=" + to_string(feedback);
-        out += " feedbacks_threshold=" + to_string(feedback_threshold);
-        out += " feedbacks_minfullepoch=" + to_string(feedback_minFullEpochs);
-        return out;
-    }
+    LearnParams();
+
+    std::string changeable_tostring();
+
+    std::string tostring();
 };
 
 class Learner {

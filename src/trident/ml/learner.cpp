@@ -13,6 +13,68 @@
 
 using namespace std;
 
+LearnParams::LearnParams() {
+    //Changeable by the user
+    epochs = 100;
+    dim = 50;
+    margin = 1.0;
+    learningrate = 0.1;
+    batchsize = 1000;
+    adagrad = false;
+    nthreads = 1;
+    nstorethreads = 1;
+    evalits = 10;
+    storeits = 10;
+    storefolder = "";
+    compresstorage = false;
+    filetrace = "";
+    valid = 0;
+    test = 0;
+    numneg = 0;
+    feedbacks = false;
+    feedbacks_threshold = 10;
+    feedbacks_minfulle = 20;
+    regeneratebatch = true;
+
+    //Non changeable by the user
+    ne = 0;
+    nr = 0;
+}
+
+std::string LearnParams::changeable_tostring() {
+    std::string out = "";
+    out += "epochs=" + to_string(epochs);
+    out += ";dim=" + to_string(dim);
+    out += ";margin=" + to_string(margin);
+    out += ";learningrate=" + to_string(learningrate);
+    out += ";batchsize=" + to_string(batchsize);
+    out += ";adagrad=" + to_string(adagrad);
+    out += ";nthreads=" + to_string(nthreads);
+    out += ";nstorethreads=" + to_string(nstorethreads);
+    out += ";evalits=" + to_string(evalits);
+    out += ";storeits=" + to_string(storeits);
+    out += ";storefolder=" + storefolder;
+    out += ";compresstorage=" + to_string(compresstorage);
+    out += ";filetrace=" + filetrace;
+    out += ";valid=" + to_string(valid);
+    out += ";test=" + to_string(test);
+    out += ";numneg=" + to_string(numneg);
+    out += ";feedbacks=" + to_string(feedbacks);
+    out += ";feedbacks_threshold=" + to_string(feedbacks_threshold);
+    out += ";feedbacks_minfulle=" + to_string(feedbacks_minfulle);
+    out += ";regeneratebatch=" + to_string(regeneratebatch);
+    return out;
+}
+
+
+
+std::string LearnParams::tostring() {
+    std::string out = changeable_tostring();
+    out += ";ne=" + to_string(ne);
+    out += ";nr=" + to_string(nr);
+    return out;
+}
+
 void Learner::setup(const uint16_t nthreads,
         std::shared_ptr<Embeddings<double>> E,
         std::shared_ptr<Embeddings<double>> R,
@@ -317,19 +379,19 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
         p.gradDebugger = std::move(debugger);
     }
     std::shared_ptr<Feedback> feedback;
-    bool filter = p.feedback;
-    if (p.feedback) {
-        feedback = std::shared_ptr<Feedback>(new Feedback(p.feedback_threshold,
-                    p.feedback_minFullEpochs));
+    bool filter = p.feedbacks;
+    if (p.feedbacks) {
+        feedback = std::shared_ptr<Feedback>(new Feedback(p.feedbacks_threshold,
+                    p.feedbacks_minfulle));
     }
-    LOG(DEBUGL) << "Launching " << op << " with params: " << p.tostring();
+    LOG(INFOL) << "Launching " << op << " with params: " << p.tostring();
     BatchCreator batcher(kb.getPath(),
             p.batchsize,
             p.nthreads,
             p.valid,
             p.test,
             filter,
-            p.regenerateBatch,
+            p.regeneratebatch,
             feedback);
     if (op == "transe") {
         TranseLearner tr(kb, p);
@@ -341,7 +403,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
-                p.compressstorage);
+                p.compresstorage);
         LOG(INFOL) << "Done.";
         tr.getDebugger(debugger);
 
@@ -355,7 +417,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
                 p.evalits, p.storeits,
                 batcher.getValidPath(),
                 p.storefolder,
-                p.compressstorage);
+                p.compresstorage);
         LOG(INFOL) << "Done.";
         tr.getDebugger(debugger);
 
@@ -363,10 +425,7 @@ void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
         LOG(ERRORL) << "Task " << op << " not recognized";
         return;
     }
-    //LOG(DEBUGL) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
-
     if (p.filetrace != "") {
         debugger->store(p.filetrace);
     }
-
 }

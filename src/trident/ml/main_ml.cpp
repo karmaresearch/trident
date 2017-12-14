@@ -21,154 +21,112 @@ bool _parseParams(std::string raw, std::map<std::string,std::string> &out) {
     return true;
 }
 
-void launchML(KB &kb, string op, string algo, string params) {
-    LOG(INFOL) << "Launching " << op << " " << params << " ...";
-    //Parse the params
-    std::map<std::string,std::string> mapparams;
-    if (!_parseParams(params, mapparams)) {
-        LOG(ERRORL) << "Parsing params " << params << " has failed!";
-        return;
-    }
-
+void launchML(KB &kb, string op, string algo, string paramsLearn,
+        string paramsPredict) {
+    LOG(INFOL) << "Launching " << op << " ...";
     if (!kb.areRelIDsSeparated()) {
         LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
         return;
     }
 
-    //Setting up parameters
-    uint16_t epochs = 100;
-    const uint32_t ne = kb.getNTerms();
-    auto dict = kb.getDictMgmt();
-    const uint32_t nr = dict->getNRels();
-    uint16_t dim = 50;
-    uint32_t batchsize = 1000;
-    uint16_t nthreads = 1;
-    uint16_t nstorethreads = 1;
-    float margin = 1.0;
-    float learningrate = 0.1;
-    string storefolder = "";
-    bool adagrad = false;
-    bool compresstorage = false;
-    uint64_t numneg = 0;
-    bool usefeedback = false;
-    uint32_t feedback_threshold = 10;
-    uint32_t feedback_minfulle = 20;
-    bool regenerateBatch = true;
-
-    uint32_t evalits = 10;
-    uint32_t storeits = 10;
-    float valid = 0.0;
-    float test = 0.0;
-    string fileout;
-
-    //params for predict
-    string modele;
-    string modelr;
-    string nametestset;
-
-    if (mapparams.count("dim")) {
-        dim = TridentUtils::lexical_cast<uint16_t>(mapparams["dim"]);
-    }
-    if (mapparams.count("epochs")) {
-        epochs = TridentUtils::lexical_cast<uint16_t>(mapparams["epochs"]);
-    }
-    if (mapparams.count("batchsize")) {
-        batchsize = TridentUtils::lexical_cast<uint32_t>(mapparams["batchsize"]);
-    }
-    if (mapparams.count("nthreads")) {
-        nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
-    }
-    if (mapparams.count("nstorethreads")) {
-        nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
-    }
-    if (mapparams.count("margin")) {
-        margin = TridentUtils::lexical_cast<float>(mapparams["margin"]);
-    }
-    if (mapparams.count("learningrate")) {
-        learningrate = TridentUtils::lexical_cast<float>(mapparams["learningrate"]);
-    }
-    if (mapparams.count("storefolder")) {
-        storefolder = mapparams["storefolder"];
-    }
-    if (mapparams.count("storeits")) {
-        storeits = TridentUtils::lexical_cast<uint32_t>(mapparams["storeits"]);
-    }
-    if (mapparams.count("evalits")) {
-        evalits = TridentUtils::lexical_cast<uint32_t>(mapparams["evalits"]);
-    }
-    if (mapparams.count("validperc")) {
-        valid = TridentUtils::lexical_cast<float>(mapparams["validperc"]);
-    }
-    if (mapparams.count("testperc")) {
-        test = TridentUtils::lexical_cast<float>(mapparams["testperc"]);
-    }
-    if (mapparams.count("adagrad")) {
-        adagrad = TridentUtils::lexical_cast<bool>(mapparams["adagrad"]);
-    }
-    if (mapparams.count("compress")) {
-        compresstorage = TridentUtils::lexical_cast<bool>(mapparams["compress"]);
-    }
-    if (mapparams.count("feedback")) {
-        usefeedback = TridentUtils::lexical_cast<bool>(mapparams["feedback"]);
-    }
-    if (mapparams.count("feedback_threshold")) {
-        feedback_threshold = TridentUtils::lexical_cast<uint32_t>(mapparams["feedback_threshold"]);
-    }
-    if (mapparams.count("feedback_minfullep")) {
-        feedback_minfulle = TridentUtils::lexical_cast<uint32_t>(mapparams["feedback_minfulle"]);
-    }
-    if (mapparams.count("numneg")) {
-        numneg = TridentUtils::lexical_cast<uint64_t>(mapparams["numneg"]);
-    }
-    if (mapparams.count("debugout")) {
-        fileout = mapparams["debugout"];
-    }
-    if (mapparams.count("modele")) {
-        modele = mapparams["modele"];
-    }
-    if (mapparams.count("modelr")) {
-        modelr = mapparams["modelr"];
-    }
-    if (mapparams.count("nametestset")) {
-        nametestset = mapparams["nametestset"];
-    }
-    if (mapparams.count("optibatch")) {
-        regenerateBatch = TridentUtils::lexical_cast<bool>(mapparams["optibatch"]);
-    }
-
     if (op == "learn") {
         LearnParams p;
-        p.epochs = epochs;
-        p.ne = ne;
-        p.nr = nr;
-        p.dim = dim;
-        p.margin = margin;
-        p.learningrate = learningrate;
-        p.batchsize = batchsize;
-        p.adagrad = adagrad;
-
-        p.nthreads = nthreads;
-        p.nstorethreads = nstorethreads;
-        p.evalits = evalits;
-        p.storeits = storeits;
-        p.storefolder = storefolder;
-        p.compressstorage = compresstorage;
-        p.filetrace = fileout;
-        p.valid = valid;
-        p.test = test;
-        p.numneg = numneg;
-        p.feedback = usefeedback;
-        p.feedback_threshold = feedback_threshold;
-        p.feedback_minFullEpochs = feedback_minfulle;
-        p.regenerateBatch = regenerateBatch;
+        std::map<std::string,std::string> mapparams;
+        if (paramsLearn != "") {
+            LOG(DEBUGL) << "Parsing params " << paramsLearn << " ...";
+            if (!_parseParams(paramsLearn, mapparams)) {
+                LOG(ERRORL) << "Parsing params has failed!";
+                return;
+            }
+        }
+        if (mapparams.count("dim")) {
+            p.dim = TridentUtils::lexical_cast<uint16_t>(mapparams["dim"]);
+        }
+        if (mapparams.count("epochs")) {
+            p.epochs = TridentUtils::lexical_cast<uint16_t>(mapparams["epochs"]);
+        }
+        if (mapparams.count("batchsize")) {
+            p.batchsize = TridentUtils::lexical_cast<uint32_t>(mapparams["batchsize"]);
+        }
+        if (mapparams.count("nthreads")) {
+            p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+        if (mapparams.count("nstorethreads")) {
+            p.nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
+        }
+        if (mapparams.count("margin")) {
+            p.margin = TridentUtils::lexical_cast<float>(mapparams["margin"]);
+        }
+        if (mapparams.count("learningrate")) {
+            p.learningrate = TridentUtils::lexical_cast<float>(mapparams["learningrate"]);
+        }
+        if (mapparams.count("storefolder")) {
+            p.storefolder = mapparams["storefolder"];
+        }
+        if (mapparams.count("storeits")) {
+            p.storeits = TridentUtils::lexical_cast<uint32_t>(mapparams["storeits"]);
+        }
+        if (mapparams.count("evalits")) {
+            p.evalits = TridentUtils::lexical_cast<uint32_t>(mapparams["evalits"]);
+        }
+        if (mapparams.count("validperc")) {
+            p.valid = TridentUtils::lexical_cast<float>(mapparams["validperc"]);
+        }
+        if (mapparams.count("testperc")) {
+            p.test = TridentUtils::lexical_cast<float>(mapparams["testperc"]);
+        }
+        if (mapparams.count("adagrad")) {
+            p.adagrad = TridentUtils::lexical_cast<bool>(mapparams["adagrad"]);
+        }
+        if (mapparams.count("compress")) {
+            p.compresstorage = TridentUtils::lexical_cast<bool>(mapparams["compress"]);
+        }
+        if (mapparams.count("feedbacks")) {
+            p.feedbacks = TridentUtils::lexical_cast<bool>(mapparams["feedbacks"]);
+        }
+        if (mapparams.count("feedbacks_threshold")) {
+            p.feedbacks_threshold = TridentUtils::lexical_cast<uint32_t>(mapparams["feedbacks_threshold"]);
+        }
+        if (mapparams.count("feedbacks_minfulle")) {
+            p.feedbacks_minfulle = TridentUtils::lexical_cast<uint32_t>(mapparams["feedbacks_minfulle"]);
+        }
+        if (mapparams.count("numneg")) {
+            p.numneg = TridentUtils::lexical_cast<uint64_t>(mapparams["numneg"]);
+        }
+        if (mapparams.count("filetrace")) {
+            p.filetrace = mapparams["filetrace"];
+        }
+        if (mapparams.count("regeneratebatch")) {
+            p.regeneratebatch = TridentUtils::lexical_cast<bool>(mapparams["regeneratebatch"]);
+        }
+        p.ne = kb.getNTerms();
+        p.nr = kb.getDictMgmt()->getNRels();
 
         Learner::launchLearning(kb, algo, p);
     } else { //can only be predict
         PredictParams p;
-        p.path_modele = modele;
-        p.path_modelr = modelr;
-        p.nametestset = nametestset;
-        p.nthreads = nthreads;
+        //Parse the params
+        std::map<std::string,std::string> mapparams;
+        if (paramsPredict != "") {
+            LOG(DEBUGL) << "Parsing params " << paramsPredict << " ...";
+            if (!_parseParams(paramsPredict, mapparams)) {
+                LOG(ERRORL) << "Parsing params has failed!";
+                return;
+            }
+        }
+        if (mapparams.count("modele")) {
+            p.path_modele = mapparams["modele"];
+        }
+        if (mapparams.count("modelr")) {
+            p.path_modelr = mapparams["modelr"];
+        }
+        if (mapparams.count("nametestset")) {
+            p.nametestset = mapparams["nametestset"];
+        }
+        if (mapparams.count("nthreads")) {
+            p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+
         Predictor::launchPrediction(kb, algo, p);
     }
 }

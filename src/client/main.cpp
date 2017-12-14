@@ -63,7 +63,8 @@ extern void callRDF3X(TridentLayer &db, const string &queryFileName, bool explai
         bool disableBifocalSampling, bool resultslookup);
 
 //Implemented in main_ml.cpp
-extern void launchML(KB &kb, string op, string algo, string params);
+extern void launchML(KB &kb, string op, string algo, string paramsLearn,
+        string paramsPredict);
 extern void subgraphEval(KB &kb, ProgramArgs &vm);
 
 //Implemented in kb.cpp
@@ -498,7 +499,7 @@ int main(int argc, const char** argv) {
 #ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+        launchML(kb, cmd, vm["algo"].as<string>(), vm["args_learn"].as<string>(), "");
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;
@@ -507,7 +508,7 @@ int main(int argc, const char** argv) {
 #ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+        launchML(kb, cmd, vm["algo"].as<string>(), "", vm["args_predict"].as<string>());
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;

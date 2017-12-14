@@ -253,6 +253,14 @@ struct PredictParams {
     uint16_t nthreads;
     string path_modele;
     string path_modelr;
+
+    PredictParams();
+
+    string changeable_tostring();
+
+    string tostring() {
+        return changeable_tostring();
+    }
 };
 
 class Predictor {
