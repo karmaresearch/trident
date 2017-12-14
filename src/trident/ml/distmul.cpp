@@ -31,8 +31,46 @@ void DistMulLearner::update_gradient_matrix(std::vector<EntityGradient> &gradien
     }
 }
 
+float DistMulLearner::softmax(double *h, double *r, double *t, uint16_t dim,
+        int so,
+        std::vector<double*> &negs) {
+    float score_num = 0;
+    for(uint16_t i = 0; i < dim; ++i) {
+        score_num += h[i] * r[i] + t[i];
+    }
+    float num = exp(score_num);
+    float den = 0;
+    for(auto &neg : negs) {
+        float score = 0;
+        for(uint16_t i = 0; i < dim; ++i) {
+            if (so == 0) {
+                score += r[i] * t[i] * neg[i];
+            } else {
+                score += r[i] * h[i] * neg[i];
+            }
+        }
+        den += exp(score);
+    }
+    if (den == 0) {
+        LOG(ERRORL) << "den cannot be 0";
+    }
+    return num / den;
+}
+
+void DistMulLearner::getRandomEntities(uint16_t n, std::vector<double*> &negs) {
+    negs.clear();
+    //Used to generate negative entity values
+    std::random_device rd;
+    std::mt19937 gen;
+    std::uniform_int_distribution<uint32_t> dis(0, ne - 1);
+    for(uint16_t i = 0; i < n; ++i) {
+        uint32_t id = dis(gen);
+        negs.push_back(E->get(id));
+    }
+}
+
 void DistMulLearner::process_batch(BatchIO &io,
-        const uint16_t epoch,
+        const uint32_t epoch,
         const uint16_t nbatches) {
 
     const uint32_t sizebatch = io.field1.size();
@@ -78,38 +116,48 @@ void DistMulLearner::process_batch(BatchIO &io,
         double* pp = R->get(output2[s]);
         double* op = E->get(output3[s]);
 
+        //Calculate the softmax function
+        std::vector<double*> negs;
+        getRandomEntities(numneg, negs);
+        float softm_h = softmax(sp, pp, op, dim, 0, negs);
+        getRandomEntities(numneg, negs);
+        float softm_t = softmax(sp, pp, op, dim, 1, negs);
+
         float *h = gradsH[s].get();
         float *t = gradsT[s].get();
         float *r = gradsR[s].get();
         for(uint16_t i = 0; i < dim; ++i) {
-            //First term
+            //Update the terms for which the probability should be one
             const float term_h1 = pp[i] * op[i];
             const float term_t1 = pp[i] * sp[i];
             const float term_r1 = sp[i] * op[i];
 
-            //Second term
-            float e_num = e_score(h[i],r[i],t[i]);
-            float e_denom_h2 = 0;
-            float e_denom_t2 = 0;
-            float e_denom_r2 = 0;
-            if (numneg == 0) {
-                for(uint16_t j = 0; j < ne; ++j) {
-                    float e_neg = E->get(j)[i];
-                    e_denom_h2 += e_score(e_neg, r[i], t[i]);
-                    e_denom_t2 += e_score(h[i], r[i], e_neg);
-                }
-                for(uint16_t j = 0; j < nr; ++j) {
-                    float r_neg = R->get(j)[i];
-                    e_denom_r2 += e_score(h[i], r_neg, t[i]);
-                }
-            } else {
-                LOG(ERRORL) << "Not implemented yet";
-            }
-
+            /*//Second term
+              float e_num = e_score(h[i],r[i],t[i]);
+              float e_denom_h2 = 0;
+              float e_denom_t2 = 0;
+              float e_denom_r2 = 0;
+              if (numneg == 0) {
+              for(uint16_t j = 0; j < ne; ++j) {
+              float e_neg = E->get(j)[i];
+              e_denom_h2 += e_score(e_neg, r[i], t[i]);
+              e_denom_t2 += e_score(h[i], r[i], e_neg);
+              }
+              for(uint16_t j = 0; j < nr; ++j) {
+              float r_neg = R->get(j)[i];
+              e_denom_r2 += e_score(h[i], r_neg, t[i]);
+              }
+              } else {
+              LOG(ERRORL) << "Not implemented yet";
+              }*/
             //Gradients
-            const float grad_h = -term_h1 + e_num / e_denom_h2;
-            const float grad_t = -term_t1 + e_num / e_denom_t2;
-            const float grad_r = -term_r1 + e_num / e_denom_r2;
+            /*const float grad_h = -term_h1 + e_num / e_denom_h2;
+              const float grad_t = -term_t1 + e_num / e_denom_t2;
+              const float grad_r = -term_r1 + e_num / e_denom_r2;*/
+
+            const float grad_h = softm_h - term_h1;
+            const float grad_t = softm_t - term_t1;
+            const float grad_r = softm_h + softm_t - term_r1 * 2;
             h[i] = grad_h;
             t[i] = grad_t;
             r[i] = grad_r;
@@ -163,5 +211,4 @@ void DistMulLearner::process_batch(BatchIO &io,
             }
         }
     }
-
 }

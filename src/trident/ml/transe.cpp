@@ -37,7 +37,7 @@ bool TranseLearner::shouldUpdate(uint32_t idx) {
     //std::cout << "s=" << output1[i] << "thisupdate=" << E->getUpdatesLastEpoch(output1[i]) << " allupdates=" << E->getAllUpdatesLastEpoch() <<  " nenties=" << E->getUpdatedEntitiesLastEpoch() << " median=" << E->getMedianUpdatesLastEpoch() << endl;
 }
 
-void TranseLearner::process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
+void TranseLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &oneg,
         std::vector<uint64_t> &sneg) {
     std::vector<uint64_t> &output1 = io.field1;
     std::vector<uint64_t> &output2 = io.field2;

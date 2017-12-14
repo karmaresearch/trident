@@ -1,6 +1,9 @@
 #include <trident/kb/kb.h>
-#include <trident/ml/learner.h>
-#include <trident/ml/tester.h>
+#include <trident/ml/trainworkflow.h>
+#include <trident/ml/transe.h>
+#include <trident/ml/transetester.h>
+#include <trident/ml/distmul.h>
+#include <trident/ml/distmultester.h>
 #include <trident/ml/subgraphhandler.h>
 #include <trident/ml/batch.h>
 
@@ -23,7 +26,6 @@ bool _parseParams(std::string raw, std::map<std::string,std::string> &out) {
 
 void launchML(KB &kb, string op, string algo, string paramsLearn,
         string paramsPredict) {
-    LOG(INFOL) << "Launching " << op << " ...";
     if (!kb.areRelIDsSeparated()) {
         LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
         return;
@@ -102,7 +104,14 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         p.ne = kb.getNTerms();
         p.nr = kb.getDictMgmt()->getNRels();
 
-        Learner::launchLearning(kb, algo, p);
+        if (algo == "transe") {
+            TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
+        } else if (algo == "distmul") {
+            TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p);
+        } else {
+            LOG(ERRORL) << "Task not recognized";
+        }
+
     } else { //can only be predict
         PredictParams p;
         //Parse the params

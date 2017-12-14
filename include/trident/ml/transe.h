@@ -18,7 +18,11 @@ class TranseLearner : public PairwiseLearner {
             PairwiseLearner(kb, p) {
             }
 
-        void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
+        void process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &oneg,
                 std::vector<uint64_t> &sneg);
+
+        std::string getName() {
+            return "TranSE";
+        }
 };
 #endif

@@ -101,6 +101,10 @@ class BatchCreator {
 
         std::shared_ptr<Feedback> getFeedback();
 
+        uint64_t getBatchSize() {
+            return batchsize;
+        }
+
         static string getValidPath(string kbdir);
 
         static string getTestPath(string kbdir);

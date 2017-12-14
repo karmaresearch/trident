@@ -38,7 +38,7 @@ void PairwiseLearner::gen_random(
     }
 }
 
-void PairwiseLearner::process_batch(BatchIO &io, const uint16_t epoch,
+void PairwiseLearner::process_batch(BatchIO &io, const uint32_t epoch,
         const uint16_t nbatches) {
     //Generate negative samples
     std::vector<uint64_t> oneg;
@@ -48,5 +48,5 @@ void PairwiseLearner::process_batch(BatchIO &io, const uint16_t epoch,
     sneg.resize(sizebatch);
     gen_random(io.q, io, sneg, true, 10);
     gen_random(io.q, io, oneg, false, 10);
-    process_batch(io, oneg, sneg);
+    process_batch_withnegs(io, oneg, sneg);
 }
