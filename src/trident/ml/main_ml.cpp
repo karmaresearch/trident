@@ -69,17 +69,17 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         if (mapparams.count("evalits")) {
             p.evalits = TridentUtils::lexical_cast<uint32_t>(mapparams["evalits"]);
         }
-        if (mapparams.count("validperc")) {
-            p.valid = TridentUtils::lexical_cast<float>(mapparams["validperc"]);
+        if (mapparams.count("valid")) {
+            p.valid = TridentUtils::lexical_cast<float>(mapparams["valid"]);
         }
-        if (mapparams.count("testperc")) {
-            p.test = TridentUtils::lexical_cast<float>(mapparams["testperc"]);
+        if (mapparams.count("test")) {
+            p.test = TridentUtils::lexical_cast<float>(mapparams["test"]);
         }
         if (mapparams.count("adagrad")) {
             p.adagrad = TridentUtils::lexical_cast<bool>(mapparams["adagrad"]);
         }
-        if (mapparams.count("compress")) {
-            p.compresstorage = TridentUtils::lexical_cast<bool>(mapparams["compress"]);
+        if (mapparams.count("compresstorage")) {
+            p.compresstorage = TridentUtils::lexical_cast<bool>(mapparams["compresstorage"]);
         }
         if (mapparams.count("feedbacks")) {
             p.feedbacks = TridentUtils::lexical_cast<bool>(mapparams["feedbacks"]);
