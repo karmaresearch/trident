@@ -2,6 +2,8 @@
 #include <rts/operator/GroupBy.hpp>
 #include <rts/operator/PlanPrinter.hpp>
 
+#include <algorithm>
+
 GroupBy::GroupBy(Operator* child,
         std::map<unsigned, Register*> bindings,
         std::vector<unsigned> regs,

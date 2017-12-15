@@ -172,6 +172,7 @@ IF(SPARQL)
         "src/trident/sparql/*.cpp"
         "src/layers/*.cpp"
         "rdf3x/src/**/*.cpp"
+        "rdf3x/src/**/**/*.cpp"
         "rdf3x/src/*.cpp")
     add_library(trident-sparql SHARED ${sparql_SRC})
     set_target_properties(trident-sparql PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
