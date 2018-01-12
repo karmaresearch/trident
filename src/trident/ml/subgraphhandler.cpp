@@ -8,10 +8,7 @@ void SubgraphHandler::loadEmbeddings(string embdir) {
 }
 
 void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
-    if (subformat == "cikm") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new CIKMSubgraphs<double>());
-        subgraphs->loadFromFile(subgraphsFile);
-    } else if (subformat == "avg") {
+    if (subformat == "avg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
         subgraphs->loadFromFile(subgraphsFile);
     } else {
@@ -160,13 +157,13 @@ void SubgraphHandler::evaluate(KB &kb,
         r = testTriples[i + 2];
 
         /*dict->getText(h, buffer);
-        string sh = string(buffer);
-        dict->getText(t, buffer);
-        string st = string(buffer);
-        int size;
-        dict->getTextRel(r, buffer, size);
-        string sr = string(buffer, size);
-        LOG(INFOL) << "Testing " << h << " " << t << " " << r << " " << sh << " " << st << " " << sr;*/
+          string sh = string(buffer);
+          dict->getText(t, buffer);
+          string st = string(buffer);
+          int size;
+          dict->getTextRel(r, buffer, size);
+          string sr = string(buffer, size);
+          LOG(INFOL) << "Testing " << h << " " << t << " " << r << " " << sh << " " << st << " " << sr;*/
 
         selectRelevantSubGraphs(L1, q.get(), algo, PO, r, t, relevantSubgraphs, 10);
         long foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());

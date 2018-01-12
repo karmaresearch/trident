@@ -109,58 +109,6 @@ class Subgraphs {
 };
 
 template<typename K>
-class CIKMSubgraphs : public Subgraphs<K> {
-    private:
-        std::vector<K> params;
-        uint16_t dim;
-
-    public:
-        void loadFromFile(string file) {
-            std::ifstream ifs;
-            ifs.open(file, std::ifstream::in);
-            char bdim[2];
-            ifs.read(bdim, 2);
-            dim = *(uint16_t*) bdim;
-            const uint16_t sizeline = 17 + dim * 8;
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
-            while (true) {
-                ifs.read(buffer.get(), sizeline);
-                if (ifs.eof()) {
-                    break;
-                }
-                //Parse the subgraph
-                uint64_t ent = *(uint64_t*)(buffer.get() + 1);
-                uint64_t rel = *(uint64_t*)(buffer.get() + 9);
-                if (buffer.get()[0]) {
-                    this->addSubgraph(Subgraphs<K>::TYPE::SP, ent, rel);
-                } else {
-                    this->addSubgraph(Subgraphs<K>::TYPE::PO, ent, rel);
-                }
-                //Parse the features vector
-                const uint8_t lenParam = sizeof(K);
-                for(uint16_t i = 0; i < dim; ++i) {
-                    K param = *(K*) (buffer.get() + 17 + i * lenParam);
-                    params.push_back(param);
-                }
-            }
-        }
-
-        double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
-            double out = 0;
-            for(uint16_t i = 0; i < dim; ++i) {
-                out += abs(emb[i] - params[dim * subgraphid + i]);
-            }
-            return out;
-        }
-
-        void calculateEmbeddings(Querier *q,
-                std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) {
-            LOG(ERRORL) << "These subgraphs can only be generated from the python code";
-        }
-};
-
-template<typename K>
 class AvgSubgraphs : public Subgraphs<K> {
     private:
         std::vector<K> params;
