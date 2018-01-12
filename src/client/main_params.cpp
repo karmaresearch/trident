@@ -76,6 +76,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "dump"
             && cmd != "learn"
             && cmd != "predict"
+            && cmd != "subcreate"
             && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());

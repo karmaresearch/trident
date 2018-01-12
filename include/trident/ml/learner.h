@@ -20,43 +20,54 @@ struct BatchIO {
     //Input
     uint16_t epoch;
     const uint16_t batchsize;
-    const uint16_t dims;
+    //const uint16_t dims;
     std::vector<uint64_t> field1;
     std::vector<uint64_t> field2;
     std::vector<uint64_t> field3;
-    std::vector<std::unique_ptr<float>> posSignMatrix;
+    /*std::vector<std::unique_ptr<float>> posSignMatrix;
     std::vector<std::unique_ptr<float>> neg1SignMatrix;
-    std::vector<std::unique_ptr<float>> neg2SignMatrix;
+    std::vector<std::unique_ptr<float>> neg2SignMatrix;*/
+    std::vector<std::unique_ptr<float>> support1;
+    std::vector<std::unique_ptr<float>> support2;
+    std::vector<std::unique_ptr<float>> support3;
+    std::vector<std::unique_ptr<double>> support1_d;
+    std::vector<std::unique_ptr<double>> support2_d;
+    std::vector<std::unique_ptr<double>> support3_d;
+    std::vector<std::unique_ptr<double>> support4_d;
+    std::vector<std::unique_ptr<double>> support5_d;
     Querier *q;
     //Output
     uint64_t violations;
     uint64_t conflicts;
+    double loss;
 
-    BatchIO(uint16_t batchsize, const uint16_t dims) : batchsize(batchsize), dims(dims) {
-        for(uint16_t i = 0; i < batchsize; ++i) {
+    BatchIO(uint16_t batchsize/*, const uint16_t dims*/) : batchsize(batchsize)/*, dims(dims)*/ {
+        /*for(uint16_t i = 0; i < batchsize; ++i) {
             posSignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
             neg1SignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
             neg2SignMatrix.push_back(std::unique_ptr<float>(new float[dims]));
-        }
+        }*/
         clear();
     }
 
     void clear() {
         epoch = conflicts = violations = 0;
-        for(uint16_t i = 0; i < batchsize; ++i) {
+        /*for(uint16_t i = 0; i < batchsize; ++i) {
             memset(posSignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg2SignMatrix[i].get(), 0, sizeof(float) * dims);
-        }
+        }*/
     }
 };
 
 struct ThreadOutput {
     uint64_t violations;
     uint64_t conflicts;
+    double loss;
     ThreadOutput() {
         violations = 0;
         conflicts = 0;
+        loss = 0.0;
     }
 };
 

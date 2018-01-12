@@ -23,6 +23,43 @@ class Subgraphs {
     private:
         std::vector<Metadata> subgraphs;
 
+    protected:
+        void loadFromFile(std::ifstream &ifile) {
+            const uint16_t sizeline = 17;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            ifile.read(buffer.get(), 8);
+            uint64_t nsubs = *(uint64_t*)buffer.get();
+            uint64_t i = 0;
+            while (i < nsubs) {
+                ifile.read(buffer.get(), sizeline);
+                uint64_t ent = *(uint64_t*)(buffer.get() + 1);
+                uint64_t rel = *(uint64_t*)(buffer.get() + 9);
+                if (buffer.get()[0]) {
+                    this->addSubgraph(Subgraphs<K>::TYPE::SP, ent, rel);
+                } else {
+                    this->addSubgraph(Subgraphs<K>::TYPE::PO, ent, rel);
+                }
+                i++;
+            }
+        }
+
+        void storeToFile(std::ofstream &ofile) {
+            const uint16_t sizeline = 17;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            (*(uint64_t*)(buffer.get())) = subgraphs.size();
+            ofile.write(buffer.get(), 8);
+            for(auto &el : subgraphs) {
+                if (el.t == PO) {
+                    buffer.get()[0] = 0;
+                } else {
+                    buffer.get()[0] = 1;
+                }
+                (*(uint64_t*)(buffer.get() + 1)) = el.ent;
+                (*(uint64_t*)(buffer.get() + 9)) = el.rel;
+                ofile.write(buffer.get(), 17);
+            }
+        }
+
     public:
         void addSubgraph(const TYPE t, uint64_t ent, uint64_t rel) {
             Metadata m;
@@ -38,6 +75,11 @@ class Subgraphs {
                 std::shared_ptr<Embeddings<K>> R) = 0;
 
         virtual void loadFromFile(string file) = 0;
+
+        virtual void storeToFile(string file) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
 
         virtual double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             LOG(ERRORL) << "Not implemented";
@@ -111,10 +153,35 @@ class CIKMSubgraphs : public Subgraphs<K> {
             return out;
         }
 
+        void calculateEmbeddings(Querier *q,
+                std::shared_ptr<Embeddings<K>> E,
+                std::shared_ptr<Embeddings<K>> R) {
+            LOG(ERRORL) << "These subgraphs can only be generated from the python code";
+        }
+};
+
+template<typename K>
+class AvgSubgraphs : public Subgraphs<K> {
+    private:
+        std::vector<K> params;
+        uint16_t dim;
+        uint64_t mincard;
+
+        void processItr(PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
+
+    public:
+        AvgSubgraphs() : dim(0), mincard(0) {}
+
+        AvgSubgraphs(uint16_t dim, uint64_t mincard) : dim(dim), mincard(mincard) {}
+
+        void loadFromFile(string file);
+
+        void storeToFile(string file);
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) {}
+                std::shared_ptr<Embeddings<K>> R);
 };
 
 template<typename K>
@@ -126,9 +193,7 @@ class GaussianSubgraphs : public Subgraphs<K> {
     public:
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) {
-            //TODO
-        }
+                std::shared_ptr<Embeddings<K>> R);
 };
 
 #endif

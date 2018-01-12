@@ -15,7 +15,7 @@ class DistMulTester : public Tester<K> {
             for(uint16_t i = 0; i < dim; ++i) {
                 res += v1[i] * v2[i];
             }
-            return res;
+            return -res;
         }
 
         void predictO(K *s, uint16_t dims, K *p, uint16_t dimp, K* o) {

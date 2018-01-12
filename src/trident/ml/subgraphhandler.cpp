@@ -11,6 +11,9 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
     if (subformat == "cikm") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new CIKMSubgraphs<double>());
         subgraphs->loadFromFile(subgraphsFile);
+    } else if (subformat == "avg") {
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
+        subgraphs->loadFromFile(subgraphsFile);
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
         throw 10;
@@ -78,6 +81,23 @@ long SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
     return -1;
 }
 
+void SubgraphHandler::create(KB &kb,
+        string subgraphType,
+        string embdir,
+        string subfile) {
+    std::unique_ptr<Querier> q(kb.query());
+    //Load the embeddings
+    loadEmbeddings(embdir);
+    if (subgraphType == "avg") {
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
+        subgraphs->calculateEmbeddings(q.get(), E, R);
+        subgraphs->storeToFile(subfile);
+    } else {
+        LOG(ERRORL) << "Subgraph type not recognized!";
+        throw 10;
+    }
+}
+
 void SubgraphHandler::evaluate(KB &kb,
         string algo,
         string embdir,
@@ -130,8 +150,6 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t sumh = 0;
     uint64_t countt = 0;
     uint64_t sumt = 0;
-    //auto dict = q->getDictMgmt();
-    //char buffer[MAX_TERM_SIZE];
 
     //Select most promising subgraphs to do the search
     std::vector<uint64_t> relevantSubgraphs;

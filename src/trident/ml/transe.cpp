@@ -42,9 +42,17 @@ void TranseLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &o
     std::vector<uint64_t> &output1 = io.field1;
     std::vector<uint64_t> &output2 = io.field2;
     std::vector<uint64_t> &output3 = io.field3;
-    std::vector<std::unique_ptr<float>> &posSignMatrix = io.posSignMatrix;
-    std::vector<std::unique_ptr<float>> &neg1SignMatrix = io.neg1SignMatrix;
-    std::vector<std::unique_ptr<float>> &neg2SignMatrix = io.neg2SignMatrix;
+    if (io.support1.size() < io.batchsize) {
+        for(uint16_t i = 0; i < io.batchsize; ++i) {
+            io.support1.push_back(std::unique_ptr<float>(new float[dim]));
+            io.support2.push_back(std::unique_ptr<float>(new float[dim]));
+            io.support3.push_back(std::unique_ptr<float>(new float[dim]));
+        }
+
+    }
+    std::vector<std::unique_ptr<float>> &posSignMatrix = io.support1;
+    std::vector<std::unique_ptr<float>> &neg1SignMatrix = io.support2;
+    std::vector<std::unique_ptr<float>> &neg2SignMatrix = io.support3;
     const uint32_t sizebatch = io.field1.size();
 
     //Support data structures

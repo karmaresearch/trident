@@ -40,6 +40,11 @@ class SubgraphHandler {
                 string nametest,
                 string format);
 
+        void create(KB &kb,
+                string subgraphType,
+                string embdir,
+                string subfile);
+
         void getAllSubgraphs(Querier *q);
 };
 

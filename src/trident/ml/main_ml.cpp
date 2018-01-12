@@ -146,3 +146,9 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),
             vm["nametest"].as<string>(), "python");
 }
+
+void subgraphCreate(KB &kb, ProgramArgs &vm) {
+    SubgraphHandler sh;
+    sh.create(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
+            vm["sgfile"].as<string>());
+}

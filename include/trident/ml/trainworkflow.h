@@ -30,6 +30,7 @@ class TrainWorkflow {
                 tr.process_batch(*pio.get(), epoch, nbatches);
                 output->violations += pio->violations;
                 output->conflicts += pio->conflicts;
+                output->loss += pio->loss;
                 pio->clear();
                 outputQueue->push(pio);
                 nbatches += 1;
@@ -76,8 +77,7 @@ class TrainWorkflow {
                 outputs.resize(nthreads);
                 for(uint16_t i = 0; i < nthreads; ++i) {
                     doneQueue.push(std::shared_ptr<BatchIO>(
-                                new BatchIO(batcher.getBatchSize(),
-                                    E->getDim())));
+                                new BatchIO(batcher.getBatchSize())));
                 }
 
                 //Start nthreads
@@ -113,17 +113,19 @@ class TrainWorkflow {
                 //Wait until all threads are finished
                 uint64_t totalV = 0;
                 uint64_t totalC = 0;
+                double totalLoss = 0.0;
                 for(uint16_t i = 0; i < nthreads; ++i) {
                     threads[i].join();
                     totalV += outputs[i].violations;
                     totalC += outputs[i].conflicts;
+                    totalLoss += outputs[i].loss;
                 }
 
                 E->postprocessUpdates();
                 R->postprocessUpdates();
 
                 std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-                string sviol = "";
+                string sviol = " Loss=" + to_string(totalLoss);
                 if (tr.generateViolations()) {
                     sviol = " Violations=" + to_string(totalV);
                 }
