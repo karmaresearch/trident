@@ -14,8 +14,8 @@ class TrainWorkflow {
 
         void batch_processer(
                 Querier *q,
-                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> *inputQueue,
-                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> *outputQueue,
+                ConcurrentQueue<std::shared_ptr<BatchIO>> *inputQueue,
+                ConcurrentQueue<std::shared_ptr<BatchIO>> *outputQueue,
                 ThreadOutput *output,
                 uint32_t epoch) {
             std::shared_ptr<BatchIO> pio;
@@ -70,8 +70,8 @@ class TrainWorkflow {
                 }
                 batcher.start();
                 uint32_t batchcounter = 0;
-                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> inputQueue;
-                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> doneQueue;
+                ConcurrentQueue<std::shared_ptr<BatchIO>> inputQueue;
+                ConcurrentQueue<std::shared_ptr<BatchIO>> doneQueue;
                 std::vector<ThreadOutput> outputs;
                 outputs.resize(nthreads);
                 for(uint16_t i = 0; i < nthreads; ++i) {

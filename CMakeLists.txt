@@ -98,13 +98,6 @@ ELSE()
     message("-- Found LZ4")
 ENDIF()
 
-#TBB
-#find_library(tbb tbb PATHS ENV LD_LIBRARY_PATH)
-#find_path (tbbh tbb/task_scheduler_init.h PATHS ENV CPATH)
-#IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
-#    message(FATAL_ERROR "Could not find TBB (thread building blocks)")
-#ENDIF()
-
 #KOGNAC
 IF(KOGNAC_LIB)
     message("Using KOGNAC provided installation: ${KOGNAC_LIB} ${KOGNAC_INC}")
