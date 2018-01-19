@@ -29,6 +29,36 @@ class JSON {
             put(name, std::to_string(value));
         }
 
+        void put(std::string name, unsigned short value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, unsigned int value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, unsigned long value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, double value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, float value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
         void add_child(std::string name, JSON &child) {
             children.insert(std::make_pair(name, child));
         }

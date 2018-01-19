@@ -142,13 +142,13 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
 
 void subgraphEval(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
-    sh.evaluate(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
-            vm["sgfile"].as<string>(), vm["sgformat"].as<string>(),
-            vm["nametest"].as<string>(), "python");
+    sh.evaluate(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
+            vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
+            vm["nameTest"].as<string>(), vm["formatTest"].as<string>());
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
-    sh.create(kb, vm["subeval_algo"].as<string>(), vm["embdir"].as<string>(),
-            vm["sgfile"].as<string>());
+    sh.create(kb, vm["subAlgo"].as<string>(), vm["embDir"].as<string>(),
+            vm["subFile"].as<string>());
 }

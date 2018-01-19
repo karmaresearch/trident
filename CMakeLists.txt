@@ -9,7 +9,6 @@
 cmake_minimum_required (VERSION 2.8)
 project (Trident)
 include(ExternalProject)
-include(FindPkgConfig)
 set(CMAKE_MACOSX_RPATH 1)
 
 if(COMMAND cmake_policy)
@@ -100,11 +99,11 @@ ELSE()
 ENDIF()
 
 #TBB
-find_library(tbb tbb PATHS ENV LD_LIBRARY_PATH)
-find_path (tbbh tbb/task_scheduler_init.h PATHS ENV CPATH)
-IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
-    message(FATAL_ERROR "Could not find TBB (thread building blocks)")
-ENDIF()
+#find_library(tbb tbb PATHS ENV LD_LIBRARY_PATH)
+#find_path (tbbh tbb/task_scheduler_init.h PATHS ENV CPATH)
+#IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
+#    message(FATAL_ERROR "Could not find TBB (thread building blocks)")
+#ENDIF()
 
 #KOGNAC
 IF(KOGNAC_LIB)
@@ -153,7 +152,7 @@ find_package(Threads REQUIRED)
 if (THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC trident-core "-pthread")
 endif()
-TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac kognac-log lz4 tbb)
+TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac kognac-log lz4)
 if (CMAKE_THREAD_LIBS_INIT)
     target_link_libraries(trident-core "${CMAKE_THREAD_LIBS_INIT}")
 endif()
@@ -249,6 +248,7 @@ ENDIF()
 
 #Create Python library
 IF(PYTHON)
+    include(FindPkgConfig)
     pkg_check_modules(PY3 REQUIRED QUIET python3)
     IF(PY3_FOUND)
         INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})

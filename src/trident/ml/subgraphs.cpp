@@ -37,7 +37,8 @@ void AvgSubgraphs<double>::storeToFile(string file) {
 }
 
 template<>
-void AvgSubgraphs<double>::processItr(PairItr *itr,
+void AvgSubgraphs<double>::processItr(Querier *q,
+        PairItr *itr,
         Subgraphs<double>::TYPE typ,
         std::shared_ptr<Embeddings<double>> E) {
     std::vector<double> current_s;
@@ -45,6 +46,11 @@ void AvgSubgraphs<double>::processItr(PairItr *itr,
     for(uint16_t i = 0; i < dim; ++i) {
         current_s[i] = 0.0;
     }
+
+    //DictMgmt *dict = q->getDictMgmt();
+    //char buffer[MAX_TERM_SIZE];
+    //int size = 0;
+
 
     long count = 0;
     long prevo = -1;
@@ -54,6 +60,7 @@ void AvgSubgraphs<double>::processItr(PairItr *itr,
         uint64_t o = itr->getKey();
         uint64_t p = itr->getValue1();
         uint64_t s = itr->getValue2();
+
         if (o != prevo || p != prevp) {
             if (count > mincard) {
                 //Add the averaged embedding
@@ -61,7 +68,7 @@ void AvgSubgraphs<double>::processItr(PairItr *itr,
                     params.push_back(current_s[i] / count);
                 }
                 //Add metadata about the subgraph
-                addSubgraph(typ, prevo, prevp);
+                addSubgraph(typ, prevo, prevp, count);
             }
             count = 0;
             prevo = o;
@@ -82,7 +89,7 @@ void AvgSubgraphs<double>::processItr(PairItr *itr,
             params.push_back(current_s[i] / count);
         }
         //Add metadata about the subgraph
-        addSubgraph(typ, prevo, prevp);
+        addSubgraph(typ, prevo, prevp, count);
     }
 }
 
@@ -90,23 +97,16 @@ template<>
 void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
         std::shared_ptr<Embeddings<double>> E,
         std::shared_ptr<Embeddings<double>> R) {
-    //DictMgmt *dict = q->getDictMgmt();
-    //char buffer[MAX_TERM_SIZE];
-    /*int size = 0;
-      dict->getText(o, buffer, size);
-      std::cout << string(buffer,size) << " ";
-      dict->getTextRel(p, buffer, size);
-      std::cout << string(buffer,size) << " ";
-      dict->getText(s, buffer, size);
-      std::cout << string(buffer,size) << std::endl;*/
+    LOG(INFOL) << "Creating subgraph embeddings using AVG";
     const uint16_t dim = E->getDim();
     this->dim = dim;
 
     auto itr = q->get(IDX_OPS, -1, -1, -1);
-    processItr(itr, Subgraphs<double>::TYPE::PO, E);
+    processItr(q, itr, Subgraphs<double>::TYPE::PO, E);
     q->releaseItr(itr);
 
     itr = q->get(IDX_SPO, -1, -1, -1);
-    processItr(itr, Subgraphs<double>::TYPE::SP, E);
+    processItr(q, itr, Subgraphs<double>::TYPE::SP, E);
     q->releaseItr(itr);
+    LOG(INFOL) << "Done.";
 }

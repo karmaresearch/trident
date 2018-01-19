@@ -344,16 +344,18 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 #ifdef ML
     /***** SUBGRAPHS *****/
     ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subeval>");
-    subeval_options.add<string>("", "subeval_algo", "",
-            "The algorithm used to create embeddings", false);
-    subeval_options.add<string>("", "embdir", "",
+    subeval_options.add<string>("", "embAlgo", "",
+            "The algorithm used to create the KG embeddings.", false);
+    subeval_options.add<string>("", "subAlgo", "avg",
+            "The algorithm to use for creating the embeddings. Default is 'avg'", false);
+    subeval_options.add<string>("", "embDir", "",
             "The directory that contains the embeddings", false);
-    subeval_options.add<string>("", "nametest", "",
-            "The path (or name) of the dataset to use to test the performance", false);
-    subeval_options.add<string>("", "sgfile", "",
+    subeval_options.add<string>("", "subFile", "",
             "The path of the file that contains embeddings of the subgraphs", false);
-    subeval_options.add<string>("", "sgformat", "",
-            "The format of the subgraphs (for now only 'cikm')", false);
+    subeval_options.add<string>("", "nameTest", "",
+            "The path (or name) of the dataset to use to test the performance", false);
+    subeval_options.add<string>("", "formatTest", "native",
+            "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test/ Otherwise, it is a path of a file.", false);
 #endif
 
     /***** GENERAL OPTIONS *****/

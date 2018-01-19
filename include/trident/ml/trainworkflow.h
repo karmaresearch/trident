@@ -2,8 +2,7 @@
 #define _TRAINWORKFLOW_H
 
 #include <trident/ml/learner.h>
-
-#include <tbb/concurrent_queue.h>
+#include <trident/utils/parallel.h>
 
 template<typename Learner, typename Tester>
 class TrainWorkflow {
@@ -15,8 +14,8 @@ class TrainWorkflow {
 
         void batch_processer(
                 Querier *q,
-                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
-                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
+                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> *inputQueue,
+                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> *outputQueue,
                 ThreadOutput *output,
                 uint32_t epoch) {
             std::shared_ptr<BatchIO> pio;
@@ -71,8 +70,8 @@ class TrainWorkflow {
                 }
                 batcher.start();
                 uint32_t batchcounter = 0;
-                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> inputQueue;
-                tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> doneQueue;
+                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> inputQueue;
+                ConcurrentBoundedQueue<std::shared_ptr<BatchIO>> doneQueue;
                 std::vector<ThreadOutput> outputs;
                 outputs.resize(nthreads);
                 for(uint16_t i = 0; i < nthreads; ++i) {
@@ -153,14 +152,6 @@ class TrainWorkflow {
                         Tester tester(E, R);
                         LOG(DEBUGL) << "Testing on the valid dataset ...";
                         auto result = tester.test("valid", testset, nthreads, epoch);
-                        if (result->loss < bestresult) {
-                            bestresult = result->loss;
-                            bestepoch = epoch;
-                            LOG(DEBUGL) << "Epoch " << epoch << " got best results";
-                        }
-                        if (batcher.getFeedback()) {
-                            batcher.getFeedback()->addFeedbacks(result);
-                        }
                         //Store the results of the detailed queries
                         if (shouldStoreModel) {
                             string pathresults = storefolder + "/results-" + to_string(epoch+1);
@@ -174,6 +165,28 @@ class TrainWorkflow {
                                 out << "\t" << to_string(v.posS) << "\t" << to_string(v.posO) << endl;
                             }
                         }
+                        if (result->loss < bestresult) {
+                            bestresult = result->loss;
+                            bestepoch = epoch;
+                            LOG(DEBUGL) << "Epoch " << epoch << " got best results";
+                            if (shouldStoreModel) {
+                                string pathbestmodel = storefolder + "/best-model";
+                                //Remove current directory
+                                if (Utils::exists(pathbestmodel)) {
+                                    Utils::rmlink(pathbestmodel);
+                                }
+                                string pathmodel = storefolder + "/model-" + to_string(epoch+1);
+                                if (Utils::exists(pathmodel)) {
+                                    //If the model already exist then link it
+                                    Utils::linkdir(pathmodel, pathbestmodel);
+                                } else {
+                                    tr.store_model(pathbestmodel, compresstorage, nstorethreads);
+                                }
+                            }
+                        }
+                        if (batcher.getFeedback()) {
+                            batcher.getFeedback()->addFeedbacks(result);
+                        }
                     } else {
                         LOG(WARNL) << "I'm supposed to test the model but no data is available";
                     }
@@ -185,7 +198,7 @@ class TrainWorkflow {
 
     public:
         TrainWorkflow(KB &kb, BatchCreator &b, Learner &l, uint32_t epochs) : kb(kb),
-    batcher(b), tr(l), epochs(epochs) {}
+        batcher(b), tr(l), epochs(epochs) {}
 
         static void launchLearning(KB &kb, LearnParams &p) {
             std::unique_ptr<GradTracer> debugger;

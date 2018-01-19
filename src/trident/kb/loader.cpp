@@ -28,6 +28,7 @@
 #include <trident/tree/nodemanager.h>
 #include <trident/tree/flatroot.h>
 #include <trident/utils/tridentutils.h>
+#include <trident/utils/parallel.h>
 
 #include <kognac/lz4io.h>
 #include <kognac/utils.h>
@@ -40,8 +41,8 @@
 
 #include <zstr/zstr.hpp>
 
-#include <tbb/parallel_sort.h>
-#include <tbb/task_scheduler_init.h>
+//#include <tbb/parallel_sort.h>
+//#include <tbb/task_scheduler_init.h>
 
 #include <mutex>
 #include <condition_variable>
@@ -658,26 +659,32 @@ void Loader::dumpPermutation(std::vector<K> &input,
         long maxValue,
         string out,
         char sorter) {
-    tbb::task_scheduler_init init(parallelProcesses);
+    //tbb::task_scheduler_init init(parallelProcesses);
     LOG(DEBUGL) << "Start sorting";
     switch (sorter) {
         case IDX_SPO:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess);
             break;
         case IDX_SOP:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
             break;
         case IDX_OSP:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
             break;
         case IDX_OPS:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
             break;
         case IDX_POS:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
             break;
         case IDX_PSO:
-            tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
+            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
+            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
             break;
         default:
             throw 10;

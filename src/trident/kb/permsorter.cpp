@@ -21,11 +21,12 @@
 
 
 #include <trident/kb/permsorter.h>
+#include <trident/utils/parallel.h>
 #include <kognac/utils.h>
 #include <kognac/compressor.h>
 
-#include <tbb/parallel_sort.h>
-#include <tbb/task_scheduler_init.h>
+//#include <tbb/parallel_sort.h>
+//#include <tbb/task_scheduler_init.h>
 
 #include <thread>
 #include <functional>
@@ -98,7 +99,8 @@ void PermSorter::sortPermutation_old(char *rawinput,
         default:
             throw 10;
     }
-    tbb::parallel_sort(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3));
+    ParallelTasks::sort(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3));
+    //tbb::parallel_sort(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3));
 }
 
 typedef std::array<unsigned char, 15> __PermSorter_triple;
@@ -113,7 +115,8 @@ void PermSorter::sortPermutation(char *start, char *end) {
     __PermSorter_triple *send = (__PermSorter_triple*) end;
     std::chrono::system_clock::time_point starttime = std::chrono::system_clock::now();
     //std::sort(sstart, send, &__PermSorter_triple_sorter);
-    tbb::parallel_sort(sstart, send, &__PermSorter_triple_sorter);
+    ParallelTasks::sort(sstart, send, &__PermSorter_triple_sorter);
+    //tbb::parallel_sort(sstart, send, &__PermSorter_triple_sorter);
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - starttime;
     LOG(DEBUGL) << "Time sorting: " << duration.count() << "s.";
 }
@@ -756,7 +759,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         LOG(DEBUGL) << "Finished filling holes";
 
         LOG(DEBUGL) << "Start sorting";
-        tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / 6)));
+        //tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / 6)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
             threads[i] = std::thread(
@@ -1001,7 +1004,7 @@ void PermSorter::sortChunks(string inputdir,
         LOG(DEBUGL) << "Finished filling holes";
 
         LOG(DEBUGL) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
-        tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / nperms)));
+        //tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / nperms)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
             threads[i] = std::thread(

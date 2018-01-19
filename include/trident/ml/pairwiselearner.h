@@ -5,8 +5,7 @@
 #include <trident/ml/embeddings.h>
 #include <trident/ml/batch.h>
 #include <trident/kb/querier.h>
-
-#include <tbb/concurrent_queue.h>
+#include <trident/utils/parallel.h>
 
 struct _PairwiseSorter {
     const std::vector<uint64_t> &vec;
