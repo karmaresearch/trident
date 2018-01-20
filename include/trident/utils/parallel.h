@@ -6,8 +6,31 @@
 #include <future>
 #include <algorithm>
 
-class ParallelTasks {
+class ParallelRange {
+    private:
+        size_t b, e;
+
     public:
+        ParallelRange(size_t b, size_t e) : b(b), e(e) {}
+
+        size_t begin() const {
+            return b;
+        }
+
+        size_t end() const {
+            return e;
+        }
+};
+
+class ParallelTasks {
+    private:
+        static long nthreads;
+
+    public:
+        static void setNThreads(uint32_t nthreads) {
+            ParallelTasks::nthreads = nthreads;
+        }
+
         //Procedure inspired by https://stackoverflow.com/questions/24130307/performance-problems-in-parallel-mergesort-c
         template<typename It, typename Cmp>
             static void sort_int(It begin, It end, const Cmp &cmp, uint32_t nthreads) {
@@ -46,6 +69,15 @@ class ParallelTasks {
                     }
                     std::inplace_merge(begin, mid, end);
                 }
+            }
+
+
+        template<typename Container>
+            static void parallel_for(size_t begin,
+                    size_t end,
+                    size_t incr,
+                    Container c) {
+                //TODO
             }
 };
 
