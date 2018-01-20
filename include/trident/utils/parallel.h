@@ -28,10 +28,25 @@ class ParallelTasks {
                 }
             }
 
-        /*template<typename It, typename Cmp>
-            static void sort(It begin, It end, const Cmp &cmp, int nthreads = std::thread::hardware_concurrency()/2) {
-                sort_int<It,Cmp>(begin, end, cmp, nthreads);
-            }*/
+        template<typename It>
+            static void sort_int(It begin, It end, uint32_t nthreads = std::thread::hardware_concurrency() / 2) {
+                auto len = std::distance(begin, end);
+                if (len <= 1024 || nthreads < 2) {
+                    std::sort(begin, end);
+                } else {
+                    It mid = std::next(begin, len / 2);
+                    if (nthreads > 1) {
+                        auto fn = std::async(ParallelTasks::sort_int<It>, begin,
+                                mid, nthreads - 2);
+                        sort_int<It>(mid, end, nthreads - 2);
+                        fn.wait();
+                    } else {
+                        sort_int<It>(begin, mid, 0);
+                        sort_int<It>(mid, end, 0);
+                    }
+                    std::inplace_merge(begin, mid, end);
+                }
+            }
 };
 
 template<typename El>

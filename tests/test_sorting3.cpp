@@ -36,7 +36,7 @@ int main(int argc, const char** argv) {
     //Sort them
     std::cout << "Start sorting ..." << std::endl;
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    ParallelTasks::sort_int(vector.begin(), vector.end(), __sorter(), 8);
+    ParallelTasks::sort_int(vector.begin(), vector.end());
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
     std::cout << "Runtime: " << duration.count() * 1000 << "ms." << std::endl;
 
