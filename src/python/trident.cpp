@@ -24,8 +24,6 @@
 #include <iostream>
 #include <vector>
 
-#include <numpy/arrayobject.h>
-
 #include <python/trident.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
