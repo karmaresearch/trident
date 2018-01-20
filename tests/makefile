@@ -40,6 +40,9 @@ test_generate:
 test_sorting2:
 	g++ $(CINCLUDES) $(CLIBS) -o testSorting2 -DBOOST_LOG_DYN_LINK  -O0 -g test_sorting2.cpp -lkognac -lboost_log-mt -lboost_log_setup-mt -llz4 -lboost_filesystem-mt -lboost_system-mt -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread  -ltbb
 
+test_pfor:
+	g++ $(CINCLUDES) $(CLIBS) -o testpfor -O3 -std=c++0x -g -lkognac-log -lkognac -I../include test_parallel_for.cpp 
+
 test_sorting3:
 	g++ $(CINCLUDES) $(CLIBS) -o testSorting3 -O3 -std=c++0x -g -I../include test_sorting3.cpp 
 test_io:

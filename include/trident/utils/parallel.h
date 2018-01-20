@@ -5,6 +5,7 @@
 #include <mutex>
 #include <future>
 #include <algorithm>
+#include <assert.h>
 
 class ParallelRange {
     private:
@@ -52,7 +53,15 @@ class ParallelTasks {
             }
 
         template<typename It>
-            static void sort_int(It begin, It end, uint32_t nthreads = std::thread::hardware_concurrency() / 2) {
+            static void sort_int(It begin, It end, long nthreads = -1) {
+                if (nthreads == -1) {
+                    if (ParallelTasks::nthreads != -1) {
+                        //Limit the number of threads to the one specified by the user
+                        nthreads = ParallelTasks::nthreads;
+                    } else {
+                        nthreads = std::max((unsigned int)1, std::thread::hardware_concurrency() / 2);
+                    }
+                }
                 auto len = std::distance(begin, end);
                 if (len <= 1024 || nthreads < 2) {
                     std::sort(begin, end);
@@ -75,9 +84,34 @@ class ParallelTasks {
         template<typename Container>
             static void parallel_for(size_t begin,
                     size_t end,
-                    size_t incr,
-                    Container c) {
-                //TODO
+                    size_t grainsize,
+                    Container c,
+                    long nthreads = -1) {
+                if (nthreads == -1) {
+                    if (ParallelTasks::nthreads != -1) {
+                        //Limit the number of threads to the one specified by the user
+                        nthreads = ParallelTasks::nthreads;
+                    } else {
+                        nthreads = std::max((unsigned int) 1,
+                                std::thread::hardware_concurrency() / 2);
+                    }
+                }
+                assert(nthreads >= 1);
+                const size_t delta = std::max(grainsize, (size_t) (end - begin) / nthreads);
+                std::vector<std::thread> threads;
+                size_t currentbegin = 0;
+                size_t currentend = 0;
+                for (size_t i = 0; i < nthreads && currentend < end; ++i) {
+                    currentbegin = begin + i * delta;
+                    currentend = currentbegin + delta;
+                    if (currentend > end)
+                        currentend = end;
+                    ParallelRange range(currentbegin, currentend);
+                    threads.push_back(std::thread(&Container::operator(), c, range));
+                }
+                for(auto &t : threads) {
+                    t.join();
+                }
             }
 };
 
