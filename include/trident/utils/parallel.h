@@ -10,7 +10,7 @@ class ParallelTasks {
     public:
         //Procedure inspired by https://stackoverflow.com/questions/24130307/performance-problems-in-parallel-mergesort-c
         template<typename It, typename Cmp>
-            static void sort_int(It begin, It end, const Cmp &cmp, int nthreads) {
+            static void sort_int(It begin, It end, const Cmp &cmp, uint32_t nthreads) {
                 auto len = std::distance(begin, end);
                 if (len <= 1024 || nthreads < 2) {
                     std::sort(begin, end, cmp);
