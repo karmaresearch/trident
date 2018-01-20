@@ -63,7 +63,8 @@ struct __PermSorter_sorter {
 
 void PermSorter::sortPermutation_old(char *rawinput,
         std::vector<long> *idx,
-        int sorter) {
+        int sorter,
+        int nthreads) {
     int o1 = 0, o2 = 0, o3 = 0;
     switch (sorter) {
         case IDX_SPO:
@@ -99,7 +100,7 @@ void PermSorter::sortPermutation_old(char *rawinput,
         default:
             throw 10;
     }
-    ParallelTasks::sort(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3));
+    ParallelTasks::sort_int(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3), nthreads);
     //tbb::parallel_sort(idx->begin(), idx->end(), __PermSorter_sorter(rawinput, o1, o2, o3));
 }
 
@@ -110,12 +111,12 @@ bool __PermSorter_triple_sorter(const __PermSorter_triple &a,
     return a < b;
 }
 
-void PermSorter::sortPermutation(char *start, char *end) {
+void PermSorter::sortPermutation(char *start, char *end, int nthreads) {
     __PermSorter_triple *sstart = (__PermSorter_triple*) start;
     __PermSorter_triple *send = (__PermSorter_triple*) end;
     std::chrono::system_clock::time_point starttime = std::chrono::system_clock::now();
     //std::sort(sstart, send, &__PermSorter_triple_sorter);
-    ParallelTasks::sort(sstart, send, &__PermSorter_triple_sorter);
+    ParallelTasks::sort_int(sstart, send, &__PermSorter_triple_sorter, nthreads);
     //tbb::parallel_sort(sstart, send, &__PermSorter_triple_sorter);
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - starttime;
     LOG(DEBUGL) << "Time sorting: " << duration.count() << "s.";
@@ -759,6 +760,7 @@ void PermSorter::sortChunks_Old(string inputdir,
         LOG(DEBUGL) << "Finished filling holes";
 
         LOG(DEBUGL) << "Start sorting";
+        int nthreads = max(1, (int)(parallelProcesses / 6));
         //tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / 6)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
@@ -766,9 +768,9 @@ void PermSorter::sortChunks_Old(string inputdir,
                     std::bind(&PermSorter::sortPermutation_old,
                         rawTriples,
                         &additionalIdxs[i],
-                        additionalPermutations[i].second));
+                        additionalPermutations[i].second, nthreads));
         }
-        PermSorter::sortPermutation_old(rawTriples, &idx0, IDX_SPO);
+        PermSorter::sortPermutation_old(rawTriples, &idx0, IDX_SPO, nthreads);
         for(int i = 0; i < additionalPermutations.size(); ++i) {
             threads[i].join();
         }
@@ -1004,14 +1006,15 @@ void PermSorter::sortChunks(string inputdir,
         LOG(DEBUGL) << "Finished filling holes";
 
         LOG(DEBUGL) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
+        int nthreads = max(1, (int)(parallelProcesses / 6));
         //tbb::task_scheduler_init init(max(1, (int)(parallelProcesses / nperms)));
         std::thread *threads = new std::thread[additionalPermutations.size()];
         for(int i = 0; i < additionalPermutations.size(); ++i) {
             threads[i] = std::thread(
                     std::bind(&PermSorter::sortPermutation,
-                        rawTriples[i+1].get(), rawTriples[i+1].get() + 15 * maxInserts * parallelProcesses));
+                        rawTriples[i+1].get(), rawTriples[i+1].get() + 15 * maxInserts * parallelProcesses, nthreads));
         }
-        PermSorter::sortPermutation(rawTriples[0].get(), rawTriples[0].get() + 15 * maxInserts * parallelProcesses);
+        PermSorter::sortPermutation(rawTriples[0].get(), rawTriples[0].get() + 15 * maxInserts * parallelProcesses, nthreads);
         for(int i = 0; i < additionalPermutations.size(); ++i) {
             threads[i].join();
         }

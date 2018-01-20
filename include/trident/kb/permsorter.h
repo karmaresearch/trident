@@ -78,10 +78,11 @@ class PermSorter {
 
         static void sortPermutation_old(char *rawinput,
                 std::vector<long> *idx,
-                int sorter);
+                int sorter,
+                int nthreads);
 
         static void sortPermutation(char *start,
-                char *end);
+                char *end, int nthreads);
 
     public:
         static void sortChunks_Old(string inputdir,

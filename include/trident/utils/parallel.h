@@ -3,14 +3,35 @@
 
 #include <queue>
 #include <mutex>
+#include <future>
+#include <algorithm>
 
 class ParallelTasks {
     public:
+        //Procedure inspired by https://stackoverflow.com/questions/24130307/performance-problems-in-parallel-mergesort-c
         template<typename It, typename Cmp>
-            static void sort(It begin, It end, const Cmp &cmp) {
-                //TODO
-                std::sort(begin, end, cmp);
+            static void sort_int(It begin, It end, const Cmp &cmp, int nthreads) {
+                auto len = std::distance(begin, end);
+                if (len <= 1024 || nthreads < 2) {
+                    std::sort(begin, end, cmp);
+                } else {
+                    It mid = std::next(begin, len / 2);
+                    if (nthreads > 1) {
+                        auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads - 2);
+                        sort_int<It,Cmp>(mid, end, cmp, nthreads - 2);
+                        fn.wait();
+                    } else {
+                        sort_int<It,Cmp>(begin, mid, cmp, 0);
+                        sort_int<It,Cmp>(mid, end, cmp, 0);
+                    }
+                    std::inplace_merge(begin, mid, end, cmp);
+                }
             }
+
+        /*template<typename It, typename Cmp>
+            static void sort(It begin, It end, const Cmp &cmp, int nthreads = std::thread::hardware_concurrency()/2) {
+                sort_int<It,Cmp>(begin, end, cmp, nthreads);
+            }*/
 };
 
 template<typename El>

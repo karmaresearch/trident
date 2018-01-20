@@ -663,27 +663,27 @@ void Loader::dumpPermutation(std::vector<K> &input,
     LOG(DEBUGL) << "Start sorting";
     switch (sorter) {
         case IDX_SPO:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess);
             break;
         case IDX_SOP:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_sop, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
             break;
         case IDX_OSP:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_osp, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
             break;
         case IDX_OPS:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_ops, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
             break;
         case IDX_POS:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_pos, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
             break;
         case IDX_PSO:
-            ParallelTasks::sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
+            ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_pso, parallelProcesses);
             //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
             break;
         default:
