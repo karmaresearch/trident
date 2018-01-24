@@ -29,7 +29,19 @@ class JSON {
             put(name, std::to_string(value));
         }
 
+        void put(std::string name, unsigned char value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
         void put(std::string name, unsigned short value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, int value) {
             if (name=="")
                 throw 10;
             put(name, std::to_string(value));
@@ -42,6 +54,12 @@ class JSON {
         }
 
         void put(std::string name, unsigned long value) {
+            if (name=="")
+                throw 10;
+            put(name, std::to_string(value));
+        }
+
+        void put(std::string name, unsigned long long value) {
             if (name=="")
                 throw 10;
             put(name, std::to_string(value));
