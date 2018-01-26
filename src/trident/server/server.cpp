@@ -11,10 +11,10 @@
 
 #include <kognac/utils.h>
 
-#include <boost/algorithm/string/predicate.hpp>
+/*#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind.hpp>*/
 
 #include <curl/curl.h>
 
@@ -22,27 +22,34 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <regex>
 
 TridentServer::TridentServer(KB &kb, string htmlfiles) : kb(kb),
     dirhtmlfiles(htmlfiles),
-    acceptor(io), resolver(io),
+    //acceptor(io), resolver(io),
     isActive(false) {
     }
 
-void TridentServer::startThread(string address, string port) {
+void TridentServer::startThread(int port) {
     this->webport = port;
-    boost::asio::ip::tcp::resolver::query query(address, port);
+    server->start();
+    /*boost::asio::ip::tcp::resolver::query query(address, port);
     boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
     acceptor.open(endpoint.protocol());
     acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
     acceptor.bind(endpoint);
     acceptor.listen();
     connect();
-    io.run();
+    io.run();*/
 }
 
-void TridentServer::start(string address, string port) {
-    t = std::thread(&TridentServer::startThread, this, address, port);
+void TridentServer::start(int port) {
+    auto f = std::bind(&TridentServer::processRequest, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2);
+    server = std::shared_ptr<HttpServer>(new HttpServer(port,
+                f));
+    t = std::thread(&TridentServer::startThread, this, port);
 }
 
 void TridentServer::stop() {
@@ -50,13 +57,14 @@ void TridentServer::stop() {
     while (isActive) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
     }
-    acceptor.cancel();
-    acceptor.close();
-    io.stop();
+    //acceptor.cancel();
+    //acceptor.close();
+    //io.stop();
+    server->stop();
     LOG(INFOL) << "Done";
 }
 
-void TridentServer::connect() {
+/*void TridentServer::connect() {
     boost::shared_ptr<Server> conn(new Server(io, this));
     acceptor.async_accept(conn->socket,
             boost::bind(&Server::acceptHandler,
@@ -70,7 +78,7 @@ void TridentServer::Server::acceptHandler(const boost::system::error_code &err) 
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
     }
-}
+}*/
 
 string _getValueParam(string req, string param) {
     int pos = req.find(param);
@@ -101,7 +109,8 @@ void TridentServer::parseQuery(bool &success,
         success = false;
         return;
     }
-    queryGraph = std::unique_ptr<QueryGraph>(new QueryGraph(parser.getVarCount()));
+    queryGraph = std::unique_ptr<QueryGraph>(
+            new QueryGraph(parser.getVarCount()));
     // And perform the semantic anaylsis
     try {
         SemanticAnalysis semana(db, queryDict);
@@ -140,7 +149,8 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
         JSON *jsonvars,
         JSON *jsonresults,
         JSON *jsonstats) {
-    std::unique_ptr<QueryDict> queryDict = std::unique_ptr<QueryDict>(new QueryDict(nterms));
+    std::unique_ptr<QueryDict> queryDict = std::unique_ptr<QueryDict>(
+            new QueryDict(nterms));
     std::unique_ptr<QueryGraph> queryGraph;
     bool parsingOk;
 
@@ -226,11 +236,10 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
     delete plangen;
 }
 
-void TridentServer::Server::readHeader(boost::system::error_code const &err,
-        size_t bytes) {
-    inter->setActive();
+void TridentServer::processRequest(std::string req, std::string &res) {
+    setActive();
 
-    ss << string(data_.get(), bytes);
+    /*ss << string(data_.get(), bytes);
     string tmpstring = ss.str();
     int pos = tmpstring.find("Content-Length:");
     if (pos != string::npos) {
@@ -243,15 +252,15 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             acceptHandler(err);
             return;
         }
-    }
+    }*/
 
-    req = ss.str();
+    //req = ss.str();
     //Get the page
     string page;
     string message = "";
     bool isjson = false;
 
-    if (boost::starts_with(req, "POST")) {
+    if (Utils::starts_with(req, "POST")) {
         int pos = req.find("HTTP");
         string path = req.substr(5, pos - 6);
         if (path == "/sparql") {
@@ -268,8 +277,18 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
                         sparqlquery.size(), &newlen);
                 sparqlquery = string(un2, newlen);
                 curl_free(un2);
-                boost::algorithm::replace_all(sparqlquery, "+", " ");
-                boost::algorithm::replace_all(sparqlquery, "\r\n", "\n");
+
+                std::regex e1("\\+");
+                std::string replacedString;
+                std::regex_replace(std::back_inserter(replacedString),
+                        sparqlquery.begin(), sparqlquery.end(),
+                        e1, "$1 ");
+                sparqlquery = replacedString;
+                std::regex e2("\\r\\n");
+                replacedString = "";
+                std::regex_replace(std::back_inserter(replacedString),
+                        sparqlquery.begin(), sparqlquery.end(), e2, "$1\n");
+                sparqlquery = replacedString;
             } else {
                 throw 10;
             }
@@ -283,8 +302,8 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             bool jsonoutput = printresults != string("false");
             TridentServer::execSPARQLQuery(sparqlquery,
                     false,
-                    inter->kb.getNTerms(),
-                    inter->kb,
+                    kb.getNTerms(),
+                    kb,
                     false,
                     jsonoutput,
                     &vars,
@@ -306,7 +325,7 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
             string form = req.substr(req.find("application/x-www-form-urlencoded"));
             string id = _getValueParam(form, "id");
             //Lookup the value
-            string value = lookup(id, inter->kb);
+            string value = lookup(id, kb);
             JSON pt;
             pt.put("value", value);
             std::ostringstream buf;
@@ -316,40 +335,42 @@ void TridentServer::Server::readHeader(boost::system::error_code const &err,
         } else {
             page = "Error!";
         }
-    } else if (boost::starts_with(req, "GET")) {
+    } else if (Utils::starts_with(req, "GET")) {
         //Get the page
         int pos = req.find("HTTP");
         string path = req.substr(4, pos - 5);
         if (path.size() > 1) {
-            page = inter->getPage(path);
+            page = getPage(path);
         }
     }
 
     if (page == "") {
         //return the main page
-        page = inter->getDefaultPage();
+        page = getDefaultPage();
     }
     if (isjson) {
-        res = "HTTP/1.1 200 OK\r\nContent-Type: application/json\nContent-Length: " + to_string(page.size()) + "\r\n\r\n" + page;
+        res = "HTTP/1.1 200 OK\r\nContent-Type: application/json\nContent-Length: ";
+        res += to_string(page.size()) + "\r\n\r\n" + page;
     } else {
-        res = "HTTP/1.1 200 OK\r\nContent-Length: " + to_string(page.size()) + "\r\n\r\n" + page;
+        res = "HTTP/1.1 200 OK\r\nContent-Length: ";
+        res+= to_string(page.size()) + "\r\n\r\n" + page;
     }
 
-    boost::asio::async_write(socket, boost::asio::buffer(res),
+    /*boost::asio::async_write(socket, boost::asio::buffer(res),
             boost::asio::transfer_all(),
             boost::bind(&Server::writeHandler,
                 shared_from_this(),
                 boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
+                boost::asio::placeholders::bytes_transferred));*/
 
-    inter->setInactive();
+    setInactive();
 }
 
-void TridentServer::Server::writeHandler(const boost::system::error_code &err,
+/*void TridentServer::Server::writeHandler(const boost::system::error_code &err,
         std::size_t bytes) {
     socket.close();
     inter->connect();
-};
+};*/
 
 string TridentServer::getDefaultPage() {
     return getPage("/index.html");
@@ -373,11 +394,10 @@ string TridentServer::getPage(string f) {
         size_t index = 0;
         index = contentFile.find("WEB_PORT", index);
         if (index != std::string::npos)
-            contentFile.replace(index, 8, webport);
+            contentFile.replace(index, 8, to_string(webport));
 
         cachehtml.insert(make_pair(f, contentFile));
         return contentFile;
     }
-
     return "Error! I cannot find the page to show.";
 }

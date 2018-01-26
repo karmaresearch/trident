@@ -6,6 +6,7 @@
 #include <future>
 #include <algorithm>
 #include <assert.h>
+#include <condition_variable>
 
 class ParallelRange {
     private:
@@ -80,7 +81,6 @@ class ParallelTasks {
                 }
             }
 
-
         template<typename Container>
             static void parallel_for(size_t begin,
                     size_t end,
@@ -120,15 +120,26 @@ class ConcurrentQueue {
     private:
         std::queue<El> q;
         std::mutex mtx;
+        std::condition_variable cv;
 
     public:
         void push(El el) {
-            std::lock_guard<std::mutex> lock(mtx);
+            std::unique_lock<std::mutex> lock(mtx);
             q.push(el);
+            cv.notify_one();
         }
 
         void pop(El &el) {
-            std::lock_guard<std::mutex> lock(mtx);
+            std::unique_lock<std::mutex> lock(mtx);
+            el = q.front();
+            q.pop();
+        }
+
+        void pop_wait(El &el) {
+            std::unique_lock<std::mutex> lock(mtx);
+            while (q.empty()) {
+                cv.wait(lock);
+            }
             el = q.front();
             q.pop();
         }

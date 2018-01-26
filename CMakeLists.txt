@@ -222,20 +222,12 @@ ENDIF()
 IF (SERVER)
     file(GLOB webserver_SRC
         "src/trident/server/*.cpp")
-    #Boost
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_MULTITHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME OFF)
-    FIND_PACKAGE(Boost COMPONENTS system REQUIRED)
-    IF (Boost_FOUND)
-        INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} SYSTEM)
-    ENDIF()
     #CURL
     find_library(curl curl)
 
     add_library(trident-web SHARED ${webserver_SRC})
     set_target_properties(trident-web PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-web kognac trident-core trident-sparql "curl" ${Boost_LIBRARIES})
+    TARGET_LINK_LIBRARIES(trident-web kognac trident-core trident-sparql "curl")
     TARGET_LINK_LIBRARIES(trident trident-web)
 ENDIF()
 

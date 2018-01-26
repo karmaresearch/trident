@@ -1,8 +1,11 @@
-KOGNAC_BUILDIR=../build/kognac/
+KOGNAC_BUILDIR=../../kognac/build_debug
 TRIDENT_BUILDIR=../build_debug
-CINCLUDES= -I../include -I../build/kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
+CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
 CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/kognac/external/lz4/lib -L../build/kognac/external/sparsehash/src
 CPLUS=g++
+
+test_httpserver:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttp -std=c++0x -O0 -g test_httpserver.cpp ../src/trident/utils/httpserver.cpp ../../kognac/src/kognac/log/logs.cpp
 
 test_multi:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testMulti -std=c++0x -DBOOST_LOG_DYN_LINK  -O0 -g test_multi.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap

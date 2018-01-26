@@ -245,7 +245,7 @@ void startServer(KB &kb, int port) {
     std::unique_ptr<TridentServer> webint;
     webint = std::unique_ptr<TridentServer>(
             new TridentServer(kb, "./../webinterface"));
-    webint->start("0.0.0.0", to_string(port));
+    webint->start(port);
     LOG(INFOL) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
 }
