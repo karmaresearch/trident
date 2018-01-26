@@ -26,21 +26,12 @@
 
 TridentServer::TridentServer(KB &kb, string htmlfiles) : kb(kb),
     dirhtmlfiles(htmlfiles),
-    //acceptor(io), resolver(io),
     isActive(false) {
     }
 
 void TridentServer::startThread(int port) {
     this->webport = port;
     server->start();
-    /*boost::asio::ip::tcp::resolver::query query(address, port);
-    boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
-    acceptor.open(endpoint.protocol());
-    acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-    acceptor.bind(endpoint);
-    acceptor.listen();
-    connect();
-    io.run();*/
 }
 
 void TridentServer::start(int port) {
@@ -48,7 +39,7 @@ void TridentServer::start(int port) {
                     std::placeholders::_1,
                     std::placeholders::_2);
     server = std::shared_ptr<HttpServer>(new HttpServer(port,
-                f));
+                f, 4));
     t = std::thread(&TridentServer::startThread, this, port);
 }
 
@@ -57,28 +48,9 @@ void TridentServer::stop() {
     while (isActive) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
     }
-    //acceptor.cancel();
-    //acceptor.close();
-    //io.stop();
     server->stop();
     LOG(INFOL) << "Done";
 }
-
-/*void TridentServer::connect() {
-    boost::shared_ptr<Server> conn(new Server(io, this));
-    acceptor.async_accept(conn->socket,
-            boost::bind(&Server::acceptHandler,
-                conn, boost::asio::placeholders::error));
-};
-
-void TridentServer::Server::acceptHandler(const boost::system::error_code &err) {
-    if (err == boost::system::errc::success) {
-        socket.async_read_some(boost::asio::buffer(data_.get(), 4096),
-                boost::bind(&Server::readHeader, shared_from_this(),
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
-    }
-}*/
 
 string _getValueParam(string req, string param) {
     int pos = req.find(param);

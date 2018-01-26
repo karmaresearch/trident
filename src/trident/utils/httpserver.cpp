@@ -7,7 +7,6 @@ HttpServer::HttpServer(uint32_t port,
         std::function<void(const std::string&, std::string&)> handler,
         uint32_t nthreads) : port(port), handlerFunction(handler) {
     threads.resize(nthreads);
-    LOG(DEBUGL) << "n. threads " << nthreads;
     for(uint32_t i = 0; i < nthreads; ++i) {
         threads[i] = std::thread(&HttpServer::pullFromQueue, this);
     }
@@ -20,7 +19,6 @@ void HttpServer::pullFromQueue() {
         if (handler.isEOF()) {
             break;
         }
-        LOG(DEBUGL) << "Processing request ...";
         handler.processRequest(handlerFunction);
     }
 }
@@ -39,7 +37,7 @@ bool HttpServer::run() {
     if(bind(listenFd, (struct sockaddr *)&svrAdd, sizeof(svrAdd)) < 0) {
         return false;
     }
-    listen(listenFd, 5);
+    listen(listenFd, 10);
     launched = true;
     while (true) {
         //this is where client connects.
@@ -82,29 +80,30 @@ void HttpServer::HttpRequestHander::processRequest(std::function<void(
     //Read the data and print it on screen
     try {
         char buffer[1024];
-        //while (true) {
-        std::string request = "";
-        auto len = read(connFd, buffer, 1024);
-        if (len == 0) { //Client has closed the conversation
-            shutdown(connFd, 2);
-            close(connFd);
-            connFd = -1;
-            return;
-        } else if (len == -1) {
-            //There are some errors here, handle?
-            //break;
-            throw 10;
+        while (true) {
+            std::string request = "";
+            auto len = read(connFd, buffer, 1024);
+            if (len == 0) { //Client has closed the conversation
+                shutdown(connFd, 2);
+                close(connFd);
+                connFd = -1;
+                return;
+            } else if (len == -1) {
+                //There are some errors here, handle?
+                //break;
+                throw 10;
+            }
+            request += std::string(buffer, len);
+            std::string response = "";
+            handler(request, response);
+            long size = 0;
+            do {
+                size += send(connFd, response.c_str() + size,
+                        response.size() - size, 0);
+            } while (size < response.size());
+            //shutdown(connFd, 2);
+            //close(connFd);
         }
-        request += std::string(buffer, len);
-        std::string response = "";
-        handler(request, response);
-        long size = 0;
-        do {
-            size += send(connFd, response.c_str() + size, response.size() - size, 0);
-        } while (size < response.size());
-        shutdown(connFd, 2);
-        close(connFd);
-        //}
     } catch (...) {
         if (connFd != -1) {
             shutdown(connFd, 2);
