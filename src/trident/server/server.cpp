@@ -19,9 +19,9 @@
 #include <thread>
 #include <regex>
 
-TridentServer::TridentServer(KB &kb, string htmlfiles) : kb(kb),
+TridentServer::TridentServer(KB &kb, string htmlfiles, int nthreads) : kb(kb),
     dirhtmlfiles(htmlfiles),
-    isActive(false) {
+    isActive(false), nthreads(nthreads) {
     }
 
 void TridentServer::startThread(int port) {
@@ -34,7 +34,7 @@ void TridentServer::start(int port) {
             std::placeholders::_1,
             std::placeholders::_2);
     server = std::shared_ptr<HttpServer>(new HttpServer(port,
-                f, 4));
+                f, nthreads));
     t = std::thread(&TridentServer::startThread, this, port);
 }
 

@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <condition_variable>
 
+#include <kognac/logs.h>
+
 class ParallelRange {
     private:
         size_t b, e;
@@ -133,6 +135,11 @@ class ConcurrentQueue {
             std::unique_lock<std::mutex> lock(mtx);
             el = q.front();
             q.pop();
+        }
+
+        bool isEmpty() {
+            std::unique_lock<std::mutex> lock(mtx);
+            return q.empty();
         }
 
         void pop_wait(El &el) {

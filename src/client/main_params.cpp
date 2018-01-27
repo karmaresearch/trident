@@ -313,6 +313,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     /***** SERVER *****/
     ProgramArgs::GroupArgs& server_options = *vm.newGroup("Options for <server>");
     server_options.add<int>("", "port", 8080, "Port to listen to", false);
+    server_options.add<int>("", "webthreads", 1, "N. of threads for the webserver", false);
 
     /***** LEARN/PREDICT *****/
 #ifdef ML

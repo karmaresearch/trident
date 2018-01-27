@@ -241,10 +241,10 @@ void printInfo(KB &kb) {
 }
 
 #ifdef SERVER
-void startServer(KB &kb, int port) {
+void startServer(KB &kb, int port, int nthreads) {
     std::unique_ptr<TridentServer> webint;
     webint = std::unique_ptr<TridentServer>(
-            new TridentServer(kb, "./../webinterface"));
+            new TridentServer(kb, "./../webinterface", nthreads));
     webint->start(port);
     LOG(INFOL) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
@@ -491,7 +491,7 @@ int main(int argc, const char** argv) {
 #ifdef SERVER
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        startServer(kb, vm["port"].as<int>());
+        startServer(kb, vm["port"].as<int>(), vm["webthreads"].as<int>());
 #else
         LOG(ERRORL) << "Trident was not compiled with the webserver. Add -DSERVER=1 to cmake";
         return EXIT_FAILURE;

@@ -2,28 +2,159 @@
 
 #include <kognac/logs.h>
 
+#include <chrono>
+
+namespace chr = std::chrono;
 
 HttpServer::HttpServer(uint32_t port,
         std::function<void(const std::string&, std::string&)> handler,
-        uint32_t nthreads) : port(port), handlerFunction(handler) {
-    threads.resize(nthreads);
-    for(uint32_t i = 0; i < nthreads; ++i) {
-        threads[i] = std::thread(&HttpServer::pullFromQueue, this);
+        uint32_t nthreads,
+        long maxLifeConn) : port(port),
+    maxLifeConn(maxLifeConn), handlerFunction(handler) {
+        threads.resize(nthreads);
+        for(uint32_t i = 0; i < nthreads; ++i) {
+            threads[i] = std::thread(&HttpServer::processSocket, this);
+        }
     }
-}
 
-void HttpServer::pullFromQueue() {
+void HttpServer::processSocket() {
     while (true) {
-        HttpRequestHander handler;
-        queue.pop_wait(handler);
-        if (handler.isEOF()) {
+        Socket socket;
+        queueReady.pop_wait(socket);
+        if (socket.isEOF()) {
             break;
         }
-        handler.processRequest(handlerFunction);
+
+        int connFd = socket.getFD();
+        //Read the data and print it on screen
+        try {
+            char buffer[1024];
+            std::string request = "";
+            auto len = read(connFd, buffer, 1024);
+            if (len == 0) { //Client has closed the conversation
+                socket.close();
+                queueWait.push(socket);
+            } else if (len == -1) {
+                socket.close();
+                queueWait.push(socket);
+            } else {
+                request += std::string(buffer, len);
+                std::string response = "";
+                handlerFunction(request, response);
+                long size = 0;
+                do {
+                    size += send(connFd, response.c_str() + size,
+                            response.size() - size, 0);
+                } while (size < response.size());
+                queueWait.push(socket);
+            }
+        } catch (...) {
+            if (connFd != -1) {
+                socket.close();
+                queueWait.push(socket);
+            }
+        }
     }
 }
 
-bool HttpServer::run() {
+void HttpServer::waitForData() {
+    std::vector<pollfd> events;
+    std::vector<long> idletime;
+
+    while (true) {
+        while (!queueWait.isEmpty()) {
+            //Process the sockets
+            Socket s;
+            queueWait.pop(s);
+            if (s.shouldBeClosed()) {
+                //Remove the FD from the list of monitored ones
+                for(auto &el : events) {
+                    if (el.fd == s.getFD()) {
+                        el.fd = -1;
+                        break;
+                    }
+                }
+                //Close the FD
+                shutdown(s.getFD(), 2);
+                close(s.getFD());
+            } else {
+                uint64_t time = chr::duration_cast<chr::milliseconds>(
+                        chr::steady_clock::now().time_since_epoch()).count();
+                //Is the FD already monitored?
+                bool found = false;
+                int validIdx = -1;
+                int i = 0;
+                for(auto &el : events) {
+                    if (el.fd == s.getFD()) {
+                        found = true;
+                        //Update its idle count
+                        idletime[i] = time;
+                        break;
+                    } else if (el.fd == -1) {
+                        validIdx = i;
+                    }
+                    i++;
+                }
+                if (!found) {
+
+                    //Reuse a valid slot or add a new one
+                    if (validIdx == -1) {
+                        pollfd pf;
+                        pf.fd = s.getFD();
+                        pf.events = POLLIN | POLLERR | POLLHUP;
+                        events.push_back(pf);
+                        idletime.push_back(time);
+                    } else {
+                        events[validIdx].fd = s.getFD();
+                        idletime[validIdx] = time;
+                    }
+                }
+            }
+        }
+
+        int retval = poll(events.data(), events.size(), 1000); //Wait max 1sec
+        if (retval > 0) {
+            //Add to queueReady all sockets which have data
+            for(int i = 0; i < events.size(); ++i) {
+                auto &el = events[i];
+                if (el.fd == -1)
+                    continue;
+                if (el.revents & POLLIN) {
+                    queueReady.push(Socket(el.fd));
+                    el.fd = -1; //Remove it from the list...
+                } else if (el.revents != 0) {
+                    shutdown(el.fd, 2);
+                    close(el.fd);
+                    el.fd = -1;
+                } else {
+                    //No update ...
+                }
+            }
+        } else if (retval == 0) {
+            if (!events.empty() && events.back().fd == -1) {
+                events.pop_back();
+                idletime.pop_back();
+            }
+            //Remove connections that were idle for too long
+            uint64_t time = chr::duration_cast<chr::milliseconds>(
+                    chr::steady_clock::now().time_since_epoch()).count();
+            for(int i = 0; i < events.size(); ++i) {
+                if (events[i].fd != -1) {
+                    if ((idletime[i] + maxLifeConn) < time) {
+                        //Remove it...
+                        shutdown(events[i].fd, 2);
+                        close(events[i].fd);
+                        events[i].fd = -1;
+                    }
+                }
+            }
+        } else {
+            LOG(ERRORL) << "Pool failed";
+        }
+    }
+}
+
+bool HttpServer::listn() {
     //Create the socket
     listenFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(listenFd < 0) {
@@ -38,6 +169,9 @@ bool HttpServer::run() {
         return false;
     }
     listen(listenFd, 10);
+
+    //Start the thread that process the incoming sockets
+    threadWait = std::thread(&HttpServer::waitForData, this);
     launched = true;
     while (true) {
         //this is where client connects.
@@ -47,67 +181,28 @@ bool HttpServer::run() {
             return false;
         }
         //Make the socket non-blocking
-        fcntl(connFd, F_SETFL, fcntl(connFd, F_GETFL, 0) | O_NONBLOCK);
-        //Put a HttpRequestHandler in a synchronized queue so that a thread can
-        //take care of it
-        queue.push(HttpRequestHander(connFd));
+        //fcntl(connFd, F_SETFL, fcntl(connFd, F_GETFL, 0) | O_NONBLOCK);
+        //Mark it to be selected if something is available
+        queueWait.push(Socket(connFd));
     }
     launched = false;
 }
 
 void HttpServer::start() {
     launched = false;
-    run();
+    listn();
 }
 
 void HttpServer::stop() {
     //Stop all processing threads
     for(int i = 0; i < threads.size(); ++i)
-        queue.push(HttpRequestHander());
+        queueReady.push(Socket());
     for(auto &t : threads) {
         t.join();
     }
     close(listenFd);
     while (launched) {
         //TODO Wait until the thread has stopped
-    }
-}
-
-void HttpServer::processRequest(Socket &socket,
-        std::function<void(
-            const std::string&, std::string&)> &handler) {
-
-    //Read the data and print it on screen
-    try {
-        char buffer[1024];
-        std::string request = "";
-        auto len = read(connFd, buffer, 1024);
-        if (len == 0) { //Client has closed the conversation
-            shutdown(connFd, 2);
-            close(connFd);
-            connFd = -1;
-            return;
-        } else if (len == -1) {
-            //TODO: There are some errors here, handle?
-
-            //Put in back in the queue, we will look at it later ...
-        } else {
-            request += std::string(buffer, len);
-            std::string response = "";
-            handler(request, response);
-            long size = 0;
-            do {
-                size += send(connFd, response.c_str() + size,
-                        response.size() - size, 0);
-            } while (size < response.size());
-            //shutdown(connFd, 2);
-            //close(connFd);
-        }
-    } catch (...) {
-        if (connFd != -1) {
-            shutdown(connFd, 2);
-            close(connFd);
-        }
     }
 }
 
