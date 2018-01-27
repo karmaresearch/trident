@@ -35,7 +35,8 @@ void HttpServer::processSocket() {
                 socket.close();
                 queueWait.push(socket);
             } else if (len == -1) {
-                socket.close();
+                //can happen. Put it back in the queue, unless there are errors
+                //TODO
                 queueWait.push(socket);
             } else {
                 request += std::string(buffer, len);
@@ -182,8 +183,7 @@ bool HttpServer::listn() {
         }
         //Make the socket non-blocking
         //fcntl(connFd, F_SETFL, fcntl(connFd, F_GETFL, 0) | O_NONBLOCK);
-        //Mark it to be selected if something is available
-        queueWait.push(Socket(connFd));
+        queueReady.push(Socket(connFd));
     }
     launched = false;
 }
