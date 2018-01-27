@@ -16,24 +16,20 @@
 
 class HttpServer {
     private:
-        class HttpRequestHander {
+        class Socket {
             private:
                 int connFd;
                 bool eof;
 
             public:
-                HttpRequestHander(int connFd) : connFd(connFd), eof(false) {
+                Socket(int connFd) : connFd(connFd), eof(false) {
                 }
 
-                HttpRequestHander() : connFd(-1), eof(true) {}
+                Socket() : connFd(-1), eof(true) {}
 
                 bool isEOF() const {
                     return eof;
                 }
-
-                void processRequest(
-                        std::function<void(
-                            const std::string&, std::string&)> &handler);
         };
 
         uint32_t port;
@@ -48,6 +44,10 @@ class HttpServer {
         bool run();
 
         void pullFromQueue();
+
+        void processRequest(Socket &socket,
+                std::function<void(
+                    const std::string&, std::string&)> &handler);
 
     public:
         HttpServer(uint32_t port,

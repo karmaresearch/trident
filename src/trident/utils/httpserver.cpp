@@ -46,6 +46,8 @@ bool HttpServer::run() {
         if (connFd < 0) {
             return false;
         }
+        //Make the socket non-blocking
+        fcntl(connFd, F_SETFL, fcntl(connFd, F_GETFL, 0) | O_NONBLOCK);
         //Put a HttpRequestHandler in a synchronized queue so that a thread can
         //take care of it
         queue.push(HttpRequestHander(connFd));
@@ -71,28 +73,25 @@ void HttpServer::stop() {
     }
 }
 
-void HttpServer::HttpRequestHander::processRequest(std::function<void(
+void HttpServer::processRequest(Socket &socket,
+        std::function<void(
             const std::string&, std::string&)> &handler) {
-
-    //Make the socket non-blocking
-    //fcntl(connFd, F_SETFL, fcntl(connFd, F_GETFL, 0) | O_NONBLOCK);
 
     //Read the data and print it on screen
     try {
         char buffer[1024];
-        while (true) {
-            std::string request = "";
-            auto len = read(connFd, buffer, 1024);
-            if (len == 0) { //Client has closed the conversation
-                shutdown(connFd, 2);
-                close(connFd);
-                connFd = -1;
-                return;
-            } else if (len == -1) {
-                //There are some errors here, handle?
-                //break;
-                throw 10;
-            }
+        std::string request = "";
+        auto len = read(connFd, buffer, 1024);
+        if (len == 0) { //Client has closed the conversation
+            shutdown(connFd, 2);
+            close(connFd);
+            connFd = -1;
+            return;
+        } else if (len == -1) {
+            //TODO: There are some errors here, handle?
+
+            //Put in back in the queue, we will look at it later ...
+        } else {
             request += std::string(buffer, len);
             std::string response = "";
             handler(request, response);
