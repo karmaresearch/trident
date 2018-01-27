@@ -61,6 +61,8 @@ class HttpServer {
         bool isLaunched() {
             return launched;
         }
+
+        static std::string unescape(std::string s);
 };
 
 #endif
