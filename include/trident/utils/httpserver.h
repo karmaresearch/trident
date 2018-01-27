@@ -3,6 +3,7 @@
 
 #include <trident/utils/parallel.h>
 
+#include <strings.h>
 #include <string>
 #include <thread>
 #include <inttypes.h>
