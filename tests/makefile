@@ -4,6 +4,9 @@ CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/gli
 CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/kognac/external/lz4/lib -L../build/kognac/external/sparsehash/src
 CPLUS=g++
 
+test_httpclient:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttpClient -std=c++0x -O0 -g test_httpclient.cpp ../src/trident/utils/httpclient.cpp ../../kognac/src/kognac/log/logs.cpp -lkognac
+
 test_httpserver:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttp -std=c++0x -O0 -g test_httpserver.cpp ../src/trident/utils/httpserver.cpp ../../kognac/src/kognac/log/logs.cpp
 
