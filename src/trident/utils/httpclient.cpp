@@ -1,6 +1,7 @@
 #include <trident/utils/httpclient.h>
 
 #include <kognac/utils.h>
+#include <kognac/logs.h>
 
 #include <iostream>
 #include <sstream>
@@ -40,105 +41,175 @@ bool HttpClient::connect() {
     return true;
 }
 
-bool HttpClient::get(std::string &path, std::string &response) {
-    std::string request = "GET "  + path + " HTTP/1.1\r\nHost: " + address + ":" + std::to_string(port) + "\r\n\r\n";
+bool HttpClient::getResponse(const std::string &request,
+        std::string &headers,
+        std::string &response) {
     int ret = send(sockfd, request.c_str(), request.size(), 0);
     if (ret < 0) {
         return false;
     } else {
         char buffer[1024];
         response = "";
-        std::string rawresponse = "";
+        headers = "";
 
-        bool initialParsing = false;
+        bool processedHeaders = false;
+        bool processBody = false;
 
-        bool determinedSize = false;
         long totalSize = 0; //used if not chunked
         bool isChunked = false;
-        unsigned long sizeChunk = -1;
+        unsigned long sizeChunk = 0;
         unsigned long currentChunkSize = 0;
 
+        //Pointers to the buffer
+        int sizebuffer = 0;
+        const char *remaining;
+
         while (true) {
-            int resp = recv(sockfd , buffer, 1024, 0);
-            if (resp == 0 || resp == -1) {
-                break;
-            } else {
-                if (determinedSize) {
-                    //I am reading content ...
-                    int bufferIdx = 0;
-                    while (bufferIdx < resp) {
-                        if (currentChunkSize < sizeChunk) {
-                            //Read until sizeChunk
-                            int remainingSize = std::min(
-                                    (int)(sizeChunk - currentChunkSize),
-                                    resp - bufferIdx);
-                            response += std::string(buffer + bufferIdx,
-                                    remainingSize);
-                            currentChunkSize += remainingSize;
-                            bufferIdx += remainingSize;
-                        } else if (currentChunkSize == sizeChunk) {
-                            //Must read the next chunk
-                            std::string rest = std::string(buffer +
-                                    bufferIdx + 2,
-                                    resp - bufferIdx - 2);
-                            auto end = rest.find("\r\n");
-                            std::string sSizeChunk = rest.substr(0, end);
-                            std::stringstream ss; //convert the string in a number
-                            ss << std::hex << sSizeChunk;
-                            ss >> sizeChunk;
-                            currentChunkSize = 0;
-                            bufferIdx +=  2 + end + 2;
-                            if (sizeChunk == 0) {
-                                return true;
-                            }
+            if (sizebuffer <= 0) {
+                sizebuffer = recv(sockfd , buffer, 1024, 0);
+                remaining = buffer;
+                if (sizebuffer == 0 || sizebuffer == -1) {
+                    break;
+                }
+            }
+
+            //Process the buffer
+            if (processBody) {
+                //I am reading content ...
+                while (sizebuffer > 0) {
+                    if (currentChunkSize < sizeChunk) {
+                        //Read until sizeChunk
+                        int remainingSize = std::min(
+                                (int)(sizeChunk - currentChunkSize),
+                                sizebuffer);
+                        response += std::string(remaining,
+                                remainingSize);
+                        currentChunkSize += remainingSize;
+                        remaining += remainingSize;
+                        sizebuffer -= remainingSize;
+                    } else if (currentChunkSize == sizeChunk) {
+                        //Must read the next chunk
+                        if (sizebuffer >= 1 && remaining[0] == '\r') {
+                            remaining++;
+                            sizebuffer--;
                         }
-                    }
-                } else {
-                    rawresponse += std::string(buffer, resp);
-                    if (!initialParsing) {
-                        if (rawresponse.size() + resp > 13) {
-                            //Get the response type
-                            if (!Utils::starts_with(rawresponse, "HTTP/1")) {
-                                return false;
-                            } else {
-                                //Read the code. Should be 200
-                                std::string code = rawresponse.substr(9, 3);
-                                if (code != "200") {
-                                    //not supported
-                                    return false;
-                                }
-                            }
-                            initialParsing = true;
+                        if (sizebuffer >= 1 && remaining[0] == '\n') {
+                            remaining++;
+                            sizebuffer--;
                         }
-                    }
-                    if (!determinedSize) {
-                        if (rawresponse.find("Content-Length:") !=
-                                std::string::npos) {
-                            //Not implemented
+                        std::string rest = std::string(remaining, sizebuffer);
+                        auto end = rest.find("\r\n");
+                        if (end == std::string::npos) {
+                            LOG(ERRORL) << "Special case not handled. Must implement it ...";
                             return false;
-                        } else if (rawresponse.
-                                find("Transfer-Encoding: chunked") !=
-                                std::string::npos) {
-                            isChunked = true;
-                            //Read the size of the chunk
-                            auto startidx = rawresponse.find("Transfer-Encoding: chunked");
-                            std::string rest = rawresponse.substr(startidx + 30);
-                            auto endidx = rest.find("\r\n");
-                            std::string sSizeChunk = rest.substr(0, endidx);
-                            std::stringstream ss; //convert the string in a number
-                            ss << std::hex << sSizeChunk;
-                            ss >> sizeChunk;
-                            //Copy the content in body
-                            response = rest.substr(endidx + 2);
-                            currentChunkSize = response.size();
-                            determinedSize = true;
+                        }
+                        std::string sSizeChunk = rest.substr(0, end);
+                        std::stringstream ss; //convert the string to number
+                        ss << std::hex << sSizeChunk;
+                        ss >> sizeChunk;
+                        currentChunkSize = 0;
+                        remaining += end + 2;
+                        sizebuffer -= end + 2;
+                        if (sizeChunk == 0) {
+                            return true;
                         }
                     }
+                }
+
+                //If not chunked and read everthing then exit
+                if (!isChunked && currentChunkSize == sizeChunk) {
+                    return true;
+                }
+            } else if (!processedHeaders) {
+                //Collect headers until '\r\n\r\n'
+                std::string sbuffer = std::string(remaining, sizebuffer);
+                headers += sbuffer;
+                if (headers.find("\r\n\r\n") != std::string::npos) {
+                    auto idx = headers.find("\r\n\r\n");
+                    headers = headers.substr(0, idx);
+                    remaining += idx + 4;
+                    sizebuffer -= idx + 4;
+                    processedHeaders = true;
+                }
+                if (headers.size() > 13) {
+                    //Get the response type
+                    if (!Utils::starts_with(headers, "HTTP/1")) {
+                        LOG(ERRORL) << "No HTTP header";
+                        return false;
+                    } else {
+                        //Read the code. Should be 200
+                        std::string code = headers.substr(9, 3);
+                        if (code != "200") {
+                            //not supported
+                            LOG(ERRORL) << "No 200 code " << code;
+                            return false;
+                        }
+                    }
+                }
+            }
+            if (processedHeaders && !processBody) {
+                //Determine the way to finish reading the body
+                std::string lheaders = headers;
+                std::transform(lheaders.begin(), lheaders.end(),
+                        lheaders.begin(), ::tolower);
+                if (lheaders.find("content-length:") !=
+                        std::string::npos) {
+                    isChunked = false;
+                    //Get the size of the response
+                    auto idx = lheaders.find("content-length:");
+                    std::string line = lheaders.substr(idx + 16);
+                    auto end = line.find("\r\n");
+                    std::stringstream ss;
+                    ss << line.substr(0, end);
+                    ss >> sizeChunk;
+                    processBody = true;
+                } else if (lheaders.
+                        find("transfer-encoding: chunked") !=
+                        std::string::npos) {
+                    isChunked = true;
+                    processBody = true;
                 }
             }
         }
         return true;
     }
+}
+
+bool HttpClient::get(const std::string &path,
+        std::string &headers,
+        std::string &response) {
+    std::string request = "GET "  + path + " HTTP/1.1\r\nHost: " +
+        address + ":" + std::to_string(port) + "\r\n\r\n";
+    return getResponse(request, headers, response);
+}
+
+bool HttpClient::post(const std::string &path,
+        std::map<std::string, std::string> &params,
+        std::string &headers,
+        std::string &response,
+        std::string contenttype) {
+    //Encode the parameters
+    std::string sparams = "";
+    bool first = true;
+    for (auto &pair : params) {
+        if (!first)
+            sparams += "&";
+        if (pair.first == "") {
+            //only value
+            sparams += pair.second;
+        } else {
+            //Key/value
+            sparams += pair.first + "=" + pair.second;
+        }
+        first = false;
+    }
+    //Construct the request
+    std::string request = "POST " + path + " HTTP/1.1\r\nHost: " +
+        address + ":" + std::to_string(port) + "\r\n" + 
+        "Content-Type: " + contenttype + "\r\n" +
+        "Content-Length: " + std::to_string(sparams.size()) + "\r\n\r\n" +
+        sparams;
+    return getResponse(request, headers, response);
 }
 
 void HttpClient::disconnect() {

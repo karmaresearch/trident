@@ -4,6 +4,7 @@
 #include <string>
 #include <inttypes.h>
 #include <string.h>
+#include <map>
 
 #if defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
 #include <sys/socket.h>
@@ -23,6 +24,10 @@ class HttpClient {
         std::string address;
         struct sockaddr_in server;
 
+        bool getResponse(const std::string &request,
+                std::string &headers,
+                std::string &response);
+
     public:
         HttpClient(std::string address, uint32_t port) :
             sockfd(-1), port(port), address(address) {
@@ -32,7 +37,15 @@ class HttpClient {
 
         void disconnect();
 
-        bool get(std::string &path, std::string &response);
+        bool get(const std::string &path,
+                std::string &headers,
+                std::string &response);
+
+        bool post(const std::string &path,
+                std::map<std::string, std::string> &params,
+                std::string &headers,
+                std::string &response,
+                std::string contenttype = "application/x-www-form-urlencoded");
 
         ~HttpClient();
 };

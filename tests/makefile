@@ -5,7 +5,7 @@ CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/ko
 CPLUS=g++
 
 test_httpclient:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttpClient -std=c++0x -O0 -g test_httpclient.cpp ../src/trident/utils/httpclient.cpp ../../kognac/src/kognac/log/logs.cpp -lkognac
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttpClient -std=c++0x -O0 -g test_httpclient.cpp ../src/trident/utils/httpclient.cpp ../../kognac/src/kognac/log/logs.cpp ../src/trident/utils/json.cpp -lkognac
 
 test_httpserver:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttp -std=c++0x -O0 -g test_httpserver.cpp ../src/trident/utils/httpserver.cpp ../../kognac/src/kognac/log/logs.cpp
