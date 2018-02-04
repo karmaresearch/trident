@@ -276,20 +276,21 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         DiskLZ4Writer *writer, int id, long *output) {
     typedef std::istream_iterator<char> isitr;
 
-    size_t sizebuffer = 0;
-    bool gzipped = false;
-    char *buffer = reader->getfile(sizebuffer, gzipped);
+    //size_t sizebuffer = 0;
+    //bool gzipped = false;
+    DiskReader::Buffer buffer = reader->getfile();
     std::vector<char> uncompressedByteArray;
 
     long processedtriples = 0;
-    while (buffer != NULL) {
+    const char *pivotbuffer = buffer.b;
+    while (pivotbuffer != NULL) {
         //Read the file
-        char *input = NULL;
+        const char *input = NULL;
         size_t sizeinput = 0;
-        if (gzipped) {
+        if (buffer.gzipped) {
             LOG(DEBUGL) << "Uncompressing buffer ...";
             uncompressedByteArray.clear();
-            istringstream raw(string(buffer, sizebuffer));
+            istringstream raw(string(pivotbuffer, buffer.size));
             zstr::istream is(raw);
             is.unsetf(std::ios_base::skipws);
             isitr itrstream(is);
@@ -298,8 +299,8 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
             sizeinput = uncompressedByteArray.size();
             LOG(DEBUGL) << "Uncompressing buffer (done)";
         } else {
-            input = buffer;
-            sizeinput = sizebuffer;
+            input = pivotbuffer;
+            sizeinput = buffer.size;
         }
         if (sizeinput == 0) {
             LOG(DEBUGL) << "This should not happen";
@@ -307,9 +308,9 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         }
 
         //Read every char unit all file is processed
-        char *start = input;
-        char *end = input + sizeinput;
-        char *tkn = start;
+        const char *start = input;
+        const char *end = input + sizeinput;
+        const char *tkn = start;
         int pos = 0;
         long triple[3];
         while (start < end) {
@@ -359,11 +360,11 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
             }
         }
 
-        if (gzipped) {
+        if (buffer.gzipped) {
             uncompressedByteArray.clear();
         }
         reader->releasefile(buffer);
-        buffer = reader->getfile(sizebuffer, gzipped);
+        buffer = reader->getfile();
     }
     writer->setTerminated(id);
     *output = processedtriples;
