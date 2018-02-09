@@ -660,32 +660,25 @@ void Loader::dumpPermutation(std::vector<K> &input,
         long maxValue,
         string out,
         char sorter) {
-    //tbb::task_scheduler_init init(parallelProcesses);
     LOG(DEBUGL) << "Start sorting";
     switch (sorter) {
         case IDX_SPO:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess);
             break;
         case IDX_SOP:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_sop, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_sop);
             break;
         case IDX_OSP:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_osp, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_osp);
             break;
         case IDX_OPS:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_ops, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_ops);
             break;
         case IDX_POS:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_pos, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pos);
             break;
         case IDX_PSO:
             ParallelTasks::sort_int(input.begin(), input.begin() + maxValue, K::sLess_pso, parallelProcesses);
-            //tbb::parallel_sort(input.begin(), input.begin() + maxValue, K::sLess_pso);
             break;
         default:
             throw 10;

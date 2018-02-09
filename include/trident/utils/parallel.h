@@ -37,20 +37,15 @@ class ParallelTasks {
 
         //Procedure inspired by https://stackoverflow.com/questions/24130307/performance-problems-in-parallel-mergesort-c
         template<typename It, typename Cmp>
-            static void sort_int(It begin, It end, const Cmp &cmp, uint32_t nthreads) {
+            static void sort_int(It begin, It end, const Cmp &cmp, long nthreads) {
                 auto len = std::distance(begin, end);
                 if (len <= 1024 || nthreads < 2) {
                     std::sort(begin, end, cmp);
                 } else {
                     It mid = std::next(begin, len / 2);
-                    if (nthreads > 1) {
-                        auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads - 2);
-                        sort_int<It,Cmp>(mid, end, cmp, nthreads - 2);
-                        fn.wait();
-                    } else {
-                        sort_int<It,Cmp>(begin, mid, cmp, 0);
-                        sort_int<It,Cmp>(mid, end, cmp, 0);
-                    }
+                    auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads - 2);
+                    sort_int<It,Cmp>(mid, end, cmp, nthreads - 2);
+                    fn.wait();
                     std::inplace_merge(begin, mid, end, cmp);
                 }
             }
@@ -70,15 +65,10 @@ class ParallelTasks {
                     std::sort(begin, end);
                 } else {
                     It mid = std::next(begin, len / 2);
-                    if (nthreads > 1) {
-                        auto fn = std::async(ParallelTasks::sort_int<It>, begin,
-                                mid, nthreads - 2);
-                        sort_int<It>(mid, end, nthreads - 2);
-                        fn.wait();
-                    } else {
-                        sort_int<It>(begin, mid, 0);
-                        sort_int<It>(mid, end, 0);
-                    }
+                    auto fn = std::async(ParallelTasks::sort_int<It>, begin,
+                            mid, nthreads - 2);
+                    sort_int<It>(mid, end, nthreads - 2);
+                    fn.wait();
                     std::inplace_merge(begin, mid, end);
                 }
             }
