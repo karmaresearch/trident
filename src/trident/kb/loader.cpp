@@ -1851,25 +1851,26 @@ void Loader::loadKB_createTree(KB &kb,
     }
 
     LOG(DEBUGL) << "Start creating the tree...";
-    SharedStructs structs;
-    structs.bufferToFill = structs.bufferToReturn = &structs.buffer1;
-    structs.isFinished = false;
-    structs.buffersReady = 0;
+    std::unique_ptr<SharedStructs> structs = std::unique_ptr<SharedStructs>(
+            new SharedStructs());
+    structs->bufferToFill = structs->bufferToReturn = &structs->buffer1;
+    structs->isFinished = false;
+    structs->buffersReady = 0;
 
     ParamsMergeCoordinates params;
     params.coordinates = sTreeWriters;
     params.ncoordinates = graphTransformation != "" ? 2 : 6;
 
-    params.bufferToFill = structs.bufferToFill;
-    params.isFinished = &structs.isFinished;
-    params.buffersReady = &structs.buffersReady;
-    params.buffer1 = &structs.buffer1;
-    params.buffer2 = &structs.buffer2;
-    params.cond = &structs.cond;
-    params.mut = &structs.mut;
+    params.bufferToFill = structs->bufferToFill;
+    params.isFinished = &structs->isFinished;
+    params.buffersReady = &structs->buffersReady;
+    params.buffer1 = &structs->buffer1;
+    params.buffer2 = &structs->buffer2;
+    params.cond = &structs->cond;
+    params.mut = &structs->mut;
     threads[0] = std::thread(
             std::bind(&Loader::mergeTermCoordinates, params));
-    processTermCoordinates(ins, &structs);
+    processTermCoordinates(ins, structs.get());
     threads[0].join();
     if (storeDicts) {
         threads[1].join();
