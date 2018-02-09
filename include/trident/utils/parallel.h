@@ -30,6 +30,60 @@ class ParallelTasks {
     private:
         static long nthreads;
 
+        template<typename It, typename Cmp>
+            static void inplace_merge(It begin,
+                    It mid,
+                    It end,
+                    const Cmp &cmp) {
+                It a = begin;
+                while (std::distance(a, mid)) {
+                    bool res = cmp(*a, *mid);
+                    if (!res) {
+                        std::iter_swap(a, mid);
+                        //Keep swapping
+                        It c = mid;
+                        It d = std::next(mid, 1);
+                        while (std::distance(d, end) && !cmp(*c, *d)) {
+                            std::iter_swap(c, d);
+                            std::advance(c, 1);
+                            std::advance(d, 1);
+                        }
+                    }
+                    std::advance(a, 1);
+                }
+            }
+
+        template<typename It, typename Cmp>
+            static void merge(It begin,
+                    It mid,
+                    It end,
+                    const Cmp &cmp) {
+                std::vector<typename std::iterator_traits<It>::value_type> support;
+                support.resize(std::distance(begin, end));
+                long idxSupport = 0;
+                It a = begin;
+                It b = mid;
+                while (true) {
+                    auto dist1 = std::distance(a, mid);
+                    auto dist2 = std::distance(b, end);
+                    if (!dist1 && !dist2)
+                        break;
+                    bool res = dist1 &&
+                        (!dist2 || cmp(*a, *b));
+                    if (!res) {
+                        support[idxSupport] = *b;
+                        std::advance(b, 1);
+                    } else {
+                        support[idxSupport] = *a;
+                        std::advance(a, 1);
+                    }
+                    idxSupport++;
+                }
+                //Copy back ...
+                std::copy(support.begin(), support.end(), begin);
+            }
+
+
     public:
         static void setNThreads(uint32_t nthreads) {
             ParallelTasks::nthreads = nthreads;
@@ -46,7 +100,7 @@ class ParallelTasks {
                     auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads / 2);
                     sort_int<It,Cmp>(mid, end, cmp, nthreads / 2);
                     fn.wait();
-                    std::inplace_merge(begin, mid, end, cmp);
+                    ParallelTasks::merge(begin, mid, end, cmp);
                 }
             }
 
