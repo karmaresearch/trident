@@ -449,7 +449,7 @@ void PermSorter::sortChunks(string inputdir,
 
     LOG(DEBUGL) << "Start sortChunks";
     //calculate the number of elements
-    long mem = Utils::getSystemMemory() * 0.8;
+    long mem = Utils::getSystemMemory() * 0.4; //it's low because merge sort requires doubles the amount...
     int nperms = additionalPermutations.size() + 1;
     long nelements = mem / (15 * nperms);
     long elementsMainMem = max((long)parallelProcesses,
