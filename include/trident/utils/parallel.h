@@ -43,8 +43,8 @@ class ParallelTasks {
                     std::sort(begin, end, cmp);
                 } else {
                     It mid = std::next(begin, len / 2);
-                    auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads - 2);
-                    sort_int<It,Cmp>(mid, end, cmp, nthreads - 2);
+                    auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads / 2);
+                    sort_int<It,Cmp>(mid, end, cmp, nthreads / 2);
                     fn.wait();
                     std::inplace_merge(begin, mid, end, cmp);
                 }
@@ -66,8 +66,8 @@ class ParallelTasks {
                 } else {
                     It mid = std::next(begin, len / 2);
                     auto fn = std::async(ParallelTasks::sort_int<It>, begin,
-                            mid, nthreads - 2);
-                    sort_int<It>(mid, end, nthreads - 2);
+                            mid, nthreads / 2);
+                    sort_int<It>(mid, end, nthreads / 2);
                     fn.wait();
                     std::inplace_merge(begin, mid, end);
                 }

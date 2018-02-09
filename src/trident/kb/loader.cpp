@@ -1659,102 +1659,43 @@ void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
     }
 }
 
-void Loader::loadKB(KB &kb,
-        ParamsLoad &p,
-        long totalCount,
-        string *permDirs,
-        int nperms,
-        int signaturePerms,
-        string *fileNameDictionaries,
-        bool storeDicts,
-        bool relsOwnIDs) {
-
-    //Init params
-    string tmpDir = p.tmpDir;
-    const string kbDir = p.kbDir;
-    int dictionaries = p.dictionaries;
-    string dictMethod = p.dictMethod;
-    int nindices = p.nindices;
-    bool createIndicesInBlocks = p.createIndicesInBlocks;
-    bool aggrIndices = p.aggrIndices;
-    bool canSkipTables = p.canSkipTables;
-    bool sample = p.sample;
-    double sampleRate = p.sampleRate;
-    bool storePlainList = p.storePlainList;
-    //SinkPtr logPtr = p.logPtr;
-    string remoteLocation = p.remoteLocation;
-    long limitSpace = p.limitSpace;
-    int parallelProcesses = p.parallelThreads;
-    int maxReadingThreads = p.maxReadingThreads;
-    string graphTransformation = p.graphTransformation;
-    bool flatTree = p.flatTree;
-    //this->logPtr = logPtr;
-    //End init params
-
+void Loader::loadKB_storeDicts(KB &kb,
+        int dictionaries,
+        string dictMethod,
+        string *fileNameDictionaries) {
     std::thread *threads;
-    if (storeDicts) {
-        LOG(DEBUGL) << "Insert the dictionary in the trees";
-        threads = new std::thread[dictionaries - 1];
-        nTerm *maxValues = new nTerm[dictionaries];
-        if (dictMethod != DICT_SMART) {
-            if (dictionaries > 1) throw 10;
-            insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0],
-                    dictMethod != DICT_HASH, true, false, maxValues);
-            for (int i = 1; i < dictionaries; ++i) {
-                threads[i - 1].join();
-            }
-        } else {
-            insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0], true,
-                    true, true, maxValues);
+    LOG(DEBUGL) << "Insert the dictionary in the trees";
+    threads = new std::thread[dictionaries - 1];
+    nTerm *maxValues = new nTerm[dictionaries];
+    if (dictMethod != DICT_SMART) {
+        if (dictionaries > 1) throw 10;
+        insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0],
+                dictMethod != DICT_HASH, true, false, maxValues);
+        for (int i = 1; i < dictionaries; ++i) {
+            threads[i - 1].join();
         }
+    } else {
+        insertDictionary(0, kb.getDictMgmt(), fileNameDictionaries[0], true,
+                true, true, maxValues);
+    }
 #ifdef REASONING
-        addSchemaTerms(dictionaries, maxValues[0], kb.getDictMgmt());
+    addSchemaTerms(dictionaries, maxValues[0], kb.getDictMgmt());
 #endif
-        delete[] maxValues;
-        delete[] threads;
-        /*** Close the dictionaries ***/
-        LOG(DEBUGL) << "Closing dict...";
-        kb.closeMainDict();
-    }
+    delete[] maxValues;
+    delete[] threads;
+    /*** Close the dictionaries ***/
+    LOG(DEBUGL) << "Closing dict...";
+    kb.closeMainDict();
+}
 
-    LOG(DEBUGL) << "Insert the triples in the indices...";
-    string *sTreeWriters = new string[nindices];
-    TreeWriter **treeWriters = new TreeWriter*[nindices];
-    for (int i = 0; i < nindices; ++i) {
-        sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
-        treeWriters[i] = new TreeWriter(sTreeWriters[i]);
-    }
-
-    //Use aggregated indices
-    string aggr1Dir = tmpDir + string("/aggr1");
-    string aggr2Dir = tmpDir + string("/aggr2");
-    if (aggrIndices && nindices > 1) {
-        Utils::create_directories(aggr1Dir);
-        if (nindices > 3)
-            Utils::create_directories(aggr2Dir);
-    }
-
-    //if sample is requested, create a subdir
-    string sampleDir = tmpDir + string("/sampledir");
-    SimpleTripleWriter *sampleWriter = NULL;
-    if (sample) {
-        Utils::create_directories(sampleDir);
-        sampleWriter = new SimpleTripleWriter(sampleDir, "input", false);
-    }
-
-    //Create n threads where the triples are sorted and inserted in the knowledge base
-    Inserter *ins = kb.insert();
-    LOG(DEBUGL) << "Start sortAndInsert";
-
-    if (nindices != 6) {
-        LOG(ERRORL) << "Support only 6 indices (for now)";
-        throw 1;
-    }
-
-    string outputDirs[6];
-    for (int i = 0; i < 6; ++i) {
-        outputDirs[i] = kbDir + "/p" + to_string(i);
-    }
+void Loader::loadKB_handleGraphTransformations(KB &kb,
+        string graphTransformation,
+        string *permDirs,
+        int nindices,
+        Inserter *ins,
+        bool relsOwnIDs,
+        string kbDir,
+        bool storeDicts) {
 
     if (graphTransformation == "unlabeled") {
         kb.setGraphType(GraphType::DIRECTED);
@@ -1836,30 +1777,77 @@ void Loader::loadKB(KB &kb,
             }
         }
     }
+}
 
-    createIndices(parallelProcesses, maxReadingThreads,
-            ins, createIndicesInBlocks,
-            aggrIndices,canSkipTables, storePlainList,
-            permDirs, outputDirs, aggr1Dir, aggr2Dir, treeWriters, sampleWriter,
-            sampleRate,
-            remoteLocation,
-            limitSpace,
-            totalCount,
-            nindices);
+void Loader::loadKB_createSamples(string kbDir,
+        string sampleDir,
+        int parallelProcesses,
+        int maxReadingThreads,
+        int nperms,
+        double sampleRate,
+        int nindices,
+        ParamsLoad &p,
+        long totalCount,
+        int signaturePerms) {
 
-    if (nindices != 6)
-        nindices = 6; //restore
+    LOG(DEBUGL) << "Creating a sample dataset";
+    string sampleKB = kbDir + string("/_sample");
 
-    for (int i = 0; i < nindices; ++i) {
-        treeWriters[i]->finish();
+    string *samplePermDirs = new string[nperms];
+    for (int i = 0; i < nperms; ++i) {
+        samplePermDirs[i] = sampleKB + string("/permtmp-") + to_string(i);
+        Utils::create_directories(samplePermDirs[i]);
     }
 
-    threads = new std::thread[dictionaries + 1];
+    //Create the permutations
+    createPermutations(sampleDir, 1, 1, samplePermDirs,
+            parallelProcesses, maxReadingThreads);
+
+    //Load a smaller KB
+    KBConfig config;
+    config.setParamInt(DICTPARTITIONS, 1);
+    config.setParamInt(NINDICES, nindices);
+    config.setParamBool(AGGRINDICES, false);
+    config.setParamBool(USEFIXEDSTRAT, false);
+    printStats = false;
+    MemoryOptimizer::optimizeForWriting((long)(totalCount * sampleRate), config);
+    KB kb(sampleKB.c_str(), false, false, false, config);
+
+    ParamsLoad samplep = p;
+    samplep.kbDir = sampleKB;
+    samplep.tmpDir = sampleKB;
+    //samplep.logPtr = NULL;
+    samplep.limitSpace = 0;
+    samplep.remoteLocation = "";
+    samplep.sample = false;
+    loadKB(kb,
+            samplep,
+            totalCount * p.sampleRate,
+            samplePermDirs,
+            nperms,
+            signaturePerms,
+            NULL,
+            false,
+            false);
+
+    delete[] samplePermDirs;
+}
+
+void Loader::loadKB_createTree(KB &kb,
+        string *sTreeWriters,
+        TreeWriter **treeWriters,
+        bool storeDicts,
+        string graphTransformation,
+        Inserter *ins,
+        int nindices) {
+
+    std::thread *threads;
+    threads = new std::thread[2];
     LOG(DEBUGL) << "Compress the dictionary nodes...";
-    for (int i = 0; i < dictionaries && storeDicts; ++i) {
-        threads[i + 1] = std::thread(
+    if (storeDicts) {
+        threads[1] = std::thread(
                 std::bind(&NodeManager::compressSpace,
-                    kb.getDictPath(i)));
+                    kb.getDictPath(0)));
     }
 
     LOG(DEBUGL) << "Start creating the tree...";
@@ -1882,8 +1870,9 @@ void Loader::loadKB(KB &kb,
     threads[0] = std::thread(
             std::bind(&Loader::mergeTermCoordinates, params));
     processTermCoordinates(ins, &structs);
-    for (int i = 0; i < (storeDicts ? dictionaries : 0) + 1; ++i) {
-        threads[i].join();
+    threads[0].join();
+    if (storeDicts) {
+        threads[1].join();
     }
     for (int i = 0; i < nindices; ++i) {
         Utils::remove(sTreeWriters[i]);
@@ -1891,9 +1880,105 @@ void Loader::loadKB(KB &kb,
     }
     delete[] sTreeWriters;
     delete[] treeWriters;
-
-    delete ins;
     delete[] threads;
+}
+
+void Loader::loadKB(KB &kb,
+        ParamsLoad &p,
+        long totalCount,
+        string *permDirs,
+        int nperms,
+        int signaturePerms,
+        string *fileNameDictionaries,
+        bool storeDicts,
+        bool relsOwnIDs) {
+
+    //Init params
+    string tmpDir = p.tmpDir;
+    const string kbDir = p.kbDir;
+    int dictionaries = p.dictionaries;
+    string dictMethod = p.dictMethod;
+    int nindices = p.nindices;
+    bool createIndicesInBlocks = p.createIndicesInBlocks;
+    bool aggrIndices = p.aggrIndices;
+    bool canSkipTables = p.canSkipTables;
+    bool sample = p.sample;
+    double sampleRate = p.sampleRate;
+    bool storePlainList = p.storePlainList;
+    string remoteLocation = p.remoteLocation;
+    long limitSpace = p.limitSpace;
+    int parallelProcesses = p.parallelThreads;
+    int maxReadingThreads = p.maxReadingThreads;
+    string graphTransformation = p.graphTransformation;
+    bool flatTree = p.flatTree;
+    //End init params
+
+    if (storeDicts) {
+        loadKB_storeDicts(kb, dictionaries, dictMethod, fileNameDictionaries);
+    }
+
+    LOG(DEBUGL) << "Insert the triples in the indices...";
+    string *sTreeWriters = new string[nindices];
+    TreeWriter **treeWriters = new TreeWriter*[nindices];
+    for (int i = 0; i < nindices; ++i) {
+        sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
+        treeWriters[i] = new TreeWriter(sTreeWriters[i]);
+    }
+
+    //Use aggregated indices
+    string aggr1Dir = tmpDir + string("/aggr1");
+    string aggr2Dir = tmpDir + string("/aggr2");
+    if (aggrIndices && nindices > 1) {
+        Utils::create_directories(aggr1Dir);
+        if (nindices > 3)
+            Utils::create_directories(aggr2Dir);
+    }
+
+    //if sample is requested, create a subdir
+    string sampleDir = tmpDir + string("/sampledir");
+    SimpleTripleWriter *sampleWriter = NULL;
+    if (sample) {
+        Utils::create_directories(sampleDir);
+        sampleWriter = new SimpleTripleWriter(sampleDir, "input", false);
+    }
+
+    //Create n threads where the triples are sorted and inserted in the knowledge base
+    Inserter *ins = kb.insert();
+    LOG(DEBUGL) << "Start sortAndInsert";
+
+    if (nindices != 6) {
+        LOG(ERRORL) << "Support only 6 indices (for now)";
+        throw 1;
+    }
+
+    string outputDirs[6];
+    for (int i = 0; i < 6; ++i) {
+        outputDirs[i] = kbDir + "/p" + to_string(i);
+    }
+
+    loadKB_handleGraphTransformations(kb, graphTransformation, permDirs,
+            nindices, ins, relsOwnIDs, kbDir, storeDicts);
+
+    createIndices(parallelProcesses, maxReadingThreads,
+            ins, createIndicesInBlocks,
+            aggrIndices,canSkipTables, storePlainList,
+            permDirs, outputDirs, aggr1Dir, aggr2Dir, treeWriters, sampleWriter,
+            sampleRate,
+            remoteLocation,
+            limitSpace,
+            totalCount,
+            nindices);
+
+    if (nindices != 6)
+        nindices = 6; //restore
+
+    for (int i = 0; i < nindices; ++i) {
+        treeWriters[i]->finish();
+    }
+
+    loadKB_createTree(kb, sTreeWriters, treeWriters, storeDicts,
+            graphTransformation, ins, nindices);
+    delete ins;
 
     if (flatTree || graphTransformation != "") {
         LOG(DEBUGL) << "Load flat representation ...";
@@ -1913,49 +1998,11 @@ void Loader::loadKB(KB &kb,
     }
 
     if (sample) {
-        LOG(DEBUGL) << "Creating a sample dataset";
         delete sampleWriter;
-        string sampleKB = kbDir + string("/_sample");
-
-        string *samplePermDirs = new string[nperms];
-        for (int i = 0; i < nperms; ++i) {
-            samplePermDirs[i] = sampleKB + string("/permtmp-") + to_string(i);
-            Utils::create_directories(samplePermDirs[i]);
-        }
-
-        //Create the permutations
-        createPermutations(sampleDir, 1, 1, samplePermDirs,
-                parallelProcesses, maxReadingThreads);
-
-        //Load a smaller KB
-        KBConfig config;
-        config.setParamInt(DICTPARTITIONS, dictionaries);
-        config.setParamInt(NINDICES, nindices);
-        config.setParamBool(AGGRINDICES, aggrIndices);
-        config.setParamBool(USEFIXEDSTRAT, false);
-        printStats = false;
-        MemoryOptimizer::optimizeForWriting((long)(totalCount * sampleRate), config);
-        KB kb(sampleKB.c_str(), false, false, false, config);
-
-        ParamsLoad samplep = p;
-        samplep.kbDir = sampleKB;
-        samplep.tmpDir = sampleKB;
-        //samplep.logPtr = NULL;
-        samplep.limitSpace = 0;
-        samplep.remoteLocation = "";
-        samplep.sample = false;
-        loadKB(kb,
-                samplep,
-                totalCount * p.sampleRate,
-                samplePermDirs,
-                nperms,
-                signaturePerms,
-                fileNameDictionaries,
-                false,
-                false);
-
+        loadKB_createSamples(kbDir, sampleDir, parallelProcesses,
+                maxReadingThreads, nperms, sampleRate,
+                nindices, p, totalCount, signaturePerms);
         Utils::remove_all(sampleDir);
-        delete[] samplePermDirs;
     }
 
     LOG(DEBUGL) << "...completed.";
