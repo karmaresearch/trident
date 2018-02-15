@@ -272,12 +272,12 @@ uint64_t ResultsPrinter::first()
         (&runtime.getTemporaryDictionary()) : 0;
     QueryDict *dictQuery = runtime.getQueryDict();
     if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
-    if (!silent && !jsonoutput && duplicateHandling == ReduceDuplicates) {
+    if (!silent && !jsonoutput && duplicateHandling == ExpandDuplicates) {
         do {
             for (vector<Register*>::const_iterator iter = output.begin(),
                     limit = output.end(); iter != limit; ++iter) {
                 uint64_t id = (*iter)->value;
-                if (!DictMgmt::isnumeric(id)) {
+                if (DictMgmt::isnumeric(id)) {
                     cout << DictMgmt::tostr(id);
                 } else {
                     CacheEntry c;
@@ -295,6 +295,7 @@ uint64_t ResultsPrinter::first()
                     }
                     //print cache entry
                     c.print(cout, false);
+                    cout << " ";
                 }
             }
             cout << '\n';
