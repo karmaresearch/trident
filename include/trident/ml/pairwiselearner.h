@@ -5,8 +5,7 @@
 #include <trident/ml/embeddings.h>
 #include <trident/ml/batch.h>
 #include <trident/kb/querier.h>
-
-#include <tbb/concurrent_queue.h>
+#include <trident/utils/parallel.h>
 
 struct _PairwiseSorter {
     const std::vector<uint64_t> &vec;
@@ -33,10 +32,14 @@ class PairwiseLearner : public Learner {
             Learner(kb, p), gen(rd()), dis(0, ne - 1) {
             }
 
-        void process_batch(BatchIO &io, const uint16_t epoch, const uint16_t
+        void process_batch(BatchIO &io, const uint32_t epoch, const uint16_t
                 nbatches);
 
-        virtual void process_batch(BatchIO &io, std::vector<uint64_t> &oneg,
+        virtual void process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &oneg,
                 std::vector<uint64_t> &sneg) = 0;
+
+        bool generateViolations() {
+            return true;
+        }
 };
 #endif

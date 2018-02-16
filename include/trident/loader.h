@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef LOADER_H_
@@ -547,6 +547,39 @@ class Loader {
                 string remoteLocation,
                 long limitSpace,
                 long estimatedSize,
+                int nindices);
+
+        void loadKB_createSamples(string kbDir,
+                string sampleDir,
+                int parallelProcesses,
+                int maxReadingThreads,
+                int nperms,
+                double sampleRate,
+                int nindices,
+                ParamsLoad &p,
+                long totalCount,
+                int signaturePerms);
+
+        void loadKB_storeDicts(KB &kb,
+                int dictionaries,
+                string dictMethod,
+                string *fileNameDictionaries);
+
+        void loadKB_handleGraphTransformations(KB &kb,
+                string graphTransformation,
+                string *permDirs,
+                int nindices,
+                Inserter *ins,
+                bool relsOwnIDs,
+                string kbDir,
+                bool storeDicts);
+
+        void loadKB_createTree(KB &kb,
+                string *sTreeWriters,
+                TreeWriter **treeWriters,
+                bool storeDicts,
+                string graphTransformation,
+                Inserter *ins,
                 int nindices);
 
         void loadKB(KB &kb,

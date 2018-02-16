@@ -54,7 +54,7 @@ namespace {
         }
     }
     //---------------------------------------------------------------------------
-    void CacheEntry::print(ostream &out, const map<uint64_t, CacheEntry>& stringCache, bool escape) const
+    void CacheEntry::print(ostream &out/*, const map<uint64_t, CacheEntry>& stringCache*/, bool escape) const
         // Print it
     {
         switch (type) {
@@ -69,17 +69,20 @@ namespace {
                 out << '"';
                 break;
             case Type::CustomLanguage:
+                throw 10;
                 out << '"';
                 printValue(out, escape);
-                out << "\"@";
-                (*stringCache.find(subType)).second.printValue(out, escape);
+                LOG(WARNL) << "Printing of customLanguage is disabled...";
+                //out << "\"@";
+                //(*stringCache.find(subType)).second.printValue(out, escape);
                 break;
             case Type::CustomType:
                 out << '"';
                 printValue(out, escape);
-                out << "\"^^<";
-                (*stringCache.find(subType)).second.printValue(out, escape);
-                out << ">";
+                LOG(WARNL) << "Printing of customType is disabled...";
+                //out << "\"^^<";
+                //(*stringCache.find(subType)).second.printValue(out, escape);
+                //out << ">";
                 break;
             case Type::String:
                 out << '"';
@@ -114,13 +117,13 @@ namespace {
         }
     }
     //---------------------------------------------------------------------------
-    void CacheEntry::print(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
-        print(cout, stringCache, escape);
+    void CacheEntry::print(/*const map<uint64_t, CacheEntry>& stringCache,*/ bool escape) const {
+        print(cout, /*stringCache,*/ escape);
     }
     //---------------------------------------------------------------------------
-    string CacheEntry::tostring(const map<uint64_t, CacheEntry>& stringCache, bool escape) const {
+    string CacheEntry::tostring(/*const map<uint64_t, CacheEntry>& stringCache,*/ bool escape) const {
         ostringstream os;
-        print(os, stringCache, escape);
+        print(os, /*stringCache,*/ escape);
         return os.str();
     }
     //---------------------------------------------------------------------------
@@ -132,7 +135,7 @@ namespace {
             cout << "NULL";
         else {
             if (!DictMgmt::isnumeric(*start)) {
-                stringCache[*start].print(stringCache, escape);
+                stringCache[*start].print(/*stringCache,*/ escape);
             } else {
                 cout << DictMgmt::tostr(*start);
             }
@@ -143,7 +146,7 @@ namespace {
                 cout << "NULL";
             else {
                 if (!DictMgmt::isnumeric(*start)) {
-                    stringCache[*start].print(stringCache, escape);
+                    stringCache[*start].print(/*stringCache,*/ escape);
                 } else {
                     cout << DictMgmt::tostr(*start);
                 }
@@ -166,7 +169,7 @@ void formatJSONRow(const std::vector<std::string> &columns,
             fbinding.put("type", "literal");
             fbinding.put("value", "NULL");
         } else {
-            std::string el = stringCache[*start].tostring(stringCache, false);
+            std::string el = stringCache[*start].tostring(/*stringCache,*/ false);
             if (el[0] == '<' && el.size() > 2) {
                 fbinding.put("type", "uri");
                 fbinding.put("value", el.substr(1, el.size() - 2));
@@ -183,7 +186,7 @@ void formatJSONRow(const std::vector<std::string> &columns,
                 binding.put("type", "literal");
                 binding.put("value", "NULL");
             } else {
-                std::string el = stringCache[*start].tostring(stringCache, false);
+                std::string el = stringCache[*start].tostring(/*stringCache,*/ false);
                 if (el[0] == '<' && el.size() > 2) {
                     binding.put("type", "uri");
                     binding.put("value", el.substr(1, el.size() - 2));
@@ -263,6 +266,44 @@ uint64_t ResultsPrinter::first()
         return 1;
     }
 
+    //If there are no modifiers I simply print out the strings as they come
+    //without any caching...
+    TemporaryDictionary* tempDict = runtime.hasTemporaryDictionary() ?
+        (&runtime.getTemporaryDictionary()) : 0;
+    QueryDict *dictQuery = runtime.getQueryDict();
+    if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
+    if (!silent && !jsonoutput && duplicateHandling == ExpandDuplicates) {
+        do {
+            for (vector<Register*>::const_iterator iter = output.begin(),
+                    limit = output.end(); iter != limit; ++iter) {
+                uint64_t id = (*iter)->value;
+                if (DictMgmt::isnumeric(id)) {
+                    cout << DictMgmt::tostr(id);
+                } else {
+                    CacheEntry c;
+                    if (dictQuery && dictQuery->hasID(id)) {
+                        //I need to set c.start and c.stop
+                        std::pair<char*, char*> pair = dictQuery->getStringBoundaries(id);
+                        c.start = pair.first;
+                        c.stop = pair.second;
+                        c.type = Type::Literal;
+                    } else {
+                        if (tempDict)
+                            tempDict->lookupById(id, c.start, c.stop, c.type, c.subType);
+                        else
+                            dictionary.lookupById(id, c.start, c.stop, c.type, c.subType);
+                    }
+                    //print cache entry
+                    c.print(cout, false);
+                    cout << " ";
+                }
+            }
+            cout << '\n';
+            nrows++;
+        } while ((count == input->next()) != 0);
+        return 1;
+    }
+
     // Collect the values
     vector<uint64_t> results;
     map<uint64_t, CacheEntry> stringCache;
@@ -270,7 +311,7 @@ uint64_t ResultsPrinter::first()
     uint64_t entryCount = 0;
     do {
         if (count < minCount) continue;
-        results.push_back(count);
+        //results.push_back(count);
         for (vector<Register*>::const_iterator iter = output.begin(), limit = output.end(); iter != limit; ++iter) {
             uint64_t id = (*iter)->value;
             results.push_back(id);
@@ -287,10 +328,6 @@ uint64_t ResultsPrinter::first()
 
     // Lookup the strings
     set<unsigned> subTypes;
-    TemporaryDictionary* tempDict = runtime.hasTemporaryDictionary() ?
-        (&runtime.getTemporaryDictionary()) : 0;
-    QueryDict *dictQuery = runtime.getQueryDict();
-    if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
     for (map<uint64_t, CacheEntry>::iterator iter = stringCache.begin(),
             limit = stringCache.end(); iter != limit; ++iter) {
         CacheEntry& c = (*iter).second;
@@ -305,9 +342,6 @@ uint64_t ResultsPrinter::first()
             if (tempDict)
                 tempDict->lookupById((*iter).first, c.start, c.stop, c.type, c.subType);
             else
-                // if (diffIndex)
-                //diffIndex->lookupById((*iter).first, c.start, c.stop, c.type, c.subType);
-                //else
                 dictionary.lookupById((*iter).first, c.start, c.stop, c.type, c.subType);
 
             //Copy the text in a permanent data structure
@@ -333,8 +367,6 @@ uint64_t ResultsPrinter::first()
         CacheEntry& c = stringCache[*iter];
         if (tempDict)
             tempDict->lookupById(*iter, c.start, c.stop, c.type, c.subType);
-        //else if (diffIndex)
-        //    diffIndex->lookupById(*iter, c.start, c.stop, c.type, c.subType);
         else
             dictionary.lookupById(*iter, c.start, c.stop, c.type, c.subType);
 
@@ -349,7 +381,6 @@ uint64_t ResultsPrinter::first()
         c.start = buf_current.get() + buf_size;
         c.stop = c.start + len;
         buf_size += len;
-        //Copying done
     }
 
     if (jsonoutput) {
@@ -390,7 +421,6 @@ uint64_t ResultsPrinter::first()
             iter += columns;
         }
     }
-
     return 1;
 }
 //---------------------------------------------------------------------------

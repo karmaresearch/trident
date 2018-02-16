@@ -9,7 +9,6 @@
 cmake_minimum_required (VERSION 2.8)
 project (Trident)
 include(ExternalProject)
-include(FindPkgConfig)
 set(CMAKE_MACOSX_RPATH 1)
 
 if(COMMAND cmake_policy)
@@ -99,17 +98,6 @@ ELSE()
     message("-- Found LZ4")
 ENDIF()
 
-#TBB
-find_library(tbb tbb PATHS ENV LD_LIBRARY_PATH)
-find_path (tbbh tbb/task_scheduler_init.h PATHS ENV CPATH)
-IF ((${tbb} STREQUAL "tbb-NOTFOUND") OR (${tbbh} STREQUAL "tbbh-NOTFOUND"))
-    message(FATAL_ERROR "Could not find TBB (thread building blocks)")
-ELSE()
-    # add link directory for tbb, gcc does not look in LD_LIBRARY_PATH
-    get_filename_component(pdir ${tbb} PATH)
-    LINK_DIRECTORIES(${pdir})
-ENDIF()
-
 #KOGNAC
 IF(KOGNAC_LIB)
     message("Using KOGNAC provided installation: ${KOGNAC_LIB} ${KOGNAC_INC}")
@@ -157,7 +145,7 @@ find_package(Threads REQUIRED)
 if (THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC trident-core "-pthread")
 endif()
-TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac kognac-log lz4 tbb)
+TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac kognac-log lz4)
 if (CMAKE_THREAD_LIBS_INIT)
     target_link_libraries(trident-core "${CMAKE_THREAD_LIBS_INIT}")
 endif()
@@ -234,25 +222,18 @@ ENDIF()
 IF (SERVER)
     file(GLOB webserver_SRC
         "src/trident/server/*.cpp")
-    #Boost
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_MULTITHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME OFF)
-    FIND_PACKAGE(Boost COMPONENTS system REQUIRED)
-    IF (Boost_FOUND)
-        INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} SYSTEM)
-    ENDIF()
     #CURL
-    find_library(curl curl)
+    #find_library(curl curl)
 
     add_library(trident-web SHARED ${webserver_SRC})
     set_target_properties(trident-web PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-web kognac trident-core trident-sparql "curl" ${Boost_LIBRARIES})
+    TARGET_LINK_LIBRARIES(trident-web kognac trident-core trident-sparql)
     TARGET_LINK_LIBRARIES(trident trident-web)
 ENDIF()
 
 #Create Python library
 IF(PYTHON)
+    include(FindPkgConfig)
     pkg_check_modules(PY3 REQUIRED QUIET python3)
     IF(PY3_FOUND)
         INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})

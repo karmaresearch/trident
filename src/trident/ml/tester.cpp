@@ -2,6 +2,21 @@
 #include <trident/ml/transetester.h>
 #include <trident/ml/batch.h>
 
+PredictParams::PredictParams() {
+    nametestset = "";
+    nthreads = 1;
+    path_modele = "";
+    path_modelr = "";
+}
+
+string PredictParams::changeable_tostring() {
+    string out = "nametestset=" + nametestset;
+    out += ";nthreads=" + to_string(nthreads);
+    out += ";path_modele=" + path_modele;
+    out += ";path_modelr=" + path_modelr;
+    return out;
+}
+
 void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     //Load model
     std::shared_ptr<Embeddings<double>> E;

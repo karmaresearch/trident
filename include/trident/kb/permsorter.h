@@ -33,12 +33,6 @@ class PermSorter {
     private:
         static void writeTermInBuffer(char *buffer, const long n);
 
-        static void sortChunks_seq_old(const int idReader,
-                MultiDiskLZ4Reader *reader,
-                char *start,
-                char *end,
-                long *count);
-
         static void sortChunks_seq(const int idReader,
                 MultiDiskLZ4Reader *reader,
                 std::vector<std::unique_ptr<char[]>> *rawTriples,
@@ -48,26 +42,11 @@ class PermSorter {
                 std::vector<std::pair<string, char>> additionalPermutations,
                 bool outputSPO);
 
-        static void dumpPermutation_seq_old(
-                char *rawinput,
-                long *start,
-                long *end,
-                MultiDiskLZ4Writer *currentWriter,
-                int currentPart,
-                int sorter);
-
         static void dumpPermutation_seq(
                 char *start,
                 char *end,
                 MultiDiskLZ4Writer *currentWriter,
                 int currentPart);
-
-        static void dumpPermutation_old(char *input, long end,
-                int parallelProcesses,
-                int maxReadingThreads,
-                string outputFile,
-                std::vector<long> &idx,
-                int sorter);
 
         static void dumpPermutation(char *input, long end,
                 int parallelProcesses,
@@ -76,20 +55,10 @@ class PermSorter {
 
         static bool isMax(char *input, long idx);
 
-        static void sortPermutation_old(char *rawinput,
-                std::vector<long> *idx,
-                int sorter);
-
         static void sortPermutation(char *start,
-                char *end);
+                char *end, int nthreads);
 
     public:
-        static void sortChunks_Old(string inputdir,
-                int maxReadingThreads,
-                int parallelProcesses,
-                long estimatedSize,
-                std::vector<std::pair<string, char>> &additionalPermutations);
-
         static void sortChunks(string inputdir,
                 int maxReadingThreads,
                 int parallelProcesses,

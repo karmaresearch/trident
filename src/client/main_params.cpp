@@ -7,6 +7,10 @@
 #include <snap/tasks.h>
 #endif
 
+#ifdef ML
+#include <trident/ml/learner.h>
+#endif
+
 #include <iostream>
 
 using namespace std;
@@ -72,6 +76,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "dump"
             && cmd != "learn"
             && cmd != "predict"
+            && cmd != "subcreate"
             && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
@@ -239,6 +244,7 @@ bool checkMachineConstraints() {
 bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     std::map<string, ProgramArgs::GroupArgs*> sections;
 
+    /***** QUERY *****/
     ProgramArgs::GroupArgs& query_options = *vm.newGroup("Options for <query>");
     query_options.add<string>("q","query", "",
             "The path of the file with a SPARQL query. If not set then the query is read from STDIN.", false);
@@ -251,6 +257,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     query_options.add<bool>("", "disbifsampl", false,
             "Disable bifocal sampling (accurate but expensive). Default is false", false);
 
+    /***** LOAD *****/
     ProgramArgs::GroupArgs& load_options = *vm.newGroup("Options for <load>");
     load_options.add<string>("","inputformat", "rdf", "Input format. Can be either 'rdf' or 'snap'. Default is 'rdf'.", false);
     load_options.add<string>("","comprinput", "", "Path to a file that contains a list of compressed triples.", false);
@@ -278,43 +285,52 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     load_options.add<bool>("","enableFixedStrat", false, "Should we store the tables with a fixed layout?. Default is 'false'", false);
     string textStrat = "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(StorageStrat::FIXEDSTRAT5) + " for row-layout " + to_string(StorageStrat::FIXEDSTRAT6) + " for a cluster-layout " + to_string(StorageStrat::FIXEDSTRAT7);
     load_options.add<int>("","fixedStrat", StorageStrat::FIXEDSTRAT5, textStrat.c_str(), false);
-
     load_options.add<int>("","popArg", 128,
             "Argument for the method to identify the popular terms. If the method is sample, then it represents the sample percentage (x/10000)."
             "If it it hash, then it indicates the number of popular terms."
             "Default value is 128.", false);
-
     load_options.add<string>("","remoteLoc", "", "", false);
     load_options.add<long>("","limitSpace", 0, "", false);
     load_options.add<string>("","gf", "", "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels", false);
     load_options.add<bool>("","relsOwnIDs", false, "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED", false);
     load_options.add<bool>("","flatTree", false, "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED", false);
 
+    /***** LOOKUP *****/
     ProgramArgs::GroupArgs& lookup_options = *vm.newGroup("Options for <lookup>");
     lookup_options.add<string>("t","text", "", "Textual term to search", false);
     lookup_options.add<long>("n","number", 0, "Numeric term to search", false);
 
+    /***** TEST *****/
     ProgramArgs::GroupArgs& test_options = *vm.newGroup("Options for <tests> (only advanced usage)");
     test_options.add<string>("", "testqueryfile", "", "Path file to store/load test queries", false);
     test_options.add<string>("", "testperms", "0;1;2;3;4;5", "Permutations to test", false);
     test_options.add<int>("", "testsystem", 0, "Test system. 0=Trident 1=RDF3X", false);
 
+    /***** UPDATES *****/
     ProgramArgs::GroupArgs& update_options = *vm.newGroup("Options for <add> or <rm>");
     update_options.add<string>("", "update", "", "Path to the file/dir that contains the triples to update", false);
 
+    /***** SERVER *****/
     ProgramArgs::GroupArgs& server_options = *vm.newGroup("Options for <server>");
     server_options.add<int>("", "port", 8080, "Port to listen to", false);
+    server_options.add<int>("", "webthreads", 1, "N. of threads for the webserver", false);
 
+    /***** LEARN/PREDICT *****/
+#ifdef ML
     ProgramArgs::GroupArgs& ml_options = *vm.newGroup("Options for <learn> or <predict>");
     ml_options.add<string>("", "algo", "", "The task to perform", false);
-    ml_options.add<string>("","args", "", "arguments for the task, separated by ;", false);
+    ml_options.add<string>("","args_learn", LearnParams().changeable_tostring().c_str(), "List of arguments for 'learn', separated by ;", false);
+    ml_options.add<string>("","args_predict", PredictParams().changeable_tostring().c_str(), "List of arguments for 'predict', separated by ;", false);
+#endif
 
+    /***** MINE *****/
     ProgramArgs::GroupArgs& mine_options = *vm.newGroup("Options for <mine>");
     mine_options.add<long>("", "minSupport", 1000, "Min support for the patterns to mine", false);
     mine_options.add<int>("", "minLen", 2, "Min lengths of the patterns", false);
     mine_options.add<int>("", "maxLen", 10, "Max lengths of the patterns", false);
 
 #ifdef ANALYTICS
+    /***** ANALYTICS *****/
     ProgramArgs::GroupArgs& ana_options = *vm.newGroup("Options for <analytics>");
     ana_options.add<string>("", "op", "", "The analytical operation to perform", false);
     ana_options.add<string>("", "oparg1", "", "First argument for the analytical operation. Normally it is the path to output the results of the computation", false);
@@ -322,21 +338,28 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     ana_options.add<string>("", "oparg2", "", helpstring.c_str(), false);
 #endif
 
+    /***** DUMP *****/
     ProgramArgs::GroupArgs& dump_options = *vm.newGroup("Options for <dump>");
     dump_options.add<string>("", "output", "", "Output directory to store the graph", false);
 
+#ifdef ML
+    /***** SUBGRAPHS *****/
     ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subeval>");
-    subeval_options.add<string>("", "subeval_algo", "",
-            "The algorithm used to create embeddings", false);
-    subeval_options.add<string>("", "embdir", "",
+    subeval_options.add<string>("", "embAlgo", "",
+            "The algorithm used to create the KG embeddings.", false);
+    subeval_options.add<string>("", "subAlgo", "avg",
+            "The algorithm to use for creating the embeddings. Default is 'avg'", false);
+    subeval_options.add<string>("", "embDir", "",
             "The directory that contains the embeddings", false);
-    subeval_options.add<string>("", "nametest", "",
-            "The path (or name) of the dataset to use to test the performance", false);
-    subeval_options.add<string>("", "sgfile", "",
+    subeval_options.add<string>("", "subFile", "",
             "The path of the file that contains embeddings of the subgraphs", false);
-    subeval_options.add<string>("", "sgformat", "",
-            "The format of the subgraphs (for now only 'cikm')", false);
+    subeval_options.add<string>("", "nameTest", "",
+            "The path (or name) of the dataset to use to test the performance", false);
+    subeval_options.add<string>("", "formatTest", "native",
+            "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test/ Otherwise, it is a path of a file.", false);
+#endif
 
+    /***** GENERAL OPTIONS *****/
     ProgramArgs::GroupArgs& cmdline_options = *vm.newGroup("General options");
     cmdline_options.add<string>("i","input", "",
             "The path of the KB directory",true);
@@ -357,8 +380,11 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     sections.insert(make_pair("dump",&dump_options));
     sections.insert(make_pair("mine",&mine_options));
     sections.insert(make_pair("server",&server_options));
+#ifdef ML
     sections.insert(make_pair("learn",&ml_options));
     sections.insert(make_pair("predict",&ml_options));
+    sections.insert(make_pair("subeval",&subeval_options));
+#endif
 
     vm.parse(argc, argv);
     return checkParams(vm, argc, argv, vm, sections);

@@ -6,7 +6,6 @@
 
 class SubgraphHandler {
     private:
-        enum TYPEQUERY { PO, SP };
         std::shared_ptr<Embeddings<double>> E;
         std::shared_ptr<Embeddings<double>> R;
         std::shared_ptr<Subgraphs<double>> subgraphs;
@@ -21,9 +20,13 @@ class SubgraphHandler {
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
                 string algo,
-                TYPEQUERY t, uint64_t v1, uint64_t v2,
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
                 uint32_t topk);
+
+        long numberInstancesInSubgraphs(
+                Querier *q,
+                const std::vector<uint64_t> &subgs);
 
         static void add(double *dest, double *v1, double *v2, uint16_t dim);
 
@@ -33,12 +36,17 @@ class SubgraphHandler {
         SubgraphHandler() {}
 
         void evaluate(KB &kb,
-                string algo,
-                string embdir,
-                string subfile,
-                string subformat,
-                string nametest,
-                string format);
+                string embAlgo,
+                string embDir,
+                string subFile,
+                string subType,
+                string nameTest,
+                string formatTest);
+
+        void create(KB &kb,
+                string subType,
+                string embDir,
+                string subFile);
 
         void getAllSubgraphs(Querier *q);
 };

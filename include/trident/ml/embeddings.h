@@ -220,82 +220,82 @@ class Embeddings {
         }
 
         void store(std::string path, bool compress, uint16_t nthreads) {
-            if (nthreads == 1) {
-                if (compress) {
-                    path = path + ".gz";
-                    zstr::ofstream out(path, std::ofstream::out);
-                    out.write((char*)&n, 4);
-                    out.write((char*)&dim, 2);
-                    K* start  = raw.data();
-                    K* end = raw.data() + raw.size();
-                    while (start != end) {
-                        out.write((char*)start, 8);
-                        start++;
-                    }
-                } else {
-                    ofstream out;
-                    out.open(path, std::ofstream::out);
-                    out.write((char*)&n, 4);
-                    out.write((char*)&dim, 2);
-                    K* start  = raw.data();
-                    K* end = raw.data() + raw.size();
-                    while (start != end) {
-                        out.write((char*)start, 8);
-                        start++;
-                    }
-                }
-            } else {
-                K* data = raw.data();
-                uint32_t *c = conflicts.data();
-                uint32_t *u = updates.data();
-                std::vector<std::thread> threads;
-                uint64_t batchsize = ((long)n * dim) / nthreads;
+            /*if (nthreads == 1) {
+              if (compress) {
+              path = path + ".gz";
+              zstr::ofstream out(path, std::ofstream::out);
+              out.write((char*)&n, 4);
+              out.write((char*)&dim, 2);
+              K* start  = raw.data();
+              K* end = raw.data() + raw.size();
+              while (start != end) {
+              out.write((char*)start, 8);
+              start++;
+              }
+              } else {
+              ofstream out;
+              out.open(path, std::ofstream::out);
+              out.write((char*)&n, 4);
+              out.write((char*)&dim, 2);
+              K* start  = raw.data();
+              K* end = raw.data() + raw.size();
+              while (start != end) {
+              out.write((char*)start, 8);
+              start++;
+              }
+              }
+              } else {*/
+            K* data = raw.data();
+            uint32_t *c = conflicts.data();
+            uint32_t *u = updates.data();
+            std::vector<std::thread> threads;
+            uint64_t batchsize = ((long)n * dim) / nthreads;
 
-                {
-                    std::string metapath = path;
-                    if (compress) {
-                        metapath = metapath + "-meta.gz";
-                        zstr::ofstream ofs(metapath, std::ofstream::out);
-                        ofs.write((char*)&batchsize, 4);
-                        ofs.write((char*)&n, 4);
-                        ofs.write((char*)&dim, 2);
-                    } else {
-                        metapath = metapath + "-meta";
-                        std::ofstream ofs;
-                        ofs.open(metapath, std::ofstream::out);
-                        ofs.write((char*)&batchsize, 4);
-                        ofs.write((char*)&n, 4);
-                        ofs.write((char*)&dim, 2);
-                    }
-                }
-                uint64_t begin = 0;
-                uint16_t idx = 0;
-                for(uint16_t i = 0; i < nthreads; ++i) {
-                    std::string localpath = path + "." + std::to_string(idx);
-                    if (compress)
-                        localpath = localpath + ".gz";
-                    uint64_t end = begin + batchsize;
-                    if (end > ((long)n * dim) || i == nthreads - 1) {
-                        end = (long)n * dim;
-                    }
-                    LOG(DEBUGL) << "Storing " <<
-                        (end - begin) << " values in " << localpath << " ...";
-                    if (begin < end) {
-                        threads.push_back(std::thread(
-                                    Embeddings::_store_params,
-                                    localpath, compress, dim,
-                                    data + begin, data + end,
-                                    c, u));
-                        c += batchsize / dim;
-                        u += batchsize / dim;
-                        idx++;
-                    }
-                    begin = end;
-                }
-                for(uint16_t i = 0; i < threads.size(); ++i) {
-                    threads[i].join();
-                }
+            {
+                std::string metapath = path;
+                /*if (compress) {
+                  metapath = metapath + "-meta.gz";
+                  zstr::ofstream ofs(metapath, std::ofstream::out);
+                  ofs.write((char*)&batchsize, 4);
+                  ofs.write((char*)&n, 4);
+                  ofs.write((char*)&dim, 2);
+                  } else {*/
+                metapath = metapath + "-meta";
+                std::ofstream ofs;
+                ofs.open(metapath, std::ofstream::out);
+                ofs.write((char*)&batchsize, 4);
+                ofs.write((char*)&n, 4);
+                ofs.write((char*)&dim, 2);
+                //}
             }
+            uint64_t begin = 0;
+            uint16_t idx = 0;
+            for(uint16_t i = 0; i < nthreads; ++i) {
+                std::string localpath = path + "." + std::to_string(idx);
+                if (compress)
+                    localpath = localpath + ".gz";
+                uint64_t end = begin + batchsize;
+                if (end > ((long)n * dim) || i == nthreads - 1) {
+                    end = (long)n * dim;
+                }
+                LOG(DEBUGL) << "Storing " <<
+                    (end - begin) << " values in " << localpath << " ...";
+                if (begin < end) {
+                    threads.push_back(std::thread(
+                                Embeddings::_store_params,
+                                localpath, compress, dim,
+                                data + begin, data + end,
+                                c, u));
+                    c += batchsize / dim;
+                    u += batchsize / dim;
+                    idx++;
+                }
+                begin = end;
+            }
+            for(uint16_t i = 0; i < threads.size(); ++i) {
+                threads[i].join();
+            }
+            //}
         }
 
         static std::shared_ptr<Embeddings<K>> load(std::string path) {

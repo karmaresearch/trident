@@ -18,18 +18,60 @@ class Subgraphs {
             uint64_t id;
             TYPE t;
             uint64_t ent, rel;
+            uint64_t size;
         };
 
     private:
         std::vector<Metadata> subgraphs;
 
+    protected:
+        void loadFromFile(std::ifstream &ifile) {
+            const uint16_t sizeline = 25;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            ifile.read(buffer.get(), 8);
+            uint64_t nsubs = *(uint64_t*)buffer.get();
+            uint64_t i = 0;
+            while (i < nsubs) {
+                ifile.read(buffer.get(), sizeline);
+                uint64_t ent = *(uint64_t*)(buffer.get() + 1);
+                uint64_t rel = *(uint64_t*)(buffer.get() + 9);
+                uint64_t size = *(uint64_t*)(buffer.get() + 17);
+                if (buffer.get()[0]) {
+                    this->addSubgraph(Subgraphs<K>::TYPE::SP, ent, rel, size);
+                } else {
+                    this->addSubgraph(Subgraphs<K>::TYPE::PO, ent, rel, size);
+                }
+                i++;
+            }
+        }
+
+        void storeToFile(std::ofstream &ofile) {
+            const uint16_t sizeline = 25;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            (*(uint64_t*)(buffer.get())) = subgraphs.size();
+            ofile.write(buffer.get(), 8);
+            for(auto &el : subgraphs) {
+                if (el.t == PO) {
+                    buffer.get()[0] = 0;
+                } else {
+                    buffer.get()[0] = 1;
+                }
+                (*(uint64_t*)(buffer.get() + 1)) = el.ent;
+                (*(uint64_t*)(buffer.get() + 9)) = el.rel;
+                (*(uint64_t*)(buffer.get() + 17)) = el.size;
+                ofile.write(buffer.get(), sizeline);
+            }
+        }
+
     public:
-        void addSubgraph(const TYPE t, uint64_t ent, uint64_t rel) {
+        void addSubgraph(const TYPE t, uint64_t ent, uint64_t rel,
+                uint64_t size) {
             Metadata m;
             m.id = subgraphs.size();
             m.t = t;
             m.ent = ent;
             m.rel = rel;
+            m.size = size;
             subgraphs.push_back(m);
         }
 
@@ -38,6 +80,11 @@ class Subgraphs {
                 std::shared_ptr<Embeddings<K>> R) = 0;
 
         virtual void loadFromFile(string file) = 0;
+
+        virtual void storeToFile(string file) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
 
         virtual double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             LOG(ERRORL) << "Not implemented";
@@ -48,12 +95,24 @@ class Subgraphs {
             return subgraphs[subgraphid];
         }
 
+        uint64_t getNSubgraphs() const {
+            return subgraphs.size();
+        }
+
         void getDistanceToAllSubgraphs(DIST dist,
                 Querier *q,
                 std::vector<std::pair<double, uint64_t>> &distances,
                 K* emb,
-                uint16_t dim) {
+                uint16_t dim,
+                Subgraphs::TYPE excludeType,
+                uint64_t excludeRel,
+                uint64_t excludeEnt) {
             for(size_t i = 0; i < subgraphs.size(); ++i) {
+                if (subgraphs[i].t == excludeType &&
+                    subgraphs[i].rel == excludeRel &&
+                    subgraphs[i].ent == excludeEnt) {
+                    continue;
+                }
                 switch (dist) {
                     case L1:
                         distances.push_back(make_pair(l1(q, i, emb, dim), i));
@@ -64,44 +123,26 @@ class Subgraphs {
                 };
             }
         }
+
+        virtual ~Subgraphs() {}
 };
 
 template<typename K>
-class CIKMSubgraphs : public Subgraphs<K> {
+class AvgSubgraphs : public Subgraphs<K> {
     private:
         std::vector<K> params;
         uint16_t dim;
+        uint64_t mincard;
+
+        void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
 
     public:
-        void loadFromFile(string file) {
-            std::ifstream ifs;
-            ifs.open(file, std::ifstream::in);
-            char bdim[2];
-            ifs.read(bdim, 2);
-            dim = *(uint16_t*) bdim;
-            const uint16_t sizeline = 17 + dim * 8;
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
-            while (true) {
-                ifs.read(buffer.get(), sizeline);
-                if (ifs.eof()) {
-                    break;
-                }
-                //Parse the subgraph
-                uint64_t ent = *(uint64_t*)(buffer.get() + 1);
-                uint64_t rel = *(uint64_t*)(buffer.get() + 9);
-                if (buffer.get()[0]) {
-                    this->addSubgraph(Subgraphs<K>::TYPE::SP, ent, rel);
-                } else {
-                    this->addSubgraph(Subgraphs<K>::TYPE::PO, ent, rel);
-                }
-                //Parse the features vector
-                const uint8_t lenParam = sizeof(K);
-                for(uint16_t i = 0; i < dim; ++i) {
-                    K param = *(K*) (buffer.get() + 17 + i * lenParam);
-                    params.push_back(param);
-                }
-            }
-        }
+        AvgSubgraphs() : dim(0), mincard(0) {}
+
+        AvgSubgraphs(uint16_t dim, uint64_t mincard) : dim(dim), mincard(mincard) {}
+
+        void loadFromFile(string file);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
@@ -111,10 +152,11 @@ class CIKMSubgraphs : public Subgraphs<K> {
             return out;
         }
 
+        void storeToFile(string file);
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) {}
+                std::shared_ptr<Embeddings<K>> R);
 };
 
 template<typename K>
@@ -126,9 +168,7 @@ class GaussianSubgraphs : public Subgraphs<K> {
     public:
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) {
-            //TODO
-        }
+                std::shared_ptr<Embeddings<K>> R);
 };
 
 #endif

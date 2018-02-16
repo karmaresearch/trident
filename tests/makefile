@@ -1,8 +1,14 @@
-KOGNAC_BUILDIR=../build/kognac/
+KOGNAC_BUILDIR=../../kognac/build_debug
 TRIDENT_BUILDIR=../build_debug
-CINCLUDES= -I../include -I../build/kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
+CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
 CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/kognac/external/lz4/lib -L../build/kognac/external/sparsehash/src
 CPLUS=g++
+
+test_httpclient:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttpClient -std=c++0x -O0 -g test_httpclient.cpp ../src/trident/utils/httpclient.cpp ../../kognac/src/kognac/log/logs.cpp ../src/trident/utils/json.cpp -lkognac
+
+test_httpserver:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttp -std=c++0x -O0 -g test_httpserver.cpp ../src/trident/utils/httpserver.cpp ../../kognac/src/kognac/log/logs.cpp
 
 test_multi:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testMulti -std=c++0x -DBOOST_LOG_DYN_LINK  -O0 -g test_multi.cpp $(OBJS) -ltrident -lkognac -lpthread  -ltbb -lboost_filesystem -lboost_system -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options -lboost_iostreams -llz4 -lsnap
@@ -40,6 +46,11 @@ test_generate:
 test_sorting2:
 	g++ $(CINCLUDES) $(CLIBS) -o testSorting2 -DBOOST_LOG_DYN_LINK  -O0 -g test_sorting2.cpp -lkognac -lboost_log-mt -lboost_log_setup-mt -llz4 -lboost_filesystem-mt -lboost_system-mt -lboost_chrono-mt -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread  -ltbb
 
+test_pfor:
+	g++ $(CINCLUDES) $(CLIBS) -o testpfor -O3 -std=c++0x -g -lkognac-log -lkognac -I../include test_parallel_for.cpp 
+
+test_sorting3:
+	g++ $(CINCLUDES) $(CLIBS) -o testSorting3 -O3 -std=c++0x -g -I../include test_sorting3.cpp ../src/trident/utils/parallel.cpp
 test_io:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -lboost_log-mt -lboost_log_setup-mt -llz4 -lboost_filesystem-mt -lboost_system -lboost_chrono -lboost_thread-mt -lboost_log-mt -lboost_log_setup-mt -lboost_program_options-mt -lboost_iostreams-mt -lpthread -o test_io -DBOOST_LOG_DYN_LINK  -O3 test_io.cpp -std=c++0x $(KOGNAC_BUILDIR)/kognac/compression/*.o $(KOGNAC_BUILDIR)/kognac/schema/*.o $(KOGNAC_BUILDIR)/kognac/sorting/*.o $(KOGNAC_BUILDIR)/kognac/utils/*.o
 

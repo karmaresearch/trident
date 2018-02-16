@@ -1,17 +1,72 @@
 #include <trident/ml/learner.h>
-#include <trident/ml/transe.h>
-#include <trident/ml/distmul.h>
-#include <trident/ml/transetester.h>
-#include <trident/ml/feedback.h>
 #include <kognac/utils.h>
 
-#include <tbb/concurrent_queue.h>
-
 #include <iostream>
-#include <chrono>
 #include <cmath>
 
 using namespace std;
+
+LearnParams::LearnParams() {
+    //Changeable by the user
+    epochs = 100;
+    dim = 50;
+    margin = 1.0;
+    learningrate = 0.1;
+    batchsize = 1000;
+    adagrad = false;
+    nthreads = 1;
+    nstorethreads = 1;
+    evalits = 10;
+    storeits = 10;
+    storefolder = "";
+    compresstorage = false;
+    filetrace = "";
+    valid = 0;
+    test = 0;
+    numneg = 10;
+    feedbacks = false;
+    feedbacks_threshold = 10;
+    feedbacks_minfulle = 20;
+    regeneratebatch = true;
+
+    //Non changeable by the user
+    ne = 0;
+    nr = 0;
+}
+
+std::string LearnParams::changeable_tostring() {
+    std::string out = "";
+    out += "epochs=" + to_string(epochs);
+    out += ";dim=" + to_string(dim);
+    out += ";margin=" + to_string(margin);
+    out += ";learningrate=" + to_string(learningrate);
+    out += ";batchsize=" + to_string(batchsize);
+    out += ";adagrad=" + to_string(adagrad);
+    out += ";nthreads=" + to_string(nthreads);
+    out += ";nstorethreads=" + to_string(nstorethreads);
+    out += ";evalits=" + to_string(evalits);
+    out += ";storeits=" + to_string(storeits);
+    out += ";storefolder=" + storefolder;
+    out += ";compresstorage=" + to_string(compresstorage);
+    out += ";filetrace=" + filetrace;
+    out += ";valid=" + to_string(valid);
+    out += ";test=" + to_string(test);
+    out += ";numneg=" + to_string(numneg);
+    out += ";feedbacks=" + to_string(feedbacks);
+    out += ";feedbacks_threshold=" + to_string(feedbacks_threshold);
+    out += ";feedbacks_minfulle=" + to_string(feedbacks_minfulle);
+    out += ";regeneratebatch=" + to_string(regeneratebatch);
+    return out;
+}
+
+
+
+std::string LearnParams::tostring() {
+    std::string out = changeable_tostring();
+    out += ";ne=" + to_string(ne);
+    out += ";nr=" + to_string(nr);
+    return out;
+}
 
 void Learner::setup(const uint16_t nthreads,
         std::shared_ptr<Embeddings<double>> E,
@@ -56,29 +111,6 @@ float Learner::dist_l1(double* head, double* rel, double* tail,
     return result;
 }
 
-void Learner::batch_processer(
-        Querier *q,
-        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *inputQueue,
-        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> *outputQueue,
-        ThreadOutput *output,
-        uint16_t epoch) {
-    std::shared_ptr<BatchIO> pio;
-    uint16_t nbatches = 0;
-    while (true) {
-        inputQueue->pop(pio);
-        if (pio == NULL) {
-            break;
-        }
-        pio->q = q;
-        process_batch(*pio.get(), epoch, nbatches);
-        output->violations += pio->violations;
-        output->conflicts += pio->conflicts;
-        pio->clear();
-        outputQueue->push(pio);
-        nbatches += 1;
-    }
-}
-
 void Learner::store_model(string path,
         const bool compressstorage,
         const uint16_t nthreads) {
@@ -89,140 +121,6 @@ void Learner::store_model(string path,
     LOG(DEBUGL) << "Serializing E ...";
     E->store(path + "/E", compressstorage, nthreads);
     LOG(DEBUGL) << "Serialization done";
-}
-
-void Learner::train(BatchCreator &batcher, const uint16_t nthreads,
-        const uint16_t nstorethreads,
-        const uint32_t evalits, const uint32_t storeits, string pathvalid,
-        const string storefolder,
-        const bool compresstorage) {
-
-    bool shouldStoreModel = storefolder != "" && evalits > 0;
-    double bestresult = std::numeric_limits<double>::max();
-    int bestepoch = -1;
-
-    //storefolder should point to a directory. Create it if it does not exist
-    if (shouldStoreModel && !Utils::exists(storefolder)) {
-        Utils::create_directories(storefolder);
-    }
-
-    std::vector<std::unique_ptr<Querier>> queriers;
-    for(uint16_t i = 0; i < nthreads; ++i) {
-        queriers.push_back(std::unique_ptr<Querier>(kb.query()));
-    }
-
-    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    for (uint16_t epoch = 0; epoch < epochs; ++epoch) {
-        std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
-        //Init code
-        if (batcher.getFeedback()) {
-            batcher.getFeedback()->setCurrentEpoch(epoch);
-        }
-        batcher.start();
-        uint32_t batchcounter = 0;
-        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> inputQueue;
-        tbb::concurrent_bounded_queue<std::shared_ptr<BatchIO>> doneQueue;
-        std::vector<ThreadOutput> outputs;
-        outputs.resize(nthreads);
-        for(uint16_t i = 0; i < nthreads; ++i) {
-            doneQueue.push(std::shared_ptr<BatchIO>(new BatchIO(batchsize, dim)));
-        }
-
-        //Start nthreads
-        std::vector<std::thread> threads;
-        for(uint16_t i = 0; i < nthreads; ++i) {
-            Querier *q = queriers[i].get();
-            threads.push_back(std::thread(&Learner::batch_processer,
-                        this, q, &inputQueue, &doneQueue, &outputs[i],
-                        epoch));
-        }
-
-        //Process all batches
-        while (true) {
-            std::shared_ptr<BatchIO> pio;
-            doneQueue.pop(pio);
-            if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
-                pio->epoch = epoch;
-                pio->violations = 0;
-                inputQueue.push(pio);
-                batchcounter++;
-                if (batchcounter % 100000 == 0) {
-                    LOG(DEBUGL) << "Processed " << batchcounter << " batches";
-                }
-            } else {
-                //Puts nthread NULL pointers to tell the threads to stop
-                for(uint16_t i = 0; i < nthreads; ++i) {
-                    inputQueue.push(std::shared_ptr<BatchIO>());
-                }
-                break;
-            }
-        }
-
-        //Wait until all threads are finished
-        uint64_t totalV = 0;
-        uint64_t totalC = 0;
-        for(uint16_t i = 0; i < nthreads; ++i) {
-            threads[i].join();
-            totalV += outputs[i].violations;
-            totalC += outputs[i].conflicts;
-        }
-
-        E->postprocessUpdates();
-        R->postprocessUpdates();
-
-        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-        if (nthreads > 1) {
-            LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
-                elapsed_seconds.count() << "sec. Violations=" << totalV <<
-                " Conflicts=" << totalC;
-        } else {
-            LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
-                elapsed_seconds.count() << "sec. Violations=" << totalV;
-        }
-
-        if (shouldStoreModel && (epoch + 1) % storeits == 0) {
-            string pathmodel = storefolder + "/model-" + to_string(epoch+1);
-            LOG(INFOL) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
-            store_model(pathmodel, compresstorage, nstorethreads);
-        }
-
-        if ((epoch+1) % evalits == 0) {
-            if (Utils::exists(pathvalid)) {
-                //Load the loading data into a vector
-                std::vector<uint64_t> testset;
-                BatchCreator::loadTriples(pathvalid, testset);
-                //Do the test
-                TranseTester<double> tester(E, R);
-                LOG(DEBUGL) << "Testing on the valid dataset ...";
-                auto result = tester.test("valid", testset, nthreads, epoch);
-                if (result->loss < bestresult) {
-                    bestresult = result->loss;
-                    bestepoch = epoch;
-                    LOG(DEBUGL) << "Epoch " << epoch << " got best results";
-                }
-                if (batcher.getFeedback()) {
-                    batcher.getFeedback()->addFeedbacks(result);
-                }
-                //Store the results of the detailed queries
-                if (shouldStoreModel) {
-                    string pathresults = storefolder + "/results-" + to_string(epoch+1);
-                    LOG(DEBUGL) << "Storing the results ...";
-                    ofstream out;
-                    out.open(pathresults);
-                    out << "Query\tPosS\tPosO" << endl;
-                    for (auto v : result->results) {
-                        //Print a line
-                        out << to_string(v.s) << " " << to_string(v.p) << " " << to_string(v.o);
-                        out << "\t" << to_string(v.posS) << "\t" << to_string(v.posO) << endl;
-                    }
-                }
-            } else {
-                LOG(WARNL) << "I'm supposed to test the model but no data is available";
-            }
-        }
-    }
-    std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-    LOG(INFOL) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
 }
 
 void Learner::update_gradients(BatchIO &io,
@@ -308,65 +206,4 @@ void Learner::update_gradients(BatchIO &io,
             }
         }
     }
-}
-
-void Learner::launchLearning(KB &kb, string op, LearnParams &p) {
-    std::unique_ptr<GradTracer> debugger;
-    if (p.filetrace != "") {
-        debugger = std::unique_ptr<GradTracer>(new GradTracer(p.ne, 1000, p.dim));
-        p.gradDebugger = std::move(debugger);
-    }
-    std::shared_ptr<Feedback> feedback;
-    bool filter = p.feedback;
-    if (p.feedback) {
-        feedback = std::shared_ptr<Feedback>(new Feedback(p.feedback_threshold,
-                    p.feedback_minFullEpochs));
-    }
-    LOG(DEBUGL) << "Launching " << op << " with params: " << p.tostring();
-    BatchCreator batcher(kb.getPath(),
-            p.batchsize,
-            p.nthreads,
-            p.valid,
-            p.test,
-            filter,
-            p.regenerateBatch,
-            feedback);
-    if (op == "transe") {
-        TranseLearner tr(kb, p);
-        LOG(INFOL) << "Setting up TranSE ...";
-        tr.setup(p.nthreads);
-        LOG(INFOL) << "Launching the training of TranSE ...";
-        tr.train(batcher, p.nthreads,
-                p.nstorethreads,
-                p.evalits, p.storeits,
-                batcher.getValidPath(),
-                p.storefolder,
-                p.compressstorage);
-        LOG(INFOL) << "Done.";
-        tr.getDebugger(debugger);
-
-    } else if (op == "distmul") {
-        DistMulLearner tr(kb, p);
-        LOG(INFOL) << "Setting up DistMul...";
-        tr.setup(p.nthreads);
-        LOG(INFOL) << "Launching the training of DistMul...";
-        tr.train(batcher, p.nthreads,
-                p.nstorethreads,
-                p.evalits, p.storeits,
-                batcher.getValidPath(),
-                p.storefolder,
-                p.compressstorage);
-        LOG(INFOL) << "Done.";
-        tr.getDebugger(debugger);
-
-    } else {
-        LOG(ERRORL) << "Task " << op << " not recognized";
-        return;
-    }
-    //LOG(DEBUGL) << "Launching DistMul with epochs=" << epochs << " dim=" << dim << " ne=" << ne << " nr=" << nr << " learningrate=" << learningrate << " batchsize=" << batchsize << " evalits=" << evalits << " storefolder=" << storefolder << " nthreads=" << nthreads << " nstorethreads=" << nstorethreads << " adagrad=" << adagrad << " compress=" << compresstorage;
-
-    if (p.filetrace != "") {
-        debugger->store(p.filetrace);
-    }
-
 }

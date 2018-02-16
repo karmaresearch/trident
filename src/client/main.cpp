@@ -63,8 +63,10 @@ extern void callRDF3X(TridentLayer &db, const string &queryFileName, bool explai
         bool disableBifocalSampling, bool resultslookup);
 
 //Implemented in main_ml.cpp
-extern void launchML(KB &kb, string op, string algo, string params);
+extern void launchML(KB &kb, string op, string algo, string paramsLearn,
+        string paramsPredict);
 extern void subgraphEval(KB &kb, ProgramArgs &vm);
+extern void subgraphCreate(KB &kb, ProgramArgs &vm);
 
 //Implemented in kb.cpp
 extern bool _sort_by_number(const string &s1, const string &s2);
@@ -239,11 +241,11 @@ void printInfo(KB &kb) {
 }
 
 #ifdef SERVER
-void startServer(KB &kb, int port) {
+void startServer(KB &kb, int port, int nthreads) {
     std::unique_ptr<TridentServer> webint;
     webint = std::unique_ptr<TridentServer>(
-            new TridentServer(kb, "./../webinterface"));
-    webint->start("0.0.0.0", to_string(port));
+            new TridentServer(kb, "./../webinterface", nthreads));
+    webint->start(port);
     LOG(INFOL) << "Server is launched at 0.0.0.0:" << to_string(port);
     webint->join();
 }
@@ -489,7 +491,7 @@ int main(int argc, const char** argv) {
 #ifdef SERVER
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        startServer(kb, vm["port"].as<int>());
+        startServer(kb, vm["port"].as<int>(), vm["webthreads"].as<int>());
 #else
         LOG(ERRORL) << "Trident was not compiled with the webserver. Add -DSERVER=1 to cmake";
         return EXIT_FAILURE;
@@ -498,7 +500,7 @@ int main(int argc, const char** argv) {
 #ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+        launchML(kb, cmd, vm["algo"].as<string>(), vm["args_learn"].as<string>(), "");
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;
@@ -507,7 +509,7 @@ int main(int argc, const char** argv) {
 #ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        launchML(kb, cmd, vm["algo"].as<string>(), vm["args"].as<string>());
+        launchML(kb, cmd, vm["algo"].as<string>(), "", vm["args_predict"].as<string>());
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;
@@ -521,7 +523,18 @@ int main(int argc, const char** argv) {
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;
 #endif
+    } else if (cmd == "subcreate") {
+#ifdef ML
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        subgraphCreate(kb, vm);
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
     }
+
+
 
     //Print other stats
     LOG(INFOL) << "Max memory used: " << Utils::get_max_mem() << " MB";

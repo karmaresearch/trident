@@ -28,111 +28,112 @@ class Runtime;
 //---------------------------------------------------------------------------
 /// A wrapper to avoid duplicating the strings in memory
 namespace {
-struct CacheEntry {
-    /// The string boundaries
-    const char* start, *stop;
-    /// The type
-    Type::ID type;
-    /// The sub-type
-    unsigned subType;
+  struct CacheEntry {
+/// The string boundaries
+const char* start, *stop;
+/// The type
+Type::ID type;
+/// The sub-type
+unsigned subType;
 
-    /// Constructor
-    CacheEntry() : start(0), stop(0) {}
-    /// Print the raw value
-    void printValue(std::ostream &out, bool escape) const;
-    /// Print it
-    void print(std::ostream &out, const std::map<uint64_t, CacheEntry>& stringCache, bool escape) const;
-    void print(const std::map<uint64_t, CacheEntry>& stringCache, bool escape) const;
-    //To string
-    std::string tostring(const std::map<uint64_t, CacheEntry>& stringCache, bool escape) const;
+/// Constructor
+CacheEntry() : start(0), stop(0) {}
+/// Print the raw value
+void printValue(std::ostream &out, bool escape) const;
+/// Print it
+void print(std::ostream &out, /*const std::map<uint64_t, CacheEntry>& stringCache,*/ bool escape) const;
+void print(/*const std::map<uint64_t, CacheEntry>& stringCache,*/ bool escape) const;
+//To string
+std::string tostring(/*const std::map<uint64_t, CacheEntry>& stringCache,*/ bool escape) const;
 };
 }
 
 /// Consumes its input and prints it. Produces a single empty tuple.
 class ResultsPrinter : public Operator {
-public:
-    /// Duplicate handling
-    enum DuplicateHandling { ReduceDuplicates, ExpandDuplicates, CountDuplicates, ShowDuplicates };
-    /// Output modes
-    enum OutputMode { DefaultOutput, Embedded };
+    public:
+        /// Duplicate handling
+        enum DuplicateHandling { ReduceDuplicates, ExpandDuplicates,
+            CountDuplicates, ShowDuplicates };
+        /// Output modes
+        enum OutputMode { DefaultOutput, Embedded };
 
-private:
-    /// The output registers
-    std::vector<Register*> output;
-    /// The input
-    Operator* input;
-    /// The runtime
-    Runtime& runtime;
-    /// The dictionary
-    DBLayer& dictionary;
-    /// The duplicate handling
-    DuplicateHandling duplicateHandling;
-    /// The output mode
-    OutputMode outputMode;
-    /// Maximum number of output tuples
-    uint64_t limit;
-    /// Skip the printing, resolve only?
-    bool silent;
-    /// Count the printed rows
-    uint64_t nrows;
-    //Used for JSON output
-    JSON *jsonoutput;
-    std::vector<std::string> jsonvars;
-    //Used for set output
-    std::unordered_set<uint64_t> *outputset;
-    unsigned prjId;
+    private:
+        /// The output registers
+        std::vector<Register*> output;
+        /// The input
+        Operator* input;
+        /// The runtime
+        Runtime& runtime;
+        /// The dictionary
+        DBLayer& dictionary;
+        /// The duplicate handling
+        DuplicateHandling duplicateHandling;
+        /// The output mode
+        OutputMode outputMode;
+        /// Maximum number of output tuples
+        uint64_t limit;
+        /// Skip the printing, resolve only?
+        bool silent;
+        /// Count the printed rows
+        uint64_t nrows;
+        //Used for JSON output
+        JSON *jsonoutput;
+        std::vector<std::string> jsonvars;
+        //Used for set output
+        std::unordered_set<uint64_t> *outputset;
+        unsigned prjId;
 
-    void formatJSON(const std::vector<std::string> &columns,
+        void formatJSON(const std::vector<std::string> &columns,
                 std::vector<uint64_t> &results,
                 std::map<uint64_t, CacheEntry> &stringCache,
                 ResultsPrinter::DuplicateHandling duplicateHandling,
                 JSON *output);
 
-public:
-    /// Constructor
-    ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = ~0lu, bool silent = false);
-    /// Destructor
-    ~ResultsPrinter();
+    public:
+        /// Constructor
+        ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = ~0lu, bool silent = false);
+        /// Destructor
+        ~ResultsPrinter();
 
-    /// Set the output mode
-    void setOutputMode(OutputMode o) {
-        outputMode = o;
-    }
-    /// Get the input
-    Operator* getInput() const {
-        return input;
-    }
+        /// Set the output mode
+        void setOutputMode(OutputMode o) {
+            outputMode = o;
+        }
+        /// Get the input
+        Operator* getInput() const {
+            return input;
+        }
 
-    void setSilent(bool flag) {
-        silent = flag;
-    }
+        void setSilent(bool flag) {
+            silent = flag;
+        }
 
-    void setJSONOutput(JSON *jsonoutput,
-            const std::vector<std::string> &jsonvars) {
-        this->jsonoutput = jsonoutput;
-        this->jsonvars = jsonvars;
-    }
+        void setJSONOutput(JSON *jsonoutput,
+                const std::vector<std::string> &jsonvars) {
+            this->jsonoutput = jsonoutput;
+            this->jsonvars = jsonvars;
+        }
 
-    void setSetOutput(std::unordered_set<uint64_t> *results, unsigned prjId) {
-        outputset = results;
-        this->prjId = prjId;
-    }
+        void setSetOutput(std::unordered_set<uint64_t> *results, unsigned prjId) {
+            outputset = results;
+            this->prjId = prjId;
+        }
 
-    /// Produce the first tuple
-    uint64_t first();
-    /// Produce the next tuple
-    uint64_t next();
+        /// Produce the first tuple
+        uint64_t first();
+        /// Produce the next tuple
+        uint64_t next();
 
-    uint64_t getPrintedRows() {
-        return nrows;
-    }
+        uint64_t getPrintedRows() {
+            return nrows;
+        }
 
-    /// Print the operator tree. Debugging only.
-    void print(PlanPrinter& out);
-    /// Add a merge join hint
-    void addMergeHint(Register* reg1, Register* reg2);
-    /// Register parts of the tree that can be executed asynchronous
-    void getAsyncInputCandidates(Scheduler& scheduler);
+        /// Print the operator tree. Debugging only.
+        void print(PlanPrinter& out);
+        /// Add a merge join hint
+        void addMergeHint(Register* reg1, Register* reg2);
+        /// Register parts of the tree that can be executed asynchronous
+        void getAsyncInputCandidates(Scheduler& scheduler);
 };
 //---------------------------------------------------------------------------
 #endif
