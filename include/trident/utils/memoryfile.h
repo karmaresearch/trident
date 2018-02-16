@@ -20,7 +20,8 @@ class MemoryMappedFile {
     public:
         MemoryMappedFile(std::string file, bool ro, long start,
                 long len) {
-            fd = ::open(file.c_str(), ro ?  O_RDONLY : (O_RDWR | O_CREAT) );
+            fd = ::open(file.c_str(), ro ?  O_RDONLY : (O_RDWR | O_CREAT),
+		    ro ? S_IREAD : (S_IREAD | S_IWRITE));
             if (fd == -1) {
                 LOG(ERRORL) << "Failed opening the file " << file;
                 throw 10;
