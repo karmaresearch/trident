@@ -17,6 +17,17 @@ HttpServer::HttpServer(uint32_t port,
         }
     }
 
+int getMessageBodyLength(std::string& request) {
+    int pos = request.find("Content-Length:");
+    if (pos == string::npos) {
+        return 0;
+    }
+    int endpos = request.find("\r\n", pos);
+    string bodyLen = request.substr(pos + 16, endpos - pos - 16);
+    int ret = std::stoi(bodyLen);
+    return ret;
+}
+
 void HttpServer::processSocket() {
     while (true) {
         Socket socket;
@@ -40,6 +51,15 @@ void HttpServer::processSocket() {
                 queueWait.push(socket);
             } else {
                 request += std::string(buffer, len);
+                int bodyLength = getMessageBodyLength(request);
+                if (bodyLength > 0) {
+                    int readBuffer = bodyLength - 1024;
+                    while (readBuffer > 0) {
+                        auto len = read(connFd, buffer, 1024);
+                        readBuffer -= len;
+                        request += std::string(buffer, len);
+                    }
+                }
                 std::string response = "";
                 handlerFunction(request, response);
                 long size = 0;
