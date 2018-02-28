@@ -17,14 +17,16 @@ HttpServer::HttpServer(uint32_t port,
         }
     }
 
-int getMessageBodyLength(std::string& request) {
-    int pos = request.find("Content-Length:");
+uint64_t HttpServer::getMessageBodyLength(std::string& request) {
+    size_t pos = request.find("Content-Length:");
     if (pos == std::string::npos) {
+        LOG(WARNL) << "The message does not contain the header 'Content-Length:'"
+            ". I don't know how to guess the length of the request. I set it to zero.";
         return 0;
     }
-    int endpos = request.find("\r\n", pos);
+    size_t endpos = request.find("\r\n", pos);
     std::string bodyLen = request.substr(pos + 16, endpos - pos - 16);
-    int ret = std::stoi(bodyLen);
+    uint64_t ret = std::stoul(bodyLen);
     return ret;
 }
 
