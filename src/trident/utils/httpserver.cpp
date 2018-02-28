@@ -19,11 +19,11 @@ HttpServer::HttpServer(uint32_t port,
 
 int getMessageBodyLength(std::string& request) {
     int pos = request.find("Content-Length:");
-    if (pos == string::npos) {
+    if (pos == std::string::npos) {
         return 0;
     }
     int endpos = request.find("\r\n", pos);
-    string bodyLen = request.substr(pos + 16, endpos - pos - 16);
+    std::string bodyLen = request.substr(pos + 16, endpos - pos - 16);
     int ret = std::stoi(bodyLen);
     return ret;
 }
