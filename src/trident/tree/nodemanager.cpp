@@ -181,7 +181,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
         c->id = node->getId();
         c->children = node->canHaveChildren();
         c->nodeSize = sizeBuffer;
-        c->availableSize = max(nodeMinSize, sizeBuffer);
+        c->availableSize = std::max(nodeMinSize, sizeBuffer);
 
         //Is the file too big?
         if (manager->sizeLastFile() >= manager->getFileMaxSize()) {

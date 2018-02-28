@@ -102,7 +102,7 @@ void CompositeItr::next() {
 void CompositeItr::ignoreSecondColumn() {
     ignseccol = true;
     currentCount = 0;
-    for (int i = children.size() - 1; i >= 0; i--) {
+    for (size_t i = children.size() - 1; i >= 0; i--) {
         children[i]->ignoreSecondColumn();
         if (v1 != -1) {
             if (children[i]->getValue1() == v1) {
@@ -220,7 +220,7 @@ void CompositeItr::init(std::vector<PairItr*> &iterators,
     children = iterators;
     hn = !children.empty();
     hnc =  true;
-    lastIdx = children.size() - 1;
+    lastIdx = (int)children.size() - 1;
     currentdiff = NULL;
     currentCount = 1;
     decreasedKey = isSorted = false;

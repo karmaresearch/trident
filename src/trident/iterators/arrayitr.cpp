@@ -87,8 +87,8 @@ long ArrayItr::getCount() {
 }
 
 void ArrayItr::next() {
-    v1 = array->at(pos).first;
-    v2 = array->at(pos).second;
+    v1 = (long)(array->at(pos).first);
+    v2 = (long)(array->at(pos).second);
     pos++;
     hasNextChecked = false;
     countElems = 0;
@@ -141,7 +141,7 @@ int ArrayItr::binarySearch(Pairs *array, int start, int end, uint64_t key) {
 
     while (low <= high) {
         int mid = (low + high) >> 1;
-        long midVal = array->at(mid).first;
+        long midVal = (long)array->at(mid).first;
 
         if (midVal < key)
             low = mid + 1;
@@ -164,8 +164,8 @@ int ArrayItr::binarySearch(Pairs *array, int start, int end, uint64_t key) {
 void ArrayItr::init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2) {
     this->array = values;
     nElements = (int)values->size();
-    constraint1 = v1;
-    constraint2 = v2;
+    constraint1 = (long)v1;
+    constraint2 = (long)v2;
     countElems = 0;
     hasNextChecked = false;
     ignSecondColumn = false;
@@ -206,7 +206,7 @@ uint64_t ArrayItr::getCardinality() {
         while (pos2 < nElements) {
             if (array->at(pos2).first != existingV1) {
                 count++;
-                existingV1 = array->at(pos2).first;
+                existingV1 = (long)(array->at(pos2).first);
             }
             pos2++;
         }

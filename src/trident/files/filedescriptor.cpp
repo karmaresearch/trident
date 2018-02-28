@@ -19,10 +19,10 @@
  * under the License.
 **/
 
-
 #include <trident/files/filedescriptor.h>
 #include <trident/files/filemanager.h>
 #include <trident/kb/consts.h>
+#include <trident/utils/memoryfile.h>
 
 #include <kognac/utils.h>
 
@@ -32,7 +32,8 @@
 #include <fstream>
 #include <cmath>
 
-#include <unistd.h>
+
+//#include <unistd.h>
 
 using namespace std;
 

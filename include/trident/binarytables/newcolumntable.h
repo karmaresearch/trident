@@ -355,7 +355,7 @@ class NewColumnTable: public AbsNewTable {
 
         long getCount() {
             if (isSecondColumnIgnored)
-                return currentCount;
+                return (long)currentCount;
             else
                 return 1;
         }

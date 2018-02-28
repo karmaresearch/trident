@@ -41,7 +41,7 @@ KBConfig::KBConfig() {
 
     //Parameters about the main tree
     internalMap.setInt(TREE_MAXELEMENTSNODE, 2048);
-    internalMap.setLong(TREE_MAXSIZECACHETREE, 10000000000);
+    internalMap.setLong(TREE_MAXSIZECACHETREE, (long)10000000000);
     internalMap.setInt(TREE_MAXNODESINCACHE, 100000);
     internalMap.setInt(TREE_MAXPREALLLEAVESCACHE, 100000);
     internalMap.setInt(TREE_MAXLEAVESCACHE, 100);
@@ -73,7 +73,7 @@ KBConfig::KBConfig() {
 
     //Inverse dictionary
     internalMap.setInt(INVDICT_MAXELEMENTSNODE, 2048);
-    internalMap.setLong(INVDICT_MAXSIZECACHETREE, 10000000000);
+    internalMap.setLong(INVDICT_MAXSIZECACHETREE, (long)10000000000);
     internalMap.setInt(INVDICT_MAXNODESINCACHE, 10000);
     internalMap.setInt(INVDICT_MAXPREALLLEAVESCACHE, 10000);
     internalMap.setInt(INVDICT_MAXLEAVESCACHE, 100);
@@ -86,8 +86,8 @@ KBConfig::KBConfig() {
     //(2 is the term size while 5 is the position to retrieve the textual term)
 
     //Storage
-    internalMap.setLong(STORAGE_CACHE_SIZE, 5000000000);
-    internalMap.setLong(STORAGE_MAX_FILE_SIZE, (long)20 * 1024 * 1024 * 1024);
+    internalMap.setLong(STORAGE_CACHE_SIZE, (long)5000000000);
+    internalMap.setLong(STORAGE_MAX_FILE_SIZE, (long)(20l * 1024l * 1024l * 1024l));
     internalMap.setInt(STORAGE_MAX_N_FILES, MAX_N_FILES);
 
     //String buffer

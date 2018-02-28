@@ -158,7 +158,7 @@ uint64_t Querier::getCardOnIndex(const int idx, const long first, const long sec
                 }
 
                 for (size_t i = 0; i < diffIndices.size(); ++i) {
-                    if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION) {
+                    if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
                         nElements += diffIndices[i]->getCard(idx2, lastKeyQueried);
                     } else {
                         nElements -= diffIndices[i]->getCard(idx2, lastKeyQueried);
@@ -673,7 +673,7 @@ PairItr *Querier::getTermList(const int perm) {
     //Add differential updates
     for (size_t i = 0; i < diffIndices.size(); ++i) {
         if (diffIndices[i]->getNUniqueKeys(perm) > 0) {
-            if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION) {
+            if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
                 DiffTermItr *itr = factory10.get();
                 diffIndices[i]->getTermListItr(perm, itr);
                 if (finalItr->getTypeItr() != COMPOSITETERM_ITR) {
@@ -889,7 +889,7 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
         long nfirstterms = 0;
         for (int i = 0; i < diffIndices.size(); ++i) {
             PairItr *diffItr = NULL;
-            if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::DELETE) {
+            if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::DELETE_df) {
                 long delnfirstterms = 0;
                 if (first >= 0) {
                     diffItr = diffIndices[i]->getIterator(idx, first, second,

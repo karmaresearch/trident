@@ -61,7 +61,7 @@ bool HttpClient::getResponse(const std::string &request,
         unsigned long currentChunkSize = 0;
 
         //Pointers to the buffer
-        int sizebuffer = 0;
+        size_t sizebuffer = 0;
         const char *remaining;
 
         while (true) {

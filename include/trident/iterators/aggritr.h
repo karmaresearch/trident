@@ -44,11 +44,11 @@ class AggrItr: public PairItr {
         //long p;
 
         char strategy(long coordinates) {
-            return (char) ((coordinates >> 48) & 0xFF);
+			return (char)((long)((long long)coordinates >> 48) & 0xFF);
         }
 
         short file(long coordinates) {
-            return (short)((coordinates >> 32) & 0xFFFF);
+            return (short)((long)((long long)coordinates >> 32) & 0xFFFF);
         }
 
         int pos(long coordinates) {

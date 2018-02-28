@@ -116,7 +116,7 @@ void MemoryOptimizer::optimizeForWriting(long inputTriples, KBConfig &config) {
 }
 
 void MemoryOptimizer::optimizeForReasoning(int ndicts, KBConfig &config) {
-    long totalMemory = (uint64_t) std::min((double)128000000, (double)(Utils::getSystemMemory() * 0.10));
+    long totalMemory = (long) std::min((double)128000000, (double)(Utils::getSystemMemory() * 0.10));
 
     //All memory (10% of total memory) is reserved for the secondary lists. Strings and Tree gets minimal memory.
 

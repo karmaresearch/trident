@@ -93,7 +93,7 @@ public:
 	savedhn = hn;
 	savedhnc = hnc;
 	kbitr->mark();
-	for (int i = children.size() - 1; i >= 0; i--) {
+	for (size_t i = children.size() - 1; i >= 0; i--) {
 	    children[i]->mark();
 	}
     }
@@ -107,7 +107,7 @@ public:
 	hn = savedhn;
 	hnc = savedhnc;
 	kbitr->reset(r);
-	for (int i = children.size() - 1; i >= 0; i--) {
+	for (size_t i = children.size() - 1; i >= 0; i--) {
 	    children[i]->reset(r);
 	}
     }

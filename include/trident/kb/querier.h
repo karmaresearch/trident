@@ -212,7 +212,7 @@ class Querier {
             uint64_t tot = inputSize;
             for (size_t i = 0; i < diffIndices.size(); ++i) {
                 long sizeUpdate = diffIndices[i]->getSize();
-                if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION) {
+                if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
                     tot += sizeUpdate;
                 } else {
                     tot -= sizeUpdate;
@@ -225,7 +225,7 @@ class Querier {
             uint64_t output = nFirstTablesPerPartition[idx];
             if (!diffIndices.empty()) {
                 for (size_t i = 0; i < diffIndices.size(); ++i) {
-                    if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION) {
+                    if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
                         output += diffIndices[i]->getUniqueNFirstTerms(idx);
                     } else {
                         output -= diffIndices[i]->getUniqueNFirstTerms(idx);

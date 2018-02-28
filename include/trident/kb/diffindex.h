@@ -84,7 +84,7 @@ public:
 
 class DiffIndex {
 public:
-    enum TypeUpdate {ADDITION, DELETE };
+    enum TypeUpdate {ADDITION_df, DELETE_df };
     enum ClassUpdate { DIFF1, DIFF3 };
 
 private:

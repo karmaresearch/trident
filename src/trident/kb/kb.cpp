@@ -238,7 +238,7 @@ KB::KB(const char *path,
                 string fn = Utils::filename(f);
                 if (!fn.empty() && std::find_if(fn.begin(),  fn.end(),
                             [](char c) {
-                            return !std::isdigit(c);
+                            return !isdigit(c);
                             }) == fn.end()) {
                     childrenupdates.push_back(f);
                 }
@@ -562,9 +562,9 @@ KB::~KB() {
 void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
     DiffIndex::TypeUpdate type;
     if (Utils::exists(inputdir + "/ADD")) {
-        type = DiffIndex::TypeUpdate::ADDITION;
+        type = DiffIndex::TypeUpdate::ADDITION_df;
     } else {
-        type = DiffIndex::TypeUpdate::DELETE;
+        type = DiffIndex::TypeUpdate::DELETE_df;
     }
 
     if (Utils::exists(inputdir + "/type1")) {

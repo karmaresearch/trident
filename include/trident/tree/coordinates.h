@@ -62,9 +62,9 @@ public:
         while (el != NULL) {
             int part = el->permutation;
             fileIdxs[part] = el->file;
-            marks[part] = el->posInFile;
+            marks[part] = (long) el->posInFile;
             strategies[part] = el->strategy;
-            nElements[part] = el->nElements;
+            nElements[part] = (long)el->nElements;
             activePermutations[part] = true;
             el = el->next;
         }

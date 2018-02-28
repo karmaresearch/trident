@@ -473,7 +473,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     std::unique_ptr<UpdateStats> ufs;
 
 
-    if (update == TypeUpdate::ADDITION) {
+    if (update == TypeUpdate::ADDITION_df) {
         ufs = std::unique_ptr<UpdateStats>(new UpdateStats_add(q, IDX_SPO,
                                            IDX_SOP, false, false));
     } else {
@@ -498,7 +498,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     Utils::create_directories(p_outputdir);
     std::unique_ptr<UpdateStats> ufp;
 
-    if (update == TypeUpdate::ADDITION) {
+    if (update == TypeUpdate::ADDITION_df) {
         ufp = std::unique_ptr<UpdateStats>(new UpdateStats_add(q, IDX_POS, IDX_PSO, true, true));
     } else {
         ufp = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_POS, IDX_PSO, true, true));
@@ -520,7 +520,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     Utils::create_directories(o_outputdir);
     std::unique_ptr<UpdateStats> ufo;
 
-    if (update == TypeUpdate::ADDITION) {
+    if (update == TypeUpdate::ADDITION_df) {
         ufo = std::unique_ptr<UpdateStats>(new UpdateStats_add(q, IDX_OPS, IDX_OSP, false, true));
     } else {
         ufo = std::unique_ptr<UpdateStats>(new UpdateStats_rm(q, IDX_OPS, IDX_OSP, false, true));
@@ -1382,7 +1382,7 @@ size_t DiffIndex3::sortIndex(string outputdir,
 
     string file1;
     const size_t initialsize = min(idx1.size() * sizeof(uint64_t),
-                                   (unsigned long) 128 * 1024 * 1024);
+                                   (unsigned long long) 128 * 1024 * 1024);
     LOG(DEBUGL) << "Initial size: " << initialsize;
     if (idx1.size() < THRESHOLD_USEGLOBALFILES) { //If the update is small, then I store it in a single global file
         file1 = globaloutputdir + "/p0";

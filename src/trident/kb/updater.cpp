@@ -189,7 +189,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                 if (resp) {
                     itr->nums = id;
                 } else {
-                    if (type == DiffIndex::TypeUpdate::ADDITION) {
+                    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
                         //Add a new entry in the temporary dictionary
                         itr->nums = nextID;
                         const char *newentry = tmpdictsupport.addNew(supportbuffer.get(),
@@ -225,7 +225,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                 if (resp) {
                     itr->nump = id;
                 } else {
-                    if (type == DiffIndex::TypeUpdate::ADDITION) {
+                    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
                         //Is it existing in the tmp dict already?
                         if (tmpdict.count(supportbuffer.get())) {
                             auto itr2 = tmpdict.find(supportbuffer.get());
@@ -267,7 +267,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                 if (resp) {
                     itr->numo = id;
                 } else {
-                    if (type == DiffIndex::TypeUpdate::ADDITION) {
+                    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
                         //Is it existing in the tmp dict already?
                         if (tmpdict.count(supportbuffer.get())) {
                             auto itr2 = tmpdict.find(supportbuffer.get());
@@ -346,7 +346,7 @@ void Updater::creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir,
 
         //Write the type of file
         string flagup;
-        if (type == DiffIndex::TypeUpdate::ADDITION) {
+        if (type == DiffIndex::TypeUpdate::ADDITION_df) {
             //write also an additional dictionary (if any)
             writeDict(kb.getDictMgmt(), locationupdate, tmpdict);
             flagup = locationupdate + "/ADD";
@@ -413,7 +413,7 @@ void Updater::match(DiffIndex::TypeUpdate type,
         if (kbitr) {
             //do the check
             int res = cmp(kbitr, *itr);
-            if (type == DiffIndex::TypeUpdate::ADDITION) {
+            if (type == DiffIndex::TypeUpdate::ADDITION_df) {
                 if (res != 0) {
                     outputs.push_back(itr->s);
                     outputp.push_back(itr->p);
@@ -441,7 +441,7 @@ void Updater::match(DiffIndex::TypeUpdate type,
         q->releaseItr(kbitr);
 
     //Copy all remaining tuples
-    if (type == DiffIndex::TypeUpdate::ADDITION) {
+    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
         while (itr != input.end()) {
             outputs.push_back(itr->s);
             outputp.push_back(itr->p);
