@@ -57,7 +57,7 @@ void HttpServer::processSocket() {
                 int pos = request.find("\r\n\r\n");
                 int headerLength = 0;
                 if (pos == std::string::npos) {
-                    cerr << "FATAL: End of header not found in the request";
+                    LOG(ERRORL) << "FATAL: End of header not found in the request";
                 }else {
                     headerLength = pos;
                 }
