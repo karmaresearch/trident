@@ -52,8 +52,15 @@ void HttpServer::processSocket() {
             } else {
                 request += std::string(buffer, len);
                 int bodyLength = getMessageBodyLength(request);
+                int pos = request.find("\r\n\r\n");
+                int headerLength = 0;
+                if (pos == std::string::npos) {
+                    cerr << "FATAL: End of header not found in the request";
+                }else {
+                    headerLength = pos;
+                }
                 if (bodyLength > 0) {
-                    int readBuffer = bodyLength - 1024;
+                    int readBuffer = bodyLength - (1024 - headerLength);
                     while (readBuffer > 0) {
                         auto len = read(connFd, buffer, 1024);
                         readBuffer -= len;
