@@ -83,9 +83,9 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
             is.seekg(0, std::ios_base::end);
             std::size_t size = is.tellg();
             is.seekg(0, std::ios_base::beg);
-            char raw_input[size];
-            is.read(raw_input, size);
-            long id = Utils::decode_long(raw_input, 0);
+            std::unique_ptr<char> raw_input = std::unique_ptr<char>(new char[size]);
+            is.read(raw_input.get(), size);
+            long id = Utils::decode_long(raw_input.get(), 0);
             is.close();
             rootNode = cache->getNodeFromCache(id);
         } else { // new tree
