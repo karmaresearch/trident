@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 char one[1] = { 1 };
 char zero[1] = { 0 };

@@ -127,11 +127,11 @@ private:
     }
 
     unsigned static setDiff1(const unsigned signature, int diff) {
-        return (diff == NO_DIFFERENCE ? signature | 0x10 : signature & 0xEF);
+        return (diff == WO_DIFFERENCE ? signature | 0x10 : signature & 0xEF);
     }
 
     unsigned static getDiff1(const unsigned signature) {
-        return ((signature & 0x10) != 0) ? NO_DIFFERENCE : DIFFERENCE;
+        return ((signature & 0x10) != 0) ? WO_DIFFERENCE : W_DIFFERENCE;
     }
 
     unsigned static setAggregated(const unsigned signature, const bool aggregate) {

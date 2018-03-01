@@ -7,6 +7,10 @@
 #include <sstream>
 #include <algorithm>
 
+#if defined(_WIN32)
+//The Http Client and Server are only supported under Linux/Mac
+#else
+
 bool HttpClient::connect() {
     //Get IP address of the host
     struct addrinfo hints, *res, *res0;
@@ -221,3 +225,5 @@ void HttpClient::disconnect() {
 HttpClient::~HttpClient() {
     disconnect();
 }
+
+#endif

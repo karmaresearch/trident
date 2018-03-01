@@ -87,18 +87,25 @@ class MemoryMappedFile {
         void flushAll() {
 #if defined(_WIN32)
 			LOG(ERRORL) << "flushAll memory mapped file is not implemented";
+			throw 10;
 #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
             msync(data, length, MS_SYNC);
 #endif
         }
 
-        /*static int alignment() {
-            return static_cast<int>(sysconf(_SC_PAGESIZE));
-        }*/
+        static int alignment() {
+#if defined(_WIN32)
+			LOG(ERRORL) << "alignment mapped file is not implemented";
+			throw 10;
+#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+			return static_cast<int>(sysconf(_SC_PAGESIZE));
+#endif
+        }
 
         void flush(long begin, long len) {
 #if defined(_WIN32)
 			LOG(ERRORL) << "flush memory mapped file is not implemented";
+			throw 10;
 #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
             msync(data + begin, len, MS_SYNC);
 #endif

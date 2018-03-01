@@ -172,7 +172,7 @@ long ClusterTableInserter::calculateSecondTermToWrite(long term) {
     return term;
 }
 
-int ClusterTableInserter::writeSecondTerm(long termToWrite) {
+uint64_t ClusterTableInserter::writeSecondTerm(long termToWrite) {
     if (compr2 == COMPR_1) {
         return writeVLong(termToWrite);
     } else if (compr2 == COMPR_2) {
@@ -202,7 +202,7 @@ void ClusterTableInserter::writeFirstTerm(long termToWrite) {
 
 long ClusterTableInserter::calculateFirstTermToWrite(long termToWrite) {
     // First determine which term to write
-    if (diffMode1 == DIFFERENCE && previousFirstTerm != -1) {
+    if (diffMode1 == W_DIFFERENCE && previousFirstTerm != -1) {
         termToWrite -= previousFirstTerm;
     }
     return termToWrite;

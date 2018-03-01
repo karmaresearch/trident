@@ -41,7 +41,7 @@ void RowTableInserter::append(long t1, long t2) {
         index->add(keyToStore, getCurrentFile(), getRelativePosition());
     }
 
-    if (diffValue1 == DIFFERENCE) {
+    if (diffValue1 == W_DIFFERENCE) {
         t1 -= previousValue1;
         previousValue1 += t1;
     } else {

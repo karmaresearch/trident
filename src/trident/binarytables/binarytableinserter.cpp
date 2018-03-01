@@ -58,9 +58,9 @@ long BinaryTableInserter::getNBytesFrom(short file, uint64_t pos) {
     assert(getCurrentFile() >= file);
     if (getCurrentFile() == file) {
         assert(getCurrentPosition() >= pos);
-        return getCurrentPosition() - pos;
+        return (long)(getCurrentPosition() - pos);
     } else {
-        long diff = getCurrentPosition();
+        uint64_t diff = getCurrentPosition();
         short f = getCurrentFile();
         f--;
         while (f > file) {
@@ -68,7 +68,7 @@ long BinaryTableInserter::getNBytesFrom(short file, uint64_t pos) {
             f--;
         }
         diff += manager->sizeFile(f) - pos;
-        return diff;
+        return (long)diff;
     }
 }
 

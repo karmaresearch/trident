@@ -341,9 +341,9 @@ void StorageStrat::createAllCombinations(std::vector<Combinations> &output,
 
 bool combinationSorter(const StorageStrat::Combinations &c1, const StorageStrat::Combinations &c2) {
     if (c1.sum == c2.sum) {
-        if (c1.diffMode == NO_DIFFERENCE && c2.diffMode == DIFFERENCE) {
+        if (c1.diffMode == WO_DIFFERENCE && c2.diffMode == W_DIFFERENCE) {
             return true;
-        } else if (c1.diffMode == DIFFERENCE && c2.diffMode == NO_DIFFERENCE) {
+        } else if (c1.diffMode == W_DIFFERENCE && c2.diffMode == WO_DIFFERENCE) {
             return false;
         }
 
@@ -601,11 +601,11 @@ char StorageStrat::determineStrategyOld(long *v1, long *v2, const int size,
             stats.nSecondCompr1++;
         }
 
-        if (c.diffMode == DIFFERENCE) {
-            strat = setDiff1(strat, DIFFERENCE);
+        if (c.diffMode == W_DIFFERENCE) {
+            strat = setDiff1(strat, W_DIFFERENCE);
             stats.diff++;
         } else {
-            strat = setDiff1(strat, NO_DIFFERENCE);
+            strat = setDiff1(strat, WO_DIFFERENCE);
             stats.nodiff++;
         }
 

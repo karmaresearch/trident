@@ -32,9 +32,9 @@ private:
     //Common vars
     long previousFirstTerm, previousSecondTerm;
     short baseSecondTermFile;
-    int baseSecondTermPos;
+    uint64_t baseSecondTermPos;
     short fileLastFirstTerm;
-    int posLastFirstTerm;
+    uint64_t posLastFirstTerm;
 
     FileIndex *secondTermIndex;
     bool removeSecondTermIndex;
@@ -58,7 +58,7 @@ private:
     void updateSecondTermIndex(long lastTermWritten, int bytesTaken,
                                short currentFile, int currentPos);
     long calculateSecondTermToWrite(long term);
-    int writeSecondTerm(long termToWrite);
+    uint64_t writeSecondTerm(long termToWrite);
     void updateFirstTermIndex(const long t1);
     void writeFirstTerm(long termToWrite);
     long calculateFirstTermToWrite(long termToWrite);

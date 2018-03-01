@@ -28,7 +28,12 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+
+#if defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
 #include <sys/statvfs.h>
+#elif defined(_WIN32)
+
+#endif
 
 
 using namespace std;
@@ -149,7 +154,7 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
         long value;
         try {
             value = TridentUtils::lexical_cast<long>(line);
-        } catch (int &v) {
+        } catch (int v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }
@@ -168,7 +173,7 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
             auto pos = line.find(sep);
             v1 = TridentUtils::lexical_cast<long>(line.substr(0, pos));
             v2 = TridentUtils::lexical_cast<long>(line.substr(pos+1, line.size()));
-        } catch (int &v) {
+        } catch (int v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }
@@ -178,8 +183,13 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
 }
 
 uint64_t TridentUtils::spaceLeft(std::string location) {
+#if defined(_WIN32)
+	LOG(ERRORL) << "spaceLeft not supported under Windows";
+	throw 10;
+#else
+	//Does it work on the mac?
     struct statvfs stat;
     statvfs(location.c_str(), &stat);
     return stat.f_bsize * stat.f_bfree;
-    //TODO: does it work on the mac?
+#endif
 }

@@ -55,8 +55,8 @@
 #define RMCOMPOSITETERM_ITR 19
 
 //Use for dynamic layout
-#define DIFFERENCE 0
-#define NO_DIFFERENCE 1
+#define W_DIFFERENCE 0
+#define WO_DIFFERENCE 1
 #define COMPR_1 0
 #define COMPR_2 1
 #define NO_COMPR 2

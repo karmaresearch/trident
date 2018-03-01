@@ -4,6 +4,10 @@
 
 #include <chrono>
 
+#if defined(_WIN32)
+//The Http Client and Server are only supported under Linux/Mac
+#else
+
 namespace chr = std::chrono;
 
 HttpServer::HttpServer(uint32_t port,
@@ -258,3 +262,4 @@ std::string HttpServer::unescape(std::string s) {
     }
     return std::string(dst.data(), dst.size());
 }
+#endif

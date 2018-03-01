@@ -62,11 +62,11 @@ void ColumnTableInserter::stopAppend() {
 
     createNewFileIfCurrentIsTooLarge();
     uint64_t firstElement = tmpfirstpairs[0].first;
-    writeFirstTerm(firstElement);
+    writeFirstTerm((long)firstElement);
     if (tmpfirstpairs.size() > 1) {
-        writeVLong2(tmpfirstpairs[1].second);
+        writeVLong2((long)tmpfirstpairs[1].second);
     } else {
-        writeVLong2(tmpsecondpairs.size());
+        writeVLong2((long)tmpsecondpairs.size());
     }
 
     short fileCoordinates = getCurrentFile();
@@ -99,12 +99,12 @@ void ColumnTableInserter::stopAppend() {
             }
 
             //reserve space for pointer
-            int cp = getCurrentPosition();
+            uint64_t cp = getCurrentPosition();
             reserveBytes(bytesPerPointer);
             assert((cp + bytesPerPointer) == getCurrentPosition());
 
             //write diff first term
-            writeFirstTerm(itr->first - firstElement);
+            writeFirstTerm((long)(itr->first - firstElement));
             uint8_t bytesToFill = (uint8_t) (cp + bytesPerPointer +
                                              bytesPerFirstEntry - getCurrentPosition());
             assert(bytesToFill < bytesPerFirstEntry);
