@@ -20,8 +20,8 @@ HttpServer::HttpServer(uint32_t port,
 uint64_t HttpServer::getMessageBodyLength(std::string& request) {
     size_t pos = request.find("Content-Length:");
     if (pos == std::string::npos) {
-        LOG(WARNL) << "The message does not contain the header 'Content-Length:'"
-            ". I don't know how to guess the length of the request. I set it to zero.";
+        // For GET requests, usually message body is not present. Hence Content-Length field can be omitted
+        // For POST requests, if message body is not present, then it Content-Length is 0
         return 0;
     }
     size_t endpos = request.find("\r\n", pos);
