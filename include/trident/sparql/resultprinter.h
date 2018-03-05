@@ -27,10 +27,10 @@
 
 class OutputBuffer {
 
-    long buffer1[OUTPUT_BUFFER_SIZE];
-    long buffer2[OUTPUT_BUFFER_SIZE];
+    int64_t buffer1[OUTPUT_BUFFER_SIZE];
+    int64_t buffer2[OUTPUT_BUFFER_SIZE];
 
-    long *currentBuffer;
+    int64_t *currentBuffer;
     bool firstBufferActive;
     int currentSize;
 
@@ -41,12 +41,12 @@ public:
         currentSize = 0;
     }
 
-    void addTerm(long t) {
+    void addTerm(int64_t t) {
         currentBuffer[currentSize++] = t;
     }
 
-    long *getBuffer() {
-        long *o = currentBuffer;
+    int64_t *getBuffer() {
+        int64_t *o = currentBuffer;
         if (firstBufferActive) {
             currentBuffer = buffer2;
         } else {
@@ -63,7 +63,7 @@ private:
 
     void printHeader();
 
-    void printNumericRow(long *row, int size);
+    void printNumericRow(int64_t *row, int size);
 
     void printFooter();
 

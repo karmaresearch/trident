@@ -4,15 +4,15 @@
 template<int D, int L>
 int _native_cmp(const char *s1, const char *s2) {
     if (D > 0) {
-        const long mask = ((long) 1 << (D * 8)) - 1;
-        const unsigned long n1 = (*(unsigned long*)s1) & mask;
+        const int64_t mask = ((int64_t) 1 << (D * 8)) - 1;
+        const uint64_t n1 = (*(uint64_t*)s1) & mask;
         if (n1) {
             return 1;
         }
         s1 += D;
     } else if (D < 0) {
-        const long mask = ((long) 1 << (-D * 8)) - 1;
-        const unsigned long n2 = (*(unsigned long*)s2) & mask;
+        const int64_t mask = ((int64_t) 1 << (-D * 8)) - 1;
+        const uint64_t n2 = (*(uint64_t*)s2) & mask;
         if (n2) {
             return -1;
         }
@@ -27,13 +27,13 @@ int _native_cmp(const char *s1, const char *s2) {
 }
 
 template<int D, int L>
-long _countSame(const char *p1,
+int64_t _countSame(const char *p1,
         const char *e1,
         const int len1,
         const char *p2,
         const char *e2,
         const int len2) {
-    long count = 0;
+    int64_t count = 0;
     while (p1 < e1 && p2 < e2) {
         const int cmp = _native_cmp<D, L>(p1, p2);
         if (cmp > 0) {
@@ -49,12 +49,12 @@ long _countSame(const char *p1,
     return count;
 }
 
-long NativeTasks::GetCommon(const char *p1,
+int64_t NativeTasks::GetCommon(const char *p1,
         const int len1,
-        const long s1,
+        const int64_t s1,
         const char *p2,
         const int len2,
-        const long s2) {
+        const int64_t s2) {
     const char *e1 = p1 + s1 * (len1 + 1);
     const char *e2 = p2 + s2 * (len2 + 1);
     const int diff = len1 - len2;

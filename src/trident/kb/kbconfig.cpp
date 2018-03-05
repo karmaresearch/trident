@@ -41,7 +41,7 @@ KBConfig::KBConfig() {
 
     //Parameters about the main tree
     internalMap.setInt(TREE_MAXELEMENTSNODE, 2048);
-    internalMap.setLong(TREE_MAXSIZECACHETREE, 10000000000);
+    internalMap.setLong(TREE_MAXSIZECACHETREE, INT64_C(10000000000));
     internalMap.setInt(TREE_MAXNODESINCACHE, 100000);
     internalMap.setInt(TREE_MAXPREALLLEAVESCACHE, 100000);
     internalMap.setInt(TREE_MAXLEAVESCACHE, 100);
@@ -61,7 +61,7 @@ KBConfig::KBConfig() {
 
     //Dictionary
     internalMap.setInt(DICT_MAXELEMENTSNODE, 2048);
-    internalMap.setLong(DICT_MAXSIZECACHETREE, 2000000000);
+    internalMap.setLong(DICT_MAXSIZECACHETREE, INT64_C(2000000000));
     internalMap.setInt(DICT_MAXNODESINCACHE, 1000);
     internalMap.setInt(DICT_MAXPREALLLEAVESCACHE, 1000);
     internalMap.setInt(DICT_MAXLEAVESCACHE, 1000);
@@ -73,7 +73,7 @@ KBConfig::KBConfig() {
 
     //Inverse dictionary
     internalMap.setInt(INVDICT_MAXELEMENTSNODE, 2048);
-    internalMap.setLong(INVDICT_MAXSIZECACHETREE, 10000000000);
+    internalMap.setLong(INVDICT_MAXSIZECACHETREE, INT64_C(10000000000));
     internalMap.setInt(INVDICT_MAXNODESINCACHE, 10000);
     internalMap.setInt(INVDICT_MAXPREALLLEAVESCACHE, 10000);
     internalMap.setInt(INVDICT_MAXLEAVESCACHE, 100);
@@ -86,14 +86,14 @@ KBConfig::KBConfig() {
     //(2 is the term size while 5 is the position to retrieve the textual term)
 
     //Storage
-    internalMap.setLong(STORAGE_CACHE_SIZE, 5000000000);
-    internalMap.setLong(STORAGE_MAX_FILE_SIZE, (long)20 * 1024 * 1024 * 1024);
+    internalMap.setLong(STORAGE_CACHE_SIZE, INT64_C(5000000000));
+    internalMap.setLong(STORAGE_MAX_FILE_SIZE, INT64_C(20) * 1024 * 1024 * 1024);
     internalMap.setInt(STORAGE_MAX_N_FILES, MAX_N_FILES);
 
     //String buffer
     internalMap.setBool(SB_COMPRESSDOMAINS, false);
     internalMap.setInt(SB_PREALLBUFFERS, 1000);
-    internalMap.setLong(SB_CACHESIZE, 128 * 1024 * 1024); //128MB
+    internalMap.setLong(SB_CACHESIZE, INT64_C(128) * 1024 * 1024); //128MB
 }
 
 void KBConfig::setParam(KBParam key, string value) {

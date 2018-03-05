@@ -49,11 +49,11 @@ uint64_t DomainDescription::nextCandidate(uint64_t value) const
    // Return the next value >= value that could qualify (or ~0u)
 {
    if (value<min) value=min;
-   if (value>max) return ~0lu;
+   if (value>max) return UINT64_MAX;
 
    // Potential value?
-   unsigned long bit=value%(filterSize*filterEntryBits);
-   unsigned long slot=bit/filterEntryBits,ofs=bit%filterEntryBits;
+   uint64_t bit=value%(filterSize*filterEntryBits);
+   uint64_t slot=bit/filterEntryBits,ofs=bit%filterEntryBits;
    FilterEntry entry=filter[slot],mask=filterEntry1<<ofs;
    if (entry&mask)
       return value;
@@ -64,13 +64,13 @@ uint64_t DomainDescription::nextCandidate(uint64_t value) const
          mask<<=1;
          value++;
       }
-      if (value>max) return ~0lu;
+      if (value>max) return UINT64_MAX;
       return value;
    }
    value+=filterEntryBits-ofs;
 
    // Scan for the next non-zero entry
-   for (unsigned long index=slot+1;index<filterSize;index++)
+   for (uint64_t index=slot+1;index<filterSize;index++)
       if (filter[index]) {
          value+=filterEntryBits*(index-slot-1);
          entry=filter[index]; mask=filterEntry1;
@@ -78,11 +78,11 @@ uint64_t DomainDescription::nextCandidate(uint64_t value) const
             mask<<=1;
             value++;
          }
-         if (value>max) return ~0lu;
+         if (value>max) return UINT64_MAX;
          return value;
       }
    value+=filterEntryBits*(filterSize-slot);
-   for (unsigned long index=0;index<=slot;index++)
+   for (uint64_t index=0;index<=slot;index++)
       if (filter[index]) {
          value+=filterEntryBits*(index);
          entry=filter[index]; mask=filterEntry1;
@@ -90,19 +90,19 @@ uint64_t DomainDescription::nextCandidate(uint64_t value) const
             mask<<=1;
             value++;
          }
-         if (value>max) return ~0lu;
+         if (value>max) return UINT64_MAX;
          return value;
       }
 
    // No set bit? This should not happen...
-   return ~0lu;
+   return UINT64_MAX;
 }
 //---------------------------------------------------------------------------
 PotentialDomainDescription::PotentialDomainDescription()
    // Constructor
 {
    min=0;
-   max=~0lu;
+   max=UINT64_MAX;
    memset(filter,0xFF,sizeof(filter));
 }
 //---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ void PotentialDomainDescription::sync(PotentialDomainDescription& other)
       max=other.max;
    if (max<other.max)
       other.max=max;
-   for (unsigned long index=0;index<filterSize;index++) {
+   for (uint64_t index=0;index<filterSize;index++) {
       FilterEntry n=filter[index]&other.filter[index];
       filter[index]=n;
       other.filter[index]=n;
@@ -143,7 +143,7 @@ void PotentialDomainDescription::restrictTo(const ObservedDomainDescription& oth
       min=other.min;
    if (max>other.max)
       max=other.max;
-   for (unsigned long index=0;index<filterSize;index++)
+   for (uint64_t index=0;index<filterSize;index++)
       filter[index]&=other.filter[index];
 
    lock.unlock();
@@ -152,7 +152,7 @@ void PotentialDomainDescription::restrictTo(const ObservedDomainDescription& oth
 ObservedDomainDescription::ObservedDomainDescription()
    // Constructor
 {
-   min=~0lu;
+   min=UINT64_MAX;
    max=0;
    memset(filter,0,sizeof(filter));
 }
@@ -165,7 +165,7 @@ void ObservedDomainDescription::add(uint64_t value)
    if (value>max)
       max=value;
 
-   unsigned long bit=value%(filterSize*filterEntryBits);
+   uint64_t bit=value%(filterSize*filterEntryBits);
    filter[bit/filterEntryBits]|=filterEntry1<<(bit%filterEntryBits);
 }
 //---------------------------------------------------------------------------

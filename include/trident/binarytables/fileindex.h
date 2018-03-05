@@ -35,22 +35,22 @@ private:
     int lengthArrays;
     int lengthAdditionalArrays;
 
-    long *keys;
+    int64_t *keys;
     short *files;
     int *positions;
     int size;
     int additionalSize;
-    long *additionalKeys;
+    int64_t *additionalKeys;
     FileIndex **additionalIndices;
 
     void checkLengthArrays(int size) {
         if (size >= lengthArrays) {
             int newsize = std::max(std::max(size * 2, INITIAL_SIZE), (int) (lengthArrays * 1.5));
-            long *newkeys = new long[newsize];
+            int64_t *newkeys = new int64_t[newsize];
             int *newpositions = new int[newsize];
             short *newfiles = new short[newsize];
             if (size > 0) {
-                memcpy(newkeys, keys, sizeof(long) * lengthArrays);
+                memcpy(newkeys, keys, sizeof(int64_t) * lengthArrays);
                 memcpy(newpositions, positions, sizeof(int) * lengthArrays);
                 memcpy(newfiles, files, sizeof(short) * lengthArrays);
                 delete[] keys;
@@ -67,11 +67,11 @@ private:
     void checkLengthAdditionalArrays(int size) {
         if (size >= lengthAdditionalArrays) {
             int newsize = std::max(std::max(size * 2, INITIAL_SIZE), (int) (lengthAdditionalArrays * 1.5));
-            long *newkeys = new long[newsize];
+            int64_t *newkeys = new int64_t[newsize];
             FileIndex **newindices = new FileIndex*[newsize];
             if (size > 0) {
                 memcpy(newkeys, additionalKeys,
-                       sizeof(long) * lengthAdditionalArrays);
+                       sizeof(int64_t) * lengthAdditionalArrays);
                 memcpy(newindices, additionalIndices,
                        sizeof(FileIndex*) * lengthAdditionalArrays);
                 delete[] additionalKeys;
@@ -88,18 +88,18 @@ public:
     void unserialize(char* buffer, int *offset);
     short file(int idx);
     int pos(int idx);
-    long key(int idx);
-    int idx(const long key);
-    int idx(const int startIdx, const long key);
-    FileIndex *additional_idx(long key);
+    int64_t key(int idx);
+    int idx(const int64_t key);
+    int idx(const int startIdx, const int64_t key);
+    FileIndex *additional_idx(int64_t key);
     int sizeIndex();
     ~FileIndex();
 
     //Used for insert
     bool isEmpty();
     char* serialize(char *buffer, int &offset, int &maxSize);
-    void add(long key, short file, int pos);
-    void addAdditionalIndex(long key, FileIndex *idx);
+    void add(int64_t key, short file, int pos);
+    void addAdditionalIndex(int64_t key, FileIndex *idx);
 };
 
 #endif /* INDEX_H_ */

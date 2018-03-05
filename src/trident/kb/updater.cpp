@@ -45,8 +45,8 @@ void Updater::parseUpdate(std::string update,
     }
 
     //Parse all files. Populate the output of arrays
-    long invalidtriples = 0;
-    long validtriples = 0;
+    int64_t invalidtriples = 0;
+    int64_t validtriples = 0;
     for (auto file : filesToParse) {
         FileInfo filei;
         filei.path = file;
@@ -125,7 +125,7 @@ void Updater::writeDict(DictMgmt *dictmgmt,
     //Write the elements
     uint64_t maxid = 0;
     for (auto itr = indict.begin(); itr != indict.end(); ++itr) {
-        long coordinates = sb->getSize();
+        int64_t coordinates = sb->getSize();
         const char *term = itr->first;
         nTerm id = itr->second;
         if (dict->insertIfNotExists((tTerm*) (term + 2), Utils::decode_short(term), id)) {
@@ -156,7 +156,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                              StringCollection &tmpdictsupport) {
     std::unique_ptr<char[]> supportbuffer(new char[MAX_TERM_SIZE + 2]);
     Utils::encode_short(supportbuffer.get(), 0);
-    long supportlen = 0;
+    int64_t supportlen = 0;
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     std::vector<Triple> parsedtriples;
@@ -168,8 +168,8 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
 
         //Load the existing dictionary
         DictMgmt *dict = kb->getDictMgmt();
-        long nextID = kb->getNextID();
-        long previd = -1;
+        int64_t nextID = kb->getNextID();
+        int64_t previd = -1;
 
         //Sort the update by s
         std::sort(triples.begin(), triples.end(), sortByS);
@@ -197,7 +197,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                         tmpdict.insert(std::make_pair(newentry, nextID));
                         nextID++;
                     } else {
-                        itr->nums = ~0lu;
+                        itr->nums = UINT64_MAX;
                         continue;
                     }
                 }
@@ -239,7 +239,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                             nextID++;
                         }
                     } else {
-                        itr->nump = ~0lu;
+                        itr->nump = UINT64_MAX;
                         continue;
                     }
                 }
@@ -281,7 +281,7 @@ void Updater::compressUpdate(DiffIndex::TypeUpdate type,
                             nextID++;
                         }
                     } else {
-                        itr->numo = ~0lu;
+                        itr->numo = UINT64_MAX;
                         continue;
                     }
                 }

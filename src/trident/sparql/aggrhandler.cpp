@@ -58,7 +58,7 @@ void AggregateHandler::reset() {
 }
 
 void AggregateHandler::updateVarInt(unsigned var,
-        long value, uint64_t count) {
+        int64_t value, uint64_t count) {
     //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
     varvalues[var].v_int = value;
@@ -106,7 +106,7 @@ void AggregateHandler::stopUpdate() {
     } while (inputmask != 0);
 }
 
-long AggregateHandler::getValueInt(unsigned var) const {
+int64_t AggregateHandler::getValueInt(unsigned var) const {
     return varvalues[var].v_int;
 }
 

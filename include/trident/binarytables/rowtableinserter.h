@@ -31,11 +31,11 @@ private:
     int comprValue1;
     int comprValue2;
     int diffValue1;
-    long previousValue1;
-    long nElements;
+    int64_t previousValue1;
+    int64_t nElements;
 
-    void writeFirstTerm(long t1);
-    void writeSecondTerm(long t2);
+    void writeFirstTerm(int64_t t1);
+    void writeSecondTerm(int64_t t2);
 
 public:
 
@@ -49,7 +49,7 @@ public:
 
     void startAppend();
 
-    void append(long t1, long t2);
+    void append(int64_t t1, int64_t t2);
 
     void stopAppend();
 

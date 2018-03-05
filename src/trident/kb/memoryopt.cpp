@@ -28,9 +28,9 @@
 
 #include <algorithm>
 
-int MemoryOptimizer::calculateBytesPerDictPair(long nTerms, int leafSize) {
+int MemoryOptimizer::calculateBytesPerDictPair(int64_t nTerms, int leafSize) {
     int nbytesKey = 0;
-    long tmp = nTerms;
+    int64_t tmp = nTerms;
     do {
         tmp >>= 8;
         nbytesKey++;
@@ -46,9 +46,9 @@ int MemoryOptimizer::calculateBytesPerDictPair(long nTerms, int leafSize) {
     return (1 + nbytesKey + nbytesValue) * leafSize;
 }
 
-void MemoryOptimizer::optimizeForWriting(long inputTriples, KBConfig &config) {
-    //long totalMemory = (long) (Utils::getSystemMemory() * 0.8);
-    long nTerms = inputTriples / 4;
+void MemoryOptimizer::optimizeForWriting(int64_t inputTriples, KBConfig &config) {
+    //int64_t totalMemory = (int64_t) (Utils::getSystemMemory() * 0.8);
+    int64_t nTerms = inputTriples / 4;
     //int dictionaries = config.getParamInt(DICTPARTITIONS);
 
     //Optimize tree with coordinates
@@ -88,7 +88,7 @@ void MemoryOptimizer::optimizeForWriting(long inputTriples, KBConfig &config) {
     config.setParamInt(DICT_MAXPREALLLEAVESCACHE,
                        config.getParamInt(DICT_MAXNODESINCACHE));
     config.setParamLong(DICT_MAXSIZECACHETREE,
-                        (long)config.getParamLong(DICT_MAXFILESIZE) * 4);
+                        config.getParamLong(DICT_MAXFILESIZE) * 4);
     config.setParamInt(DICT_NODE_KEYS_FACTORY_SIZE, 10);
     config.setParamInt(DICT_NODE_KEYS_PREALL_FACTORY_SIZE,
                        config.getParamInt(DICT_MAXPREALLLEAVESCACHE));
@@ -101,7 +101,7 @@ void MemoryOptimizer::optimizeForWriting(long inputTriples, KBConfig &config) {
     config.setParamInt(INVDICT_NODEMINBYTES, 1);
     config.setParamInt(INVDICT_MAXNODESINCACHE, 1024);
     config.setParamLong(INVDICT_MAXSIZECACHETREE,
-                        (long)config.getParamLong(INVDICT_MAXFILESIZE) * 4);
+                        config.getParamLong(INVDICT_MAXFILESIZE) * 4);
     config.setParamInt(INVDICT_MAXLEAVESCACHE, 2);
     config.setParamInt(INVDICT_MAXPREALLLEAVESCACHE,
                        config.getParamInt(INVDICT_MAXNODESINCACHE) + 10);
@@ -111,12 +111,12 @@ void MemoryOptimizer::optimizeForWriting(long inputTriples, KBConfig &config) {
 
     //This parameter does not count. The only thing that matters are the opened files...
     //config.setParamLong(STORAGE_CACHE_SIZE,
-    //                    (long) config.getParamInt(STORAGE_MAX_FILE_SIZE) * 4);
+    //                     config.getParamInt(STORAGE_MAX_FILE_SIZE) * 4);
     config.setParamLong(STORAGE_MAX_N_FILES, 4);
 }
 
 void MemoryOptimizer::optimizeForReasoning(int ndicts, KBConfig &config) {
-    long totalMemory = (uint64_t) std::min((double)128000000, (double)(Utils::getSystemMemory() * 0.10));
+    int64_t totalMemory = (uint64_t) std::min((double)128000000, (double)(Utils::getSystemMemory() * 0.10));
 
     //All memory (10% of total memory) is reserved for the secondary lists. Strings and Tree gets minimal memory.
 
@@ -164,7 +164,7 @@ void MemoryOptimizer::optimizeForReasoning(int ndicts, KBConfig &config) {
 }
 
 void MemoryOptimizer::optimizeForReading(int ndicts, KBConfig &config) {
-    long totalMemory = (long) (Utils::getSystemMemory() * 0.75);
+    int64_t totalMemory = (int64_t) (Utils::getSystemMemory() * 0.75);
 
     //Half of the memory is used to store the list of pairs. That's why we set it to totalMemory/2 (it's one shared among the three permutations).
     //The other half is divided among the tree (2/3) and the inv dicts (1/3).
@@ -192,7 +192,7 @@ void MemoryOptimizer::optimizeForReading(int ndicts, KBConfig &config) {
 
     //Tree
     int nPreallocatedLeaves = 10000;
-    long sizePreallocatedLeaves = sizeof(Leaf) * nPreallocatedLeaves;
+    int64_t sizePreallocatedLeaves = sizeof(Leaf) * nPreallocatedLeaves;
     config.setParamLong(TREE_MAXSIZECACHETREE,
                         ((totalMemory / 6) * 2) - sizePreallocatedLeaves);
     config.setParamInt(TREE_MAXNODESINCACHE, nPreallocatedLeaves);

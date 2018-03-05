@@ -29,7 +29,7 @@ char one[1] = { 1 };
 char zero[1] = { 0 };
 
 NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
-        int fileMaxSize, int maxNFiles, long cacheMaxSize, std::string path) :
+        int fileMaxSize, int maxNFiles, int64_t cacheMaxSize, std::string path) :
     readOnly(context->isReadOnly()), path(path), nodeMinSize(nodeMinBytes) {
         lastNodeInserted = NULL;
 
@@ -93,7 +93,7 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
     }
 
 void NodeManager::unserializeNodeFrom(CachedNode *node, char *buffer, int pos) {
-    long id = Utils::decode_long(buffer, pos);
+    int64_t id = Utils::decode_long(buffer, pos);
     pos += 8;
 
     bool canHaveChildren = buffer[pos++] == 1 ? true : false;
@@ -134,7 +134,7 @@ char* NodeManager::get(CachedNode *node) {
     return manager->getBuffer(node->fileIndex, node->posIndex, &len);
 }
 
-CachedNode *NodeManager::getCachedNode(long id) {
+CachedNode *NodeManager::getCachedNode(int64_t id) {
     if (readOnly) {
         if (!nodesLoaded[id]) {
             //Load the node from rawInput
@@ -218,18 +218,18 @@ void NodeManager::compressSpace(string path) {
     int totalNumberNodes = 0;
     if (Utils::exists(path) && Utils::fileSize(sFileIdx) > 0) {
         MemoryMappedFile mf(sFileIdx);
-        long size = mf.getLength();
+        int64_t size = mf.getLength();
         char *raw_input = mf.getData();
 
         //bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
         //        bip::read_only);
         //bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
         //        bip::read_only);
-        //long size = mapped_rgn->get_size();
+        //int64_t size = mapped_rgn->get_size();
         //char *raw_input = static_cast<char*>(mapped_rgn->get_address());
         
         int nnodes = Utils::decode_int(raw_input, 0);
-        long pos = 4 + 4 * nnodes;
+        int64_t pos = 4 + 4 * nnodes;
 
         int currentFile = -1;
         while (pos < size) {
@@ -293,11 +293,11 @@ void NodeManager::compressSpace(string path) {
         sNewFile.close();
 
         //Remove the old file
-        long oldSize = Utils::fileSize(pOldFile);
+        int64_t oldSize = Utils::fileSize(pOldFile);
         Utils::remove_all(pOldFile);
 
         //Rename the new file
-        long newSize = Utils::fileSize(pNewFile);
+        int64_t newSize = Utils::fileSize(pNewFile);
         Utils::rename(pNewFile, pOldFile);
 
         LOG(DEBUGL) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
@@ -328,7 +328,7 @@ NodeManager::~NodeManager() {
         //Move the file to the next position
         out.seekp(4 + sizeCoordinates);
 
-        long wastedSpace = 0;
+        int64_t wastedSpace = 0;
         for (int i = 0; i < firstElementsPerFile.size(); ++i) {
             CachedNode *node = firstElementsPerFile[i];
             if (node != NULL) {

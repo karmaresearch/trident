@@ -115,7 +115,7 @@ class TridentLayer : public DBLayer {
                     sampleRate);
         }
 
-        long getSizeOutput(long s, long p, long o,
+        int64_t getSizeOutput(int64_t s, int64_t p, int64_t o,
                 std::vector<uint8_t> *posToFilter,
                 std::vector<uint64_t> *valuesToFilter);
 
@@ -131,8 +131,8 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
         double bifocalSampling_DenseDense(bool valueL1,
                 uint64_t value1CL,
@@ -146,8 +146,8 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
         double bifocalSampling_SparseAny(bool valueL1,
                 uint64_t value1CL,
@@ -161,8 +161,8 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
     public:
         TridentLayer(KB &kb) : kb(kb), dict(kb.getDictMgmt()), q(kb.query()),

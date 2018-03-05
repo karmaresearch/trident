@@ -24,8 +24,8 @@ int main(int argc, const char** argv) {
 
 	FileMerger<Term> merger(files);
 
-	long count = 0;
-	long duplicates = 0;
+	int64_t count = 0;
+	int64_t duplicates = 0;
 	char *previousTerm = new char[1024];
 check_again:
 	while(!merger.isEmpty()) {

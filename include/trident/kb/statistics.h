@@ -26,8 +26,8 @@
 
 class Stats {
 private:
-    long readIndexBlocks;
-    long readIndexBytes;
+    int64_t readIndexBlocks;
+    int64_t readIndexBytes;
 public:
 
     Stats() : readIndexBlocks(0), readIndexBytes(0) {}
@@ -36,15 +36,15 @@ public:
         readIndexBlocks++;
     }
 
-    void addNReadIndexBytes(const unsigned long bytes) {
+    void addNReadIndexBytes(const uint64_t bytes) {
         readIndexBytes += bytes;
     }
 
-    unsigned long getNReadIndexBlocks() const {
+    uint64_t getNReadIndexBlocks() const {
         return readIndexBlocks;
     }
 
-    unsigned long getNReadIndexBytes() const {
+    uint64_t getNReadIndexBytes() const {
         return readIndexBytes;
     }
 };

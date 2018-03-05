@@ -99,7 +99,7 @@ private:
     //Optional?
     bool leftOptional, rightOptional, joinSuccedeed;
     std::set<uint64_t> collectedRightValues;
-    long currentIdx;
+    size_t currentIdx;
     std::vector<uint64_t> keys;
 
 public:

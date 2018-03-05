@@ -51,7 +51,7 @@ UpdateStats::~UpdateStats() {
         q->releaseItr(existingkeys);
 }
 
-void UpdateStats_add::setKey(const long key, const size_t sizetable) {
+void UpdateStats_add::setKey(const int64_t key, const size_t sizetable) {
     bool isNew = false;
 
     if (currentkey > key) {
@@ -89,7 +89,7 @@ void UpdateStats_add::setKey(const long key, const size_t sizetable) {
 
 }
 
-void UpdateStats_add::addFirst1(const long v, const long count) {
+void UpdateStats_add::addFirst1(const int64_t v, const int64_t count) {
     assert(v >= 0);
     totalc1++;
     if (storep1) {
@@ -122,7 +122,7 @@ void UpdateStats_add::addFirst1(const long v, const long count) {
     }
 }
 
-void UpdateStats_add::addFirst2(const long v, const long count) {
+void UpdateStats_add::addFirst2(const int64_t v, const int64_t count) {
     assert(v >= 0);
     totalc2++;
     if (storep2) {
@@ -156,7 +156,7 @@ void UpdateStats_add::addFirst2(const long v, const long count) {
     }
 }
 
-void UpdateStats_rm::setKey(const long key, const size_t sizetable) {
+void UpdateStats_rm::setKey(const int64_t key, const size_t sizetable) {
     bool isNew = false;
     while (currentkey < key && existingkeys->hasNext()) {
         existingkeys->next();
@@ -189,7 +189,7 @@ void UpdateStats_rm::setKey(const long key, const size_t sizetable) {
     }
 }
 
-void UpdateStats_rm::addFirst1(const long v, const long count) {
+void UpdateStats_rm::addFirst1(const int64_t v, const int64_t count) {
     totalc1++;
     if (storep1) {
         if (shouldCheck1 && itr1) {
@@ -208,7 +208,7 @@ void UpdateStats_rm::addFirst1(const long v, const long count) {
     }
 }
 
-void UpdateStats_rm::addFirst2(const long v, const long count) {
+void UpdateStats_rm::addFirst2(const int64_t v, const int64_t count) {
     totalc2++;
     if (storep2) {
         if (shouldCheck2 && itr2) {

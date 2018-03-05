@@ -140,7 +140,7 @@ void CompositeItr::rearrangeChildren() {
     isSorted = true;
 }
 
-long CompositeItr::getCount() {
+int64_t CompositeItr::getCount() {
     return currentCount;
 }
 
@@ -184,7 +184,7 @@ uint64_t CompositeItr::estCardinality() {
     }
 }
 
-void CompositeItr::moveto(const long c1, const long c2) {
+void CompositeItr::moveto(const int64_t c1, const int64_t c2) {
     if (c1 == v1 && (ignseccol || c2 == v2)) {
         //I might have to reconsider also the iterators that were removed
         while (lastIdx < children.size() - 1 &&
@@ -213,7 +213,7 @@ void CompositeItr::moveto(const long c1, const long c2) {
 }
 
 void CompositeItr::init(std::vector<PairItr*> &iterators,
-                        long nfirstterms, PairItr * kbitr) {
+                        int64_t nfirstterms, PairItr * kbitr) {
     initializeConstraints();
     ignseccol = false;
     v1 = v2 = -1;

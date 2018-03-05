@@ -152,30 +152,30 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
     }
 
     //Check whether the first term in the permutation is a constant.
-    long v1 = -1;
-    long v2 = -1;
-    long v3 = -1;
-    if (value1 == ~0lu) {
+    int64_t v1 = -1;
+    int64_t v2 = -1;
+    int64_t v3 = -1;
+    if (value1 == UINT64_MAX) {
         v1 = value1C;
     }
-    if (value2 == ~0lu) {
+    if (value2 == UINT64_MAX) {
         v2 = value2C;
     }
-    if (value3 == ~0lu) {
+    if (value3 == UINT64_MAX) {
         v3 = value3C;
     }
 
-    if (value1 != ~0lu) { //It's a variable
-        if (value2 == ~0lu || value3 == ~0lu) {
+    if (value1 != UINT64_MAX) { //It's a variable
+        if (value2 == UINT64_MAX || value3 == UINT64_MAX) {
             return std::numeric_limits<double>::max(); //no constants allowed after variable
         }
-    } else if (value2 != ~0lu) {
-        if (value3 == ~0lu)
+    } else if (value2 != UINT64_MAX) {
+        if (value3 == UINT64_MAX)
             return std::numeric_limits<double>::max(); //no constants allowed after variable
     }
 
     int idx;
-    long cost = 0;
+    int64_t cost = 0;
     uint64_t reversedCard, aggrEls;
     switch (order) {
         case DBLayer::DataOrder::Order_No_Order_SPO:
@@ -251,19 +251,19 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         return std::numeric_limits<double>::max();
     }
 
-    long v1 = -1;
-    long v2 = -1;
-    if (value1C != ~0lu) {
+    int64_t v1 = -1;
+    int64_t v2 = -1;
+    if (value1C != UINT64_MAX) {
         v1 = value1C;
     }
-    if (value2C != ~0lu) {
+    if (value2C != UINT64_MAX) {
         v2 = value2C;
     }
 
     if (v1 != -1 && v2 != -1)
         return 1;
 
-    long cost = 0;
+    int64_t cost = 0;
     int idx;
     switch (order) {
         case DBLayer::DataOrder::Order_No_Order_SPO:
@@ -313,7 +313,7 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         return std::numeric_limits<double>::max();
     }
 
-    if (value1C == ~0lu)
+    if (value1C == UINT64_MAX)
         return kb.getNTerms();
     else
         return 1; //It's the cost of a lookup on the tree
@@ -349,21 +349,21 @@ double TridentLayer::bifocalSampling_SparseAny(bool valueL1,
         uint64_t value2CR,
         bool value3R,
         uint64_t value3CR,
-        const long card1,
-        const long card2) {
+        const int64_t card1,
+        const int64_t card2) {
     //The right relation will be sampled
     const double delta2 = log(card2);
     const double s2 = max(1.0, sqrt(card2) + delta2);
     double samplePerc2 = 1.0;
     std::shared_ptr<TupleTable> t2 = sampleQuery(value1R, value1CR, value2R,
-            value2CR, value3R, value3CR, (long)s2,
+            value2CR, value3R, value3CR, (int64_t)s2,
             samplePerc2);
 
     const double delta1 = log(card1);
     const double s1 = max(1.0, (sqrt(card1) + delta1) * delta1);
     double samplePerc1 = 1.0;
     std::shared_ptr<TupleTable> t1 = sampleQuery(valueL1, value1CL, value2L,
-            value2CL, value3L, value3CL, (long)s1,
+            value2CL, value3L, value3CL, (int64_t)s1,
             samplePerc1);
 
     //Remove from t2 all elements found in t1. This is to simulate a removal
@@ -431,7 +431,7 @@ double TridentLayer::bifocalSampling_SparseAny(bool valueL1,
                 posToFilter1[i]++;
     }
 
-    long subj1, p1, o1;
+    int64_t subj1, p1, o1;
     if (!valueL1) {
         subj1 = -1;
     } else {
@@ -447,7 +447,7 @@ double TridentLayer::bifocalSampling_SparseAny(bool valueL1,
     } else {
         o1 = value3CL;
     }
-    long sizeOutput = 0;
+    int64_t sizeOutput = 0;
     if (acceptableKeys.size() > 0) {
         sizeOutput = getSizeOutput(subj1, p1, o1, &posToFilter1,
                 &acceptableKeys);
@@ -471,21 +471,21 @@ double TridentLayer::bifocalSampling_DenseDense(bool valueL1,
         uint64_t value2CR,
         bool value3R,
         uint64_t value3CR,
-        const long card1,
-        const long card2) {
+        const int64_t card1,
+        const int64_t card2) {
 
     //SampleSize1
     const double delta1 = log(card1);
     const double s1 = max(1.0, (sqrt(card1) + delta1) * delta1);
     double samplePerc1 = 1.0;
     std::shared_ptr<TupleTable> t1 = sampleQuery(valueL1, value1CL, value2L,
-            value2CL, value3L, value3CL, (long)s1,
+            value2CL, value3L, value3CL, (int64_t)s1,
             samplePerc1);
     const double delta2 = log(card2);
     const double s2 = max(1.0, (sqrt(card2) + delta2) * delta2);
     double samplePerc2 = 1.0;
     std::shared_ptr<TupleTable> t2 = sampleQuery(value1R, value1CR, value2R,
-            value2CR, value3R, value3CR, (long)s2,
+            value2CR, value3R, value3CR, (int64_t)s2,
             samplePerc2);
 
     //Sort the two relations by join fields
@@ -572,8 +572,8 @@ double TridentLayer::bifocalSampling(bool valueL1,
         uint64_t value2CR,
         bool value3R,
         uint64_t value3CR,
-        const long card1,
-        const long card2) {
+        const int64_t card1,
+        const int64_t card2) {
 
     double output = bifocalSampling_DenseDense(valueL1, value1CL, value2L,
             value2CL, value3L, value3CL, value1R, value1CR, value2R,
@@ -614,15 +614,15 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     std::shared_ptr<TupleTable> t1;
-    const long card1 = getCardinality(!valueL1 ? (uint64_t)~0lu : value1CL,
-            !value2L ? (uint64_t)~0lu : value2CL,
-            !value3L ? (uint64_t)~0lu : value3CL);
+    const int64_t card1 = getCardinality(!valueL1 ? UINT64_MAX : value1CL,
+            !value2L ? UINT64_MAX : value2CL,
+            !value3L ? UINT64_MAX : value3CL);
     const bool sampleT1 = card1 > SMALLREL;
 
     std::shared_ptr<TupleTable> t2;
-    const long card2 = getCardinality(!value1R ? (uint64_t)~0lu : value1CR,
-            !value2R ? (uint64_t)~0lu : value2CR,
-            !value3R ? (uint64_t)~0lu : value3CR);
+    const int64_t card2 = getCardinality(!value1R ? UINT64_MAX : value1CR,
+            !value2R ? UINT64_MAX : value2CR,
+            !value3R ? UINT64_MAX : value3CR);
     const bool sampleT2 = card2 > SMALLREL;
 
     if (!bifSampl) {
@@ -676,7 +676,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
             TupleTable::JoinHitStats estimates = t1->joinHitRates(t2.get());
             if (estimates.ratio == 0) {
                 //Could be that the sample is too small. Assume all the exact values match
-                estimates.ratio = min((unsigned long)(t1->getNRows() / (samplePerc1 * kb.getSampleRate())),
+                estimates.ratio = min((size_t)(t1->getNRows() / (samplePerc1 * kb.getSampleRate())),
                         t2->getNRows()) /
                     (t1->getNRows() / (samplePerc1 * kb.getSampleRate()) * t2->getNRows());
             } else {
@@ -696,7 +696,7 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
             TupleTable::JoinHitStats estimates = t1->joinHitRates(t2.get());
             if (estimates.ratio == 0) {
                 //Could be that the sample is too small. Assume all the exact values match
-                estimates.ratio = min(t1->getNRows(), (unsigned long)(t2->getNRows() / (samplePerc2 * kb.getSampleRate()))) /
+                estimates.ratio = min(t1->getNRows(), (size_t)(t2->getNRows() / (samplePerc2 * kb.getSampleRate()))) /
                     (t1->getNRows() / (samplePerc2 * kb.getSampleRate()) * t2->getNRows());
             } else {
                 estimates.ratio = estimates.ratio / (kb.getSampleRate() * samplePerc2);
@@ -713,19 +713,19 @@ double TridentLayer::getJoinSelectivity(bool valueL1,
 uint64_t TridentLayer::getCardinality(uint64_t c1,
         uint64_t c2,
         uint64_t c3) {
-    long v1 = -1;
-    if (c1 != ~0lu) {
+    int64_t v1 = -1;
+    if (c1 != UINT64_MAX) {
         v1 = c1;
     }
-    long v2 = -1;
-    if (c2 != ~0lu) {
+    int64_t v2 = -1;
+    if (c2 != UINT64_MAX) {
         v2 = c2;
     }
-    long v3 = -1;
-    if (c3 != ~0lu) {
+    int64_t v3 = -1;
+    if (c3 != UINT64_MAX) {
         v3 = c3;
     }
-    long card = q->getCard(v1, v2, v3);
+    int64_t card = q->getCard(v1, v2, v3);
     return card;
 }
 
@@ -780,9 +780,9 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
         int limit,
         double & sample) {
 
-    long s = -1;
-    long p = -1;
-    long o = -1;
+    int64_t s = -1;
+    int64_t p = -1;
+    int64_t o = -1;
     std::vector<int> vars;
     std::vector<int> posvars;
     if (!cs1) {
@@ -835,7 +835,7 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
 
     if (i >= limit && limit != -1) {
         //Set the sample rate
-        const long card = querier->estCard(s, p, o);
+        const int64_t card = querier->estCard(s, p, o);
         sample = (double) limit / card;
         //LOG(DEBUGL) << "Sample " << sample << " card=" << card << " " << limit << " time=" << dur.count() * 1000;
     } else {
@@ -846,12 +846,12 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
     return output;
 }
 
-long TridentLayer::getSizeOutput(long s, long p, long o,
+int64_t TridentLayer::getSizeOutput(int64_t s, int64_t p, int64_t o,
         std::vector<uint8_t> *posToFilter,
         std::vector<uint64_t> *valuesToFilter) {
     //LOG(DEBUGL) << "Start getSizeOutput " << valuesToFilter->size();
     assert(posToFilter);
-    long count = 0;
+    int64_t count = 0;
     int nvars = 0;
     int nconsts = 0;
     if (s < 0) {

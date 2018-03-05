@@ -113,7 +113,7 @@ void HashJoinItr::fillNextMap(const int i, std::vector<uint64_t> &currentMapValu
                 currentMap2->insert(std::make_pair(key, beginIdx));
             }
 
-            long nValuesPerKey = (currentMapValues.size() - beginIdx - 1) / tmpContainerRowSize;
+            int64_t nValuesPerKey = (currentMapValues.size() - beginIdx - 1) / tmpContainerRowSize;
             if (nValuesPerKey > 1) {
                 currentMapValues[beginIdx] = nValuesPerKey;
             }
@@ -139,7 +139,7 @@ void HashJoinItr::fillNextMap(const int i, std::vector<uint64_t> &currentMapValu
         currentMap2->insert(std::make_pair(key, beginIdx));
     }
 
-    long nValuesPerKey = (currentMapValues.size() - beginIdx - 1) / tmpContainerRowSize;
+    int64_t nValuesPerKey = (currentMapValues.size() - beginIdx - 1) / tmpContainerRowSize;
     if (nValuesPerKey > 1) {
         currentMapValues[beginIdx] = nValuesPerKey;
     }
@@ -246,7 +246,7 @@ void HashJoinItr::execJoin() {
                     LOG(DEBUGL) << "Size bindings " << currentMap1->size();
 #endif
 
-                long nTuples = 0;
+                int64_t nTuples = 0;
                 while (itr->hasNext()) {
                     nTuples++;
                     itr->next();
@@ -274,9 +274,9 @@ void HashJoinItr::execJoin() {
 
                     if (found) {
                         //Add values in the next map
-                        const long nRows = currentMapValues[beginRow++];
+                        const int64_t nRows = currentMapValues[beginRow++];
                         assert(nRows > 0);
-                        for (long i = 0; i < nRows; ++i) {
+                        for (int64_t i = 0; i < nRows; ++i) {
                             idxRows.push_back(tmpContainer.size());
                             //Copy1
                             for (int i = 0; i < currentMapRowSize; ++i) {
@@ -324,7 +324,7 @@ void HashJoinItr::execJoin() {
                 size_t beginRow;
 
                 if (njoins == 1) {
-                    long key = itr->getElementAt(joins[0].posPattern);
+                    int64_t key = itr->getElementAt(joins[0].posPattern);
                     // LOG(DEBUGL) << "Join: key = " << key;
                     HashJoinMap::iterator mapItr = currentMap1->find(key);
                     if (mapItr != currentMap1->end()) {
@@ -343,8 +343,8 @@ void HashJoinItr::execJoin() {
                 }
 
                 if (found) {
-                    const long nRows = currentMapValues[beginRow++];
-                    for (long i = 0; i < nRows; ++i) {
+                    const int64_t nRows = currentMapValues[beginRow++];
+                    for (int64_t i = 0; i < nRows; ++i) {
                         for (int j = 0; j < nValuesToCopy; ++j) {
                             int index = valuesToCopy[j];
                             if (index < currentMapRowSize) {

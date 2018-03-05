@@ -27,9 +27,9 @@ int main(int argc, const char** args) {
         LZ4Reader *dictFile = new LZ4Reader(string(prefixDict) + to_string(i)+string("-np1"));
         cout << "Loading file " << string(prefixDict) + to_string(i) << endl;
         if (dictFile != NULL) {
-            long countEntries = 0;
+            int64_t countEntries = 0;
             while (!dictFile->isEof()) {
-                long compressedTerm = dictFile->parseLong();
+                int64_t compressedTerm = dictFile->parseLong();
                 int sizeTerm;
                 const char *term = dictFile->parseString(sizeTerm);
                 /*if (uncommonMap.find(term) == uncommonMap.end()) {*/

@@ -38,18 +38,18 @@ class NewRowTable: public AbsNewTable {
         const char *current;
         const char *end;
 
-        long currentValue1, currentValue2;
-        long count;
+        int64_t currentValue1, currentValue2;
+        int64_t count;
         bool isSecondColumnIgnored;
 
         const char *currentMark;
 
     public:
-        long getValue1() {
+        int64_t getValue1() {
             return currentValue1;
         }
 
-        long getValue2() {
+        int64_t getValue2() {
             return currentValue2;
         }
 
@@ -74,10 +74,10 @@ class NewRowTable: public AbsNewTable {
 
         uint64_t getCardinality() {
             if (isSecondColumnIgnored) {
-                long count = 0;
+                int64_t count = 0;
                 if (currentValue1 != -1)
                     count++;
-                long prevEl = currentValue1;
+                int64_t prevEl = currentValue1;
                 while (current != end) {
                     currentValue1 = Reader1::read(current);
                     current += Reader1::size() + Reader2::size();
@@ -121,7 +121,7 @@ class NewRowTable: public AbsNewTable {
             }
         }
 
-        bool next(long &v1, long &v2, long &v3) {
+        bool next(int64_t &v1, int64_t &v2, int64_t &v3) {
             // Record the previous values and coordinates
             if (isSecondColumnIgnored) {
                 currentValue1 = Reader1::read(current);
@@ -162,9 +162,9 @@ class NewRowTable: public AbsNewTable {
             count = 1;
         }
 
-        void setup(long c1, const char* s, const char *e) {
+        void setup(int64_t c1, const char* s, const char *e) {
             //Read the interval
-            long nrows = (e - s) / (Reader1::size() + Reader2::size());
+            int64_t nrows = (e - s) / (Reader1::size() + Reader2::size());
             if (nrows > 64) {
                 //Do a binary search
                 const char *startS = s;
@@ -172,10 +172,10 @@ class NewRowTable: public AbsNewTable {
                 const uint8_t blocksize = Reader1::size() + Reader2::size();
                 while (nrows > 64) {
                     //Restrict the range
-                    long gap = (nrows / 2) * blocksize;
+                    int64_t gap = (nrows / 2) * blocksize;
                     assert(gap >= 0);
                     const char *middle = startS + gap;
-                    long middlevalue = Reader1::read(middle);
+                    int64_t middlevalue = Reader1::read(middle);
                     if (middlevalue < c1) {
                         startS = middle;
                     } else if (middlevalue >= c1) {
@@ -189,7 +189,7 @@ class NewRowTable: public AbsNewTable {
                 }
                 s = startS;
             }
-            long v = Reader1::read(s);
+            int64_t v = Reader1::read(s);
             while (v < c1 && (s + Reader1::size() + Reader2::size()) < e) {
                 s += Reader1::size() + Reader2::size();
                 v = Reader1::read(s);
@@ -209,9 +209,9 @@ class NewRowTable: public AbsNewTable {
             }
         }
 
-        void setup(long c1, long c2, const char* s, const char *e) {
+        void setup(int64_t c1, int64_t c2, const char* s, const char *e) {
             //Read the interval
-            long nrows = (e - s) / (Reader1::size() + Reader2::size());
+            int64_t nrows = (e - s) / (Reader1::size() + Reader2::size());
             if (nrows > 64) {
                 //Do a binary search
                 const char *startS = s;
@@ -219,10 +219,10 @@ class NewRowTable: public AbsNewTable {
                 const uint8_t blocksize = Reader1::size() + Reader2::size();
                 while (nrows > 64) {
                     //Restrict the range
-                    long gap = (nrows / 2) * blocksize;
+                    int64_t gap = (nrows / 2) * blocksize;
                     assert(gap >= 0);
                     const char *middle = startS + gap;
-                    long middlevalue = Reader1::read(middle);
+                    int64_t middlevalue = Reader1::read(middle);
                     if (middlevalue < c1) {
                         startS = middle;
                     } else if (middlevalue >= c1) {
@@ -236,8 +236,8 @@ class NewRowTable: public AbsNewTable {
                 }
                 s = startS;
             }
-            long v1 = Reader1::read(s);
-            long v2 = Reader2::read(s + Reader1::size());
+            int64_t v1 = Reader1::read(s);
+            int64_t v2 = Reader2::read(s + Reader1::size());
             while ((v1 < c1 || (v1 == c1 && v2 < c2)) && s < e) {
                 s += Reader1::size() + Reader2::size();
                 v1 = Reader1::read(s);
@@ -254,7 +254,7 @@ class NewRowTable: public AbsNewTable {
             next();
         }
 
-        void moveto(const long c1, const long c2) {
+        void moveto(const int64_t c1, const int64_t c2) {
             assert(currentValue1 != -1);
             assert(isSecondColumnIgnored || currentValue2 != -1);
             if (!hasNext() && (c1 > currentValue1 ||
@@ -265,7 +265,7 @@ class NewRowTable: public AbsNewTable {
             if (c1 > currentValue1 ||
                     (!isSecondColumnIgnored && c1 == currentValue1 && c2 > currentValue2)) {
                 // Read the first entry
-                long currentvalue = -1;
+                int64_t currentvalue = -1;
                 while (current != end) {
                     currentvalue = Reader1::read(current);
                     if (currentvalue >= c1)
@@ -275,7 +275,7 @@ class NewRowTable: public AbsNewTable {
                 assert(current <= end);
 
                 if (c2 > 0 && current != end && currentvalue == c1) {
-                    long currentC1 = Reader1::read(current);
+                    int64_t currentC1 = Reader1::read(current);
                     while (current != end && Reader1::read(current) == currentC1 &&
                             Reader2::read(current + Reader1::size()) < c2) {
                         current += Reader1::size() + Reader2::size();
@@ -306,7 +306,7 @@ class NewRowTable: public AbsNewTable {
             }
         }
 
-        long getCount() {
+        int64_t getCount() {
             return count;
         }
 
@@ -314,7 +314,7 @@ class NewRowTable: public AbsNewTable {
             return NEWROW_ITR;
         }
 
-        static long s_getValue1AtRow(const char *start, const long rowId) {
+        static int64_t s_getValue1AtRow(const char *start, const int64_t rowId) {
             const char *pos = start + (Reader1::size() + Reader2::size()) * rowId;
             return Reader1::read(pos);
         }

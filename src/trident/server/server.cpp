@@ -109,7 +109,7 @@ string TridentServer::lookup(string sId, TridentLayer &db) {
 
 void TridentServer::execSPARQLQuery(string sparqlquery,
         bool explain,
-        long nterms,
+        int64_t nterms,
         TridentLayer &db,
         bool printstdout,
         bool jsonoutput,

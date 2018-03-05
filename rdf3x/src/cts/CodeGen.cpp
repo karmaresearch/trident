@@ -54,7 +54,7 @@ static void resolveScanVariable(Runtime& runtime, const map<unsigned, Register*>
     // Resolve a variable used in a scan
 {
     bool constant = (slot == 0) ? node.constSubject : ((slot == 1) ? node.constPredicate : node.constObject);
-    unsigned long var = (slot == 0) ? node.subject : ((slot == 1) ? node.predicate : node.object);
+    uint64_t var = (slot == 0) ? node.subject : ((slot == 1) ? node.predicate : node.object);
     reg = runtime.getRegister((*registers.find(&node)).second + slot);
     if (constant) {
         bound = true;

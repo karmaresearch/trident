@@ -220,10 +220,10 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
 }
 
 bool checkMachineConstraints() {
-    if (sizeof(long) != 8) {
-        LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
-        return false;
-    }
+//   if (sizeof(long) != 8) {
+//       LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
+//       return false;
+//   }
     if (sizeof(int) != 4) {
         LOG(ERRORL) << "Trident expects a 'int' to be 4 bytes";
         return false;

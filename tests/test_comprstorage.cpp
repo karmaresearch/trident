@@ -20,7 +20,7 @@ public:
 		this->ins = ins;
 	}
 
-	void addEntry(nTerm key, long nElements, short file, int pos,
+	void addEntry(nTerm key, int64_t nElements, short file, int pos,
 			char strategy) {
 		c.set(0, file, pos, nElements, strategy);
 		ins->insert(key, &c);
@@ -33,10 +33,10 @@ int main(int argc, const char** argv) {
 	int firstGroupTerms = 900000;
 	int secondGroupTerms = 900000;
 
-	long firstKey;
-	long secondKey;
-	long *array1 = new long[n];
-	for (long i = 0; i < n; ++i) {
+	int64_t firstKey;
+	int64_t secondKey;
+	int64_t *array1 = new int64_t[n];
+	for (int64_t i = 0; i < n; ++i) {
 		if (i % firstGroupTerms == 0)
 			firstKey = i;
 		if (i % secondGroupTerms == 0)
@@ -87,8 +87,8 @@ int main(int argc, const char** argv) {
 	for (int i = 0; i < n; i += firstGroupTerms) {
 		PairItr *itr = q->get(0, i, -1, -1);
 		if (itr != NULL) {
-			long count = 0;
-			long secondTerm = i;
+			int64_t count = 0;
+			int64_t secondTerm = i;
 			while (itr->has_next()) {
 				itr->next_pair();
 				if (count % secondGroupTerms == 0) {
@@ -117,10 +117,10 @@ int main(int argc, const char** argv) {
 
 	int offset = 0;
 	for (int i = 0; i < n; i += firstGroupTerms) {
-		long secondTerm = i + offset;
+		int64_t secondTerm = i + offset;
 		PairItr *itr = q->get(0, i, secondTerm, -1);
 		if (itr != NULL) {
-			long count = 0;
+			int64_t count = 0;
 			while (itr->has_next()) {
 				itr->next_pair();
 				if (itr->getValue1() != secondTerm) {
@@ -152,11 +152,11 @@ int main(int argc, const char** argv) {
 	offset = 0;
 	int offset2 = 0;
 	for (int i = 0; i < n; i += firstGroupTerms) {
-		long secondTerm = i + offset;
-		long thirdTerm = secondTerm + offset2 * 3 + 2;
+		int64_t secondTerm = i + offset;
+		int64_t thirdTerm = secondTerm + offset2 * 3 + 2;
 		PairItr *itr = q->get(0, i, secondTerm, thirdTerm);
 		if (itr != NULL) {
-			long count = 0;
+			int64_t count = 0;
 			while (itr->has_next()) {
 				itr->next_pair();
 				if (itr->getValue1() != secondTerm) {

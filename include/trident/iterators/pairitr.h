@@ -30,9 +30,9 @@
 
 class PairItr {
     protected:
-        long constraint1;
-        long constraint2;
-        long key;
+        int64_t constraint1;
+        int64_t constraint2;
+        int64_t key;
     public:
         void initializeConstraints() {
             setConstraint1(NO_CONSTRAINT);
@@ -41,15 +41,15 @@ class PairItr {
 
         virtual int getTypeItr() = 0;
 
-        virtual long getValue1() = 0;
+        virtual int64_t getValue1() = 0;
 
-        virtual long getValue2() = 0;
+        virtual int64_t getValue2() = 0;
 
-        long getKey() {
+        int64_t getKey() {
             return key;
         }
 
-        void setKey(long key) {
+        void setKey(int64_t key) {
             this->key = key;
         }
 
@@ -57,14 +57,14 @@ class PairItr {
 
         virtual void next() = 0;
 
-        virtual bool next(long &v1, long &v2, long &v3) {
+        virtual bool next(int64_t &v1, int64_t &v2, int64_t &v3) {
             next();
             return hasNext();
         }
 
         virtual void ignoreSecondColumn() = 0;
 
-        virtual long getCount() = 0;
+        virtual int64_t getCount() = 0;
 
         virtual uint64_t getCardinality() = 0;
 
@@ -75,19 +75,19 @@ class PairItr {
 
         virtual void clear() = 0;
 
-        long getConstraint2() {
+        int64_t getConstraint2() {
             return constraint2;
         }
 
-        virtual void setConstraint2(const long c2) {
+        virtual void setConstraint2(const int64_t c2) {
             constraint2 = c2;
         }
 
-        long getConstraint1() {
+        int64_t getConstraint1() {
             return constraint1;
         }
 
-        virtual void setConstraint1(const long c1) {
+        virtual void setConstraint1(const int64_t c1) {
             constraint1 = c1;
         }
 
@@ -95,22 +95,22 @@ class PairItr {
 
         virtual void reset(const char i) = 0;
 
-        virtual void gotoKey(long k) {
+        virtual void gotoKey(int64_t k) {
             throw 10; //The only iterator that can use this method is scanitr,
             //whic overrides it.
         }
 
-        virtual long getValue1AtRow(long rowid) {
+        virtual int64_t getValue1AtRow(int64_t rowid) {
             //Only a column-oriented approach implements it
             throw 10;
         }
 
-        virtual long getValue2AtRow(long rowid) {
+        virtual int64_t getValue2AtRow(int64_t rowid) {
             //Only a column-oriented approach implements it
             throw 10;
         }
 
-        virtual void moveto(const long c1, const long c2) = 0;
+        virtual void moveto(const int64_t c1, const int64_t c2) = 0;
 };
 
 #endif

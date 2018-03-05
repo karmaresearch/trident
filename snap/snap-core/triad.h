@@ -12,11 +12,11 @@ namespace TSnap {
     // Triads and clustering coefficient
 
     /// Computes the average clustering coefficient as defined in Watts and Strogatz, Collective dynamics of 'small-world' networks. ##TSnap::GetClustCf
-    template <class PGraph> double GetClustCf(const PGraph& Graph, long SampleNodes=-1);
+    template <class PGraph> double GetClustCf(const PGraph& Graph,  int64_t SampleNodes=-1);
     /// Computes the distribution of average clustering coefficient. ##TSnap::GetClustCf1
-    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, long SampleNodes=-1);
+    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV,  int64_t SampleNodes=-1);
     /// Computes the distribution of average clustering coefficient as well as the number of open and closed triads in the graph. ##TSnap::GetClustCf2
-    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriadsX, int64& OpenTriadsX, long SampleNodes=-1);
+    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriadsX, int64& OpenTriadsX,  int64_t SampleNodes=-1);
     /// Returns clustering coefficient of a particular node. ##TSnap::GetNodeClustCf
     template <class PGraph> double GetNodeClustCf(const PGraph& Graph, const int& NId);
     /// Computes clustering coefficient of each node of the Graph. ##TSnap::GetClustCf1
@@ -25,13 +25,13 @@ namespace TSnap {
     template <class PGraph> void GetNodeClustCf(const PGraph& Graph, std::vector<float>& NIdCCfH);
 
     /// Returns the number of triangles in a graph. ##TSnap::GetTriads
-    template <class PGraph> int64 GetTriads(const PGraph& Graph, long SampleNodes=-1);
+    template <class PGraph> int64 GetTriads(const PGraph& Graph,  int64_t SampleNodes=-1);
     /// Computes the number of Closed and Open triads. ##TSnap::GetTriads1
-    template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriadsX, int64& OpenTriadsX, long SampleNodes);
+    template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriadsX, int64& OpenTriadsX,  int64_t SampleNodes);
     /// Computes the number of open and close triads for every node of the network. ##TSnap::GetTriads2
-    template <class PGraph> void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, long SampleNodes=-1);
+    template <class PGraph> void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV,  int64_t SampleNodes=-1);
     template <class PGraph> void GetTriads_v0(const PGraph& Graph, TIntTrV& NIdCOTriadV, int SampleNodes=-1);
-    template <class PGraph> void GetTriads(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV, long SampleNodes=-1);
+    template <class PGraph> void GetTriads(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV,  int64_t SampleNodes=-1);
     /// Counts the number of edges that participate in at least one triad. ##TSnap::GetTriadEdges
     template <class PGraph> int GetTriadEdges(const PGraph& Graph, int SampleEdges=-1);
 
@@ -64,11 +64,11 @@ namespace TSnap {
 
     /// Returns sorted vector \c NbrV containing unique in or out neighbors of node \c NId in graph \c Graph
     template <class PGraph> void GetUniqueNbrV(const PGraph& Graph, const int& NId, TIntV& NbrV);
-    template <class PGraph> void GetUniqueNbrV(const PGraph& Graph, const long& NId, std::vector<long>& NbrV);
+    template <class PGraph> void GetUniqueNbrV(const PGraph& Graph, const  int64_t& NId, std::vector< int64_t>& NbrV);
 
     /// Returns the number of common elements in two sorted TInt vectors
     int GetCommon(TIntV& A, TIntV& B);
-    long GetCommon(const std::vector<long>& A, const std::vector<long>& B);
+     int64_t GetCommon(const std::vector< int64_t>& A, const std::vector< int64_t>& B);
 
     /////////////////////////////////////////////////
     // Implementation
@@ -125,14 +125,14 @@ namespace TSnap {
     }
 
 
-    template <class PGraph> double GetClustCf(const PGraph& Graph, long SampleNodes) {
+    template <class PGraph> double GetClustCf(const PGraph& Graph,  int64_t SampleNodes) {
         std::vector<TUInt64Tr> NIdCOTriadV;
         GetTriads(Graph, NIdCOTriadV, SampleNodes);
         if (NIdCOTriadV.empty()) {
             return 0.0;
         }
         double SumCcf = 0.0;
-        for (long i = 0; i < NIdCOTriadV.size(); i++) {
+        for ( int64_t i = 0; i < NIdCOTriadV.size(); i++) {
             const double OpenCnt = NIdCOTriadV[i].Val2()+NIdCOTriadV[i].Val3();
             if (OpenCnt > 0) {
                 SumCcf += NIdCOTriadV[i].Val2() / OpenCnt; }
@@ -141,7 +141,7 @@ namespace TSnap {
         return SumCcf / double(NIdCOTriadV.size());
     }
 
-    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, long SampleNodes) {
+    template <class PGraph> double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV,  int64_t SampleNodes) {
         TIntTrV NIdCOTriadV;
         GetTriads(Graph, NIdCOTriadV, SampleNodes);
         THash<TInt, TFltPr> DegSumCnt;
@@ -164,7 +164,7 @@ namespace TSnap {
     }
 
     template <class PGraph>
-        double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriads, int64& OpenTriads, long SampleNodes) {
+        double GetClustCf(const PGraph& Graph, TFltPrV& DegToCCfV, int64& ClosedTriads, int64& OpenTriads,  int64_t SampleNodes) {
             TIntTrV NIdCOTriadV;
             GetTriads(Graph, NIdCOTriadV, SampleNodes);
             THash<TInt, TFltPr> DegSumCnt;
@@ -208,8 +208,8 @@ namespace TSnap {
             GetTriads(Graph, NIdCOTriadV);
             NIdCCfH.clear();
             NIdCCfH.reserve(Graph->GetNodes());
-            for (long i = 0; i < NIdCOTriadV.size(); i++) {
-                const long D = NIdCOTriadV[i].Val2()+NIdCOTriadV[i].Val3();
+            for ( int64_t i = 0; i < NIdCOTriadV.size(); i++) {
+                const  int64_t D = NIdCOTriadV[i].Val2()+NIdCOTriadV[i].Val3();
                 const double CCf = D!=0 ? NIdCOTriadV[i].Val2() / double(D) : 0.0;
                 NIdCCfH[NIdCOTriadV[i].Val1] = CCf;
             }
@@ -240,18 +240,18 @@ namespace TSnap {
         }
 
     template <class PGraph>
-        int64 GetTriads(const PGraph& Graph, long SampleNodes) {
+        int64 GetTriads(const PGraph& Graph,  int64_t SampleNodes) {
             int64 OpenTriads, ClosedTriads;
             return GetTriads(Graph, ClosedTriads, OpenTriads, SampleNodes);
         }
 
     template <class PGraph>
-        int64 GetTriads(const PGraph& Graph, int64& ClosedTriads, int64& OpenTriads, long SampleNodes) {
+        int64 GetTriads(const PGraph& Graph, int64& ClosedTriads, int64& OpenTriads,  int64_t SampleNodes) {
             std::vector<TUInt64Tr> NIdCOTriadV;
             GetTriads(Graph, NIdCOTriadV, SampleNodes);
             uint64 closedTriads = 0;
             uint64 openTriads = 0;
-            for (long i = 0; i < NIdCOTriadV.size(); i++) {
+            for ( int64_t i = 0; i < NIdCOTriadV.size(); i++) {
                 closedTriads += NIdCOTriadV[i].Val2;
                 openTriads += NIdCOTriadV[i].Val3;
             }
@@ -311,7 +311,7 @@ namespace TSnap {
     // Function pretends that the graph is undirected (count unique connected triples of nodes)
     // This implementation is faster, it converts hash tables to vectors
     template <class PGraph>
-        void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV, long SampleNodes) {
+        void GetTriads(const PGraph& Graph, TIntTrV& NIdCOTriadV,  int64_t SampleNodes) {
             const bool IsDir = Graph->HasFlag(gfDirected);
             TIntSet NbrH;
             TIntV NIdV;
@@ -392,22 +392,22 @@ namespace TSnap {
 
     template <class PGraph>
         void GetTriads(const PGraph& Graph, std::vector<TUInt64Tr>& NIdCOTriadV,
-                long SampleNodes) {
+                 int64_t SampleNodes) {
             const bool IsDir = Graph->HasFlag(gfDirected);
-            long NNodes = Graph->GetNodes();
+             int64_t NNodes = Graph->GetNodes();
             int64 hcount;
             hcount = 0;
 
-            std::vector<long> samples;
-            long nodesToProcess = NNodes;
+            std::vector< int64_t> samples;
+             int64_t nodesToProcess = NNodes;
             if (SampleNodes != -1) {
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<long> dis(0, NNodes);
+                std::uniform_int_distribution< int64_t> dis(0, NNodes);
 
-                std::set<long> set_samples;
-                for(long i = 0; i < SampleNodes; ) {
-                    long id = dis(gen);
+                std::set< int64_t> set_samples;
+                for( int64_t i = 0; i < SampleNodes; ) {
+                     int64_t id = dis(gen);
                     if (!set_samples.count(id)) {
                         set_samples.insert(id);
                         samples.push_back(id);
@@ -419,9 +419,9 @@ namespace TSnap {
 
             NIdCOTriadV.resize(nodesToProcess);
 
-            std::vector<long> Nbrs1;
-            std::vector<long> Nbrs2;
-            for (long node = 0; node < nodesToProcess; node++) {
+            std::vector< int64_t> Nbrs1;
+            std::vector< int64_t> Nbrs2;
+            for ( int64_t node = 0; node < nodesToProcess; node++) {
                 typename PGraph::TObj::TNodeI NI;
                 if (SampleNodes == -1) {
                     NI = Graph->GetNI(node);
@@ -436,11 +436,11 @@ namespace TSnap {
                 Nbrs1.clear();
                 GetUniqueNbrV(Graph, node, Nbrs1);
                 // count connected neighbors
-                long OpenCnt1 = 0, CloseCnt1 = 0;
-                for (long srcNbr = 0; srcNbr < Nbrs1.size(); srcNbr++) {
+                 int64_t OpenCnt1 = 0, CloseCnt1 = 0;
+                for ( int64_t srcNbr = 0; srcNbr < Nbrs1.size(); srcNbr++) {
                     Nbrs2.clear();
                     GetUniqueNbrV(Graph, Nbrs1[srcNbr], Nbrs2);
-                    long Count = GetCommon(Nbrs2,Nbrs1);
+                     int64_t Count = GetCommon(Nbrs2,Nbrs1);
                     CloseCnt1 += Count;
                 }
                 CloseCnt1 /= 2;
@@ -477,7 +477,7 @@ namespace TSnap {
                     TInt Vert = NbrV[j];
                     TInt Deg = Graph->GetNI(Vert).GetDeg();
                     if (Deg > NI.GetDeg() ||
-                            ((long)Deg == NI.GetDeg() && Vert > NI.GetId())) {
+                            (( int64_t)Deg == NI.GetDeg() && Vert > NI.GetId())) {
                         V.Add(Vert);
                     }
                 }
@@ -956,17 +956,17 @@ namespace TSnap {
             }
 
         template <class PGraph>
-            void GetUniqueNbrV(const PGraph& Graph, const long& NId, std::vector<long>& NbrV) {
+            void GetUniqueNbrV(const PGraph& Graph, const  int64_t& NId, std::vector< int64_t>& NbrV) {
                 typename PGraph::TObj::TNodeI NI = Graph->GetNI(NId);
 
-                long j = 0;
-                long k = 0;
-                long Prev = -1;
-                long InDeg = NI.GetInDeg();
-                long OutDeg = NI.GetOutDeg();
+                 int64_t j = 0;
+                 int64_t k = 0;
+                 int64_t Prev = -1;
+                 int64_t InDeg = NI.GetInDeg();
+                 int64_t OutDeg = NI.GetOutDeg();
                 if (InDeg > 0  &&  OutDeg > 0) {
-                    long v1 = NI.GetInNId(j);
-                    long v2 = NI.GetOutNId(k);
+                     int64_t v1 = NI.GetInNId(j);
+                     int64_t v2 = NI.GetOutNId(k);
                     while (1) {
                         if (v1 <= v2) {
                             if (Prev != v1) {
@@ -996,7 +996,7 @@ namespace TSnap {
                     }
                 }
                 while (j < InDeg) {
-                    long v = NI.GetInNId(j);
+                     int64_t v = NI.GetInNId(j);
                     if (Prev != v) {
                         if (v != NId) {
                             NbrV.push_back(v);
@@ -1006,7 +1006,7 @@ namespace TSnap {
                     j += 1;
                 }
                 while (k < OutDeg) {
-                    long v = NI.GetOutNId(k);
+                     int64_t v = NI.GetOutNId(k);
                     if (Prev != v) {
                         if (v != NId) {
                             NbrV.push_back(v);

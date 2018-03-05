@@ -30,10 +30,10 @@ char Inserter::STRATEGY_FOR_POS =
 StorageStrat::getStrategy(NEWROW_ITR, NO_DIFFERENCE, 3, 4, true);
 
 bool Inserter::insert(const int permutation,
-        const long t1,
-        const long t2,
-        const long t3,
-        const long count,
+        const int64_t t1,
+        const int64_t t2,
+        const int64_t t3,
+        const int64_t count,
         TripleWriter *posArray,
         TreeInserter *treeInserter,
         const bool aggregated,
@@ -65,7 +65,7 @@ bool Inserter::insert(const int permutation,
         currentT2[permutation] = t2;
     }
 
-    long n = nElements[permutation]++;
+    int64_t n = nElements[permutation]++;
     if (aggregated) {
         posElements[permutation] += count;
     }
@@ -120,8 +120,8 @@ std::string Inserter::getPathPermutationStorage(const int perm) {
     return files[perm]->getPath();
 }
 
-long Inserter::getCoordinatesForPOS(const int p) {
-    long coordinates = ((long) (strategies[p] & 0xFF) << 48) + ((long) fileIdx[p] << 32)
+int64_t Inserter::getCoordinatesForPOS(const int p) {
+    int64_t coordinates = ((int64_t) (strategies[p] & 0xFF) << 48) + ((int64_t) fileIdx[p] << 32)
         + startPositions[p];
     return coordinates;
 }
@@ -176,7 +176,7 @@ void Inserter::writeCurrentEntryIntoTree(int permutation,
                 break;
         }
 
-        long nels;
+        int64_t nels;
         if (aggregated) {
             nels = posElements[permutation];
             nels /= 2; //I divide it by two because each table receives twice number of counts. One of each rows, and one for the aggregated ones.
@@ -192,7 +192,7 @@ void Inserter::writeCurrentEntryIntoTree(int permutation,
     }
 }
 
-void Inserter::storeInmemoryValuesIntoFiles(int permutation, long* v1, long* v2,
+void Inserter::storeInmemoryValuesIntoFiles(int permutation, int64_t* v1, int64_t* v2,
         int n, TripleWriter *posArray, const bool aggregated,
         const bool canSkipTables) {
     //Can I skip the storage of the table?

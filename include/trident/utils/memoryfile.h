@@ -14,12 +14,12 @@
 class MemoryMappedFile {
     private:
         int fd;
-        long length;
+        size_t length;
         char *data;
 
     public:
-        MemoryMappedFile(std::string file, bool ro, long start,
-                long len) {
+        MemoryMappedFile(std::string file, bool ro, off_t start,
+                size_t len) {
             fd = ::open(file.c_str(), ro ?  O_RDONLY : (O_RDWR | O_CREAT),
 		    ro ? S_IREAD : (S_IREAD | S_IWRITE));
             if (fd == -1) {
@@ -53,7 +53,7 @@ class MemoryMappedFile {
             return data;
         }
 
-        long getLength() {
+        size_t getLength() {
             return length;
         }
 
@@ -65,7 +65,7 @@ class MemoryMappedFile {
             return static_cast<int>(sysconf(_SC_PAGESIZE));
         }
 
-        void flush(long begin, long len) {
+        void flush(off_t begin, size_t len) {
             msync(data + begin, len, MS_SYNC);
         }
 };

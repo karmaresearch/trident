@@ -76,16 +76,16 @@ int main(int argc, char **argv) {
     char supportTerm[512];
 
     //Stats
-    long ngroups = 0;
-    long totalElGroups = 0;
-    long maxSizeGroup = 0;
+    int64_t ngroups = 0;
+    int64_t totalElGroups = 0;
+    int64_t maxSizeGroup = 0;
 
-    long elconschain = 0;
-    long nconschain = 0;
+    int64_t elconschain = 0;
+    int64_t nconschain = 0;
 
     while (itr->hasNext()) {
         TermCoordinates value;
-        long key = itr->next(&value);
+        int64_t key = itr->next(&value);
 
         if (!value.exists(1)) {
             continue;
@@ -97,11 +97,11 @@ int main(int argc, char **argv) {
 
         PairItr *pi = q->getPairIterator(&value, permutation, -1, -1);
 
-        long elgroup = 0;
-        long prevEl = -1;
-        long sizeChain = 1;
-        long prevFirstTerm = -1;
-        long chainsPerGroup = 0;
+        int64_t elgroup = 0;
+        int64_t prevEl = -1;
+        int64_t sizeChain = 1;
+        int64_t prevFirstTerm = -1;
+        int64_t chainsPerGroup = 0;
         while (pi->has_next()) {
             pi->next_pair();
             elgroup++;

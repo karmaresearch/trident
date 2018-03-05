@@ -14,8 +14,8 @@ Trident_TNGraph::Trident_TNGraph(KB *kb) {
 
 bool Trident_TNGraph::getNodeInfo(TermCoordinates &coord,
         Querier *q,
-        long &indeg,
-        long &outdeg,
+        int64_t &indeg,
+        int64_t &outdeg,
         const char*& osp,
         const char*& sop,
         SnapReaders::pReader& ospReader,
@@ -100,7 +100,7 @@ bool Trident_TNGraph::getNodeInfo(TermCoordinates &coord,
 
 void Trident_TNGraph::getNewColumnPointer(int bytesEl,
         int totalBytes,
-        long (**output)(const char*, const long)) {
+        int64_t (**output)(const char*, const int64_t)) {
     int remBytes = totalBytes - bytesEl;
     switch (bytesEl) {
         case 1:

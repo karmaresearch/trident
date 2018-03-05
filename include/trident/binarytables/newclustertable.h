@@ -38,21 +38,21 @@ class NewClusterTable: public AbsNewTable {
         const char *current;
         const char *end;
 
-        long currentValue1, currentValue2;
-        long count, countgroup;
+        int64_t currentValue1, currentValue2;
+        int64_t count, countgroup;
         bool isSecondColumnIgnored;
 
         const char *m_current;
-        long m_currentValue1, m_currentValue2;
-        long m_count;
-        long m_countgroup;
+        int64_t m_currentValue1, m_currentValue2;
+        int64_t m_count;
+        int64_t m_countgroup;
 
     public:
-        long getValue1() {
+        int64_t getValue1() {
             return currentValue1;
         }
 
-        long getValue2() {
+        int64_t getValue2() {
             return currentValue2;
         }
 
@@ -73,8 +73,8 @@ class NewClusterTable: public AbsNewTable {
 
         uint64_t getCardinality() {
             //Read all elements
-            long sum = 0;
-            long nels = 0;
+            int64_t sum = 0;
+            int64_t nels = 0;
             const char *s = start;
             while (s != end) {
                 //Skip first el
@@ -127,7 +127,7 @@ class NewClusterTable: public AbsNewTable {
             }
         }
 
-        bool next(long &v1, long &v2, long &v3) {
+        bool next(int64_t &v1, int64_t &v2, int64_t &v3) {
             // Record the previous values and coordinates
             if (isSecondColumnIgnored) {
                 currentValue1 = Reader1::read(current);
@@ -169,13 +169,13 @@ class NewClusterTable: public AbsNewTable {
             count = countgroup = 0;
         }
 
-        void setup(long c1, const char* start, const char *end) {
+        void setup(int64_t c1, const char* start, const char *end) {
             //Get the right range
             const char *s = start;
             const char *e = end;
             while (s != e) {
-                long v1 = Reader1::read(s);
-                long c = ReaderCount::read(s + Reader1::size());
+                int64_t v1 = Reader1::read(s);
+                int64_t c = ReaderCount::read(s + Reader1::size());
                 if (v1 == c1) {
                     e = s + Reader1::size() + ReaderCount::size() + c * Reader2::size();
                     break;
@@ -190,13 +190,13 @@ class NewClusterTable: public AbsNewTable {
             setup(s, e);
         }
 
-        void setup(long c1, long c2, const char* start, const char *end) {
+        void setup(int64_t c1, int64_t c2, const char* start, const char *end) {
             //Get the right range
             const char *s = start;
             const char *e = end;
             while (s != e) {
-                long v1 = Reader1::read(s);
-                long c = ReaderCount::read(s + Reader1::size());
+                int64_t v1 = Reader1::read(s);
+                int64_t c = ReaderCount::read(s + Reader1::size());
                 if (v1 == c1) {
                     e = s + Reader1::size() + ReaderCount::size() + c * Reader2::size();
                     break;
@@ -221,7 +221,7 @@ class NewClusterTable: public AbsNewTable {
                     const size_t diff = e - s;
                     const size_t middlevalue = (diff / Reader2::size()) >> 1;
                     const char *m = s + middlevalue * Reader2::size();
-                    long vm = Reader2::read(m);
+                    int64_t vm = Reader2::read(m);
                     if (vm < c2) {
                         s = m + Reader2::size();
                     } else if (vm > c2) {
@@ -231,7 +231,7 @@ class NewClusterTable: public AbsNewTable {
                         break;
                     }
                 }
-                long v2 = Reader2::read(current);
+                int64_t v2 = Reader2::read(current);
                 if (v2 == c2) {
                     this->end = current + Reader2::size();
                     count = countgroup = 1;
@@ -260,13 +260,13 @@ class NewClusterTable: public AbsNewTable {
             next();
         }
 
-        void moveto(const long c1, const long c2) {
+        void moveto(const int64_t c1, const int64_t c2) {
             if (!hasNext() && (c1 > currentValue1 || (!isSecondColumnIgnored && currentValue1 == c1
                             && c2 > currentValue2))) {
                 return;
             }
 
-            long currentterm = currentValue1;
+            int64_t currentterm = currentValue1;
             if (c1 > currentValue1) {
                 //Move to the end of the current group
                 if (count != 0 && !isSecondColumnIgnored) {
@@ -280,7 +280,7 @@ class NewClusterTable: public AbsNewTable {
                         break;
                     }
                     current += Reader1::size();
-                    const long c = ReaderCount::read(current);
+                    const int64_t c = ReaderCount::read(current);
                     current += ReaderCount::size() + c * Reader2::size();
                 }
                 count = countgroup = 0;
@@ -307,7 +307,7 @@ class NewClusterTable: public AbsNewTable {
                             const size_t diff = e - current;
                             const size_t middlevalue = (diff / Reader2::size()) >> 1;
                             const char *m = current + middlevalue * Reader2::size();
-                            long vm = Reader2::read(m);
+                            int64_t vm = Reader2::read(m);
                             if (vm < c2) {
                                 current = m + Reader2::size();
                             } else if (vm > c2) {
@@ -356,7 +356,7 @@ class NewClusterTable: public AbsNewTable {
             }
         }
 
-        long getCount() {
+        int64_t getCount() {
             if (isSecondColumnIgnored) {
                 return countgroup;
             } else {
@@ -369,7 +369,7 @@ class NewClusterTable: public AbsNewTable {
         }
 
 
-        static long s_getValue1AtRow(const char *start, const long rowId) {
+        static int64_t s_getValue1AtRow(const char *start, const int64_t rowId) {
             const char *pos = start + (Reader1::size() +
                     Reader2::size() +
                     ReaderCount::size()) * rowId;

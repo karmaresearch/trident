@@ -51,9 +51,9 @@ int INV_PERM_SOP[] = { 0, 2, 1 };
 EmptyItr emptyItr;
 
 Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
-        const long inputSize, const long nTerms, const int nindices,
-        const long *nTablesPerPartition,
-        const long *nFirstTablesPerPartition, KB *sampleKB,
+        const int64_t inputSize, const int64_t nTerms, const int nindices,
+        const int64_t *nTablesPerPartition,
+        const int64_t *nFirstTablesPerPartition, KB *sampleKB,
         std::vector<std::unique_ptr<DiffIndex>> &diffIndices)
     : inputSize(inputSize), nTerms(nTerms),
     nTablesPerPartition(nTablesPerPartition),
@@ -96,7 +96,7 @@ void Querier::initDiffIndex(DiffIndex *diff) {
 
 }
 
-char Querier::getStrategy(const int idx, const long v) {
+char Querier::getStrategy(const int idx, const int64_t v) {
     if (lastKeyQueried != v) {
         lastKeyFound = tree->get(v, &currentValue);
         lastKeyQueried = v;
@@ -104,7 +104,7 @@ char Querier::getStrategy(const int idx, const long v) {
     return currentValue.getStrategy(idx);
 }
 
-/*uint64_t Querier::getCard(const int idx, const long v) {
+/*uint64_t Querier::getCard(const int idx, const int64_t v) {
   if (lastKeyQueried != v) {
   lastKeyFound = tree->get(v, &currentValue);
   lastKeyQueried = v;
@@ -112,8 +112,8 @@ char Querier::getStrategy(const int idx, const long v) {
   return currentValue.getNElements(idx);
   }*/
 
-uint64_t Querier::getCardOnIndex(const int idx, const long first, const long second,
-        const long third, bool skipLast) {
+uint64_t Querier::getCardOnIndex(const int idx, const int64_t first, const int64_t second,
+        const int64_t third, bool skipLast) {
     //Check if first element is variable
     switch (idx) {
         case IDX_SPO:
@@ -149,7 +149,7 @@ uint64_t Querier::getCardOnIndex(const int idx, const long first, const long sec
             } else {
                 releaseItr(itr);
 
-                long nElements = 0;
+                int64_t nElements = 0;
                 int idx2 = idx;
                 if (idx2 > 2)
                     idx2 -= 3;
@@ -189,7 +189,7 @@ uint64_t Querier::getCardOnIndex(const int idx, const long first, const long sec
     }
 }
 
-long Querier::getCard(const long s, const long p, const long o, uint8_t pos) {
+int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o, uint8_t pos) {
     if (s < 0 && p < 0 && o < 0) {
         throw 10; //not supported
     }
@@ -236,7 +236,7 @@ long Querier::getCard(const long s, const long p, const long o, uint8_t pos) {
             }
 
             itr->ignoreSecondColumn();
-            long nElements = itr->getCardinality();
+            int64_t nElements = itr->getCardinality();
             releaseItr(itr);
             return nElements;
         } else {
@@ -249,12 +249,12 @@ long Querier::getCard(const long s, const long p, const long o, uint8_t pos) {
     }
 }
 
-uint64_t Querier::isAggregated(const int idx, const long first, const long second,
-        const long third) {
+uint64_t Querier::isAggregated(const int idx, const int64_t first, const int64_t second,
+        const int64_t third) {
     if (idx != IDX_POS && idx != IDX_PSO)
         return 0;
 
-    const long key = second;
+    const int64_t key = second;
     if (key >= 0) {
         if (lastKeyQueried != key) {
             lastKeyFound = tree->get(key, &currentValue);
@@ -283,12 +283,12 @@ uint64_t Querier::isAggregated(const int idx, const long first, const long secon
     return 0;
 }
 
-uint64_t Querier::isReverse(const int idx, const long first, const long second,
-        const long third) {
+uint64_t Querier::isReverse(const int idx, const int64_t first, const int64_t second,
+        const int64_t third) {
     if (idx < 3)
         return 0;
 
-    long key1 = 0;
+    int64_t key1 = 0;
     switch (idx) {
         case IDX_SPO:
         case IDX_SOP:
@@ -323,10 +323,10 @@ uint64_t Querier::isReverse(const int idx, const long first, const long second,
     return 0;
 }
 
-uint64_t Querier::estCardOnIndex(const int idx, const long first, const long second,
-        const long third) {
+uint64_t Querier::estCardOnIndex(const int idx, const int64_t first, const int64_t second,
+        const int64_t third) {
     //Check if first element is variable
-    long key1, key2;
+    int64_t key1, key2;
     key1 = key2 = 0;
     switch (idx) {
         case IDX_SPO:
@@ -371,7 +371,7 @@ uint64_t Querier::estCardOnIndex(const int idx, const long first, const long sec
         return 1;
     } else if (countUnbound == 1 && key2 >= 0) {
         PairItr *itr = get(idx, first, second, third);
-        long card = itr->estCardinality();
+        int64_t card = itr->estCardinality();
         releaseItr(itr);
         return card;
     } else {
@@ -383,7 +383,7 @@ uint64_t Querier::estCardOnIndex(const int idx, const long first, const long sec
         if (perm > 2)
             perm = perm - 3;
 
-        long nElements = 0;
+        int64_t nElements = 0;
         if (currentValue.exists(perm)) {
             nElements += currentValue.getNElements(perm);
         }
@@ -394,7 +394,7 @@ uint64_t Querier::estCardOnIndex(const int idx, const long first, const long sec
     }
 }
 
-long Querier::estCard(const long s, const long p, const long o) {
+int64_t Querier::estCard(const int64_t s, const int64_t p, const int64_t o) {
     if (s < 0 && p < 0 && o < 0) {
         //They are all variables. Return the input size...
         return getInputSize();
@@ -409,11 +409,11 @@ long Querier::estCard(const long s, const long p, const long o) {
     } else if (countUnbound == 1) {
         int perm = getIndex(s, p, o);
         PairItr *itr = get(perm, s, p, o);
-        long card = itr->estCardinality();
+        int64_t card = itr->estCardinality();
         releaseItr(itr);
         return card;
     } else if (countUnbound == 2) {
-        long key;
+        int64_t key;
         int perm;
         if (s >= 0) {
             key = s;
@@ -430,7 +430,7 @@ long Querier::estCard(const long s, const long p, const long o) {
             lastKeyQueried = key;
         }
 
-        long nElements = 0;
+        int64_t nElements = 0;
         if (currentValue.exists(perm)) {
             nElements += currentValue.getNElements(perm);
         }
@@ -442,7 +442,7 @@ long Querier::estCard(const long s, const long p, const long o) {
     throw 10;
 }
 
-long Querier::getCard(const long s, const long p, const long o) {
+int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
     if (s < 0 && p < 0 && o < 0) {
         //They are all variables. Return the input size...
         return getInputSize();
@@ -455,7 +455,7 @@ long Querier::getCard(const long s, const long p, const long o) {
     if (o < 0) countUnbound++;
     if (countUnbound == 2) {
         //Get the key
-        long key;
+        int64_t key;
         if (s >= 0)
             key = s;
         else if (p >= 0)
@@ -466,7 +466,7 @@ long Querier::getCard(const long s, const long p, const long o) {
             lastKeyFound = tree->get(key, &currentValue);
             lastKeyQueried = key;
         }
-        long nElements = 0;
+        int64_t nElements = 0;
         if (currentValue.exists(idx)) {
             nElements += currentValue.getNElements(idx);
         }
@@ -495,7 +495,7 @@ long Querier::getCard(const long s, const long p, const long o) {
 }
 
 //Check whether a triple exists
-bool Querier::exists(const long s, const long p, const long o) {
+bool Querier::exists(const int64_t s, const int64_t p, const int64_t o) {
     //Use the POS index
     PairItr *itr = get(IDX_POS, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR) {
@@ -508,7 +508,7 @@ bool Querier::exists(const long s, const long p, const long o) {
 
 }
 
-bool Querier::isEmpty(const long s, const long p, const long o) {
+bool Querier::isEmpty(const int64_t s, const int64_t p, const int64_t o) {
     if (s < 0 && p < 0 && o < 0) {
         //They are all variables. Return the input size...
         if (inputSize != 0) {
@@ -535,7 +535,7 @@ bool Querier::isEmpty(const long s, const long p, const long o) {
     }
 }
 
-int Querier::getIndex(long s, long p, long o) {
+int Querier::getIndex(int64_t s, int64_t p, int64_t o) {
     if (nindices == 1) {
         return IDX_SPO;
     }
@@ -606,10 +606,10 @@ int Querier::getIndex(long s, long p, long o) {
 
 void Querier::initNewIterator(TableStorage *storage,
         int file,
-        long mark,
+        int64_t mark,
         PairItr *t,
-        long v1,
-        long v2,
+        int64_t v1,
+        int64_t v2,
         const bool setConstraints) {
     std::pair<const char*, const char*> coord = storage->getTable(file, mark);
 
@@ -647,8 +647,8 @@ void Querier::initNewIterator(TableStorage *storage,
         t->setConstraint2(-1);
 }
 
-PairItr *Querier::getPermuted(const int idx, const long el1, const long el2,
-        const long el3, const bool constrain) {
+PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el2,
+        const int64_t el3, const bool constrain) {
     switch (idx) {
         case IDX_SPO:
             return get(idx, el1, el2, el3, constrain);
@@ -698,7 +698,7 @@ PairItr *Querier::getTermList(const int perm) {
     return finalItr;
 }
 
-bool Querier::existKey(int perm, long key) {
+bool Querier::existKey(int perm, int64_t key) {
     PairItr *itr = getPermuted(perm, key, -1, -1, true);
     bool resp;
     if (itr->hasNext()) {
@@ -727,8 +727,8 @@ TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
 }
 
 PairItr *Querier::get(const int idx, TermCoordinates &value,
-        const long key, const long v1,
-        const long v2, const bool cons) {
+        const int64_t key, const int64_t v1,
+        const int64_t v2, const bool cons) {
 
     if (value.exists(idx)) {
         if (StorageStrat::isAggregated(value.getStrategy(idx))) {
@@ -761,11 +761,11 @@ PairItr *Querier::get(const int idx, TermCoordinates &value,
     }
 }
 
-/*long Querier::getValue1AtRow(const int perm,
+/*int64_t Querier::getValue1AtRow(const int perm,
   const short fileIdx,
   const int mark,
   const char strategy,
-  const long rowId) {
+  const int64_t rowId) {
   std::pair<const char*, const char*> coord = files[perm]->getTable(fileIdx, mark);
 
   const int storageType = StorageStrat::getStorageType(strategy);
@@ -791,18 +791,18 @@ PairItr *Querier::get(const int idx, TermCoordinates &value,
 
 const char *Querier::getTable(const int perm,
         const short fileIdx,
-        const long mark) {
+        const int64_t mark) {
     std::pair<const char*, const char*> coord = files[perm]->getTable(fileIdx, mark);
     return coord.first;
 }
 
 PairItr *Querier::get(const int perm,
-        const long key,
+        const int64_t key,
         const short fileIdx,
-        const long mark,
+        const int64_t mark,
         const char strategy,
-        const long v1,
-        const long v2,
+        const int64_t v1,
+        const int64_t v2,
         const bool constrain,
         const bool noAggr) {
     PairItr *itr = strat.getBinaryTable(strategy);
@@ -819,10 +819,10 @@ PairItr *Querier::get(const int perm,
 }
 
 
-PairItr *Querier::get(const int idx, const long s, const long p, const long o,
+PairItr *Querier::get(const int idx, const int64_t s, const int64_t p, const int64_t o,
         const bool cons) {
     PairItr *out = NULL;
-    long first, second, third;
+    int64_t first, second, third;
     first = second = third = 0;
     switch (idx) {
         case IDX_SPO:
@@ -886,11 +886,11 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
 #endif
 
         std::vector<PairItr*> iterators;
-        long nfirstterms = 0;
+        int64_t nfirstterms = 0;
         for (int i = 0; i < diffIndices.size(); ++i) {
             PairItr *diffItr = NULL;
             if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::DELETE) {
-                long delnfirstterms = 0;
+                int64_t delnfirstterms = 0;
                 if (first >= 0) {
                     diffItr = diffIndices[i]->getIterator(idx, first, second,
                             third, delnfirstterms);
@@ -1003,7 +1003,7 @@ PairItr *Querier::get(const int idx, const long s, const long p, const long o,
     return out;
 }
 
-PairItr *Querier::newItrOnReverse(PairItr * oldItr, const long v1, const long v2) {
+PairItr *Querier::newItrOnReverse(PairItr * oldItr, const int64_t v1, const int64_t v2) {
     std::shared_ptr<Pairs> tmpVector = std::shared_ptr<Pairs>(new Pairs());
     while (oldItr->hasNext()) {
         oldItr->next();

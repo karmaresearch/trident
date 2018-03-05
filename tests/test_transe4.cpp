@@ -22,7 +22,7 @@ int main(int argc, const char** argv) {
     std::unique_ptr<Transe> tr;
     auto files = Utils::getFiles(argv[1]);
     string parentpath = string(argv[1]);
-    long it = 0;
+    int64_t it = 0;
     for(int idxfile = 0; idxfile < files.size(); ++idxfile) {
         //Find the file in the array...
         bool found = false;
@@ -46,9 +46,9 @@ int main(int argc, const char** argv) {
         for(int j = 0; j < nentries; ++j) {
             ifs.read(buffer, 24);
             //Parse the triple and copy to the array
-            long s = *(long*)(buffer);
-            long p = *(long*)(buffer + 8);
-            long o = *(long*)(buffer + 16);
+            int64_t s = *(int64_t*)(buffer);
+            int64_t p = *(int64_t*)(buffer + 8);
+            int64_t o = *(int64_t*)(buffer + 16);
             triples.push_back(s);
             triples.push_back(p);
             triples.push_back(o);
@@ -59,8 +59,8 @@ int main(int argc, const char** argv) {
         for(int j = 0; j < nentries; ++j) {
             ifs.read(buffer, 24);
             //Parse the triple and copy to the array
-            long s = *(long*)(buffer);
-            long o = *(long*)(buffer + 16);
+            int64_t s = *(int64_t*)(buffer);
+            int64_t o = *(int64_t*)(buffer + 16);
             negatives.push_back(s);
             negatives.push_back(o);
         }
@@ -154,8 +154,8 @@ int main(int argc, const char** argv) {
             double *enew2 = Ecur->get(i);
             bool broken = false;
             for(int j = 0; j < DIMS; ++j) {
-                long e1 = enew1[j] * 6;
-                long e2 = enew2[j] * 6;
+                int64_t e1 = enew1[j] * 6;
+                int64_t e2 = enew2[j] * 6;
                 if (e1 != e2) {
                     cout << "emb " << i << " d=" << j << " " << enew1[j] << " " << enew2[j] << endl;
                     broken = true;
@@ -171,8 +171,8 @@ int main(int argc, const char** argv) {
             double *rnew2 = Rcur->get(i);
             bool broken = false;
             for(int j = 0; j < DIMS; ++j) {
-                long r1 = rnew1[j] * 6;
-                long r2 = rnew2[j] * 6;
+                int64_t r1 = rnew1[j] * 6;
+                int64_t r2 = rnew2[j] * 6;
                 if (r1 != r2) {
                     cout << "rel " << i << " d=" << j << " " << rnew1[j] << " " << rnew2[j] << endl;
                     broken = true;

@@ -42,16 +42,16 @@ protected:
     const bool storep2;
 
     bool shouldCheck1, shouldCheck2;
-    long c1;
-    long c2;
-    long totalc1;
-    long totalc2;
+    int64_t c1;
+    int64_t c2;
+    int64_t totalc1;
+    int64_t totalc2;
     std::vector<uint64_t> invertedpairs1;
     std::vector<uint64_t> invertedpairs2;
     std::vector<KeyInfo> keys;
 
-    long nkeys;
-    long totalkeys;
+    int64_t nkeys;
+    int64_t totalkeys;
     uint64_t currentkey;
     PairItr *existingkeys;
 
@@ -62,7 +62,7 @@ public:
     UpdateStats(Querier *q, int perm1,
                 int perm2, bool storep1, bool storep2);
 
-    void addCoordForKey(long key, uint32_t pos1, uint32_t pos2,
+    void addCoordForKey(int64_t key, uint32_t pos1, uint32_t pos2,
                         uint64_t nelements, char strat1, char strat2,
                         uint64_t nfirsts1, uint64_t nfirsts2) {
         KeyInfo k;
@@ -79,27 +79,27 @@ public:
 
     ~UpdateStats();
 
-    long getCount1() {
+    int64_t getCount1() {
         return c1;
     }
 
-    long getCount2() {
+    int64_t getCount2() {
         return c2;
     }
 
-    long getTotalCount1() {
+    int64_t getTotalCount1() {
         return totalc1;
     }
 
-    long getTotalCount2() {
+    int64_t getTotalCount2() {
         return totalc2;
     }
 
-    long getNewKeys() {
+    int64_t getNewKeys() {
         return nkeys;
     }
 
-    long getTotalKeys() {
+    int64_t getTotalKeys() {
         return totalkeys;
     }
 
@@ -115,11 +115,11 @@ public:
         return invertedpairs2;
     }
 
-    virtual void setKey(const long key, const size_t sizetable) = 0;
+    virtual void setKey(const int64_t key, const size_t sizetable) = 0;
 
-    virtual void addFirst1(const long v, const long count) = 0;
+    virtual void addFirst1(const int64_t v, const int64_t count) = 0;
 
-    virtual void addFirst2(const long v, const long count) = 0;
+    virtual void addFirst2(const int64_t v, const int64_t count) = 0;
 };
 
 class UpdateStats_add : public UpdateStats {
@@ -129,11 +129,11 @@ public:
         UpdateStats(q, perm1, perm2, storep1, storep2) {
     }
 
-    void setKey(const long key, const size_t sizetable);
+    void setKey(const int64_t key, const size_t sizetable);
 
-    void addFirst1(const long v, const long count);
+    void addFirst1(const int64_t v, const int64_t count);
 
-    void addFirst2(const long v, const long count);
+    void addFirst2(const int64_t v, const int64_t count);
 };
 
 class UpdateStats_rm : public UpdateStats {
@@ -143,11 +143,11 @@ public:
         UpdateStats(q, perm1, perm2, storep1, storep2) {
     }
 
-    void setKey(const long key, const size_t sizetable);
+    void setKey(const int64_t key, const size_t sizetable);
 
-    void addFirst1(const long v, const long count);
+    void addFirst1(const int64_t v, const int64_t count);
 
-    void addFirst2(const long v, const long count);
+    void addFirst2(const int64_t v, const int64_t count);
 };
 
 

@@ -129,7 +129,7 @@ PairItr *DiffIndex3::getScan(int idx, DiffScanItr *itr) {
     return itr;
 }
 
-PairItr *DiffIndex3::getIterator(int idx, long key, TermCoordinates &coord) {
+PairItr *DiffIndex3::getIterator(int idx, int64_t key, TermCoordinates &coord) {
 
     if (!buffers[idx]) {
         switch (idx) {
@@ -160,7 +160,7 @@ PairItr *DiffIndex3::getIterator(int idx, long key, TermCoordinates &coord) {
         }
     }
 
-    long nelements = coord.getNElements(idx);
+    int64_t nelements = coord.getNElements(idx);
     size_t idxArray = (coord.getFileIdx(idx) << 16) + coord.getMark(idx);
     char strategy = coord.getStrategy(idx);
     PairItr *itr = strat->getBinaryTable(strategy);
@@ -182,10 +182,10 @@ PairItr *DiffIndex3::getIterator(int idx, long key, TermCoordinates &coord) {
 }
 
 PairItr *DiffIndex3::getIterator(int idx,
-                                 long first,
-                                 long second,
-                                 long third,
-                                 long &nfirstterms) {
+                                 int64_t first,
+                                 int64_t second,
+                                 int64_t third,
+                                 int64_t &nfirstterms) {
     if (first < 0) {
         LOG(ERRORL) << "This method should not be called for full scans";
         throw 10;
@@ -221,7 +221,7 @@ PairItr *DiffIndex3::getIterator(int idx,
                 break;
             }
         }
-        long nelements = coordinates.getNElements(idx);
+        int64_t nelements = coordinates.getNElements(idx);
         size_t idxArray = (coordinates.getFileIdx(idx) << 16) + coordinates.getMark(idx);
         char strategy = coordinates.getStrategy(idx);
         PairItr *itr = strat->getBinaryTable(strategy);
@@ -311,7 +311,7 @@ struct _Sorter3 {
     }
 };
 
-char *_copy33(char *buffer, const long v1, const long v2);
+char *_copy33(char *buffer, const int64_t v1, const int64_t v2);
 void _sort(std::vector <uint32_t> &idx1,
            std::vector<uint64_t> &firstcolumn,
            std::vector<uint64_t> &secondcolumn,
@@ -336,9 +336,9 @@ void _sort(std::vector <uint32_t> &idx1,
     start = std::chrono::system_clock::now();
     std::vector<std::pair<uint64_t, uint64_t>> secondlevel;
     secondlevel.reserve(idx1.size() / 2);
-    uint64_t prevfirst = ~0lu;
-    uint64_t prevsecond = ~0lu;
-    uint64_t prevthird = ~0lu;
+    uint64_t prevfirst = UINT64_MAX;
+    uint64_t prevsecond = UINT64_MAX;
+    uint64_t prevthird = UINT64_MAX;
     uint64_t nvalid = 0;
     uint64_t blockstart = 0;
     for (int i = 0; i < idx1.size(); ++i) {
@@ -553,7 +553,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     //SP
     if (invertedpairsSP.size() > 0) {
         size_t idxSP = 0;
-        long prevkey = invertedpairsSP[0];
+        int64_t prevkey = invertedpairsSP[0];
         uint64_t count = 0;
         uint64_t idxKeysS = 0;
         while (idxSP < invertedpairsSP.size()) {
@@ -581,7 +581,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     //SO
     if (invertedpairsSO.size() > 0) {
         size_t idxSO = 0;
-        long prevkey = invertedpairsSO[0];
+        int64_t prevkey = invertedpairsSO[0];
         uint64_t count = 0;
         uint64_t idxKeysS = 0;
         while (idxSO < invertedpairsSO.size()) {
@@ -611,7 +611,7 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     start = std::chrono::system_clock::now();
     if (invertedpairsOP.size() > 0) {
         size_t idxOP = 0;
-        long prevkey = invertedpairsOP[0];
+        int64_t prevkey = invertedpairsOP[0];
         uint64_t count = 0;
         size_t idxKeysO = 0;
         while (idxOP < invertedpairsOP.size()) {
@@ -780,87 +780,87 @@ void DiffIndex3::getStrategyAndInserter(const std::vector<uint64_t> &tmp1,
     strat2 = StorageStrat::setBytesField2(strat2, flagbytes1);
 }
 
-char *_copy11(char *buffer, const long v1, const long v2) {
+char *_copy11(char *buffer, const int64_t v1, const int64_t v2) {
     buffer[0] = v1;
     buffer[1] = v2;
     return buffer + 2;
 }
-char *_copy12(char *buffer, const long v1, const long v2) {
+char *_copy12(char *buffer, const int64_t v1, const int64_t v2) {
     buffer[0] = v1;
     Utils::encode_short(buffer + 1, v2);
     return buffer + 3;
 }
-char *_copy13(char *buffer, const long v1, const long v2) {
+char *_copy13(char *buffer, const int64_t v1, const int64_t v2) {
     buffer[0] = v1;
     Utils::encode_int(buffer + 1, v2);
     return buffer + 5;
 }
-char *_copy14(char *buffer, const long v1, const long v2) {
+char *_copy14(char *buffer, const int64_t v1, const int64_t v2) {
     buffer[0] = v1;
     Utils::encode_long(buffer + 1, v2);
     return buffer + 9;
 }
-char *_copy21(char *buffer, const long v1, const long v2) {
+char *_copy21(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_short(buffer, v1);
     buffer[2] = v2;
     return buffer + 3;
 }
-char *_copy22(char *buffer, const long v1, const long v2) {
+char *_copy22(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_short(buffer, v1);
     Utils::encode_short(buffer + 2, v2);
     return buffer + 4;
 }
-char *_copy23(char *buffer, const long v1, const long v2) {
+char *_copy23(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_short(buffer, v1);
     Utils::encode_int(buffer + 2, v2);
     return buffer + 6;
 }
-char *_copy24(char *buffer, const long v1, const long v2) {
+char *_copy24(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_short(buffer, v1);
     Utils::encode_long(buffer + 2, v2);
     return buffer + 10;
 }
-char *_copy31(char *buffer, const long v1, const long v2) {
+char *_copy31(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_int(buffer, v1);
     buffer[4] = v2;
     return buffer + 5;
 }
-char *_copy32(char *buffer, const long v1, const long v2) {
+char *_copy32(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_int(buffer, v1);
     Utils::encode_short(buffer + 4, v2);
     return buffer + 6;
 }
-char *_copy33(char *buffer, const long v1, const long v2) {
+char *_copy33(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_int(buffer, v1);
     Utils::encode_int(buffer + 4, v2);
     return buffer + 8;
 }
-char *_copy34(char *buffer, const long v1, const long v2) {
+char *_copy34(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_int(buffer, v1);
     Utils::encode_long(buffer + 4, v2);
     return buffer + 12;
 }
-char *_copy41(char *buffer, const long v1, const long v2) {
+char *_copy41(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_long(buffer, v1);
     buffer[8] = v2;
     return buffer + 9;
 }
-char *_copy42(char *buffer, const long v1, const long v2) {
+char *_copy42(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_long(buffer, v1);
     Utils::encode_short(buffer + 8, v2);
     return buffer + 10;
 }
-char *_copy43(char *buffer, const long v1, const long v2) {
+char *_copy43(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_long(buffer, v1);
     Utils::encode_int(buffer + 8, v2);
     return buffer + 12;
 }
-char *_copy44(char *buffer, const long v1, const long v2) {
+char *_copy44(char *buffer, const int64_t v1, const int64_t v2) {
     Utils::encode_long(buffer, v1);
     Utils::encode_long(buffer + 8, v2);
     return buffer + 16;
 }
-char *(*inserters[16])(char*, const long, const long) = {_copy11, _copy12, _copy13, _copy14,
+char *(*inserters[16])(char*, const int64_t, const int64_t) = {_copy11, _copy12, _copy13, _copy14,
                                                          _copy21, _copy22, _copy23, _copy24,
                                                          _copy31, _copy32, _copy33, _copy34,
                                                          _copy41, _copy42, _copy43, _copy44
@@ -870,8 +870,8 @@ uint64_t DiffIndex3::storeRowFormat(const std::vector<uint64_t> &tmp1,
                                     const std::vector<uint64_t> &tmp2,
                                     char *&buffer1,
                                     char *&buffer2,
-                                    long * counters1,
-                                    long * counters2,
+                                    int64_t * counters1,
+                                    int64_t * counters2,
                                     UpdateStats *stats,
                                     char &strat1,
                                     char &strat2) {
@@ -882,8 +882,8 @@ uint64_t DiffIndex3::storeRowFormat(const std::vector<uint64_t> &tmp1,
     assert(flagbytes1 < 4 && flagbytes1 >= 0);
     assert(flagbytes2 < 4 && flagbytes2 >= 0);
 
-    long prev1 = -1;
-    long prev2 = -1;
+    int64_t prev1 = -1;
+    int64_t prev2 = -1;
 
     //I need these two variables to remove potential duplicates in the table
     uint64_t prevpair1 = ~0u;
@@ -896,12 +896,12 @@ uint64_t DiffIndex3::storeRowFormat(const std::vector<uint64_t> &tmp1,
     //Copy the values
     assert(((flagbytes1 << 2) + flagbytes2) < 16);
     assert(((flagbytes2 << 2) + flagbytes1) < 16);
-    char *(*ins1)(char*, const long, const long) = inserters[(flagbytes1 << 2) + flagbytes2];
-    char *(*ins2)(char*, const long, const long) = inserters[(flagbytes2 << 2) + flagbytes1];
+    char *(*ins1)(char*, const int64_t, const int64_t) = inserters[(flagbytes1 << 2) + flagbytes2];
+    char *(*ins2)(char*, const int64_t, const int64_t) = inserters[(flagbytes2 << 2) + flagbytes1];
     for (size_t i = 0; i < tmp1.size(); ++i) {
         if (tmp1[i] != prevpair1) {
-            long v1 = tmp1[i] >> 32;
-            long v2 = tmp1[i] & ((uint32_t) - 1);
+            int64_t v1 = tmp1[i] >> 32;
+            int64_t v2 = tmp1[i] & ((uint32_t) - 1);
             buffer1 = ins1(buffer1, v1, v2);
 
             if (v1 != prev1) {
@@ -915,8 +915,8 @@ uint64_t DiffIndex3::storeRowFormat(const std::vector<uint64_t> &tmp1,
         }
 
         if (tmp2[i] != prevpair2) {
-            long v1 = tmp2[i] >> 32;
-            long v2 = tmp2[i] & ((uint32_t) - 1);
+            int64_t v1 = tmp2[i] >> 32;
+            int64_t v2 = tmp2[i] & ((uint32_t) - 1);
             buffer2 = ins2(buffer2, v1, v2);
 
             if (v1 != prev2) {
@@ -943,8 +943,8 @@ uint64_t DiffIndex3::storeRowColumnFormat(const std::vector<uint64_t> &tmp1,
         const std::vector<uint64_t> &tmp2,
         char *&buffer1,
         char *&buffer2,
-        long * counters1,
-        long * counters2,
+        int64_t * counters1,
+        int64_t * counters2,
         UpdateStats *stats,
         char &strat1,
         char &strat2,
@@ -957,12 +957,12 @@ uint64_t DiffIndex3::storeRowColumnFormat(const std::vector<uint64_t> &tmp1,
                                        strat1, strat2,
                                        flagbytes1, flagbytes2);
     assert(flagbytes1 < 4 && flagbytes1 >= 0);
-    long prev1 = -1;
-    long countprev1 = 0;
+    int64_t prev1 = -1;
+    int64_t countprev1 = 0;
     uint64_t prevpair1 = ~0u;
     uint64_t validrows = 0;
     assert(((flagbytes1 << 2) + flagbytes2) < 16);
-    char *(*ins1)(char*, const long, const long) = inserters[(flagbytes1 << 2) + flagbytes2];
+    char *(*ins1)(char*, const int64_t, const int64_t) = inserters[(flagbytes1 << 2) + flagbytes2];
 
     //Set up second table with column layout
     char *beginTable2 = buffer2;
@@ -981,18 +981,18 @@ uint64_t DiffIndex3::storeRowColumnFormat(const std::vector<uint64_t> &tmp1,
     char *posNFirstTerms2 = buffer2;
     buffer2 += 4; //Reserve 4 bytes for later...
     buffer2 += Utils::encode_vlong2(buffer2, 0, tmp1.size());
-    long prevfirsttable2 = -1;
+    int64_t prevfirsttable2 = -1;
     uint64_t prevpair2 = ~0u;
     char *pointerPrevCount2 = NULL;
-    long previousNValid2 = 0;
+    int64_t previousNValid2 = 0;
     int nfirstterms2 = 0;
-    long validrows2 = 0;
+    int64_t validrows2 = 0;
 
     //Copy the values
     for (size_t i = 0; i < tmp1.size(); ++i) {
         if (tmp1[i] != prevpair1) {
-            long v1 = tmp1[i] >> 32;
-            long v2 = tmp1[i] & ((uint32_t) - 1);
+            int64_t v1 = tmp1[i] >> 32;
+            int64_t v2 = tmp1[i] & ((uint32_t) - 1);
             buffer1 = ins1(buffer1, v1, v2);
 
             if (v1 != prev1) {
@@ -1010,7 +1010,7 @@ uint64_t DiffIndex3::storeRowColumnFormat(const std::vector<uint64_t> &tmp1,
         }
 
         if (tmp2[i] != prevpair2) {
-            const long v = tmp2[i] >> 32;
+            const int64_t v = tmp2[i] >> 32;
             if (v != prevfirsttable2) {
                 if (prevfirsttable2 != -1) {
                     if (!invertCounters)
@@ -1063,7 +1063,7 @@ uint64_t DiffIndex3::storeRowColumnFormat(const std::vector<uint64_t> &tmp1,
     prevpair2 = ~0u;
     for (size_t i = 0; i < tmp1.size(); ++i) {
         if (tmp2[i] != prevpair2) {
-            const long v = tmp2[i] & ((uint32_t) - 1);
+            const int64_t v = tmp2[i] & ((uint32_t) - 1);
             Utils::encode_longNBytes(buffer2, bytesPerFirstEntry, v);
             buffer2 += bytesPerFirstEntry;
             prevpair2 = tmp2[i];
@@ -1118,21 +1118,21 @@ uint64_t DiffIndex3::storeColumnFormat(const std::vector<uint64_t> &tmp1,
     buffer1 += Utils::encode_vlong2(buffer1, 0, tmp1.size());
     buffer2 += Utils::encode_vlong2(buffer2, 0, tmp1.size());
 
-    long prevfirsttable1 = -1;
+    int64_t prevfirsttable1 = -1;
     uint64_t prevpair1 = ~0u;
     char *pointerPrevCount1 = NULL;
-    long previousNValid1 = 0;
+    int64_t previousNValid1 = 0;
     int nfirstterms1 = 0;
 
-    long prevfirsttable2 = -1;
+    int64_t prevfirsttable2 = -1;
     uint64_t prevpair2 = ~0u;
     char *pointerPrevCount2 = NULL;
-    long previousNValid2 = 0;
+    int64_t previousNValid2 = 0;
     int nfirstterms2 = 0;
 
     for (size_t i = 0; i < tmp1.size(); ++i) {
         if (tmp1[i] != prevpair1) {
-            const long v = tmp1[i] >> 32;
+            const int64_t v = tmp1[i] >> 32;
             if (v != prevfirsttable1) {
                 if (prevfirsttable1 != -1)
                     stats->addFirst1(prevfirsttable1, validrows1 - previousNValid1);
@@ -1161,7 +1161,7 @@ uint64_t DiffIndex3::storeColumnFormat(const std::vector<uint64_t> &tmp1,
         }
 
         if (tmp2[i] != prevpair2) {
-            const long v = tmp2[i] >> 32;
+            const int64_t v = tmp2[i] >> 32;
             if (v != prevfirsttable2) {
                 if (prevfirsttable2 != -1)
                     stats->addFirst2(prevfirsttable2, validrows2 - previousNValid2);
@@ -1211,13 +1211,13 @@ uint64_t DiffIndex3::storeColumnFormat(const std::vector<uint64_t> &tmp1,
     prevpair2 = ~0u;
     for (size_t i = 0; i < tmp1.size(); ++i) {
         if (tmp1[i] != prevpair1) {
-            const long v = tmp1[i] & ((uint32_t) - 1);
+            const int64_t v = tmp1[i] & ((uint32_t) - 1);
             Utils::encode_longNBytes(buffer1, bytesPerSecondEntry, v);
             buffer1 += bytesPerSecondEntry;
             prevpair1 = tmp1[i];
         }
         if (tmp2[i] != prevpair2) {
-            const long v = tmp2[i] & ((uint32_t) - 1);
+            const int64_t v = tmp2[i] & ((uint32_t) - 1);
             Utils::encode_longNBytes(buffer2, bytesPerFirstEntry, v);
             buffer2 += bytesPerFirstEntry;
             prevpair2 = tmp2[i];
@@ -1235,10 +1235,10 @@ bool DiffIndex3::shouldUseColumns(const std::vector<uint64_t> &table) {
     for (int i = 0; i < 5; ++i) {
         //jump to a random idx
         const int idx = rand() % table.size();
-        const long key = table[idx] >> 32;
+        const int64_t key = table[idx] >> 32;
         countrepet++;
         for (int j = idx; j < idx + 5 && idx < table.size(); ++j) {
-            const long ckey = table[j] >> 32;
+            const int64_t ckey = table[j] >> 32;
             if (key == ckey) {
                 countrepet++;
             } else {
@@ -1254,7 +1254,7 @@ bool DiffIndex3::shouldUseColumns(const std::vector<uint64_t> &table) {
     }
 }
 
-uint64_t DiffIndex3::storeTablesOnBuffer(const long key,
+uint64_t DiffIndex3::storeTablesOnBuffer(const int64_t key,
         const std::vector<uint64_t> &tmp1,
         const std::vector<uint64_t> &tmp2,
         const int perm1,
@@ -1262,13 +1262,13 @@ uint64_t DiffIndex3::storeTablesOnBuffer(const long key,
         std::unique_ptr<RWMappedFile> &mappedFile1,
         std::unique_ptr<RWMappedFile> &mappedFile2,
         StatStrategy & stats,
-        long * counters1,
-        long * counters2,
+        int64_t * counters1,
+        int64_t * counters2,
         UpdateStats *statsFirstTerms) {
 
     statsFirstTerms->setKey(key, tmp1.size());
-    long unique1 = statsFirstTerms->getCount1();
-    long unique2 = statsFirstTerms->getCount2();
+    int64_t unique1 = statsFirstTerms->getCount1();
+    int64_t unique2 = statsFirstTerms->getCount2();
 
     char strat1, strat2;
     RWMappedFile::Block block1;
@@ -1382,7 +1382,7 @@ size_t DiffIndex3::sortIndex(string outputdir,
 
     string file1;
     const size_t initialsize = min(idx1.size() * sizeof(uint64_t),
-                                   (unsigned long) 128 * 1024 * 1024);
+                                   (size_t) 128 * 1024 * 1024);
     LOG(DEBUGL) << "Initial size: " << initialsize;
     if (idx1.size() < THRESHOLD_USEGLOBALFILES) { //If the update is small, then I store it in a single global file
         file1 = globaloutputdir + "/p0";
@@ -1402,17 +1402,17 @@ size_t DiffIndex3::sortIndex(string outputdir,
                 new RWMappedFile(file2, initialsize));
 
     //Start the inserting
-    long prevkey = -1;
+    int64_t prevkey = -1;
     size_t i = 0;
 
     //Stats
-    long ntables = 0;
-    long nsorts = 0;
-    long nvalid = 0;
-    long countersLayouts1[16];
-    long countersLayouts2[16];
-    memset(countersLayouts1, 0, sizeof(long) * 16);
-    memset(countersLayouts2, 0, sizeof(long) * 16);
+    int64_t ntables = 0;
+    int64_t nsorts = 0;
+    int64_t nvalid = 0;
+    int64_t countersLayouts1[16];
+    int64_t countersLayouts2[16];
+    memset(countersLayouts1, 0, sizeof(int64_t) * 16);
+    memset(countersLayouts2, 0, sizeof(int64_t) * 16);
     StatStrategy stats;
 
     while (i < idx1.size()) {
@@ -1491,11 +1491,11 @@ size_t DiffIndex3::sortIndex(string outputdir,
     return nvalid;
 }
 
-long DiffIndex3::getSize() const {
+int64_t DiffIndex3::getSize() const {
     return size;
 }
 
-long DiffIndex3::getCard(int idx, long first) const {
+int64_t DiffIndex3::getCard(int idx, int64_t first) const {
     TermCoordinates coord;
     if (idx == IDX_SPO || idx == IDX_SOP) {
         if (s->get(first, &coord)) {
@@ -1521,7 +1521,7 @@ long DiffIndex3::getCard(int idx, long first) const {
     return 0;
 }
 
-long DiffIndex3::getNUniqueKeys(int idx) {
+int64_t DiffIndex3::getNUniqueKeys(int idx) {
     return nuniquekeys[idx];
 }
 
@@ -1535,11 +1535,11 @@ void DiffIndex3::getTermListItr(int idx, DiffTermItr * itr) {
     }
 }
 
-long DiffIndex3::getUniqueNFirstTerms(int idx) {
+int64_t DiffIndex3::getUniqueNFirstTerms(int idx) {
     return nuniquefirstterms[idx];
 }
 
-long DiffIndex3::getNFirstTables(int idx) {
+int64_t DiffIndex3::getNFirstTables(int idx) {
     return nfirstterms[idx];
 }
 

@@ -64,21 +64,21 @@ namespace {
 namespace TSnap {
     //Return random walks on the graph
     template <class PGraph>
-        std::vector<long> randomWalk(const PGraph &Graph,
-                const long node,
-                const long len) {
-            std::vector<long> output;
-            long id = node;
+        std::vector< int64_t> randomWalk(const PGraph &Graph,
+                const  int64_t node,
+                const  int64_t len) {
+            std::vector< int64_t> output;
+             int64_t id = node;
             std::random_device rd;
             std::mt19937 gen(rd());
             output.push_back(node);
             while (output.size() < len) {
                 typename PGraph::TObj::TNodeI NI = Graph->GetNI(id);
-                const long n = NI.GetDeg();
+                const  int64_t n = NI.GetDeg();
                 if (n == 0)
                     break;
-                std::uniform_int_distribution<long> dis(0, n-1);
-                const long nbr = dis(gen);
+                std::uniform_int_distribution< int64_t> dis(0, n-1);
+                const  int64_t nbr = dis(gen);
                 id = NI.GetNbrNId(nbr);
                 output.push_back(id);
             }
@@ -86,10 +86,10 @@ namespace TSnap {
         }
 
     template <class PGraph>
-        std::vector<long> randomWalk2(const PGraph &Graph,
-                const std::vector<long> &nodes,
-                const long len) {            
-            std::vector<long> output;
+        std::vector< int64_t> randomWalk2(const PGraph &Graph,
+                const std::vector< int64_t> &nodes,
+                const  int64_t len) {            
+            std::vector< int64_t> output;
             for (const auto el : nodes) {
                 auto out = randomWalk<PGraph>(Graph, el, len);
                 for(const auto o : out) {

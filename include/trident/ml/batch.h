@@ -70,7 +70,7 @@ class BatchCreator {
         uint64_t currentidx;
         std::default_random_engine engine;
 
-        bool shouldBeUsed(long s, long p, long o);
+        bool shouldBeUsed(int64_t s, int64_t p, int64_t o);
 
         void createInputForBatch(bool createTraining,
                 const float valid,

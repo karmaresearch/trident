@@ -8,7 +8,7 @@
 class KB;
 class SnapReaders {
     public:
-        typedef long (*pReader)(const char*, const long);
+        typedef int64_t (*pReader)(const char*, const int64_t);
         const static pReader readers[256];
         static std::vector<const char*> f_sop;
         static std::vector<const char*> f_osp;

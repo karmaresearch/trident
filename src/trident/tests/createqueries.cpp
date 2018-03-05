@@ -31,9 +31,9 @@ void _test_createqueries(string inputfile, string queryfile) {
     std::vector<_Triple> triples;
     LZ4Reader reader(inputfile);
     while (!reader.isEof()) {
-        long s = reader.parseVLong();
-        long p = reader.parseVLong();
-        long o = reader.parseVLong();
+        int64_t s = reader.parseVLong();
+        int64_t p = reader.parseVLong();
+        int64_t o = reader.parseVLong();
         triples.push_back(_Triple(s, p, o));
         if (triples.size() > 1) {
             if (triples[triples.size() - 1].s < triples[triples.size() - 2].s)
@@ -64,10 +64,10 @@ void _test_createqueries(string inputfile, string queryfile) {
 
         LOG(INFOL) << "Scan query...";
         ofile << perm << " " << -1 << " " << -1 << " " << -1 << " " << triples.size() << " " << 0 << endl;
-        long prevEl = -1;
-        long countDistinct = 0;
+        int64_t prevEl = -1;
+        int64_t countDistinct = 0;
         for (auto const el : triples) {
-            long first;
+            int64_t first;
             switch (perm) {
             case IDX_SPO:
                 first = el.s;
@@ -97,14 +97,14 @@ void _test_createqueries(string inputfile, string queryfile) {
 
         //Test a scan without the second and third columns
         LOG(INFOL) << "Create detailed queries...";
-        long currentFirst = -1;
-        long currentSecond = -1;
+        int64_t currentFirst = -1;
+        int64_t currentSecond = -1;
 
-        long countFirst1 = 0;
-        long countFirst2 = 0;
-        long countSecond = 0;
+        int64_t countFirst1 = 0;
+        int64_t countFirst2 = 0;
+        int64_t countSecond = 0;
         for (auto const el : triples) {
-            long first, second;
+            int64_t first, second;
             switch (perm) {
             case IDX_SPO:
                 first = el.s;

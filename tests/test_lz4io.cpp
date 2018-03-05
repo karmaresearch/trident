@@ -14,7 +14,7 @@ namespace timens = boost::chrono;
 int main(int argc, const char** argv) {
 
 //	//Insert into a compressed file
-//	long startingValue = 0;
+//	int64_t startingValue = 0;
 //	cout << "Starting from " << startingValue << endl;
 //	{
 //		LZ4Writer writer("/Users/jacopo/Desktop/file");

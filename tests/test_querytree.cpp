@@ -49,7 +49,7 @@ int main(int argc, const char** argv) {
 
 	boost::chrono::system_clock::time_point start =
 				boost::chrono::system_clock::now();	
-	long nElements = 0;
+	int64_t nElements = 0;
 	TermCoordinates currentValue;
 	for(int i = 0; i < 1000000; ++i) {
 		if (root->get(i*100,&currentValue)) {

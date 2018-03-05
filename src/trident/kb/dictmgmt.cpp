@@ -41,7 +41,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         nTuples = 0;
         printTuples = false;
         sTuples = 0;
-        insertedNewTerms = new long[1];
+        insertedNewTerms = new int64_t[1];
         insertedNewTerms[0] = 0;
         largestID = 0;
 
@@ -51,8 +51,8 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         gud_modified = false;
         gud_largestID = 0;
         gudLocation = dirToStoreGUD;
-        gud_idtext.set_empty_key(~0lu);
-        gud_idtext.set_deleted_key(~0lu - 1);
+        gud_idtext.set_empty_key(UINT64_MAX);
+        gud_idtext.set_deleted_key(UINT64_MAX - 1);
         //load gud
         if (Utils::exists(dirToStoreGUD + "/gud")) {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -78,19 +78,19 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         if (Utils::exists(e2r)) {
             LOG(DEBUGL) << "Load the mappings rel->ent from " << e2r;
             //Load the mappings from the relation IDs to the entity IDs
-            r2e.set_deleted_key(~0lu);
+            r2e.set_deleted_key(UINT64_MAX);
             LZ4Reader reader(e2r);
             while (!reader.isEof()) {
-                long e = reader.parseLong();
-                long r = reader.parseLong();
+                int64_t e = reader.parseLong();
+                int64_t r = reader.parseLong();
                 r2e.insert(std::make_pair(r,e));
             }
         } else if (Utils::exists(e2s)) {
             LOG(DEBUGL) << "Load the mappings rel->ent (string) from " << e2s;
-            r2e.set_deleted_key(~0lu);
+            r2e.set_deleted_key(UINT64_MAX);
             LZ4Reader reader(e2s);
             while (!reader.isEof()) {
-                long r = reader.parseLong();
+                int64_t r = reader.parseLong();
                 int size;
                 const char *t = reader.parseString(size);
                 r2s.insert(std::make_pair(r,string(t + 2, size-2)));
@@ -137,7 +137,7 @@ bool DictMgmt::getTextRel(nTerm key, char *value, int &size) {
 }
 
 bool DictMgmt::getText(nTerm key, char *value) {
-    long coordinates;
+    int64_t coordinates;
     int idx = 0;
     while (idx < beginrange.size() - 1 && key >= beginrange[idx + 1]) {
         idx++;
@@ -161,7 +161,7 @@ bool DictMgmt::getText(nTerm key, char *value) {
 }
 
 bool DictMgmt::getText(nTerm key, char *value, int &size) {
-    long coordinates;
+    int64_t coordinates;
     int idx = 0;
     while (idx < beginrange.size() - 1 && key >= beginrange[idx + 1]) {
         idx++;
@@ -181,7 +181,7 @@ bool DictMgmt::getText(nTerm key, char *value, int &size) {
     return false;
 }
 
-void DictMgmt::getTextFromCoordinates(long coordinates, char *output,
+void DictMgmt::getTextFromCoordinates(int64_t coordinates, char *output,
         int &sizeOutput) {
     dictionaries[0].sb->get(coordinates, output, sizeOutput);
     output[sizeOutput] = '\0';
@@ -209,7 +209,7 @@ bool DictMgmt::getNumber(const char *key, const int sizeKey, nTerm *value) {
 }
 
 void DictMgmt::appendPair(const char *key, int sizeKey, nTerm &value) {
-    long coordinates = dictionaries[0].sb->getSize();
+    int64_t coordinates = dictionaries[0].sb->getSize();
     dictionaries[0].dict->append((tTerm*) key, sizeKey, value);
     dictionaries[0].invdict->put(value, coordinates);
     insertedNewTerms[0]++;
@@ -218,7 +218,7 @@ void DictMgmt::appendPair(const char *key, int sizeKey, nTerm &value) {
 }
 
 bool DictMgmt::putPair(const char *key, int sizeKey, nTerm &value) {
-    long coordinates = dictionaries[0].sb->getSize();
+    int64_t coordinates = dictionaries[0].sb->getSize();
     if (dictionaries[0].dict->insertIfNotExists((tTerm*) key, sizeKey, value)) {
         dictionaries[0].invdict->put(value, coordinates);
         insertedNewTerms[0]++;
@@ -240,7 +240,7 @@ bool DictMgmt::putDict(const char *key, int sizeKey, nTerm &value) {
 }
 
 bool DictMgmt::putDict(const char *key, int sizeKey, nTerm &value,
-        long &coordinates) {
+        int64_t &coordinates) {
     coordinates = dictionaries[0].sb->getSize();
     if (dictionaries[0].dict->insertIfNotExists((tTerm*) key, sizeKey, value)) {
         insertedNewTerms[0]++;
@@ -252,13 +252,13 @@ bool DictMgmt::putDict(const char *key, int sizeKey, nTerm &value,
 }
 
 bool DictMgmt::putInvDict(const char *key, int sizeKey, nTerm &value) {
-    long coordinates = dictionaries[0].sb->getSize();
+    int64_t coordinates = dictionaries[0].sb->getSize();
     dictionaries[0].sb->append((char*) key, sizeKey);
     dictionaries[0].invdict->put(value, coordinates);
     return true;
 }
 
-bool DictMgmt::putInvDict(const nTerm key, const long coordinates) {
+bool DictMgmt::putInvDict(const nTerm key, const int64_t coordinates) {
     dictionaries[0].invdict->put(key, coordinates);
     return true;
 }
@@ -270,8 +270,8 @@ void DictMgmt::addUpdates(std::vector<Dict> &updates) {
         TreeItr *itr = updates[i].invdict->itr();
         if (!itr->hasNext())
             throw 10; //should not happen
-        long coord;
-        long key = itr->next(coord);
+        int64_t coord;
+        int64_t key = itr->next(coord);
         beginrange.push_back(key);
         delete itr;
     }

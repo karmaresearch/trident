@@ -16,10 +16,10 @@ FlatRoot::FlatRoot(string path, bool unlabeled, bool undirected) :
     }
 
 void __set(int permid, char *block, TermCoordinates *value) {
-    const long nels = *((long*)(block)) & 0XFFFFFFFFFFl;
+    const int64_t nels = *((int64_t*)(block)) & INT64_C(0XFFFFFFFFFF);
     if (nels > 0) {
         const short file = *((short*)(block + 6));
-        const long pos = *((long*)(block + 8)) & 0XFFFFFFFFFFl;
+        const int64_t pos = *((int64_t*)(block + 8)) & INT64_C(0XFFFFFFFFFF);
         const char strat = *(block + 5);
         value->set(permid, file, pos, nels, strat);
     }
@@ -81,7 +81,7 @@ char FlatRoot::rewriteNewColumnStrategy(const char *table) {
 
 void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
         bool undirected, string output) {
-    long keyToAdd = -1;
+    int64_t keyToAdd = -1;
     std::vector<string> files = Utils::getFiles(sop);
     if (files.size() == 0) {
         //Nothing to do, exit
@@ -106,15 +106,15 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
             ifstream ifs;
             ifs.open(fidx);
             ifs.read(tmpbuffer, 8);
-            const long nentries = Utils::decode_long(tmpbuffer);
+            const int64_t nentries = Utils::decode_long(tmpbuffer);
 
             ifstream rawfile;
             bool rawfileOpened = false;
 
-            for(long entry = 0; entry < nentries; ++entry) {
+            for(int64_t entry = 0; entry < nentries; ++entry) {
                 ifs.read(tmpbuffer, 11);
-                const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                long pos_sop;
+                const int64_t key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
+                int64_t pos_sop;
                 if (unlabeled) {
                     pos_sop = Utils::decode_longFixedBytes(tmpbuffer, 5);
                 } else {
@@ -135,18 +135,18 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
                     }
                 }
                 const short file_sop = i;
-                long ntree_sop = -1;
-                long ntree_osp = -1;
-                long ntree_spo = -1;
-                long ntree_ops = -1;
-                long ntree_pos = -1;
-                long ntree_pso = -1;
+                int64_t ntree_sop = -1;
+                int64_t ntree_osp = -1;
+                int64_t ntree_spo = -1;
+                int64_t ntree_ops = -1;
+                int64_t ntree_pos = -1;
+                int64_t ntree_pso = -1;
                 while (true) {
                     if(!itr->hasNext()) {
                         LOG(DEBUGL) << "Cannot happen. (loadFlatTree)";
                         throw 10;
                     }
-                    const long treeKey = itr->next(&coord);
+                    const int64_t treeKey = itr->next(&coord);
                     if (treeKey > key) {
                         LOG(DEBUGL) << "Cannot happen (2). (loadFlatTree)";
                         throw 10;
@@ -244,16 +244,16 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
         }
     }
     while (itr->hasNext()) {
-        const long treeKey = itr->next(&coord);
+        const int64_t treeKey = itr->next(&coord);
         if (coord.exists(IDX_SOP)) {
             LOG(DEBUGL) << "Cannot happen (4). (loadFlatTree)";
             throw 10;
         }
-        long ntree_osp = 0;
-        long ntree_spo = 0;
-        long ntree_ops = 0;
-        long ntree_pos = 0;
-        long ntree_pso = 0;
+        int64_t ntree_osp = 0;
+        int64_t ntree_spo = 0;
+        int64_t ntree_ops = 0;
+        int64_t ntree_pos = 0;
+        int64_t ntree_pso = 0;
         if (coord.exists(IDX_OSP)) {
             ntree_osp = coord.getNElements(IDX_OSP);
         } else if (unlabeled) {
@@ -325,15 +325,15 @@ void FlatRoot::writeOtherPerm(string otherperm, string output,
             ifstream ifs;
             ifs.open(fidx);
             ifs.read(tmpbuffer, 8);
-            const long nentries = Utils::decode_long(tmpbuffer);
+            const int64_t nentries = Utils::decode_long(tmpbuffer);
 
             ifstream rawfile;
             bool rawfileOpened = false;
 
-            for(long entry = 0; entry < nentries; ++entry) {
+            for(int64_t entry = 0; entry < nentries; ++entry) {
                 ifs.read(tmpbuffer, 11);
-                const long key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
-                long pos;
+                const int64_t key = Utils::decode_longFixedBytes(tmpbuffer + 5, 5);
+                int64_t pos;
                 if (unlabeled) {
                     pos = Utils::decode_longFixedBytes(tmpbuffer, 5);
                 } else {
@@ -410,7 +410,7 @@ void FlatRoot::loadFlatTree(string sop,
 FlatRoot::~FlatRoot() {
 }
 
-void FlatRoot::FlatTreeWriter::writeOnlyKey(const long key) {
+void FlatRoot::FlatTreeWriter::writeOnlyKey(const int64_t key) {
     char *cKey = (char*) &key;
     ofs.write(cKey, 5);
     //Write zeros
@@ -425,15 +425,15 @@ void FlatRoot::FlatTreeWriter::writeOnlyKey(const long key) {
     }
 }
 
-void FlatRoot::FlatTreeWriter::write(const long key,
-        long n_sop,
+void FlatRoot::FlatTreeWriter::write(const int64_t key,
+        int64_t n_sop,
         char strat_sop,
         short file_sop,
-        long pos_sop,
-        long n_osp,
+        int64_t pos_sop,
+        int64_t n_osp,
         char strat_osp,
         short file_osp,
-        long pos_osp) {
+        int64_t pos_osp) {
     if (!unlabeled) {
         LOG(ERRORL) << "This method should not be invoked for a labeled graph";
         throw 10;
@@ -503,36 +503,36 @@ void FlatRoot::FlatTreeWriter::write(const long key,
     }
 }
 
-void FlatRoot::FlatTreeWriter::write(const long key,
-        long n_sop,
+void FlatRoot::FlatTreeWriter::write(const int64_t key,
+        int64_t n_sop,
         char strat_sop,
         short file_sop,
-        long pos_sop,
+        int64_t pos_sop,
 
-        long n_osp,
+        int64_t n_osp,
         char strat_osp,
         short file_osp,
-        long pos_osp,
+        int64_t pos_osp,
 
-        long n_spo,
+        int64_t n_spo,
         char strat_spo,
         short file_spo,
-        long pos_spo,
+        int64_t pos_spo,
 
-        long n_ops,
+        int64_t n_ops,
         char strat_ops,
         short file_ops,
-        long pos_ops,
+        int64_t pos_ops,
 
-        long n_pos,
+        int64_t n_pos,
         char strat_pos,
         short file_pos,
-        long pos_pos,
+        int64_t pos_pos,
 
-        long n_pso,
+        int64_t n_pso,
         char strat_pso,
         short file_pso,
-        long pos_pso
+        int64_t pos_pso
         ) {
 
             if (unlabeled) {

@@ -71,11 +71,11 @@ DiffIndex1::DiffIndex1(string dir, DiffIndex::TypeUpdate type) : DiffIndex(type,
 }
 
 extern EmptyItr emptyItr;
-PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
-        long &nfirstterms) {
+PairItr *DiffIndex1::getIterator(int idx, int64_t first, int64_t second, int64_t third,
+        int64_t &nfirstterms) {
     assert(factory != NULL);
     //nfirstterms = 0;
-    long permutedTriple[3];
+    int64_t permutedTriple[3];
     permutedTriple[0] = permutedTriple[1] = permutedTriple[2] = 0;
     switch (idx) {
         case IDX_SPO:
@@ -191,8 +191,8 @@ PairItr *DiffIndex1::getIterator(int idx, long first, long second, long third,
     }
 }
 
-long DiffIndex1::getNFirstTerms(const int idx, const long first,
-        const long posfirst, const long second) {
+int64_t DiffIndex1::getNFirstTerms(const int idx, const int64_t first,
+        const int64_t posfirst, const int64_t second) {
     if (first == -1)
         return 0;
     if (second >= 0)
@@ -271,13 +271,13 @@ void DiffIndex1::setFactoryIterators(Factory<Diff1Itr> *f) {
     this->factory = f;
 }
 
-bool DiffIndex1::valueInArray(const long v) const {
+bool DiffIndex1::valueInArray(const int64_t v) const {
     const char *s = values->getBuffer();
     const char *e = values->getBuffer() + (size * nbytes);
     while (s < e) {
         size_t nelements = (e - s) / nbytes;
         const char *middle = s + nelements / 2 * nbytes;
-        long middleValue;
+        int64_t middleValue;
         if (nbytes == 4)
             middleValue = Utils::decode_int(middle);
         else {
@@ -295,13 +295,13 @@ bool DiffIndex1::valueInArray(const long v) const {
     return false;
 }
 
-int DiffIndex1::posValueInArray(const long v) const {
+int DiffIndex1::posValueInArray(const int64_t v) const {
     const char *s = values->getBuffer();
     const char *e = values->getBuffer() + (size * nbytes);
     while (s < e) {
         size_t pivot = ((e - s) / nbytes) / 2;
         const char *middle = s + pivot * nbytes;
-        long middleValue;
+        int64_t middleValue;
         if (nbytes == 4)
             middleValue = Utils::decode_int(middle);
         else {
@@ -319,7 +319,7 @@ int DiffIndex1::posValueInArray(const long v) const {
     return size;
 }
 
-long DiffIndex1::getCard(int idx, long first) const {
+int64_t DiffIndex1::getCard(int idx, int64_t first) const {
     if (idx == IDX_POS || idx == IDX_PSO) {
         if (posValues == 1) {
             //if first is in the array, then card is one, otherwise it is 0
@@ -364,26 +364,26 @@ long DiffIndex1::getCard(int idx, long first) const {
     return 0;
 }
 
-long DiffIndex1::getSize() const {
+int64_t DiffIndex1::getSize() const {
     return size;
 }
 
-long DiffIndex1::getNUniqueKeys(int idx) {
+int64_t DiffIndex1::getNUniqueKeys(int idx) {
     return nuniquekeys[idx];
 }
 
-long DiffIndex1::getUniqueNFirstTerms(int idx) {
+int64_t DiffIndex1::getUniqueNFirstTerms(int idx) {
     return nuniquefirstterms[idx];
 }
 
-long DiffIndex1::getNFirstTables(int idx) {
+int64_t DiffIndex1::getNFirstTables(int idx) {
     return nfirstterms[idx];
 }
 
 void DiffIndex1::createDiffIndex(string outputdir,
         bool dumpRawFormat,
         Querier *q,
-        long triple[3],
+        int64_t triple[3],
         std::vector<uint64_t> &values,
         uint8_t posvalues) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -439,7 +439,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     }
 
     //Calculate the new keys on the values
-    long valuesnewkeys = 0;
+    int64_t valuesnewkeys = 0;
     PairItr *itrkey;
     if (posvalues == 0) {
         itrkey = q->getTermList(IDX_SPO);
@@ -455,7 +455,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
         itrkey = NULL;
     }
     for (size_t i = 0; i < values.size(); ++i) {
-        long v = values[i];
+        int64_t v = values[i];
         if (itrkey) {
             while (itrkey->getKey() < v && itrkey->hasNext()) {
                 itrkey->next();
@@ -474,11 +474,11 @@ void DiffIndex1::createDiffIndex(string outputdir,
     }
 
     //Calculate new keys on the constant fields, and the number of (unique) first terms
-    const long size = values.size();
-    long nkeys[3];
-    long nuniquekeys[3];
-    long nfirstterms[6];
-    long nuniquefirstterms[6];
+    const int64_t size = values.size();
+    int64_t nkeys[3];
+    int64_t nuniquekeys[3];
+    int64_t nfirstterms[6];
+    int64_t nuniquefirstterms[6];
     for (int i = 0; i < 6; ++i) {
         nfirstterms[i] = 1;
     }
@@ -628,7 +628,7 @@ void DiffIndex1::createDiffIndex(string outputdir,
     LOG(INFOL) << "Runtime creating indices one column = " << sec.count() * 1000;
 }
 
-long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string fout) {
+int64_t DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string fout) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     ofstream f(fout);
     itr->ignoreSecondColumn();
@@ -637,7 +637,7 @@ long DiffIndex1::outerJoin(PairItr *itr, std::vector<uint64_t> &values, string f
     } else {
         itr = NULL;
     }
-    long out = 0;
+    int64_t out = 0;
     for (size_t i = 0; i < values.size(); ++i) {
         if (itr) {
             while (itr->getValue1() < values[i] && itr->hasNext()) {

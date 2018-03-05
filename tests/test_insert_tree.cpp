@@ -24,11 +24,11 @@ int main(int argc, const char** argv) {
 		ifstream s;
 		s.open(perm);
 		LOG(DEBUGL) << perm;
-		long prevKey = -1;
+		int64_t prevKey = -1;
 		while (s.read(supportBuffer, 23)) {
 			short file = Utils::decode_short((const char*) supportBuffer + 16);
-       			long key = Utils::decode_long(supportBuffer);
-        		long nElements = Utils::decode_long(supportBuffer + 8);
+       			int64_t key = Utils::decode_long(supportBuffer);
+        		int64_t nElements = Utils::decode_long(supportBuffer + 8);
         		int pos = Utils::decode_int(supportBuffer + 18);
         		char strat = supportBuffer[22];
 			if (key <= prevKey) {

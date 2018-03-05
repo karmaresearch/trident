@@ -25,7 +25,7 @@
 #include <trident/kb/cacheidx.h>
 
 void CacheItr::init(Querier *q, const uint64_t estimatedSize, CacheIdx *cache,
-                    long c1, long c2) {
+                    int64_t c1, int64_t c2) {
     this->cache = cache;
     this->estimatedSize = estimatedSize;
     this->q = q;
@@ -58,11 +58,11 @@ void CacheItr::init(Querier *q, const uint64_t estimatedSize, CacheIdx *cache,
     existingBlocks = pair.second;
 }
 
-long CacheItr::getValue1() {
+int64_t CacheItr::getValue1() {
     return v1;
 }
 
-long CacheItr::getValue2() {
+int64_t CacheItr::getValue2() {
     return v2;
 }
 
@@ -165,7 +165,7 @@ CacheBlock *CacheItr::searchBlock(std::vector<CacheBlock> *blocks,
     }
 }
 
-bool CacheItr::gotoFirstTerm(long c1) {
+bool CacheItr::gotoFirstTerm(int64_t c1) {
     //does c1 exist in the existing blocks? For now, assume it does not
     CacheBlock *block = searchBlock(existingBlocks, c1);
     if (block != NULL) {
@@ -219,7 +219,7 @@ bool CacheItr::gotoFirstTerm(long c1) {
     return v1 == c1;
 }
 
-void CacheItr::gotoSecondTerm(long c2) {
+void CacheItr::gotoSecondTerm(int64_t c2) {
     while (currentIdx < idxEndGroup && v1 == p->at(currentIdx).first &&
             p->at(currentIdx).second < c2) {
         currentIdx++;

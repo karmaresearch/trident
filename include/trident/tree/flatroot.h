@@ -20,48 +20,48 @@ class FlatRoot : public Root {
                     memset(zeros.get(), 0, 83);
                 }
 
-                void write(const long key,
-                        long n_sop,
+                void write(const int64_t key,
+                        int64_t n_sop,
                         char strat_sop,
                         short file_sop,
-                        long pos_sop,
-                        long n_osp,
+                        int64_t pos_sop,
+                        int64_t n_osp,
                         char strat_osp,
                         short file_osp,
-                        long pos_osp);
+                        int64_t pos_osp);
 
-                void writeOnlyKey(const long key);
+                void writeOnlyKey(const int64_t key);
 
-                void write(const long key,
-                        long n_sop,
+                void write(const int64_t key,
+                        int64_t n_sop,
                         char strat_sop,
                         short file_sop,
-                        long pos_sop,
+                        int64_t pos_sop,
 
-                        long n_osp,
+                        int64_t n_osp,
                         char strat_osp,
                         short file_osp,
-                        long pos_osp,
+                        int64_t pos_osp,
 
-                        long n_spo,
+                        int64_t n_spo,
                         char strat_spo,
                         short file_spo,
-                        long pos_spo,
+                        int64_t pos_spo,
 
-                        long n_ops,
+                        int64_t n_ops,
                         char strat_ops,
                         short file_ops,
-                        long pos_ops,
+                        int64_t pos_ops,
 
-                        long n_pos,
+                        int64_t n_pos,
                         char strat_pos,
                         short file_pos,
-                        long pos_pos,
+                        int64_t pos_pos,
 
-                        long n_pso,
+                        int64_t n_pso,
                         char strat_pso,
                         short file_pso,
-                        long pos_pso);
+                        int64_t pos_pso);
 
                 ~FlatTreeWriter() {
                     ofs.flush();

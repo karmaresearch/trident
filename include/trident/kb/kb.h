@@ -64,12 +64,12 @@ class KB {
         bool dictHash;
         std::vector<DictMgmt::Dict> dictUpdates;
 
-        long ntables[N_PARTITIONS];
-        long nFirstTables[N_PARTITIONS];
+        int64_t ntables[N_PARTITIONS];
+        int64_t nFirstTables[N_PARTITIONS];
 
-        long totalNumberTriples;
-        long totalNumberTerms;
-        long nextID;
+        int64_t totalNumberTriples;
+        int64_t totalNumberTerms;
+        int64_t nextID;
         GraphType graphType;
 
         int nindices;
@@ -173,11 +173,11 @@ class KB {
             return sampleRate;
         }
 
-        long getSize() {
+        int64_t getSize() {
             return totalNumberTriples;
         }
 
-        long getNextID() {
+        int64_t getNextID() {
             return nextID;
         }
 

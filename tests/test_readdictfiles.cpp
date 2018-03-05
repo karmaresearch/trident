@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
 	LZ4Reader *r = new LZ4Reader(argv[1]);
 
 	while (!r->isEof()) {
-		long number = r->parseLong();
+		int64_t number = r->parseLong();
 		int size;
 		const char *term = r->parseString(size);
 		cout << number << " " << string(term + 2, size -2) << endl;

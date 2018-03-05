@@ -81,7 +81,7 @@ string AnalyticsTasks::getTaskDetails() {
 string AnalyticsTasks::getStringType(TYPE t) {
     switch (t) {
         case LONG:
-            return "long";
+            return "int64_t";
         case INT:
             return "int";
         case DOUBLE:
@@ -157,7 +157,7 @@ void AnalyticsTasks::Param::set(string value) {
                 TridentUtils::lexical_cast<int>(value);
                 break;
             case LONG:
-                TridentUtils::lexical_cast<long>(value);
+                TridentUtils::lexical_cast<int64_t>(value);
                 break;
             case BOOL:
                 TridentUtils::lexical_cast<bool>(value);

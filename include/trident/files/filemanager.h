@@ -45,7 +45,7 @@ class FileManager {
     private:
         const bool readOnly;
         const std::string cacheDir;
-        const long fileMaxSize;
+        const int64_t fileMaxSize;
         const int maxFiles;
         int lastFileId;
         int nOpenedFiles;
@@ -129,7 +129,7 @@ class FileManager {
             }
         }
     public:
-        FileManager(std::string path, bool readOnly, long fileMaxSize,
+        FileManager(std::string path, bool readOnly, int64_t fileMaxSize,
                 int maxNumberFiles, int lastFileId, MemoryManager<K> *bytesTracker,
                 Stats * const stats) :
             readOnly(readOnly), cacheDir(path), fileMaxSize(fileMaxSize),
@@ -258,27 +258,27 @@ class FileManager {
             openedFiles[lastFileId]->append(bytes, size);
         }
 
-        uint64_t appendVLong(long n) {
+        uint64_t appendVLong(int64_t n) {
             load_file(lastFileId);
             return openedFiles[lastFileId]->appendVLong(n);
         }
 
-        uint64_t appendVLong2(long n) {
+        uint64_t appendVLong2(int64_t n) {
             load_file(lastFileId);
             return openedFiles[lastFileId]->appendVLong2(n);
         }
 
-        void appendLong(long n) {
+        void appendLong(int64_t n) {
             load_file(lastFileId);
             openedFiles[lastFileId]->appendLong(n);
         }
 
-        void appendInt(long n) {
+        void appendInt(int64_t n) {
             load_file(lastFileId);
             openedFiles[lastFileId]->appendInt(n);
         }
 
-        void appendShort(long n) {
+        void appendShort(int64_t n) {
             load_file(lastFileId);
             openedFiles[lastFileId]->appendShort(n);
         }
@@ -298,7 +298,7 @@ class FileManager {
             openedFiles[file]->overwriteAt(pos, byte);
         }
 
-        void overwriteVLong2At(short file, uint64_t pos, long number) {
+        void overwriteVLong2At(short file, uint64_t pos, int64_t number) {
             load_file(file);
             openedFiles[file]->overwriteVLong2At(pos, number);
         }

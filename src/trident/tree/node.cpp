@@ -30,12 +30,12 @@
 #include <string.h>
 #include <assert.h>
 
-int Node::pos(long key) {
+int Node::pos(int64_t key) {
     if (getCurrentSize() == 0 || key < firstKey) {
         return -1;
     }
 
-    long diff = key - firstKey;
+    int64_t diff = key - firstKey;
     if (consecutive) {
         if (diff < (getCurrentSize() * consecutiveStep)) {
             if (consecutiveStep > 1) {
@@ -66,7 +66,7 @@ int Node::pos(long key) {
             int high = getCurrentSize() - 3;
             while (low <= high) {
                 int mid = (low + high) >> 1;
-                long midVal = keys[mid];
+                int64_t midVal = keys[mid];
                 if (midVal < diff)
                     low = mid + 1;
                 else if (midVal > diff)
@@ -79,7 +79,7 @@ int Node::pos(long key) {
     }
 }
 
-long Node::localLargestNumericKey() {
+int64_t Node::localLargestNumericKey() {
     if (getCurrentSize() == 1) {
         return firstKey;
     } else {
@@ -177,7 +177,7 @@ int Node::serialize(char* bytes, int pos) {
     return pos;
 }
 
-long Node::keyAt(int pos) {
+int64_t Node::keyAt(int pos) {
     if (consecutive) {
         return firstKey + pos * consecutiveStep;
     } else {
@@ -190,12 +190,12 @@ long Node::keyAt(int pos) {
 }
 
 tTerm *Node::localSmallestTextualKey(int *size) {
-    long coordinates = keyAt(0);
+    int64_t coordinates = keyAt(0);
     return (tTerm*) getContext()->getStringBuffer()->get(coordinates, *size);
 }
 
 tTerm *Node::localLargestTextualKey(int *size) {
-    long coordinates = keyAt(getCurrentSize() - 1);
+    int64_t coordinates = keyAt(getCurrentSize() - 1);
     return (tTerm*) getContext()->getStringBuffer()->get(coordinates, *size);
 }
 
@@ -204,7 +204,7 @@ int Node::pos(tTerm *key, int size) {
     int high = getCurrentSize() - 1;
     while (low <= high) {
         int mid = (low + high) >> 1;
-        long coordinates = keyAt(mid);
+        int64_t coordinates = keyAt(mid);
         int retVal = getContext()->getStringBuffer()->cmp(coordinates,
                      (char*) key, size);
         if (retVal < 0)
@@ -237,7 +237,7 @@ void Node::split(Node *node) {
             if (node->keys == NULL) {
                 node->keys = context->getNodesKeyFactory()->get();
             }
-            long diff = node->firstKey - firstKey;
+            int64_t diff = node->firstKey - firstKey;
             for (int i = 0; i < currentSize - 1; ++i) {
                 node->keys[i] = keys[currentSize + i] - diff;
             }
@@ -252,8 +252,8 @@ void Node::putkeyAt(nTerm key, int pos) {
             firstKey = key;
         } else {
             if (consecutive) {
-                long diff = firstKey - key;
-//              keys = new long[context->getMaxElementsPerNode() - 1];
+                int64_t diff = firstKey - key;
+//              keys = new int64_t[context->getMaxElementsPerNode() - 1];
                 keys = context->getNodesKeyFactory()->get();
                 keys[0] = diff;
                 for (int i = 1; i < getCurrentSize(); ++i) {
@@ -262,8 +262,8 @@ void Node::putkeyAt(nTerm key, int pos) {
                 firstKey = key;
                 consecutive = false;
             } else {
-                memmove(keys + 1, keys, sizeof(long) * (currentSize - 1));
-                long diff = firstKey - key;
+                memmove(keys + 1, keys, sizeof(int64_t) * (currentSize - 1));
+                int64_t diff = firstKey - key;
                 keys[0] = diff;
                 for (int i = 1; i < getCurrentSize(); ++i) {
                     keys[i] += diff;
@@ -273,10 +273,10 @@ void Node::putkeyAt(nTerm key, int pos) {
         }
     } else {
         if (consecutive) {
-            long diff = key - firstKey;
+            int64_t diff = key - firstKey;
             if (pos != diff) {
                 consecutive = false;
-//              keys = new long[context->getMaxElementsPerNode() - 1];
+//              keys = new int64_t[context->getMaxElementsPerNode() - 1];
                 keys = context->getNodesKeyFactory()->get();
                 for (int i = 0; i < getCurrentSize() - 1; ++i) {
                     keys[i] = i + 1;
@@ -286,7 +286,7 @@ void Node::putkeyAt(nTerm key, int pos) {
         } else {
             if (pos < getCurrentSize()) {
                 memmove(keys + pos, keys + pos - 1,
-                        sizeof(long) * (currentSize - pos));
+                        sizeof(int64_t) * (currentSize - pos));
             }
             keys[pos - 1] = key - firstKey;
         }
@@ -296,7 +296,7 @@ void Node::putkeyAt(nTerm key, int pos) {
 
 void Node::putkeyAt(tTerm *key, int sizeKey, int pos) {
 //Warning. This method always inserts a new string. Updates are not supported.
-    long startPos = context->getStringBuffer()->getSize();
+    int64_t startPos = context->getStringBuffer()->getSize();
     context->getStringBuffer()->append((char*) key, sizeKey);
     putkeyAt(startPos, pos);
 }
@@ -308,7 +308,7 @@ void Node::removeKeyAtPos(int pos) {
                 firstKey += 1;
             } else {
                 if (keys == NULL) {
-//                  keys = new long[context->getMaxElementsPerNode() - 1];
+//                  keys = new int64_t[context->getMaxElementsPerNode() - 1];
                     keys = context->getNodesKeyFactory()->get();
                 }
                 // up to pos -1 fill keys with 1s
@@ -322,7 +322,7 @@ void Node::removeKeyAtPos(int pos) {
             }
         } else {
             if (pos == 0) {
-                long diff = keys[0];
+                int64_t diff = keys[0];
                 firstKey += diff;
                 for (int i = 0; i < getCurrentSize() - 2; ++i) {
                     keys[i] = keys[i + 1] - diff;
@@ -330,7 +330,7 @@ void Node::removeKeyAtPos(int pos) {
             } else {
                 // Shift the other elements by one position
                 memmove(keys + pos - 1, keys + pos,
-                        (getCurrentSize() - 1 - pos) * sizeof(long));
+                        (getCurrentSize() - 1 - pos) * sizeof(int64_t));
             }
         }
     }

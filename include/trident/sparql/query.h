@@ -41,7 +41,7 @@ using namespace std;
 
 class Pattern {
 private:
-    long s, p, o;
+    int64_t s, p, o;
     int idxToUse, n_vars;
     std::vector<std::string> vars;
     std::vector<int> pos_vars;
@@ -84,27 +84,27 @@ public:
         return line;
     }
 
-    void subject(long s) {
+    void subject(int64_t s) {
         this->s = s;
     }
 
-    long subject() {
+    int64_t subject() {
         return s;
     }
 
-    void predicate(long p) {
+    void predicate(int64_t p) {
         this->p = p;
     }
 
-    long predicate() {
+    int64_t predicate() {
         return p;
     }
 
-    void object(long o) {
+    void object(int64_t o) {
         this->o = o;
     }
 
-    long object() {
+    int64_t object() {
         return o;
     }
 

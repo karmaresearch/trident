@@ -91,7 +91,7 @@ class ResultsPrinter : public Operator {
 
     public:
         /// Constructor
-        ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = ~0lu, bool silent = false);
+        ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = UINT64_MAX, bool silent = false);
         /// Destructor
         ~ResultsPrinter();
 

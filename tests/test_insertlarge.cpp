@@ -19,7 +19,7 @@ public:
 	MyTreeInserter() {
 	}
 
-	void addEntry(nTerm key, long nElements, short file, int pos,
+	void addEntry(nTerm key, int64_t nElements, short file, int pos,
 			char strategy) {
 	}
 };
@@ -36,7 +36,7 @@ int main(int argc, const char** argv) {
     MyTreeInserter treeInserter;
 
     Inserter *ins = kb.insert();
-    for(long i = 0; i < 1000000000; i += 2) {
+    for(int64_t i = 0; i < 1000000000; i += 2) {
         ins->insert(IDX_SPO, 0, i, i + 1, 1, NULL, NULL, false, false);
         if (i % 10000000 == 0)
             cout << "Idx " << i << endl;

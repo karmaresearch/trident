@@ -249,7 +249,7 @@ class Embeddings {
             uint32_t *c = conflicts.data();
             uint32_t *u = updates.data();
             std::vector<std::thread> threads;
-            uint64_t batchsize = ((long)n * dim) / nthreads;
+            uint64_t batchsize = ((int64_t)n * dim) / nthreads;
 
             {
                 std::string metapath = path;
@@ -275,8 +275,8 @@ class Embeddings {
                 if (compress)
                     localpath = localpath + ".gz";
                 uint64_t end = begin + batchsize;
-                if (end > ((long)n * dim) || i == nthreads - 1) {
-                    end = (long)n * dim;
+                if (end > ((int64_t)n * dim) || i == nthreads - 1) {
+                    end = (int64_t)n * dim;
                 }
                 LOG(DEBUGL) << "Storing " <<
                     (end - begin) << " values in " << localpath << " ...";

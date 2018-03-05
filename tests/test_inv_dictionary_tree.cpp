@@ -17,7 +17,7 @@ int main(int argc, const char** argv) {
 	Value value;
 
 	while (itr->hasNext()) {
-		long key = itr->next(&value);
+		int64_t key = itr->next(&value);
 		value.text(text_term);
 		cout << text_term << " " << key << endl;
 	}

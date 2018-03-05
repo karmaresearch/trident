@@ -31,15 +31,15 @@ public:
         return EMPTY_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return 0;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return 0;
     }
 
-    long getCount() {
+    int64_t getCount() {
         return 0;
     }
 
@@ -62,7 +62,7 @@ public:
     void reset(const char i) {
     }
 
-    void moveto(const long c1, const long c2) {
+    void moveto(const int64_t c1, const int64_t c2) {
     }
 
     bool allowMerge() {

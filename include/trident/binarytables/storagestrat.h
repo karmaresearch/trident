@@ -51,22 +51,22 @@
 #define RATE_LIST 1.05
 
 struct Statistics {
-    long nListStrategies;
-    long nList2Strategies;
-    long nGroupStrategies;
+    int64_t nListStrategies;
+    int64_t nList2Strategies;
+    int64_t nGroupStrategies;
 
-    long nFirstCompr1;
-    long nFirstCompr2;
-    long nSecondCompr1;
-    long nSecondCompr2;
+    int64_t nFirstCompr1;
+    int64_t nFirstCompr2;
+    int64_t nSecondCompr1;
+    int64_t nSecondCompr2;
 
-    long diff;
-    long nodiff;
+    int64_t diff;
+    int64_t nodiff;
 
-    long exact;
-    long approximate;
+    int64_t exact;
+    int64_t approximate;
 
-    long aggregated, notAggregated;
+    int64_t aggregated, notAggregated;
 
     Statistics() {
         nList2Strategies = nListStrategies = nGroupStrategies = 0;
@@ -85,7 +85,7 @@ public:
         int compr1Mode;
         int compr2Mode;
         int diffMode;
-        long sum;
+        int64_t sum;
     };
 
 protected:
@@ -98,17 +98,17 @@ protected:
     static unsigned getStrat7();
 
     static void createAllCombinations(std::vector<Combinations> &output,
-                                      long *groupCounters1Compr2,
-                                      long *listCounters1Compr2,
-                                      long groupCounters2Compr2,
-                                      long listCounters2Compr2,
-                                      long *groupCounters1Compr1,
-                                      long *listCounters1Compr1,
-                                      long groupCounters2Compr1,
-                                      long listCounters2Compr1);
+                                      int64_t *groupCounters1Compr2,
+                                      int64_t *listCounters1Compr2,
+                                      int64_t groupCounters2Compr2,
+                                      int64_t listCounters2Compr2,
+                                      int64_t *groupCounters1Compr1,
+                                      int64_t *listCounters1Compr1,
+                                      int64_t groupCounters2Compr1,
+                                      int64_t listCounters2Compr1);
 
 private:
-    long static minsum(const long counters1[2][2], const long counters2[2], int &c1, int &c2, int &d);
+    int64_t static minsum(const int64_t counters1[2][2], const int64_t counters2[2], int &c1, int &c2, int &d);
 
     unsigned static setCompr1(const unsigned signature, unsigned compr) {
         return (compr == COMPR_2 ? signature | 0x8 : signature & 0xF7);
@@ -175,21 +175,21 @@ public:
         return signature | (nbytes << 1);
     }
 
-    long statsCluster, statsRow, statsColumn;
+    int64_t statsCluster, statsRow, statsColumn;
 
     static size_t getBinaryBreakingPoint();
 
-    static bool determineAggregatedStrategy(long *v1, long *v2, const int size,
-                                            const long nTerms, Statistics &stats);
+    static bool determineAggregatedStrategy(int64_t *v1, int64_t *v2, const int size,
+                                            const int64_t nTerms, Statistics &stats);
 
-    static char determineStrategy(long *v1, long *v2, const int size,
-                                  const long nTerms,
+    static char determineStrategy(int64_t *v1, int64_t *v2, const int size,
+                                  const int64_t nTerms,
                                   const size_t nTermsClusterColumn,
                                   const bool useRowForLargeTables,
                                   Statistics &stats);
 
-    static char determineStrategyOld(long *v1, long *v2, const int size,
-                                  const long nTerms,
+    static char determineStrategyOld(int64_t *v1, int64_t *v2, const int size,
+                                  const int64_t nTerms,
                                   const size_t nTermsClusterColumn,
                                   Statistics &stats);
 

@@ -36,22 +36,22 @@ class AggrItr: public PairItr {
         PairItr *mainItr;
         PairItr *secondItr;
         bool noSecColumn;
-        long value1, value2;
+        int64_t value1, value2;
 
         bool hasNextChecked, n;
         int idx;
 
-        //long p;
+        //int64_t p;
 
-        char strategy(long coordinates) {
+        char strategy(int64_t coordinates) {
             return (char) ((coordinates >> 48) & 0xFF);
         }
 
-        short file(long coordinates) {
+        short file(int64_t coordinates) {
             return (short)((coordinates >> 32) & 0xFFFF);
         }
 
-        int pos(long coordinates) {
+        int pos(int64_t coordinates) {
             return (int) coordinates;
         }
 
@@ -62,11 +62,11 @@ class AggrItr: public PairItr {
             return AGGR_ITR;
         }
 
-        long getValue1() {
+        int64_t getValue1() {
             return value1;
         }
 
-        long getValue2() {
+        int64_t getValue2() {
             return value2;
         }
 
@@ -80,7 +80,7 @@ class AggrItr: public PairItr {
 
         void clear();
 
-        void moveto(const long c1, const long c2);
+        void moveto(const int64_t c1, const int64_t c2);
 
         void init(int idx, PairItr* itr, Querier *q);
 
@@ -88,14 +88,14 @@ class AggrItr: public PairItr {
 
         uint64_t estCardinality();
 
-        long getCount();
+        int64_t getCount();
 
-        void setConstraint1(const long c1) {
+        void setConstraint1(const int64_t c1) {
             PairItr::setConstraint1(c1);
             mainItr->setConstraint1(c1);
         }
 
-        void setConstraint2(const long c2) {
+        void setConstraint2(const int64_t c2) {
             PairItr::setConstraint2(c2);
             if (secondItr)
                 secondItr->setConstraint2(c2);

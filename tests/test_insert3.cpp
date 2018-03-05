@@ -29,7 +29,7 @@ void spread(MultiDiskLZ4Reader *reader,
         MultiDiskLZ4Writer *writer,
         int nparts) {
     int currentP = 0;
-    long count = 0;
+    int64_t count = 0;
     while (!reader->isEOF(idReader)) {
         Triple t;
         t.readFrom(idReader, reader);

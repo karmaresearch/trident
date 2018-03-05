@@ -312,10 +312,10 @@ namespace TSnap {
     template<class PGraph>
         void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const double& C, const double& Eps, const int& MaxIter) {
             //std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-            const long NNodes = Graph->GetNodes();
+            const  int64_t NNodes = Graph->GetNodes();
             PRankH.resize(NNodes);
-            std::vector<long> OutDegV(NNodes);
-            long Id = 0;
+            std::vector< int64_t> OutDegV(NNodes);
+             int64_t Id = 0;
             for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                 PRankH[Id] = 1.0/NNodes;
                 OutDegV[Id] = NI.GetOutDeg();
@@ -329,11 +329,11 @@ namespace TSnap {
             for (int iter = 0; iter < MaxIter; iter++) {
                 //std::chrono::seconds dur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
                 //std::cout << "Iteration " << iter << " " << dur.count() << "s" << std::endl;
-                for (long j = 0; j < NNodes; j++) {
+                for ( int64_t j = 0; j < NNodes; j++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(j);
                     TFlt Tmp = 0;
                     for (int e = 0; e < NI.GetInDeg(); e++) {
-                        const long InNId = NI.GetInNId(e);
+                        const  int64_t InNId = NI.GetInNId(e);
                         const int OutDeg = OutDegV[InNId];
                         if (OutDeg > 0) {
                             Tmp += PRankH[InNId] / OutDeg;
@@ -346,17 +346,17 @@ namespace TSnap {
                 //std::cout << "Finished adding to Tmp " << iter << " " << dur.count() << "s" << std::endl;
 
                 double sum = 0;
-                for (long i = 0; i < TmpV.size(); i++) { sum += TmpV[i]; }
+                for ( int64_t i = 0; i < TmpV.size(); i++) { sum += TmpV[i]; }
                 const double Leaked = (1.0-sum) / double(NNodes);
 
                 //dur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
                 //std::cout << "Finished summing to Tmp " << iter << " " << dur.count() << "s" << std::endl;
 
                 double diff = 0;
-                for (long i = 0; i < NNodes; i++) {
+                for ( int64_t i = 0; i < NNodes; i++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(i);
                     double NewVal = TmpV[i] + Leaked; // Berkhin
-                    long Id = NI.GetId();
+                     int64_t Id = NI.GetId();
                     diff += fabs(NewVal-PRankH[Id]);
                     PRankH[Id] = NewVal;
                 }
@@ -515,7 +515,7 @@ namespace TSnap {
 
     template<class PGraph>
         void GetBetweennessCentr_stl(const PGraph& Graph,
-                const std::vector<long>& BtwNIdV,
+                const std::vector< int64_t>& BtwNIdV,
                 std::vector<float>& NodeBtwH,
                 const bool& IsDir,
                 const bool& DoNodeCent,
@@ -524,7 +524,7 @@ namespace TSnap {
 
             if (DoNodeCent) { NodeBtwH.clear(); }
             if (DoEdgeCent) { EdgeBtwH.Clr(); }
-            const long nodes = Graph->GetNodes();
+            const  int64_t nodes = Graph->GetNodes();
             TIntS S(nodes);
             TIntQ Q(nodes);
             TIntIntVH P(nodes); // one vector for every node
@@ -613,19 +613,19 @@ namespace TSnap {
     template<class PGraph>
         void GetBetweennessCentr_stl(const PGraph& Graph, std::vector<float>& NodeBtwH, const bool& IsDir, const double& NodeFrac) {
             TIntPrFltH EdgeBtwH;
-            std::vector<long> NIdV;
+            std::vector< int64_t> NIdV;
             Graph->GetNIdV(NIdV);
             if (NodeFrac < 1.0) { // calculate beetweenness centrality for a subset of nodes
-                const long nodesToConsider = std::max((long)1, (long)(NodeFrac * NIdV.size()));
-                std::vector<long> randomsample;
-                std::set<long> selectedids;
+                const  int64_t nodesToConsider = std::max(( int64_t)1, ( int64_t)(NodeFrac * NIdV.size()));
+                std::vector< int64_t> randomsample;
+                std::set< int64_t> selectedids;
 
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<long> dis(0, NIdV.size());
+                std::uniform_int_distribution< int64_t> dis(0, NIdV.size());
 
-                for(long i = 0; i < nodesToConsider; ++i) {
-                    long idxRandomNode = dis(gen);
+                for( int64_t i = 0; i < nodesToConsider; ++i) {
+                     int64_t idxRandomNode = dis(gen);
                     while (selectedids.count(idxRandomNode)) {
                         idxRandomNode = dis(gen);
                     }
@@ -633,8 +633,8 @@ namespace TSnap {
                     randomsample.push_back(idxRandomNode);
                 }
                 std::sort(randomsample.begin(), randomsample.end());
-                long j = 0;
-                for(long i = 0; i < randomsample.size(); ++i) {
+                 int64_t j = 0;
+                for( int64_t i = 0; i < randomsample.size(); ++i) {
                     if (randomsample[i] == j) {
                         //do nothing
                     } else {
@@ -718,48 +718,48 @@ namespace TSnap {
                 std::vector<float>& NIdHubH,
                 std::vector<float>& NIdAuthH, const int& MaxIter) {
 
-            const long NNodes = Graph->GetNodes();
+            const  int64_t NNodes = Graph->GetNodes();
             NIdHubH.resize(NNodes);
             NIdAuthH.resize(NNodes);
-            long j = 0;
+             int64_t j = 0;
             for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                 NIdHubH[j] = 1.0;
                 NIdAuthH[j] = 1.0;
                 j++;
             }
             double Norm=0;
-            for (long iter = 0; iter < MaxIter; iter++) {
+            for ( int64_t iter = 0; iter < MaxIter; iter++) {
                 // update authority scores
                 Norm = 0;
                 for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                     float& Auth = NIdAuthH[NI.GetId()];
                     Auth = 0;
-                    for (long e = 0; e < NI.GetInDeg(); e++) {
+                    for ( int64_t e = 0; e < NI.GetInDeg(); e++) {
                         Auth +=  NIdHubH[NI.GetInNId(e)]; }
                     Norm += Auth*Auth;
                 }
                 Norm = sqrt(Norm);
-                for (long i = 0; i < NIdAuthH.size(); i++) { NIdAuthH[i] /= Norm; }
+                for ( int64_t i = 0; i < NIdAuthH.size(); i++) { NIdAuthH[i] /= Norm; }
                 // update hub scores
                 for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                     float& Hub = NIdHubH[NI.GetId()];
                     Hub = 0;
-                    for (long e = 0; e < NI.GetOutDeg(); e++) {
+                    for ( int64_t e = 0; e < NI.GetOutDeg(); e++) {
                         Hub += NIdAuthH[NI.GetOutNId(e)]; }
                     Norm += Hub*Hub;
                 }
                 Norm = sqrt(Norm);
-                for (long i = 0; i < NIdHubH.size(); i++) { NIdHubH[i] /= Norm; }
+                for ( int64_t i = 0; i < NIdHubH.size(); i++) { NIdHubH[i] /= Norm; }
             }
             // make sure Hub and Authority scores normalize to L2 norm 1
             Norm = 0.0;
-            for (long i = 0; i < NIdHubH.size(); i++) { Norm += TMath::Sqr(NIdHubH[i]); }
+            for ( int64_t i = 0; i < NIdHubH.size(); i++) { Norm += TMath::Sqr(NIdHubH[i]); }
             Norm = sqrt(Norm);
-            for (long i = 0; i < NIdHubH.size(); i++) { NIdHubH[i] /= Norm; }
+            for ( int64_t i = 0; i < NIdHubH.size(); i++) { NIdHubH[i] /= Norm; }
             Norm = 0.0;
-            for (long i = 0; i < NIdAuthH.size(); i++) { Norm += TMath::Sqr(NIdAuthH[i]); }
+            for ( int64_t i = 0; i < NIdAuthH.size(); i++) { Norm += TMath::Sqr(NIdAuthH[i]); }
             Norm = sqrt(Norm);
-            for (long i = 0; i < NIdAuthH.size(); i++) { NIdAuthH[i] /= Norm; }
+            for ( int64_t i = 0; i < NIdAuthH.size(); i++) { NIdAuthH[i] /= Norm; }
         }
 
 

@@ -62,9 +62,9 @@ int main(int argc, const char** argv) {
         if (!ifs)
             break;
         //Parse the triple and copy to the array
-        long s = *(long*)(buffer);
-        long p = *(long*)(buffer + 8);
-        long o = *(long*)(buffer + 16);
+        int64_t s = *(int64_t*)(buffer);
+        int64_t p = *(int64_t*)(buffer + 8);
+        int64_t o = *(int64_t*)(buffer + 16);
         triples.push_back(s);
         triples.push_back(p);
         triples.push_back(o);
@@ -78,8 +78,8 @@ int main(int argc, const char** argv) {
         if (!ifs)
             break;
         //Parse the triple and copy to the array
-        long s = *(long*)(buffer);
-        long o = *(long*)(buffer + 16);
+        int64_t s = *(int64_t*)(buffer);
+        int64_t o = *(int64_t*)(buffer + 16);
         negatives.push_back(s);
         negatives.push_back(o);
     }
@@ -296,7 +296,7 @@ int main(int argc, const char** argv) {
     std::vector<uint64_t> entities;
     for(int i = 0; i < nentries; ++i) {
         ifs_test.read(buffer, 8);
-        entities.push_back(*(long*) buffer);
+        entities.push_back(*(int64_t*) buffer);
     }
     //Load the gradients
     ifs_test.read(buffer, 4);
@@ -318,7 +318,7 @@ int main(int argc, const char** argv) {
     std::vector<uint64_t> relations;
     for(int i = 0; i < nrels; ++i) {
         ifs_test.read(buffer, 8);
-        relations.push_back(*(long*) buffer);
+        relations.push_back(*(int64_t*) buffer);
     }
     //Load the gradients
     ifs_test.read(buffer, 4);

@@ -303,7 +303,7 @@ int TJulianDate::LastJulianDateN=2299160; /* jdn of same */
 int TJulianDate::GetJulianDateN(int d, int m, int y){
   IAssert(y != 0);
   int julian = -1;
-  long jdn;
+  int64_t jdn;
 
   if (julian < 0){ /* set Julian flag if auto set */
     julian = (((y * 100L) + m) * 100 + d  <=  LastJulianDate);}
@@ -315,7 +315,7 @@ int TJulianDate::GetJulianDateN(int d, int m, int y){
     jdn = 367L * y - 7 * (y + 5001L + (m - 9) / 7) / 4
      + 275 * m / 9 + d + 1729777L;
   } else {
-    jdn = (long)(d - 32076)
+    jdn = (int64_t)(d - 32076)
      + 1461L * (y + 4800L + (m - 14) / 12) / 4
      + 367 * (m - 2 - (m - 14) / 12 * 12) / 12
      - 3 * ((y + 4900L + (m - 14) / 12) / 100) / 4
@@ -327,7 +327,7 @@ int TJulianDate::GetJulianDateN(int d, int m, int y){
 void TJulianDate::GetCalendarDate(int jdn, int& dd, int& mm, int& yy){
   int julian = -1;
 
-  long x, z, m, d, y;
+  int64_t x, z, m, d, y;
   long daysPer400Years = 146097L;
   long fudgedDaysPer4000Years = 1460970L + 31;
 

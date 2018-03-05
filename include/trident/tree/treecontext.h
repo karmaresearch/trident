@@ -44,8 +44,8 @@ private:
     const bool textualValues;
     PreallocatedFactory<Coordinates>* const leavesElFactory;
     PreallocatedArraysFactory<Coordinates*>* const leavesBufferFactory;
-    PreallocatedArraysFactory<long>* const nodeKeyFactory;
-    long nodeCounter;
+    PreallocatedArraysFactory<int64_t>* const nodeKeyFactory;
+    int64_t nodeCounter;
 
 #ifdef MT
     std::recursive_mutex mutex;
@@ -56,7 +56,7 @@ public:
                 int maxElementsPerNode, bool textualKeys, bool textualValues,
                 PreallocatedFactory<Coordinates> *leavesElFactory,
                 PreallocatedArraysFactory<Coordinates*> *leavesBufferFactory,
-                PreallocatedArraysFactory<long> *nodeKeyFactory) :
+                PreallocatedArraysFactory<int64_t> *nodeKeyFactory) :
         cache(cache), buffer(buffer), readOnly(readOnly), maxNElementsPerNode(
             maxElementsPerNode), minNElementsPerNode(
                 maxElementsPerNode / 2), textualKeys(textualKeys), textualValues(
@@ -65,7 +65,7 @@ public:
         nodeCounter = 0;
     }
 
-    long getNewNodeID() {
+    int64_t getNewNodeID() {
         return nodeCounter++;
     }
 
@@ -105,7 +105,7 @@ public:
         return leavesBufferFactory;
     }
 
-    PreallocatedArraysFactory<long>* const getNodesKeyFactory() const {
+    PreallocatedArraysFactory<int64_t>* const getNodesKeyFactory() const {
         return nodeKeyFactory;
     }
 

@@ -29,12 +29,12 @@ class NewColumnTableInserter: public BinaryTableInserter {
 private:
     uint64_t largestElement1, largestElement2, largestGroup;
 
-    long prevel1, prevtotalsize2;
+    int64_t prevel1, prevtotalsize2;
     std::vector<std::pair<uint64_t, uint64_t>> tmpfirstpairs;
     std::vector<uint64_t> tmpsecondpairs;
 
     const size_t thresholdToOffload;
-    long offloadedElements1, offloadedElements2;
+    int64_t offloadedElements1, offloadedElements2;
     bool fileopen1, fileopen2;
     ofstream offloadfile1;
     ifstream offloadfile1_r;
@@ -43,7 +43,7 @@ private:
 
 public:
 
-    NewColumnTableInserter() : thresholdToOffload(500000000l) {
+    NewColumnTableInserter() : thresholdToOffload(500000000) {
     }
 
     int getType() {
@@ -52,7 +52,7 @@ public:
 
     void startAppend();
 
-    void append(long t1, long t2);
+    void append(int64_t t1, int64_t t2);
 
     void stopAppend();
 };

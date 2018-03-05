@@ -59,12 +59,12 @@ class Querier {
         Root* tree;
         DictMgmt *dict;
         TableStorage **files;
-        long lastKeyQueried;
+        int64_t lastKeyQueried;
         bool lastKeyFound;
-        const long inputSize;
-        const long nTerms;
-        const long *nTablesPerPartition;
-        const long *nFirstTablesPerPartition;
+        const int64_t inputSize;
+        const int64_t nTerms;
+        const int64_t *nTablesPerPartition;
+        const int64_t *nFirstTablesPerPartition;
 
         std::string pathRawData;
         bool copyRawData;
@@ -98,34 +98,34 @@ class Querier {
         StorageStrat strat;
 
         //Statistics
-        long aggrIndices, notAggrIndices, cacheIndices;
-        long spo, ops, pos, sop, osp, pso;
+        int64_t aggrIndices, notAggrIndices, cacheIndices;
+        int64_t spo, ops, pos, sop, osp, pso;
 
         void initNewIterator(TableStorage *storage,
                 int fileIdx,
-                long mark,
+                int64_t mark,
                 PairItr *t,
-                long v1,
-                long v2,
+                int64_t v1,
+                int64_t v2,
                 const bool setConstraints);
 
     public:
 
         struct Counters {
-            long statsRow;
-            long statsColumn;
-            long statsCluster;
-            long aggrIndices;
-            long notAggrIndices;
-            long cacheIndices;
-            long spo, ops, pos, sop, osp, pso;
+            int64_t statsRow;
+            int64_t statsColumn;
+            int64_t statsCluster;
+            int64_t aggrIndices;
+            int64_t notAggrIndices;
+            int64_t cacheIndices;
+            int64_t spo, ops, pos, sop, osp, pso;
         };
 
         Querier(Root* tree, DictMgmt *dict, TableStorage** files,
-                const long inputSize,
-                const long nTerms, const int nindices,
-                const long* nTablesPerPartition,
-                const long* nFirstTablesPerPartition,
+                const int64_t inputSize,
+                const int64_t nTerms, const int nindices,
+                const int64_t* nTablesPerPartition,
+                const int64_t* nFirstTablesPerPartition,
                 KB *sampleKB,
                 std::vector<std::unique_ptr<DiffIndex>> &diffIndices);
 
@@ -135,7 +135,7 @@ class Querier {
 
         PairItr *getTermList(const int perm);
 
-        bool existKey(int perm, long key);
+        bool existKey(int perm, int64_t key);
 
         TableStorage *getTableStorage(const int perm) {
             if (nindices <= perm)
@@ -148,61 +148,61 @@ class Querier {
             return &strat;
         }
 
-        PairItr *get(const int idx, const long s, const long p, const long o) {
+        PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
             return get(idx, s, p, o, true);
         }
 
-        PairItr *get(const int idx, const long s, const long p,
-                const long o, const bool cons);
+        PairItr *get(const int idx, const int64_t s, const int64_t p,
+                const int64_t o, const bool cons);
 
         PairItr *get(const int idx, TermCoordinates &value,
-                const long key, const long v1,
-                const long v2, const bool cons);
+                const int64_t key, const int64_t v1,
+                const int64_t v2, const bool cons);
 
         PairItr *get(const int perm,
-                const long key,
+                const int64_t key,
                 const short fileIdx,
-                const long mark,
+                const int64_t mark,
                 const char strategy,
-                const long v1,
-                const long v2,
+                const int64_t v1,
+                const int64_t v2,
                 const bool constrain,
                 const bool noAggr);
 
-        PairItr *getPermuted(const int idx, const long el1, const long el2,
-                const long el3, const bool constrain);
+        PairItr *getPermuted(const int idx, const int64_t el1, const int64_t el2,
+                const int64_t el3, const bool constrain);
 
-        uint64_t isAggregated(const int idx, const long first, const long second,
-                const long third);
+        uint64_t isAggregated(const int idx, const int64_t first, const int64_t second,
+                const int64_t third);
 
-        uint64_t isReverse(const int idx, const long first, const long second,
-                const long third);
+        uint64_t isReverse(const int idx, const int64_t first, const int64_t second,
+                const int64_t third);
 
-        uint64_t getCardOnIndex(const int idx, const long first, const long second, const long third) {
+        uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second, const int64_t third) {
             return getCardOnIndex(idx, first, second, third, false);
         }
 
-        uint64_t getCardOnIndex(const int idx, const long first, const long second,
-                const long third, bool skipLast);
+        uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second,
+                const int64_t third, bool skipLast);
 
-        long getCard(const long s, const long p, const long o);
+        int64_t getCard(const int64_t s, const int64_t p, const int64_t o);
 
-        long getCard(const long s, const long p, const long o, uint8_t pos);
+        int64_t getCard(const int64_t s, const int64_t p, const int64_t o, uint8_t pos);
 
-        //uint64_t getCard(const int idx, const long v);
+        //uint64_t getCard(const int idx, const int64_t v);
 
-        uint64_t estCardOnIndex(const int idx, const long first, const long second,
-                const long third);
+        uint64_t estCardOnIndex(const int idx, const int64_t first, const int64_t second,
+                const int64_t third);
 
-        long estCard(const long s, const long p, const long o);
+        int64_t estCard(const int64_t s, const int64_t p, const int64_t o);
 
-        bool isEmpty(const long s, const long p, const long o);
+        bool isEmpty(const int64_t s, const int64_t p, const int64_t o);
 
-        bool exists(const long s, const long p, const long o);
+        bool exists(const int64_t s, const int64_t p, const int64_t o);
 
-        int getIndex(const long s, const long p, const long o);
+        int getIndex(const int64_t s, const int64_t p, const int64_t o);
 
-        char getStrategy(const int idx, const long v);
+        char getStrategy(const int idx, const int64_t v);
 
         int *getOrder(int idx);
 
@@ -211,7 +211,7 @@ class Querier {
         uint64_t getInputSize() const {
             uint64_t tot = inputSize;
             for (size_t i = 0; i < diffIndices.size(); ++i) {
-                long sizeUpdate = diffIndices[i]->getSize();
+                int64_t sizeUpdate = diffIndices[i]->getSize();
                 if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION) {
                     tot += sizeUpdate;
                 } else {
@@ -270,23 +270,23 @@ class Querier {
 
         PairItr *getPairIterator(TermCoordinates *value,
                 int perm,
-                const long key,
-                long c1,
-                long c2,
+                const int64_t key,
+                int64_t c1,
+                int64_t c2,
                 const bool constrain,
                 const bool noAggr) {
             short fileIdx = value->getFileIdx(perm);
-            long mark = value->getMark(perm);
+            int64_t mark = value->getMark(perm);
             char strategy = value->getStrategy(perm);
             return get(perm, key, fileIdx, mark, strategy, c1, c2, constrain, noAggr);
         }
 
-        PairItr *newItrOnReverse(PairItr *itr, const long v1, const long v2);
+        PairItr *newItrOnReverse(PairItr *itr, const int64_t v1, const int64_t v2);
 
-        PairItr *getFilePairIterator(const int perm, const long constraint1,
-                const long constraint2,
+        PairItr *getFilePairIterator(const int perm, const int64_t constraint1,
+                const int64_t constraint2,
                 const char strategy, const short file,
-                const long pos) {
+                const int64_t pos) {
             PairItr *t = strat.getBinaryTable(strategy);
             initNewIterator(files[perm], file, pos, (PairItr*) t, constraint1, constraint2, true);
             return t;
@@ -310,15 +310,15 @@ class Querier {
         }
 
         /*//The second row is ignored! This is useful for unlabelled graphs
-          long getValue1AtRow(const int idx,
+          int64_t getValue1AtRow(const int idx,
           const short fileIdx,
           const int mark,
           const char strategy,
-          const long rowId);*/
+          const int64_t rowId);*/
 
         const char *getTable(const int perm,
                 const short fileId,
-                const long markId);
+                const int64_t markId);
 
 };
 

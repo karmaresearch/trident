@@ -25,15 +25,15 @@ namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
 	LZ4Reader *reader = new LZ4Reader(argv[1]);
-	long count = 0;
+	int64_t count = 0;
 
 	int idx = atoi(argv[2]);
 
 	while (!reader->isEof()) {
-		long comb = reader->parseLong();
-		long tripleId = comb >> 2;
-		long pos = comb & 3;
-		long term = reader->parseLong();
+		int64_t comb = reader->parseLong();
+		int64_t tripleId = comb >> 2;
+		int64_t pos = comb & 3;
+		int64_t term = reader->parseLong();
 
 		if (tripleId % 16 != idx || tripleId < 0 || tripleId > 20000000000l
 				|| pos < 0 || pos > 2 || term < 0 || term > 5000000000l) {
@@ -58,7 +58,7 @@ int main(int argc, const char** argv) {
 //	while (!reader->isEof()) {
 //		int flag = reader->parseByte();
 //		if (flag == 1) {
-//			long term = reader->parseLong();
+//			int64_t term = reader->parseLong();
 //		} else if (flag == 0) {
 //			int sizeTerm;
 //			const char *term = reader->parseString(sizeTerm);

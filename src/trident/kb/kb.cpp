@@ -300,7 +300,7 @@ KB::KB(const char *path,
             }
             //check also the global dictionary container in dictmanager
             totalNumberTerms += dictManager->getGUDSize();
-            nextID = max(nextID, (long)dictManager->getLargestGUDTerm() + 1);
+            nextID = max(nextID, (int64_t) dictManager->getLargestGUDTerm() + 1);
         }
 
         sec = std::chrono::system_clock::now() - start;
