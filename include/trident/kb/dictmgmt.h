@@ -172,7 +172,7 @@ class DictMgmt {
 
         StringBuffer *getStringBuffer();
 
-        bool getText(nTerm key, char *value);
+        LIBEXP bool getText(nTerm key, char *value);
 
         bool getTextRel(nTerm key, char *value, int &size);
 
@@ -181,7 +181,7 @@ class DictMgmt {
         void getTextFromCoordinates(long coordinates, char *output,
                 int &sizeOutput);
 
-        bool getNumber(const char *key, const int sizeKey, nTerm *value);
+        LIBEXP bool getNumber(const char *key, const int sizeKey, nTerm *value);
 
         bool putDict(const char *key, int sizeKey, nTerm &value);
 

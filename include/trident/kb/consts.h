@@ -25,6 +25,17 @@
 
 #include <inttypes.h>
 
+#if defined(_WIN32)
+#if TRIDENT_SHARED_LIB
+#define LIBEXP __declspec(dllimport)
+#else
+#define LIBEXP __declspec(dllexport)
+#endif
+
+#else
+#define LIBEXP
+#endif
+
 //This is a list of all permutation IDs. It is replicated in tridentcompr/Compressor.h
 #define IDX_SPO 0
 #define IDX_OPS 1

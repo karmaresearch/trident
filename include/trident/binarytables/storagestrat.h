@@ -154,9 +154,9 @@ private:
     Factory<NewClusterTableInserter> *f6i;
 
 public:
-    static const unsigned FIXEDSTRAT5;
-    static const unsigned FIXEDSTRAT6;
-    static const unsigned FIXEDSTRAT7;
+    LIBEXP static const unsigned FIXEDSTRAT5;
+    LIBEXP static const unsigned FIXEDSTRAT6;
+    LIBEXP static const unsigned FIXEDSTRAT7;
 
     bool static isAggregated(const char signature) {
         unsigned type = getStorageType(signature);

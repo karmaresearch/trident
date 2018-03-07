@@ -148,11 +148,11 @@ class Querier {
             return &strat;
         }
 
-        PairItr *get(const int idx, const long s, const long p, const long o) {
+        LIBEXP PairItr *get(const int idx, const long s, const long p, const long o) {
             return get(idx, s, p, o, true);
         }
 
-        PairItr *get(const int idx, const long s, const long p,
+        LIBEXP PairItr *get(const int idx, const long s, const long p,
                 const long o, const bool cons);
 
         PairItr *get(const int idx, TermCoordinates &value,
@@ -239,7 +239,7 @@ class Querier {
             return nTerms;
         }
 
-        void releaseItr(PairItr *itr);
+        LIBEXP void releaseItr(PairItr *itr);
 
         void resetCounters() {
             strat.resetCounters();

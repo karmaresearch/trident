@@ -56,7 +56,7 @@ bool _less_pos(const _Triple &p1, const _Triple &p2);
 void _copyCurrentFirst(int perm, long triple[3], long v);
 void _copyCurrentFirstSecond(int perm, long triple[3], long v1, long v2);
 
-void _test_createqueries(string inputfile, string queryfile);
+LIBEXP void _test_createqueries(string inputfile, string queryfile);
 
 
 class TridentTimings : public Timings {
@@ -67,11 +67,11 @@ private:
     string inputfile;
 
 public:
-    TridentTimings(string inputfile, string filequeries);
+    LIBEXP TridentTimings(string inputfile, string filequeries);
 
-    void init();
+    LIBEXP void init();
 
-    std::chrono::duration<double> launchQuery(const int perm,
+    LIBEXP std::chrono::duration<double> launchQuery(const int perm,
             const long s,
             const long p,
             const long o,
@@ -99,13 +99,13 @@ public:
         q = kb->query();
     }
 
-    void prepare(string inputfile, std::vector<string> updatesDir);
+    LIBEXP void prepare(string inputfile, std::vector<string> updatesDir);
 
-    void test_existing(std::vector<int> permutations);
+    LIBEXP void test_existing(std::vector<int> permutations);
 
-    void test_nonexist(std::vector<int> permutations);
+    LIBEXP void test_nonexist(std::vector<int> permutations);
 
-    void test_moveto(std::vector<int> permutations);
+    LIBEXP void test_moveto(std::vector<int> permutations);
 
     ~TestTrident() {
         delete q;

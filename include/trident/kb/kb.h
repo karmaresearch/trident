@@ -107,17 +107,17 @@ class KB {
         void loadDict(KBConfig *config);
 
     public:
-        KB(const char *path, bool readOnly, bool reasoning,
+        LIBEXP KB(const char *path, bool readOnly, bool reasoning,
                 bool dictEnabled, KBConfig &config) : KB(path, readOnly, reasoning,
                     dictEnabled, config, std::vector<string>()) {
                 }
 
-        KB(const char *path, bool readOnly, bool reasoning,
+        LIBEXP KB(const char *path, bool readOnly, bool reasoning,
                 bool dictEnabled, KBConfig &config, std::vector<string> locationUpdates);
 
-        Querier *query();
+        LIBEXP Querier *query();
 
-        Inserter *insert();
+        LIBEXP Inserter *insert();
 
         DictMgmt *getDictMgmt() {
             return dictManager;
@@ -127,9 +127,9 @@ class KB {
 
         void close();
 
-        Stats getStats();
+        LIBEXP Stats getStats();
 
-        Stats *getStatsDict();
+        LIBEXP Stats *getStatsDict();
 
         string getDictPath(int i);
 
@@ -189,7 +189,7 @@ class KB {
 
         void addDiffIndex(string inputdir, const char **globalbuffers, Querier *q);
 
-        ~KB();
+        LIBEXP ~KB();
 };
 
 #endif /* KBB_H_ */

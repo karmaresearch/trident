@@ -23,6 +23,8 @@
 #ifndef _TIMINGS_H
 #define _TIMINGS_H
 
+#include <trident/kb/consts.h>
+
 #include <string>
 #include <chrono>
 
@@ -50,7 +52,7 @@ public:
             long &c,
             long &junk) = 0;
 
-    void launchTests();
+    LIBEXP void launchTests();
 };
 
 #endif

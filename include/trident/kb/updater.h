@@ -112,7 +112,7 @@ private:
     static void writeDict(DictMgmt *dictmgmt, string updatedir, ByteArrayToNumberMap &dict);
 
 public:
-    void creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir, std::string updatedir);
+    LIBEXP void creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir, std::string updatedir);
 
     static std::string getPathForUpdate(std::string kbdir);
 };

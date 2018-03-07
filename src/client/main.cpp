@@ -207,7 +207,7 @@ void testkb(string kbDir, ProgramArgs &vm) {
             string fn = Utils::filename(f);
             if (!fn.empty() && std::find_if(fn.begin(),  fn.end(),
                         [](char c) {
-                        return !std::isdigit(c);
+                        return !isdigit(c);
                         }) == fn.end()) {
                 childrenupdates.push_back(f);
             }
@@ -458,11 +458,11 @@ int main(int argc, const char** argv) {
     } else if (cmd == "add") {
         string updatedir = vm["update"].as<string>();
         Updater up;
-        up.creatediffupdate(DiffIndex::TypeUpdate::ADDITION, kbDir, updatedir);
+        up.creatediffupdate(DiffIndex::TypeUpdate::ADDITION_df, kbDir, updatedir);
     } else if (cmd == "rm") {
         string updatedir = vm["update"].as<string>();
         Updater up;
-        up.creatediffupdate(DiffIndex::TypeUpdate::DELETE, kbDir, updatedir);
+        up.creatediffupdate(DiffIndex::TypeUpdate::DELETE_df, kbDir, updatedir);
     } else if (cmd == "analytics") {
 #ifdef ANALYTICS
         KBConfig config;

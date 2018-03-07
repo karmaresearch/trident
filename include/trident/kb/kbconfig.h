@@ -104,7 +104,7 @@ private:
     PropertyMap internalMap;
 
 public:
-    KBConfig();
+    LIBEXP KBConfig();
 
     void setParam(KBParam key, string value);
 

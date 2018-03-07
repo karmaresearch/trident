@@ -646,7 +646,7 @@ class Loader {
             printStats = true;
         }
 
-        void load(ParamsLoad p);
+        LIBEXP void load(ParamsLoad p);
 
         void testLoadingTree(string inputdir, Inserter *ins, int nindices);
 };
