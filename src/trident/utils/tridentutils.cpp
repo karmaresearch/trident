@@ -153,8 +153,8 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<int64_t> &values) 
         int64_t value;
         try {
             value = TridentUtils::lexical_cast<int64_t>(line);
-        } catch (int &v) {
-            LOG(ERRORL) << "Failed conversion of " << line;
+        } catch (int v) {
+            LOG(ERRORL) << "Failed conversion of " << line << v;
             throw 10;
         }
         values.push_back(value);
@@ -172,8 +172,8 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
             auto pos = line.find(sep);
             v1 = TridentUtils::lexical_cast<int64_t>(line.substr(0, pos));
             v2 = TridentUtils::lexical_cast<int64_t>(line.substr(pos+1, line.size()));
-        } catch (int &v) {
-            LOG(ERRORL) << "Failed conversion of " << line;
+        } catch (int v) {
+            LOG(ERRORL) << "Failed conversion of " << line << v;
             throw 10;
         }
         values.push_back(std::make_pair(v1, v2));

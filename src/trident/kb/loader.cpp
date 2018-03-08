@@ -41,9 +41,6 @@
 
 #include <zstr/zstr.hpp>
 
-//#include <tbb/parallel_sort.h>
-//#include <tbb/task_scheduler_init.h>
-
 #include <mutex>
 #include <condition_variable>
 #include <sstream>
@@ -217,7 +214,7 @@ int64_t Loader::parseSnapFile(string inputtriples,
     Compressor::parsePermutationSignature(signaturePerm, detailPerms);
     for(int i = 0; i < nperms; ++i) {
         int perm = detailPerms[i];
-        LZ4Writer writer(permDirs[i] + "/input-00");
+        LZ4Writer writer(permDirs[i] + DIR_SEP + "input-00");
         for (auto t : triples) {
             switch (perm) {
                 case IDX_SPO:
@@ -432,7 +429,7 @@ int64_t Loader::createPermsAndDictsFromFiles(string inputtriples,
                 inputfiles = Utils::getFilesWithPrefix(Utils::parentDir(inputdictr), Utils::filename(inputdictr));
                 std::sort(inputfiles.begin(), inputfiles.end());
                 for(int i = 0; i < inputfiles.size(); ++i) {
-                    inputfiles[i] = Utils::parentDir(inputdictr) + string("/") + inputfiles[i];
+                    inputfiles[i] = Utils::parentDir(inputdictr) + DIR_SEP + inputfiles[i];
                 }
             }
             _convertDictFile(inputfiles, outputDictFile);
@@ -450,7 +447,7 @@ int64_t Loader::createPermsAndDictsFromFiles(string inputtriples,
         zstr::ifstream compressedFile2(inputtriples);
         string line;
         LOG(DEBUGL) << "Start converting triple file";
-        LZ4Writer writer(permDirs[0] + "/input-0");
+        LZ4Writer writer(permDirs[0] + DIR_SEP + "input-0");
         while(std::getline(compressedFile2, line)) {
             int64_t s,p,o;
             int pos = line.find(' ');
@@ -484,7 +481,7 @@ int64_t Loader::createPermsAndDictsFromFiles(string inputtriples,
             std::vector<string> files;
             int threadsPerPart = nthreads / nreadThreads;
             for(int m = 0; m < threadsPerPart; ++m) {
-                files.push_back(permDirs[0] + "/input-" + to_string(j++));
+                files.push_back(permDirs[0] + DIR_SEP + "input-" + to_string(j++));
             }
             writers[i] = new MultiDiskLZ4Writer(
                     files,
@@ -917,13 +914,13 @@ void Loader::sortPermutation(string inputDir,
 
             //Sort and dump the results to disk
             int64_t maxValue = maxInserts * parallelProcesses;
-            string outputFile = inputDir + string("/sorted-") + to_string(iter++);
+            string outputFile = inputDir + DIR_SEP + string("sorted-") + to_string(iter++);
             dumpPermutation(triples,
                     parallelProcesses,
                     maxReadingThreads,
                     maxValue, outputFile, IDX_SPO);
             for (auto perm : additionalPermutations) {
-                outputFile = perm.first + string("/sorted-") + to_string(iter++);
+                outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
                 dumpPermutation(triples,
                         parallelProcesses,
                         maxReadingThreads,
@@ -1506,12 +1503,12 @@ void Loader::load(ParamsLoad p) {
     int64_t totalCount = 0;
     string *permDirs = new string[nperms];
     for (int i = 0; i < nperms; ++i) {
-        permDirs[i] = p.tmpDir + string("/permtmp-") + to_string(i);
+        permDirs[i] = p.tmpDir + DIR_SEP + string("permtmp-") + to_string(i);
         Utils::create_directories(permDirs[i]);
     }
     string *fileNameDictionaries = new string[p.dictionaries];
     for (int i = 0; i < p.dictionaries; ++i) {
-        fileNameDictionaries[i] = p.tmpDir + string("/dict-") + to_string(i);
+        fileNameDictionaries[i] = p.tmpDir + DIR_SEP + string("dict-") + to_string(i);
     }
 
     if (p.inputformat == "snap") { /*** LOAD SNAP FILES ***/
@@ -1548,8 +1545,8 @@ void Loader::load(ParamsLoad p) {
             LOG(INFOL) << "Compression is finished. Starting the loading ...";
             if (p.onlyCompress) {
                 //Convert the triple files and the dictionary files in gzipped files
-                string outputTriples = p.kbDir + string("/triples.gz");
-                string outputDict = p.kbDir + string("/dict.gz");
+                string outputTriples = p.kbDir + DIR_SEP + string("triples.gz");
+                string outputDict = p.kbDir + DIR_SEP + string("dict.gz");
                 exportFiles(permDirs[0], fileNameDictionaries,
                         p.dictionaries, outputTriples, outputDict);
                 for (int i = 0; i < nperms; ++i)
@@ -1709,7 +1706,7 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
         for(auto file : files) {
             LOG(DEBUGL) << "Transforming file " << file;
             LZ4Reader reader(file);
-            string fileout = output + string("/") + Utils::filename(file);
+            string fileout = output + DIR_SEP + Utils::filename(file);
             LZ4Writer writer(fileout);
             while (!reader.isEof()) {
                 L_Triple t;
@@ -1744,7 +1741,7 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
         //If the relations should have their own IDs, I rewrite the compressed
         //graph storing an additional map with the IDs of the relations
         if (relsOwnIDs) {
-            if (!Utils::exists(kbDir + "/dict-0_r")) {
+            if (!Utils::exists(kbDir + DIR_SEP + "dict-0_r")) {
                 if (!storeDicts) {
                     LOG(ERRORL) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
                     throw 10;
@@ -1753,15 +1750,15 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                 //The input is on the form SPO
                 rewriteKG(permDirs[0], ent2rel);
                 //Store the map in a file
-                LZ4Writer writer(kbDir + "/e2r");
+                LZ4Writer writer(kbDir + DIR_SEP + "e2r");
                 for (auto pair : ent2rel) {
                     writer.writeLong(pair.first);
                     writer.writeLong(pair.second);
                 }
             } else {
                 //The graph is already translated. Just load the mappings
-                LZ4Writer writer(kbDir + "/e2s");
-                string fin = kbDir + "/dict-0_r";
+                LZ4Writer writer(kbDir + DIR_SEP + "e2s");
+                string fin = kbDir + DIR_SEP + "dict-0_r";
                 {
                     LZ4Reader in(fin);
                     LOG(DEBUGL) << "Parsing " << fin;
@@ -1791,11 +1788,11 @@ void Loader::loadKB_createSamples(string kbDir,
         int signaturePerms) {
 
     LOG(DEBUGL) << "Creating a sample dataset";
-    string sampleKB = kbDir + string("/_sample");
+    string sampleKB = kbDir + DIR_SEP + string("_sample");
 
     string *samplePermDirs = new string[nperms];
     for (int i = 0; i < nperms; ++i) {
-        samplePermDirs[i] = sampleKB + string("/permtmp-") + to_string(i);
+        samplePermDirs[i] = sampleKB + DIR_SEP + string("permtmp-") + to_string(i);
         Utils::create_directories(samplePermDirs[i]);
     }
 
@@ -1922,13 +1919,13 @@ void Loader::loadKB(KB &kb,
     string *sTreeWriters = new string[nindices];
     TreeWriter **treeWriters = new TreeWriter*[nindices];
     for (int i = 0; i < nindices; ++i) {
-        sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
+        sTreeWriters[i] = tmpDir + DIR_SEP + string("tmpTree" ) + to_string(i);
         treeWriters[i] = new TreeWriter(sTreeWriters[i]);
     }
 
     //Use aggregated indices
-    string aggr1Dir = tmpDir + string("/aggr1");
-    string aggr2Dir = tmpDir + string("/aggr2");
+    string aggr1Dir = tmpDir + DIR_SEP + string("aggr1");
+    string aggr2Dir = tmpDir + DIR_SEP + string("aggr2");
     if (aggrIndices && nindices > 1) {
         Utils::create_directories(aggr1Dir);
         if (nindices > 3)
@@ -1936,7 +1933,7 @@ void Loader::loadKB(KB &kb,
     }
 
     //if sample is requested, create a subdir
-    string sampleDir = tmpDir + string("/sampledir");
+    string sampleDir = tmpDir + DIR_SEP + string("sampledir");
     SimpleTripleWriter *sampleWriter = NULL;
     if (sample) {
         Utils::create_directories(sampleDir);
@@ -1954,7 +1951,7 @@ void Loader::loadKB(KB &kb,
 
     string outputDirs[6];
     for (int i = 0; i < 6; ++i) {
-        outputDirs[i] = kbDir + "/p" + to_string(i);
+        outputDirs[i] = kbDir + DIR_SEP + "p" + to_string(i);
     }
 
     loadKB_handleGraphTransformations(kb, graphTransformation, permDirs,
@@ -1984,15 +1981,15 @@ void Loader::loadKB(KB &kb,
     if (flatTree || graphTransformation != "") {
         LOG(DEBUGL) << "Load flat representation ...";
         kb.close();
-        string flatfile = kbDir + "/tree/flat";
+        string flatfile = kbDir + DIR_SEP + "tree" + DIR_SEP + "flat";
         //Create a tree itr to go through the tree
         std::unique_ptr<Root> root(kb.getRootTree());
-        FlatRoot::loadFlatTree(kbDir + "/p" + to_string(IDX_SOP),
-                kbDir + "/p" +  to_string(IDX_OSP),
-                kbDir + "/p" +  to_string(IDX_SPO),
-                kbDir + "/p" +  to_string(IDX_OPS),
-                kbDir + "/p" +  to_string(IDX_POS),
-                kbDir + "/p" +  to_string(IDX_PSO),
+        FlatRoot::loadFlatTree(kbDir + DIR_SEP + "p" + to_string(IDX_SOP),
+                kbDir + DIR_SEP + "p" +  to_string(IDX_OSP),
+                kbDir + DIR_SEP + "p" +  to_string(IDX_SPO),
+                kbDir + DIR_SEP + "p" +  to_string(IDX_OPS),
+                kbDir + DIR_SEP + "p" +  to_string(IDX_POS),
+                kbDir + DIR_SEP + "p" +  to_string(IDX_PSO),
                 flatfile, root.get(),
                 graphTransformation != "",
                 graphTransformation == "undirected");
@@ -2064,7 +2061,7 @@ void Loader::generateNewPermutation(string outputdir,
         for (int i = 0; i < maxReadingThreads; ++i) {
             std::vector<string> outputchunk;
             for(int j = 0; j < partsPerFiles; ++j) {
-                outputchunk.push_back(outputdir + "/input-" + to_string(idx++));
+                outputchunk.push_back(outputdir + DIR_SEP + "input-" + to_string(idx++));
             }
             writers[i] = new MultiDiskLZ4Writer(outputchunk, 3, 4);
         }
@@ -2671,7 +2668,7 @@ void Loader::createPermutations(string inputDir, int nperms, int signaturePerms,
         for (int j = 0; j < maxReadingThreads; ++j) {
             std::vector<string> inputfiles;
             for(int m = 0; m < partsPerFile; ++m) {
-                string outputfile = outputPermFiles[i] + "/input" + to_string(idx++);
+                string outputfile = outputPermFiles[i] + DIR_SEP + "input" + to_string(idx++);
                 inputfiles.push_back(outputfile);
             }
             permWriters[i][j] = new MultiDiskLZ4Writer(inputfiles, 3, 4);
@@ -2843,7 +2840,7 @@ void Loader::testLoadingTree(string tmpDir, Inserter *ins, int nindices) {
     string *sTreeWriters = new string[nindices];
     std::thread *threads = new std::thread[1];
     for (int i = 0; i < nindices; ++i) {
-        sTreeWriters[i] = tmpDir + string("/tmpTree" ) + to_string(i);
+        sTreeWriters[i] = tmpDir + DIR_SEP + string("tmpTree" ) + to_string(i);
     }
 
     SharedStructs structs;
