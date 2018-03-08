@@ -100,7 +100,8 @@ class ParallelTasks {
                     auto fn = std::async(ParallelTasks::sort_int<It, Cmp>, begin, mid, std::ref(cmp), nthreads / 2);
                     sort_int<It,Cmp>(mid, end, cmp, nthreads / 2);
                     fn.wait();
-                    ParallelTasks::merge(begin, mid, end, cmp);
+                    // ParallelTasks::merge(begin, mid, end, cmp);
+		    std::inplace_merge(begin, mid, end, cmp);
                 }
             }
 
@@ -143,7 +144,7 @@ class ParallelTasks {
                     }
                 }
                 assert(nthreads >= 1);
-                const size_t delta = std::max(grainsize, (size_t) (end - begin) / nthreads);
+                const size_t delta = std::max(grainsize, (size_t) (end - begin + nthreads - 1) / nthreads);
                 std::vector<std::thread> threads;
                 size_t currentbegin = 0;
                 size_t currentend = 0;
