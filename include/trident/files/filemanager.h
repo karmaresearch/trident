@@ -28,7 +28,7 @@
 #include <trident/kb/statistics.h>
 
 #include <kognac/logs.h>
-#include <kognac/logs.h>
+#include <kognac/consts.h>
 
 #include <list>
 #include <string>
@@ -116,7 +116,7 @@ class FileManager {
                         }
                     }
                     std::stringstream filePath;
-                    filePath << cacheDir << "/" << id;
+                    filePath << cacheDir << DIR_SEP << id;
                     T* f = new T(readOnly, id, filePath.str(), fileMaxSize,
                             bytesTracker, openedFiles, stats);
                     openedFiles[id] = f;

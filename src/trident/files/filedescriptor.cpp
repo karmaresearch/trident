@@ -78,10 +78,6 @@ FileDescriptor::FileDescriptor(bool readOnly, int id, std::string file,
         oFile.put(0);
         newFile = true;
     }
-    //mapping = new bip::file_mapping(file.c_str(),
-    //                                readOnly ? bip::read_only : bip::read_write);
-    //mapped_rgn = NULL;
-    
     size = 0;
     mapFile(0);
 
