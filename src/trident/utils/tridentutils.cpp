@@ -29,6 +29,8 @@
 #include <iostream>
 #include <fstream>
 #include <sys/statvfs.h>
+#include <thread>
+#include <condition_variable>
 
 
 using namespace std;
