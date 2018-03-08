@@ -28,6 +28,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <thread>
+#include <condition_variable>
 
 class TridentUtils {
     public:
