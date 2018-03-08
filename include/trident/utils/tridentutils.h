@@ -52,6 +52,9 @@ class TridentUtils {
 
         static uint64_t spaceLeft(std::string location);
 
+        static void monitorPerformance(int seconds,
+                std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
+
         template<typename K>
             static K lexical_cast(std::string v) {
                 K var;

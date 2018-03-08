@@ -635,9 +635,6 @@ class Loader {
                 int pos1,
                 int pos2);
 
-        static void monitorPerformance(/*SinkPtr logger, */int seconds,
-                std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
-
         static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);
 
     public:
