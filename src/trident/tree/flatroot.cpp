@@ -318,7 +318,7 @@ void FlatRoot::writeOtherPerm(string otherperm, string output,
             LOG(DEBUGL) << "Too many idx files in " << otherperm << ". Cannot create a flat tree";
             throw 10;
         }
-        string fidx = otherperm + "/" + to_string(i) + ".idx";
+        string fidx = otherperm + DIR_SEP + to_string(i) + ".idx";
         if (Utils::exists(fidx)) {
             //Open it, and read the coordinates
             char tmpbuffer[16];
@@ -348,7 +348,7 @@ void FlatRoot::writeOtherPerm(string otherperm, string output,
                     if (StorageStrat::getStorageType(strat) == NEWCOLUMN_ITR) {
                         //Open the file
                         if (!rawfileOpened) {
-                            rawfile.open(otherperm + "/" + to_string(i));
+                            rawfile.open(otherperm + DIR_SEP + to_string(i));
                             rawfileOpened = true;
                         }
                         rawfile.seekg(pos);

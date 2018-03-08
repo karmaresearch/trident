@@ -635,14 +635,14 @@ void PermSorter::sortChunks(string inputdir,
         int64_t maxValue = maxInserts * parallelProcesses;
         int j = 1;
         for(auto perm : additionalPermutations) {
-            string outputFile = perm.first + string("/sorted-") + to_string(iter++);
+            string outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
             PermSorter::dumpPermutation(rawTriples[j++].get(),
                     maxValue,
                     parallelProcesses,
                     maxReadingThreads,
                     outputFile);
         }
-        string outputFile = inputdir + string("/sorted-") + to_string(iter++);
+        string outputFile = inputdir + DIR_SEP + string("sorted-") + to_string(iter++);
         PermSorter::dumpPermutation(rawTriples[0].get(),
                 maxValue,
                 parallelProcesses,

@@ -53,7 +53,7 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
                 bytesTracker, NULL);
 
         //Init storedNodes and firstElementPerFile
-        string file = path + string("/idx");
+        string file = path + DIR_SEP + string("idx");
 
         if (!readOnly) {
             readOnlyStoredNodes = NULL;
@@ -215,7 +215,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
 void NodeManager::compressSpace(string path) {
     //1-- Load all the nodes and sort them by file
     vector<vector<CachedNode> > nodes;
-    string sFileIdx = path + string("/idx");
+    string sFileIdx = path + DIR_SEP + string("idx");
     int totalNumberNodes = 0;
     if (Utils::exists(path) && Utils::fileSize(sFileIdx) > 0) {
         MemoryMappedFile mf(sFileIdx);
@@ -263,9 +263,9 @@ void NodeManager::compressSpace(string path) {
     for (int i = 0; i < nodes.size(); ++i) {
         vector<CachedNode> *fileNodes = &nodes[i];
         //Open the old file and create a new file
-        string pOldFile = path + string("/") + to_string(i);
+        string pOldFile = path + DIR_SEP + to_string(i);
         ifstream sOldfile(pOldFile);
-        string pNewFile = path + string("/") + to_string(i) + ".new";
+        string pNewFile = path + DIR_SEP + to_string(i) + ".new";
         ofstream sNewFile(pNewFile);
 
         //Go through all the nodes and copy the contents from the old node to the new one
@@ -315,7 +315,7 @@ NodeManager::~NodeManager() {
     delete bytesTracker;
 
     if (!readOnly) {
-        string file = path + string("/idx");
+        string file = path + DIR_SEP + string("idx");
         ofstream out(file);
         char supportBuffer[512];
 

@@ -54,10 +54,10 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
         gud_idtext.set_empty_key(UINT64_MAX);
         gud_idtext.set_deleted_key(UINT64_MAX - 1);
         //load gud
-        if (Utils::exists(dirToStoreGUD + "/gud")) {
+        if (Utils::exists(dirToStoreGUD + DIR_SEP + "gud")) {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             ifstream ifs;
-            ifs.open(dirToStoreGUD + "/gud");
+            ifs.open(dirToStoreGUD + DIR_SEP + "gud");
             ifs >> gud_largestID;
             while (!ifs.eof()) {
                 uint64_t id;
@@ -283,7 +283,7 @@ DictMgmt::~DictMgmt() {
         //Write down the new version
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         ofstream os;
-        os.open(gudLocation + "/gud", ios_base::trunc);
+        os.open(gudLocation + DIR_SEP + "gud", ios_base::trunc);
         os << gud_largestID << endl;
         for (auto it = gud_idtext.begin(); it != gud_idtext.end(); ++it) {
             os << it->first << '\t' << it->second << endl;

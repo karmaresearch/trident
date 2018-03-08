@@ -59,7 +59,7 @@ TableStorage::TableStorage(bool readOnly, string pathDir, int64_t maxFileSize,
     readOnly(readOnly), marks(), marksLoaded(), stats(stats), perm(perm) {
         strcpy(this->pathDir, pathDir.c_str());
         this->sizePathDir = strlen(this->pathDir);
-        this->pathDir[sizePathDir++] = '/';
+        this->pathDir[sizePathDir++] = CDIR_SEP;
 
         //Determine the highest number of a file
         lastCreatedFile = 0;

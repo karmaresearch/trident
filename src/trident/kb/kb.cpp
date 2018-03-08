@@ -55,7 +55,7 @@ KB::KB(const char *path,
     path(path), readOnly(readOnly), isClosed(false), ntables(), nFirstTables(),
     dictEnabled(dictEnabled), config(config) {
 
-        if (readOnly && !Utils::exists(string(path) + "/tree")) {
+        if (readOnly && !Utils::exists(string(path) + DIR_SEP + "tree")) {
             LOG(ERRORL) << "The input path does not seem to be a valid KB";
             throw 10;
         }
@@ -63,7 +63,7 @@ KB::KB(const char *path,
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
         //Get statistics and configuration
-        string fileConf = path + string("/kbstats");
+        string fileConf = path + DIR_SEP + string("kbstats");
         if (Utils::exists(fileConf)) {
             std::ifstream fis;
             fis.open(fileConf);
@@ -129,7 +129,7 @@ KB::KB(const char *path,
         }
 
         //Initialize the tree
-        string fileTree = path + string("/tree/");
+        string fileTree = path + DIR_SEP + string("tree") + DIR_SEP;
         string flatTree = fileTree + string("flat");
         if (readOnly && Utils::exists(flatTree)) {
             tree = new FlatRoot(flatTree, graphType != GraphType::DEFAULT, graphType == GraphType::UNDIRECTED);
@@ -174,8 +174,8 @@ KB::KB(const char *path,
             LOG(DEBUGL) << "Time init dictionaries KB = " <<
                 sec.count() * 1000 << " ms and " <<
                 Utils::get_max_mem() << " MB occupied";
-            dictManager = new DictMgmt(*maindict.get(), string(path) + "/_diff",
-                    dictHash, string(path) + "/e2r", string(path) + "/e2s");
+            dictManager = new DictMgmt(*maindict.get(), string(path) + DIR_SEP + "_diff",
+                    dictHash, string(path) + DIR_SEP + "e2r", string(path) + DIR_SEP + "e2s");
         }
 
         //Initialize the memory tracker for the storage partitions
@@ -201,7 +201,7 @@ KB::KB(const char *path,
         //Initialize the storage partitions
         for (int i = 0; i < nindices; ++i) {
             stringstream is;
-            is << path << "/p" << i;
+            is << path << DIR_SEP << "p" << i;
             if (readOnly) {
                 //Check if there are actually files in the directory
                 if  (!Utils::isEmpty(is.str())) {
@@ -221,7 +221,7 @@ KB::KB(const char *path,
         }
 
         //Is there some sample data available?
-        string sampleDir = path + string("/_sample");
+        string sampleDir = path + DIR_SEP + string("_sample");
         if (Utils::exists(sampleDir)) {
             KBConfig sampleConfig;
             sampleKB = new KB(sampleDir.c_str(), true, false, false, sampleConfig);
@@ -231,7 +231,7 @@ KB::KB(const char *path,
             sampleRate = 0;
         }
 
-        string defaultDiffDir = path + string("/_diff");
+        string defaultDiffDir = path + DIR_SEP + string("_diff");
         if (Utils::exists(defaultDiffDir)) {
             std::vector<string> files = Utils::getSubdirs(defaultDiffDir);
             std::vector<string> childrenupdates;
@@ -252,34 +252,34 @@ KB::KB(const char *path,
                 //Instantiate the buffers
                 for (int i = 0; i < 6; ++i)
                     globalbuffers[0] = NULL;
-                if (Utils::exists(defaultDiffDir + "/s/p0")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p0")) {
                     spo_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/s/p0"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p0"));
                     globalbuffers[IDX_SPO] = spo_f->getBuffer();
                 }
-                if (Utils::exists(defaultDiffDir + "/s/p1")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p1")) {
                     sop_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/s/p1"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p1"));
                     globalbuffers[IDX_SOP] = sop_f->getBuffer();
                 }
-                if (Utils::exists(defaultDiffDir + "/p/p0")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "p" + DIR_SEP + "p0")) {
                     pos_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/p/p0"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "p" + DIR_SEP + "p0"));
                     globalbuffers[IDX_POS] = pos_f->getBuffer();
                 }
-                if (Utils::exists(defaultDiffDir + "/p/p1")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "p" + DIR_SEP + "p1")) {
                     pso_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/p/p1"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "p" + DIR_SEP + "p1"));
                     globalbuffers[IDX_PSO] = pso_f->getBuffer();
                 }
-                if (Utils::exists(defaultDiffDir + "/o/p0")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "o" + DIR_SEP + "p0")) {
                     ops_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/o/p0"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "o" + DIR_SEP + "p0"));
                     globalbuffers[IDX_OPS] = ops_f->getBuffer();
                 }
-                if (Utils::exists(defaultDiffDir + "/o/p1")) {
+                if (Utils::exists(defaultDiffDir + DIR_SEP + "o" + DIR_SEP + "p1")) {
                     osp_f = std::unique_ptr<ROMappedFile>(
-                            new ROMappedFile(defaultDiffDir + "/o/p1"));
+                            new ROMappedFile(defaultDiffDir + DIR_SEP + "o" + DIR_SEP + "p1"));
                     globalbuffers[IDX_OSP] = osp_f->getBuffer();
                 }
 
@@ -310,7 +310,7 @@ KB::KB(const char *path,
     }
 
 Root *KB::getRootTree() {
-    string fileTree = path + string("/tree/");
+    string fileTree = path + DIR_SEP + string("tree") + DIR_SEP;
     PropertyMap map;
     map.setBool(TEXT_KEYS, false);
     map.setBool(TEXT_VALUES, false);
@@ -362,7 +362,7 @@ void KB::loadDict(KBConfig *config) {
             config->getParamInt(DICT_NODE_KEYS_PREALL_FACTORY_SIZE));
 
     stringstream ss1;
-    ss1 << path << "/dict/" << 0;
+    ss1 << path << DIR_SEP << "dict" << DIR_SEP << 0;
     maindict->sb = std::shared_ptr<StringBuffer>(new StringBuffer(ss1.str(), readOnly,
                 config->getParamInt(SB_PREALLBUFFERS),
                 config->getParamLong(SB_CACHESIZE),
@@ -389,7 +389,7 @@ void KB::loadDict(KBConfig *config) {
             config->getParamInt(INVDICT_NODE_KEYS_PREALL_FACTORY_SIZE));
 
     stringstream ss2;
-    ss2 << path << "/invdict/" << 0;
+    ss2 << path << DIR_SEP << "invdict" << DIR_SEP << 0;
     maindict->invdict = std::shared_ptr<Root>(new Root(ss2.str(), NULL, readOnly, map));
 }
 
@@ -421,7 +421,7 @@ void KB::closeMainDict() {
 
 string KB::getDictPath(int i) {
     stringstream ss1;
-    ss1 << path << "/dict/" << i;
+    ss1 << path << DIR_SEP << "dict" << DIR_SEP << i;
     return ss1.str();
 }
 
@@ -506,7 +506,7 @@ KB::~KB() {
     if (!readOnly) {
         //Write a file with some statistics
         std::ofstream fos;
-        fos.open(this->path + string("/kbstats"));
+        fos.open(this->path + DIR_SEP + string("kbstats"));
         char data[8];
         //Write the number of dictionaries
         Utils::encode_long(data, 0, dictPartitions);
@@ -563,13 +563,13 @@ KB::~KB() {
 
 void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
     DiffIndex::TypeUpdate type;
-    if (Utils::exists(inputdir + "/ADD")) {
+    if (Utils::exists(inputdir + DIR_SEP + "ADD")) {
         type = DiffIndex::TypeUpdate::ADDITION_df;
     } else {
         type = DiffIndex::TypeUpdate::DELETE_df;
     }
 
-    if (Utils::exists(inputdir + "/type1")) {
+    if (Utils::exists(inputdir + DIR_SEP + "type1")) {
         diffIndices.push_back(std::unique_ptr<DiffIndex>(
                     new DiffIndex1(inputdir, type)));
     } else {
@@ -578,20 +578,20 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
                         config, type)));
     }
 
-    if (Utils::exists(inputdir + "/dict")) {
+    if (Utils::exists(inputdir + DIR_SEP + "dict")) {
         //Load the dictionary
         DictMgmt::Dict ud;
-        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + "/dict", true, 1, 1, ud.stats.get()));
+        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + DIR_SEP + "dict", true, 1, 1, ud.stats.get()));
         PropertyMap p;
         p.setBool(TEXT_KEYS, true);
         p.setBool(TEXT_VALUES, false);
-        ud.dict = std::shared_ptr<Root>(new Root(inputdir + "/dict/t2id", ud.sb.get(), true, p));
+        ud.dict = std::shared_ptr<Root>(new Root(inputdir + DIR_SEP + "dict" + DIR_SEP + "t2id", ud.sb.get(), true, p));
         p.setBool(TEXT_KEYS, false);
         p.setBool(TEXT_VALUES, true);
-        ud.invdict = std::shared_ptr<Root>(new Root(inputdir + "/dict/id2t", ud.sb.get(), true, p));
+        ud.invdict = std::shared_ptr<Root>(new Root(inputdir + DIR_SEP + "dict" + DIR_SEP + "id2t", ud.sb.get(), true, p));
 
         std::ifstream fis;
-        fis.open(inputdir + "/dict/stats");
+        fis.open(inputdir + DIR_SEP + "dict" + DIR_SEP + "stats");
         char data[8];
         fis.read(data, 8);
         ud.size = Utils::decode_long(data);
