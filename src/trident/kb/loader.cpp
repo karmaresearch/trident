@@ -1390,27 +1390,6 @@ void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictM
     }
 }
 
-void Loader::monitorPerformance(/*SinkPtr logger,*/ int seconds, std::condition_variable *cv, std::mutex *mtx,  bool *isFinished) {
-    //Monitor CPU usage, memory usage and disk I/O
-
-    while (true) {
-        std::unique_lock<std::mutex> lck(*mtx);
-        cv->wait_for(lck,std::chrono::seconds(seconds));
-        if (*isFinished)
-            break;
-        lck.unlock();
-
-        long mem = TridentUtils::getVmRSS();
-        double cpu = TridentUtils::getCPUUsage();
-        long diskread = TridentUtils::diskread();
-        long diskwrite = TridentUtils::diskwrite();
-        long phy_diskread = TridentUtils::phy_diskread();
-        long phy_diskwrite = TridentUtils::phy_diskwrite();
-        LOG(DEBUGL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes=" << diskwrite << "\tphydiskread_bytes=" << phy_diskread << "\tphydiskwrite_bytes=" << phy_diskwrite;
-        //logger->flush();
-    }
-}
-
 void Loader::load(ParamsLoad p) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG(DEBUGL) << "Start loading ...";
@@ -1420,10 +1399,10 @@ void Loader::load(ParamsLoad p) {
     std::mutex mtx;
     std::condition_variable cv;
     bool isFinished = false;
-    if (/*p.logPtr != NULL &&*/ p.timeoutStats != -1) {
+    if (p.timeoutStats != -1) {
         //Activate it only for Linux systems
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-        monitor = std::thread(std::bind(Loader::monitorPerformance, /*p.logPtr,*/ p.timeoutStats, &cv, &mtx, &isFinished));
+        monitor = std::thread(std::bind(TridentUtils::monitorPerformance, p.timeoutStats, &cv, &mtx, &isFinished));
 #endif
     }
 

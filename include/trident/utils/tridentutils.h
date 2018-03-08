@@ -28,6 +28,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <thread>
+#include <condition_variable>
 
 class TridentUtils {
     public:
@@ -51,6 +53,9 @@ class TridentUtils {
                 std::vector<std::pair<long,long>> &values, char sep);
 
         static uint64_t spaceLeft(std::string location);
+
+        static void monitorPerformance(int seconds,
+                std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
 
         template<typename K>
             static K lexical_cast(std::string v) {

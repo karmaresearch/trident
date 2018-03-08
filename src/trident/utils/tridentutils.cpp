@@ -29,6 +29,8 @@
 #include <iostream>
 #include <fstream>
 #include <sys/statvfs.h>
+#include <thread>
+#include <condition_variable>
 
 
 using namespace std;
@@ -183,3 +185,28 @@ uint64_t TridentUtils::spaceLeft(std::string location) {
     return stat.f_bsize * stat.f_bfree;
     //TODO: does it work on the mac?
 }
+
+void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
+        std::mutex *mtx,  bool *isFinished) {
+    //Monitor CPU usage, memory usage and disk I/O
+    while (true) {
+        std::unique_lock<std::mutex> lck(*mtx);
+        cv->wait_for(lck,std::chrono::seconds(seconds));
+        if (*isFinished)
+            break;
+        lck.unlock();
+
+        long mem = TridentUtils::getVmRSS();
+        double cpu = TridentUtils::getCPUUsage();
+        long diskread = TridentUtils::diskread();
+        long diskwrite = TridentUtils::diskwrite();
+        long phy_diskread = TridentUtils::phy_diskread();
+        long phy_diskwrite = TridentUtils::phy_diskwrite();
+        LOG(DEBUGL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu
+            << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes="
+            << diskwrite << "\tphydiskread_bytes=" << phy_diskread
+            << "\tphydiskwrite_bytes=" << phy_diskwrite;
+    }
+}
+
+
