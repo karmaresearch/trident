@@ -26,10 +26,12 @@
 #include <inttypes.h>
 
 #if defined(_WIN32)
+#define DDLIMPORT __declspec(dllimport)
+#define DDLEXPORT __declspec(dllexport)
 #if TRIDENT_SHARED_LIB
-#define LIBEXP __declspec(dllimport)
+#define LIBEXP DDLEXPORT
 #else
-#define LIBEXP __declspec(dllexport)
+#define LIBEXP DDLIMPORT
 #endif
 
 #else

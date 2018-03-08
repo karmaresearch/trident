@@ -148,11 +148,11 @@ class Querier {
             return &strat;
         }
 
-        LIBEXP PairItr *get(const int idx, const long s, const long p, const long o) {
+        DDLEXPORT PairItr *get(const int idx, const long s, const long p, const long o) {
             return get(idx, s, p, o, true);
         }
 
-        LIBEXP PairItr *get(const int idx, const long s, const long p,
+        DDLEXPORT PairItr *get(const int idx, const long s, const long p,
                 const long o, const bool cons);
 
         PairItr *get(const int idx, TermCoordinates &value,

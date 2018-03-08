@@ -40,7 +40,9 @@
 
 using namespace std;
 
-LIBEXP bool _sort_by_number(const string &s1, const string &s2) {
+LIBEXP bool _sort_by_number(const string &s1, const string &s2);
+
+bool _sort_by_number(const string &s1, const string &s2) {
     return atoi(Utils::filename(s1).c_str()) < atoi(Utils::filename(s2).c_str());
 }
 

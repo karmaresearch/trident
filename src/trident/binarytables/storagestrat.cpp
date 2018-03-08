@@ -83,9 +83,9 @@ unsigned StorageStrat::getStrat7() {
 }
 
 
-const unsigned StorageStrat::FIXEDSTRAT5 = getStrat5();
-const unsigned StorageStrat::FIXEDSTRAT6 = getStrat6();
-const unsigned StorageStrat::FIXEDSTRAT7 = getStrat7();
+const unsigned FIXEDSTRAT5 = StorageStrat::getStrat5();
+const unsigned FIXEDSTRAT6 = StorageStrat::getStrat6();
+const unsigned FIXEDSTRAT7 = StorageStrat::getStrat7();
 
 PairItr *StorageStrat::getBinaryTable(const char signature) {
     int storageType = getStorageType(signature);

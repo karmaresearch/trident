@@ -50,6 +50,10 @@
 
 #define RATE_LIST 1.05
 
+LIBEXP extern const unsigned FIXEDSTRAT5;
+LIBEXP extern const unsigned FIXEDSTRAT6;
+LIBEXP extern const unsigned FIXEDSTRAT7;
+
 struct Statistics {
     long nListStrategies;
     long nList2Strategies;
@@ -93,10 +97,13 @@ protected:
     static unsigned getStrat2();
     static unsigned getStrat3();
     static unsigned getStrat4();
+
+public:
     static unsigned getStrat5();
     static unsigned getStrat6();
     static unsigned getStrat7();
 
+protected:
     static void createAllCombinations(std::vector<Combinations> &output,
                                       long *groupCounters1Compr2,
                                       long *listCounters1Compr2,
@@ -154,10 +161,6 @@ private:
     Factory<NewClusterTableInserter> *f6i;
 
 public:
-    LIBEXP static const unsigned FIXEDSTRAT5;
-    LIBEXP static const unsigned FIXEDSTRAT6;
-    LIBEXP static const unsigned FIXEDSTRAT7;
-
     bool static isAggregated(const char signature) {
         unsigned type = getStorageType(signature);
         return (signature & 1) && type != NEWCLUSTER_ITR;
