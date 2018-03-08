@@ -33,9 +33,9 @@ class CompositeScanItr : public PairItr {
 private:
     bool hn, hnc;
     Querier *q;
-    long v1, v2;
+    int64_t v1, v2;
     bool ignseccol;
-    long count;
+    int64_t count;
     int perm;
 
     std::vector<PairItr *> children;
@@ -68,11 +68,11 @@ public:
         return COMPOSITESCAN_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
@@ -84,15 +84,15 @@ public:
         throw 10;
     }
 
-    long getCount();
+    int64_t getCount();
 
     void ignoreSecondColumn();
 
     void clear();
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 
-    void gotoKey(long keyToSearch);
+    void gotoKey(int64_t keyToSearch);
 
     bool hasNext();
 

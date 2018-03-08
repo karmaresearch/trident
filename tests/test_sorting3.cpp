@@ -12,7 +12,7 @@
 using namespace std;
 
 /*struct __sorter {
-  bool operator()(long a, long b) const {
+  bool operator()(int64_t a, int64_t b) const {
   return a < b;
   }
   };*/
@@ -34,8 +34,8 @@ void sortPermutation(char *start, char *end, int nthreads) {
 
 int main(int argc, const char** argv) {
     int nthreads = 2;
-    long chunk = 4000*1000*100l;
-    long size = chunk * nthreads;
+    int64_t chunk = 4000*1000*100l;
+    int64_t size = chunk * nthreads;
 
     //Create a large vector of random elements
     /*std::cout << "Loading the vector ..." << std::endl;
@@ -46,14 +46,14 @@ int main(int argc, const char** argv) {
       }
       std::random_device rd;
       std::mt19937 gen(rd());
-      std::uniform_int_distribution<long> dis(0, 1000000000l);
+      std::uniform_int_distribution<int64_t> dis(0, 1000000000l);
       for(uint64_t i = 0; i < size; ++i) {
       if (i % 100000000 == 0) {
       std::cout << "Generated " << i << std::endl;
       }
-      long number = dis(gen);
+      int64_t number = dis(gen);
       for(int i = 0; i < vectors.size(); ++i) {
-     *(long*)(vectors[i].data() + i * 15) = number;
+     *(int64_t*)(vectors[i].data() + i * 15) = number;
      }
      }
 
@@ -73,7 +73,7 @@ int main(int argc, const char** argv) {
     threads[i].join();
     }
 
-    long prev = -1;
+    int64_t prev = -1;
     for(uint64_t i = 0; i < size; ++i) {
     if (vector[i] < prev) {
     std::cerr << "Error";
@@ -83,25 +83,25 @@ int main(int argc, const char** argv) {
 
     return 0;*/
 
-    std::vector<long> vector;
+    std::vector<int64_t> vector;
     vector.resize(size);
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<long> dis(0, 4000*1000*1000l);
-    for(long i = 0; i < vector.size(); ++i) {
-        long number = dis(gen);
+    std::uniform_int_distribution<int64_t> dis(0, 4000*1000*1000l);
+    for(int64_t i = 0; i < vector.size(); ++i) {
+        int64_t number = dis(gen);
         vector[i] = number;
     }
 
     std::cout << "Start sorting" << std::endl;
-    ParallelTasks::sort_int(vector.begin(), vector.end(), std::less<long>(),
+    ParallelTasks::sort_int(vector.begin(), vector.end(), std::less<int64_t>(),
             nthreads);
     std::cout << "Finished sorting" << std::endl;
 
     //Verify the results
-    long prev = -1;
+    int64_t prev = -1;
     std::cout << "Size vector: " << vector.size() << std::endl;
-    for(long i = 0; i < vector.size(); ++i) {
+    for(int64_t i = 0; i < vector.size(); ++i) {
         if (prev > vector[i]) {
             std::cout << "error pos=" << i << " " << prev << " " << vector[i] << std::endl;
             exit(1);

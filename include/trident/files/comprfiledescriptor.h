@@ -87,17 +87,17 @@ public:
         return id;
     }
 
-    void appendLong(long v) {
+    void appendLong(int64_t v) {
         Utils::encode_long(rawBuffer, uncompressedSize, v);
         uncompressedSize += 8;
     }
 
-    int appendVLong(long v) {
+    int appendVLong(int64_t v) {
         uncompressedSize = Utils::encode_vlong(rawBuffer, uncompressedSize, v);
         return uncompressedSize;
     }
 
-    int appendVLong2(long v) {
+    int appendVLong2(int64_t v) {
         uncompressedSize = Utils::encode_vlong2(rawBuffer, uncompressedSize, v);
         return uncompressedSize;
     }
@@ -119,7 +119,7 @@ public:
         rawBuffer[pos] = byte;
     }
 
-    void overwriteVLong2At(int pos, long number) {
+    void overwriteVLong2At(int pos, int64_t number) {
         Utils::encode_vlong2(rawBuffer, pos, number);
     }
 

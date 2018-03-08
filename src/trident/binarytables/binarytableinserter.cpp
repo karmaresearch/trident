@@ -26,18 +26,18 @@ string BinaryTableInserter::getRootDir() {
     return manager->getCacheDir();
 }
 
-uint64_t BinaryTableInserter::writeVLong2(long t) {
+uint64_t BinaryTableInserter::writeVLong2(int64_t t) {
     uint64_t prevPos = currentPos;
     currentPos = manager->appendVLong2(t);
     return currentPos - prevPos;
 }
 
-void BinaryTableInserter::writeLong(const uint8_t nbytes, const long v) {
+void BinaryTableInserter::writeLong(const uint8_t nbytes, const int64_t v) {
     manager->appendLong(nbytes, v);
     currentPos += nbytes;
 }
 
-void BinaryTableInserter::overwriteVLong2(short file, uint64_t pos, long number) {
+void BinaryTableInserter::overwriteVLong2(short file, uint64_t pos, int64_t number) {
     manager->overwriteVLong2At(file, pos, number);
 }
 
@@ -54,13 +54,13 @@ void BinaryTableInserter::createNewFileIfCurrentIsTooLarge() {
     }
 }
 
-long BinaryTableInserter::getNBytesFrom(short file, uint64_t pos) {
+int64_t BinaryTableInserter::getNBytesFrom(short file, uint64_t pos) {
     assert(getCurrentFile() >= file);
     if (getCurrentFile() == file) {
         assert(getCurrentPosition() >= pos);
         return (long)(getCurrentPosition() - pos);
     } else {
-        uint64_t diff = getCurrentPosition();
+        int64_t diff = getCurrentPosition();
         short f = getCurrentFile();
         f--;
         while (f > file) {
@@ -72,7 +72,7 @@ long BinaryTableInserter::getNBytesFrom(short file, uint64_t pos) {
     }
 }
 
-void BinaryTableInserter::appendPair(const long t1, const long t2) {
+void BinaryTableInserter::appendPair(const int64_t t1, const int64_t t2) {
     append(t1, t2);
 }
 

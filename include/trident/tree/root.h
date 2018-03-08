@@ -64,7 +64,7 @@ class Root {
         const bool readOnly;
         const string path;
 
-        PreallocatedArraysFactory<long> *nodesKeysFactory;
+        PreallocatedArraysFactory<int64_t> *nodesKeysFactory;
         PreallocatedFactory<Coordinates> *ilFactory;
         PreallocatedArraysFactory<Coordinates*> *ilBufferFactory;
 
@@ -91,9 +91,9 @@ class Root {
 
         bool insertIfNotExists(tTerm *key, int sizeKey, nTerm &value);
 
-        void put(nTerm key, long coordinates);
+        void put(nTerm key, int64_t coordinates);
 
-        void append(nTerm key, long coordinates);
+        void append(nTerm key, int64_t coordinates);
 
         TreeItr *itr();
 
@@ -105,7 +105,7 @@ class Root {
 
         virtual bool get(nTerm key, TermCoordinates *value);
 
-        bool get(nTerm key, long &coordinates);
+        bool get(nTerm key, int64_t &coordinates);
 
 };
 

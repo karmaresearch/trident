@@ -10,7 +10,7 @@ class AggregateHandler {
 
         struct VarValue {
             typedef enum {INT, DEC, SYMBOL, NUL} TYPE;
-            long v_int;
+            int64_t v_int;
             double v_dec;
             TYPE type;
             bool requiresNumber;
@@ -24,7 +24,7 @@ class AggregateHandler {
             unsigned inputvar; //Id input var
             unsigned outputvar; //Id output var
 
-            long arg1_int, arg2_int; //various arguments used by the functions
+            int64_t arg1_int, arg2_int; //various arguments used by the functions
             double arg1_dec, arg2_dec;
             bool arg1_bool, arg2_bool;
 
@@ -72,7 +72,7 @@ class AggregateHandler {
         std::pair<std::vector<unsigned>,
             std::vector<unsigned>> getInputOutputVars() const;
 
-        void updateVarInt(unsigned var, long value, uint64_t count);
+        void updateVarInt(unsigned var, int64_t value, uint64_t count);
 
         void updateVarSymbol(unsigned var, uint64_t value, uint64_t count);
 
@@ -80,7 +80,7 @@ class AggregateHandler {
 
         void updateVarNull(unsigned var);
 
-        long getValueInt(unsigned var) const;
+        int64_t getValueInt(unsigned var) const;
 
         double getValueDec(unsigned var) const;
 

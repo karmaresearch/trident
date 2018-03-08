@@ -35,7 +35,7 @@ uint64_t CartProd::first()
     if ((leftCount = left->first()) == 0) {
         if (leftOptional) {
             for(int i = 0; i < leftTail.size(); ++i) {
-                leftTail[i]->value = ~0lu;
+                leftTail[i]->value = UINT64_MAX;
             }
             leftCount = 1;
         } else {
@@ -47,7 +47,7 @@ uint64_t CartProd::first()
                 rightCount = 1;
                 buffer.push_back(rightCount);
                 for(int i = 0; i < rightTail.size(); ++i) {
-                    buffer.push_back(~0lu);
+                    buffer.push_back(UINT64_MAX);
                 }
             } else {
                 return 0;
@@ -118,7 +118,7 @@ uint64_t CartProd::next()
 
     /*   if (currentIdx != -1) {
          Entry *e;
-         while (currentIdx < (long)hashTable.size()) {
+         while (currentIdx < hashTable.size()) {
          if ((e = hashTable[currentIdx++])
          && !collectedRightValues.count(e->key)) {
          for (uint64_t index = 0, limit = leftTail.size();

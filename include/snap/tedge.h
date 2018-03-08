@@ -48,12 +48,12 @@ class TEdgeI {
         }
 
         /// Returns the source of the edge. Since the graph is undirected, this is the node with a smaller ID of the edge endpoints.
-        long GetSrcNId() const {
+        int64_t GetSrcNId() const {
             return itr->getValue1();
         }
 
         /// Returns the destination of the edge. Since the graph is undirected, this is the node with a greater ID of the edge endpoints.
-        long GetDstNId() const {
+        int64_t GetDstNId() const {
             return itr->getValue2();
         }
 

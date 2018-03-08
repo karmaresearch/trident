@@ -103,7 +103,7 @@ bool _less_ops(const _Triple &p1, const _Triple &p2) {
     return false;
 }
 
-void _copyCurrentFirst(int perm, long triple[3], long v) {
+void _copyCurrentFirst(int perm, int64_t triple[3], int64_t v) {
     switch (perm) {
         case IDX_SPO:
         case IDX_SOP:
@@ -120,7 +120,7 @@ void _copyCurrentFirst(int perm, long triple[3], long v) {
     }
 }
 
-void _copyCurrentFirstSecond(int perm, long triple[3], long v1, long v2) {
+void _copyCurrentFirstSecond(int perm, int64_t triple[3], int64_t v1, int64_t v2) {
     switch (perm) {
         case IDX_SPO:
             triple[0] = v1;
@@ -149,8 +149,8 @@ void _copyCurrentFirstSecond(int perm, long triple[3], long v1, long v2) {
     }
 }
 
-void _copyCurrentFirstSecondThird(int perm, long triple[3], long v1,
-        long v2, long v3) {
+void _copyCurrentFirstSecondThird(int perm, int64_t triple[3], int64_t v1,
+        int64_t v2, int64_t v3) {
     switch (perm) {
         case IDX_SPO:
             triple[0] = v1;
@@ -185,7 +185,7 @@ void _copyCurrentFirstSecondThird(int perm, long triple[3], long v1,
     }
 }
 
-void _permute(int perm, long triple[3], long v1, long v2, long v3) {
+void _permute(int perm, int64_t triple[3], int64_t v1, int64_t v2, int64_t v3) {
     switch (perm) {
         case IDX_SPO:
             triple[0] = v1;
@@ -220,7 +220,7 @@ void _permute(int perm, long triple[3], long v1, long v2, long v3) {
     }
 }
 
-void _reorderTriple(int perm, PairItr *itr, long triple[3]) {
+void _reorderTriple(int perm, PairItr *itr, int64_t triple[3]) {
     switch (perm) {
         case IDX_SPO:
             triple[0] = itr->getKey();
@@ -278,9 +278,9 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
     // Load the entire KB in main memory
     LZ4Reader reader(inputfile);
     while (!reader.isEof()) {
-        long s = reader.parseVLong();
-        long p = reader.parseVLong();
-        long o = reader.parseVLong();
+        int64_t s = reader.parseVLong();
+        int64_t p = reader.parseVLong();
+        int64_t o = reader.parseVLong();
         triples.push_back(_Triple(s, p, o));
     }
 
@@ -295,11 +295,11 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
             }
             if (Utils::exists(update + "/ADD")) {
                 LZ4Reader reader(updatefile);
-                long count = 0;
+                int64_t count = 0;
                 while (!reader.isEof()) {
-                    long s = reader.parseLong();
-                    long p = reader.parseLong();
-                    long o = reader.parseLong();
+                    int64_t s = reader.parseLong();
+                    int64_t p = reader.parseLong();
+                    int64_t o = reader.parseLong();
                     triples.push_back(_Triple(s, p, o));
                     count++;
                 }
@@ -307,11 +307,11 @@ void TestTrident::prepare(string inputfile, std::vector<string> updates) {
             } else {
                 std::vector<_Triple> rmtriples;
                 LZ4Reader reader(updatefile);
-                long count = 0;
+                int64_t count = 0;
                 while (!reader.isEof()) {
-                    long s = reader.parseLong();
-                    long p = reader.parseLong();
-                    long o = reader.parseLong();
+                    int64_t s = reader.parseLong();
+                    int64_t p = reader.parseLong();
+                    int64_t o = reader.parseLong();
                     rmtriples.push_back(_Triple(s, p, o));
                     count++;
                 }
@@ -390,9 +390,9 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         PairItr *scanWithoutLast = q->get(perm, -1, -1, -1);
         scanWithoutLast->ignoreSecondColumn();
 
-        long countTriple = 0;
-        long prevFirstEl = -1;
-        long prevKey = -1;
+        int64_t countTriple = 0;
+        int64_t prevFirstEl = -1;
+        int64_t prevKey = -1;
         for (size_t idx = 0; idx < triples.size(); ++idx) {
             _Triple el = triples[idx];
             if (!currentItr->hasNext()) {
@@ -400,7 +400,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             }
             currentItr->next();
 
-            long t[3];
+            int64_t t[3];
             _reorderTriple(perm, currentItr, t);
             if (el.s != t[0] || el.p != t[1] || el.o != t[2]) {
                 cout << "Mismatch! Comparing " << el.s << " " << el.p << " " << el.o << " with " <<
@@ -420,8 +420,8 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     throw 10;
                 }
                 scanWithoutLast->next();
-                long scanKey = scanWithoutLast->getKey();
-                long scanValue1 = scanWithoutLast->getValue1();
+                int64_t scanKey = scanWithoutLast->getKey();
+                int64_t scanValue1 = scanWithoutLast->getValue1();
                 if (currentItr->getKey() != scanKey ||
                         currentItr->getValue1() != scanValue1) {
                     throw 10;
@@ -445,10 +445,10 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         //Test a scan without the second and third columns
         currentItr = q->getTermList(perm);
         LOG(INFOL) << "Check a filtered scan...";
-        long prevEl = -1;
+        int64_t prevEl = -1;
         for (auto const el : triples) {
             //cout << el.s << " " << el.p << " " << el.o << endl;
-            long first = 0;
+            int64_t first = 0;
             switch (perm) {
                 case IDX_SPO:
                 case IDX_SOP:
@@ -487,12 +487,12 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         LOG(INFOL) << "All OK";
 
         //Filter on the first element
-        long currentFirst = -1;
-        long currentSecond = -1;
-        long count = 0;
-        long countFirst = 0;
-        long countSecond = 0;
-        long pattern[3];
+        int64_t currentFirst = -1;
+        int64_t currentSecond = -1;
+        int64_t count = 0;
+        int64_t countFirst = 0;
+        int64_t countSecond = 0;
+        int64_t pattern[3];
         pattern[0] = -1;
         pattern[1] = -1;
         pattern[2] = -1;
@@ -500,7 +500,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         LOG(INFOL) << "Check cardinalities on the first level ...";
         for (size_t idx = 0; idx < triples.size(); ++idx) {
             _Triple el = triples[idx];
-            long first, second;
+            int64_t first, second;
             first = second = 0;
             switch (perm) {
                 case IDX_SPO:
@@ -582,7 +582,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     throw 10; //should not happen
                 }
                 currentItrFirst->next();
-                long c = currentItrFirst->getCount();
+                int64_t c = currentItrFirst->getCount();
                 if (currentItrFirst->getKey() != currentFirst ||
                         currentItrFirst->getValue1()
                         != currentSecond || c != countSecond) {
@@ -607,7 +607,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             }
             currentItr->next();
 
-            long t[3];
+            int64_t t[3];
             _reorderTriple(perm, currentItr, t);
             if (el.s != t[0] || el.p != t[1] || el.o != t[2]) {
                 cout << "Mismatch! Comparing " << el.s << " " << el.p << " " << el.o << " with " <<
@@ -651,7 +651,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         pattern[0] = -1;
         pattern[1] = -1;
         pattern[2] = -1;
-        long totalCount = 0;
+        int64_t totalCount = 0;
         LOG(INFOL) << "Check cardinalities on the second level ...";
         for (size_t idx = 0; idx < triples.size(); ++idx) {
             _Triple el = triples[idx];
@@ -659,7 +659,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             if (totalCount % 1000000 == 0) {
                 LOG(DEBUGL) << "Processed " << totalCount << " triples";
             }
-            long first, second;
+            int64_t first, second;
             first = second = 0;
             switch (perm) {
                 case IDX_SPO:
@@ -721,7 +721,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                 throw 10; //should not happen
             }
             currentItr->next();
-            long t[3];
+            int64_t t[3];
             _reorderTriple(perm, currentItr, t);
             if (el.s != t[0] || el.p != t[1] || el.o != t[2]) {
                 cout << "Mismatch! Comparing " << el.s << " " << el.p << " " << el.o << " with " <<
@@ -742,7 +742,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
 
         LOG(INFOL) << "Check single lookups ...";
         for (auto const el : triples) {
-            long first, second, third;
+            int64_t first, second, third;
             first = second = third = 0;
             switch (perm) {
                 case IDX_SPO:
@@ -806,7 +806,7 @@ void TestTrident::tryjumps(int perm, size_t s, size_t e) {
         PairItr *itr = NULL;
         for (int i = s; i < e; ) {
             _Triple el = triples[i];
-            long first, second, third;
+            int64_t first, second, third;
             first = second = third = 0;
             switch (perm) {
                 case IDX_SPO:
@@ -868,7 +868,7 @@ void TestTrident::tryjumps(int perm, size_t s, size_t e) {
     }
 }
 
-void TestTrident::test_moveto_ignoresecond(int perm, long key,
+void TestTrident::test_moveto_ignoresecond(int perm, int64_t key,
         std::vector<uint64_t> &firsts) {
     PairItr *itr = q->getPermuted(perm, key, -1, -1, true);
     itr->ignoreSecondColumn();
@@ -878,7 +878,7 @@ void TestTrident::test_moveto_ignoresecond(int perm, long key,
         }
         itr->next();
         //Move to the same position
-        long v1 = itr->getValue1();
+        int64_t v1 = itr->getValue1();
         if (v1 != firsts[i])
             throw 10;
 
@@ -939,12 +939,12 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
         }
 
         std::vector<uint64_t> allfirsts;
-        long prevkey = -1;
+        int64_t prevkey = -1;
         size_t previdx = 0;
         PairItr *itr = NULL;
         for (size_t i = 0; i < triples.size(); ++i) {
             _Triple el = triples[i];
-            long first, second, third;
+            int64_t first, second, third;
             first = second = third = 0;
             switch (perm) {
                 case IDX_SPO:
@@ -1091,8 +1091,8 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         //c) same as before but on the second column
         LOG(INFOL) << "Testing a query with a max non-existing key";
         //Get the maximum number in the array for the given permutation
-        long maxNumber = 0;
-        long minNumber = 0;
+        int64_t maxNumber = 0;
+        int64_t minNumber = 0;
         if (perm == IDX_SPO || perm == IDX_SOP) {
             maxNumber = triples.back().s;
             minNumber = triples.front().s;
@@ -1124,9 +1124,9 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         LOG(INFOL) << "Testing random non-existing keys";
         const int maxAttempts = 100000;
         int currentAttempt = 0;
-        long prevkey = minNumber;
+        int64_t prevkey = minNumber;
         for (size_t i = 0; i < triples.size(); ++i) {
-            long currentkey;
+            int64_t currentkey;
             if (perm == IDX_SPO || perm == IDX_SOP) {
                 currentkey = triples[i].s;
             } else if (perm == IDX_POS || perm == IDX_PSO) {
@@ -1154,17 +1154,17 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         LOG(INFOL) << "Testing non-existing first terms";
         prevkey = minNumber;
         int previdx = 0;
-        long t[3];
-        long ntests = 0;
+        int64_t t[3];
+        int64_t ntests = 0;
         for (size_t i = 0; i < triples.size(); ++i) {
             _permute(perm, t, triples[i].s, triples[i].p, triples[i].o);
             if (t[0] != prevkey) {
                 //Test minimum
-                long prevt[3];
+                int64_t prevt[3];
                 _permute(perm, prevt, triples[previdx].s, triples[previdx].p,
                         triples[previdx].o);
                 if (prevt[1] > 0) {
-                    long tocheck = prevt[1] - 1;
+                    int64_t tocheck = prevt[1] - 1;
                     shouldFail(perm, prevkey, tocheck, -1);
                     shouldFail(perm, prevkey, tocheck, 0);
                     ntests += 2;
@@ -1178,13 +1178,13 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
                 //Test in-between
                 for (int j = previdx + 1; j < i; ++j) {
                     //Find first non-existing first term
-                    long curt[3];
+                    int64_t curt[3];
                     _permute(perm, curt, triples[j].s, triples[j].p,
                             triples[j].o);
-                    long curfirst = curt[1];
+                    int64_t curfirst = curt[1];
                     _permute(perm, curt, triples[j - 1].s, triples[j - 1].p,
                             triples[j - 1].o);
-                    long prevfirst = curt[1];
+                    int64_t prevfirst = curt[1];
                     if (curfirst > prevfirst + 1) {
                         shouldFail(perm, prevkey, curfirst - 1, -1);
                         shouldFail(perm, prevkey, curfirst - 1, 0);
@@ -1206,7 +1206,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
             //Do a test before and one after
             if (i % 2 == 0) {
                 if (i > 0) {
-                    long prevt[3];
+                    int64_t prevt[3];
                     _permute(perm, prevt, triples[i - 1].s, triples[i - 1].p, triples[i - 1].o);
                     if (t[0] == prevt[0] && t[1] == prevt[1]) {
                         if ((t[2] - prevt[2]) > 1) {
@@ -1219,7 +1219,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
                     }
                 }
                 if (i < triples.size() - 1) {
-                    long suct[3];
+                    int64_t suct[3];
                     _permute(perm, suct, triples[i + 1].s, triples[i + 1].p, triples[i + 1].o);
                     if (t[0] == suct[0] && t[1] == suct[1]) {
                         if ((suct[2] - t[2]) > 1) {
@@ -1237,7 +1237,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
     }
 }
 
-bool TestTrident::shouldFail(int idx, long first, long second, long third) {
+bool TestTrident::shouldFail(int idx, int64_t first, int64_t second, int64_t third) {
     PairItr *itr = q->getPermuted(idx, first, second, third, true);
     bool sf = !itr->hasNext();
     q->releaseItr(itr);

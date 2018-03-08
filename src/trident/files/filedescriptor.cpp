@@ -129,7 +129,7 @@ char* FileDescriptor::getBuffer(uint64_t offset, uint64_t *length,
     return buffer + offset;
 }
 
-uint64_t FileDescriptor::appendVLong(const long v) {
+uint64_t FileDescriptor::appendVLong(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -139,7 +139,7 @@ uint64_t FileDescriptor::appendVLong(const long v) {
     return this->size;
 }
 
-uint64_t FileDescriptor::appendVLong2(const long v) {
+uint64_t FileDescriptor::appendVLong2(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -149,7 +149,7 @@ uint64_t FileDescriptor::appendVLong2(const long v) {
     return this->size;
 }
 
-void FileDescriptor::appendLong(const long v) {
+void FileDescriptor::appendLong(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -158,7 +158,7 @@ void FileDescriptor::appendLong(const long v) {
     this->size += 8;
 }
 
-void FileDescriptor::appendInt(const long v) {
+void FileDescriptor::appendInt(const int64_t v) {
     if (4 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 4, (uint64_t) sizeFile));
         mapFile(increment);
@@ -167,7 +167,7 @@ void FileDescriptor::appendInt(const long v) {
     this->size += 4;
 }
 
-void FileDescriptor::appendShort(const long v) {
+void FileDescriptor::appendShort(const int64_t v) {
     if (2 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 2, (uint64_t) sizeFile));
         mapFile(increment);
@@ -199,7 +199,7 @@ void FileDescriptor::overwriteAt(uint64_t pos, char byte) {
     buffer[pos] = byte;
 }
 
-void FileDescriptor::overwriteVLong2At(uint64_t pos, long number) {
+void FileDescriptor::overwriteVLong2At(uint64_t pos, int64_t number) {
     Utils::encode_vlong2(buffer + pos, number);
 }
 

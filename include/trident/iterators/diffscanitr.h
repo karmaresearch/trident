@@ -34,7 +34,7 @@ class Querier;
 class DiffScanItr : public PairItr {
 private:
     int perm;
-    long currentkey, v1, v2;
+    int64_t currentkey, v1, v2;
     bool hn, hnc;
     bool ignseccol;
 
@@ -49,11 +49,11 @@ public:
         return DIFFSCAN_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
@@ -72,7 +72,7 @@ public:
         }
     }
 
-    long getCount() {
+    int64_t getCount() {
         if (ignseccol) {
             return currentItr->getCount();
         } else {
@@ -82,9 +82,9 @@ public:
 
     void clear();
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 
-    void gotoKey(long keyToSearch);
+    void gotoKey(int64_t keyToSearch);
 
     bool hasNext();
 

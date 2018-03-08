@@ -25,7 +25,7 @@
 void NewRowTableInserter::startAppend() {
 }
 
-void NewRowTableInserter::append(long t1, long t2) {
+void NewRowTableInserter::append(int64_t t1, int64_t t2) {
     writeFirstTerm(t1);
     writeSecondTerm(t2);
 }
@@ -33,7 +33,7 @@ void NewRowTableInserter::append(long t1, long t2) {
 void NewRowTableInserter::stopAppend() {
 }
 
-void NewRowTableInserter::writeFirstTerm(long t) {
+void NewRowTableInserter::writeFirstTerm(int64_t t) {
     switch (reader1) {
     case 0:
         writeByte(t);
@@ -50,7 +50,7 @@ void NewRowTableInserter::writeFirstTerm(long t) {
     }
 }
 
-void NewRowTableInserter::writeSecondTerm(long t) {
+void NewRowTableInserter::writeSecondTerm(int64_t t) {
     switch (reader2) {
     case 0:
         writeByte(t);

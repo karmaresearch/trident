@@ -183,12 +183,12 @@ char StorageStrat::getStrategy(int typeStorage, int diff, int compr1,
     return (char) strat;
 }
 
-long StorageStrat::minsum(const long counters1[2][2], const long counters2[2], int &oc1, int &oc2, int &od) {
-    long minSum = LONG_MAX;
+int64_t StorageStrat::minsum(const int64_t counters1[2][2], const int64_t counters2[2], int &oc1, int &oc2, int &od) {
+    int64_t minSum = INT64_MAX;
     for (int c1 = 0; c1 < 2; c1++) {
         for (int delta = 0; delta < 2; ++delta) {
             for (int c2 = 0; c2 < 2; c2++) {
-                long sum = counters1[c1][delta] + counters2[c2];
+                int64_t sum = counters1[c1][delta] + counters2[c2];
                 if (sum < minSum) {
                     minSum = sum;
                     oc1 = c1;
@@ -203,12 +203,12 @@ long StorageStrat::minsum(const long counters1[2][2], const long counters2[2], i
 
 size_t StorageStrat::getBinaryBreakingPoint() {
     //Used only to ensure the compiler is not optimizing the code out
-    long fakeSum = 0;
+    int64_t fakeSum = 0;
 
     //Anything below 8 can be search faster with a linear search
     int i = 8;
     for (; i < 4096; (i > 32) ? i += 32 : i *= 2) {
-        std::vector<long> vector1;
+        std::vector<int64_t> vector1;
 
         //Fill the table
         for (int j = 0; j < i; ++j) {
@@ -229,7 +229,7 @@ size_t StorageStrat::getBinaryBreakingPoint() {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             for (std::vector<size_t>::const_iterator itr = idsToSearch.begin();
                     itr != idsToSearch.end(); ++itr) {
-                std::vector<long>::const_iterator itrP = vector1.begin();
+                std::vector<int64_t>::const_iterator itrP = vector1.begin();
                 while (itrP != vector1.end()) {
                     if (*itrP >= vector1[*itr]) {
                         break;
@@ -270,12 +270,12 @@ size_t StorageStrat::getBinaryBreakingPoint() {
     return 4096;
 }
 
-bool StorageStrat::determineAggregatedStrategy(long *v1, long *v2, const int size,
-        const long nTerms, Statistics &stats) {
+bool StorageStrat::determineAggregatedStrategy(int64_t *v1, int64_t *v2, const int size,
+        const int64_t nTerms, Statistics &stats) {
     //return true if v1 contains many duplicates
 
     //For every different v1, there are at least two different pairs, one with the value and one with the coordinates.
-    long unique = 1;
+    int64_t unique = 1;
     for (size_t i = 1; i < size; ++i) {
         if (v1[i - 1] != v1[i]) {
             unique++;
@@ -291,10 +291,10 @@ bool StorageStrat::determineAggregatedStrategy(long *v1, long *v2, const int siz
 }
 
 void StorageStrat::createAllCombinations(std::vector<Combinations> &output,
-        long *groupCounters1Compr2, long *listCounters1Compr2,
-        long groupCounters2Compr2, long listCounters2Compr2,
-        long *groupCounters1Compr1, long *listCounters1Compr1,
-        long groupCounters2Compr1, long listCounters2Compr1) {
+        int64_t *groupCounters1Compr2, int64_t *listCounters1Compr2,
+        int64_t groupCounters2Compr2, int64_t listCounters2Compr2,
+        int64_t *groupCounters1Compr1, int64_t *listCounters1Compr1,
+        int64_t groupCounters2Compr1, int64_t listCounters2Compr1) {
 
     for (int diff = 0; diff < 2; ++diff) {
         //group
@@ -364,21 +364,21 @@ bool combinationSorter(const StorageStrat::Combinations &c1, const StorageStrat:
     return c1.sum < c2.sum;
 }
 
-char StorageStrat::determineStrategy(long *v1, long *v2, const int size,
-        const long nTermsInInput,
+char StorageStrat::determineStrategy(int64_t *v1, int64_t *v2, const int size,
+        const int64_t nTermsInInput,
         const size_t nTermsClusterColumn,
         const bool useRowForLargeTables,
         Statistics &stats) {
     unsigned strat = 0;
     if (size < THRESHOLD_KEEP_MEMORY) {
         char nbytes1, nbytes2, nbytescount;
-        long maxValue1 = 0;
-        long maxValue2 = 0;
+        int64_t maxValue1 = 0;
+        int64_t maxValue2 = 0;
 
-        long ngroups = 0;
-        long maxGroupSize = 0;
-        long currentGroupSize = 0;
-        long prevEl = -1;
+        int64_t ngroups = 0;
+        int64_t maxGroupSize = 0;
+        int64_t currentGroupSize = 0;
+        int64_t prevEl = -1;
         for (int i = 0; i < size; i++) {
             if (v1[i] > maxValue1)
                 maxValue1 = v1[i];
@@ -425,8 +425,8 @@ char StorageStrat::determineStrategy(long *v1, long *v2, const int size,
                 flagbytes2 = 2;
             }
 
-            long totalSpaceRow = size * (nbytes1 + nbytes2);
-            long totalSpaceCluster = ngroups * (nbytes1 + nbytescount) + nbytes2;
+            int64_t totalSpaceRow = size * (nbytes1 + nbytes2);
+            int64_t totalSpaceCluster = ngroups * (nbytes1 + nbytescount) + nbytes2;
             if (totalSpaceRow < totalSpaceCluster) {
                 strat = setStorageType(strat, NEWROW_ITR);
                 strat = setBytesField1(strat, flagbytes1);
@@ -458,8 +458,8 @@ char StorageStrat::determineStrategy(long *v1, long *v2, const int size,
     return strat;
 }
 
-char StorageStrat::determineStrategyOld(long *v1, long *v2, const int size,
-        const long nTermsInInput,
+char StorageStrat::determineStrategyOld(int64_t *v1, int64_t *v2, const int size,
+        const int64_t nTermsInInput,
         const size_t nTermsClusterColumn,
         Statistics &stats) {
     unsigned strat = 0;
@@ -467,33 +467,33 @@ char StorageStrat::determineStrategyOld(long *v1, long *v2, const int size,
     /***** DETERMINE TYPE STORAGE *****/
     int typeStorage = CLUSTER_ITR;
     //These counters assume compr2
-    long listCounters1[2];
-    long groupCounters1[2];
-    long bytesSecondGroup = 0;
+    int64_t listCounters1[2];
+    int64_t groupCounters1[2];
+    int64_t bytesSecondGroup = 0;
     listCounters1[0] = groupCounters1[0] = 0;
     listCounters1[1] = groupCounters1[1] = 0;
-    long listCounters2 = 0, groupCounters2 = 0;
+    int64_t listCounters2 = 0, groupCounters2 = 0;
 
     //These counters assume compr1
-    long listCounters1_2[2];
-    long groupCounters1_2[2];
-    long bytesSecondGroup_2 = 0;
+    int64_t listCounters1_2[2];
+    int64_t groupCounters1_2[2];
+    int64_t bytesSecondGroup_2 = 0;
     listCounters1_2[0] = groupCounters1_2[0] = 0;
     listCounters1_2[1] = groupCounters1_2[1] = 0;
-    long listCounters2_2 = 0, groupCounters2_2 = 0;
+    int64_t listCounters2_2 = 0, groupCounters2_2 = 0;
 
     if (size < THRESHOLD_KEEP_MEMORY) {
         //What is the layout that compresses the table the most?
         size_t nUniqueFirstTerms = 0;
 
         //Calculate all options, and pick the best:
-        long prevFirstValue = -1;
-        long prevSecondValue = -1;
+        int64_t prevFirstValue = -1;
+        int64_t prevSecondValue = -1;
 
         for (int i = 0; i < size; i++) {
             for (int delta = 0; delta < 2; delta++) {
                 //Size first term
-                long value;
+                int64_t value;
                 if (delta == DIFFERENCE && prevFirstValue != -1) {
                     value = v1[i] - prevFirstValue;
                 } else {
@@ -527,7 +527,7 @@ char StorageStrat::determineStrategyOld(long *v1, long *v2, const int size,
             }
 
             //Size second term: -- List
-            long value = v2[i];
+            int64_t value = v2[i];
             int bs = Utils::numBytes2(value);
             int bs2 = Utils::numBytes(value);
             listCounters2 += bs;

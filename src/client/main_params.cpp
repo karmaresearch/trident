@@ -220,10 +220,10 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
 }
 
 bool checkMachineConstraints() {
-    if (sizeof(long) != 8) {
-        LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
-        return false;
-    }
+//   if (sizeof(long) != 8) {
+//       LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
+//       return false;
+//   }
     if (sizeof(int) != 4) {
         LOG(ERRORL) << "Trident expects a 'int' to be 4 bytes";
         return false;
@@ -290,7 +290,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "If it it hash, then it indicates the number of popular terms."
             "Default value is 128.", false);
     load_options.add<string>("","remoteLoc", "", "", false);
-    load_options.add<long>("","limitSpace", 0, "", false);
+    load_options.add<int64_t>("","limitSpace", 0, "", false);
     load_options.add<string>("","gf", "", "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels", false);
     load_options.add<bool>("","relsOwnIDs", false, "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED", false);
     load_options.add<bool>("","flatTree", false, "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED", false);
@@ -298,7 +298,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     /***** LOOKUP *****/
     ProgramArgs::GroupArgs& lookup_options = *vm.newGroup("Options for <lookup>");
     lookup_options.add<string>("t","text", "", "Textual term to search", false);
-    lookup_options.add<long>("n","number", 0, "Numeric term to search", false);
+    lookup_options.add<int64_t>("n","number", 0, "Numeric term to search", false);
 
     /***** TEST *****/
     ProgramArgs::GroupArgs& test_options = *vm.newGroup("Options for <tests> (only advanced usage)");
@@ -325,7 +325,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
     /***** MINE *****/
     ProgramArgs::GroupArgs& mine_options = *vm.newGroup("Options for <mine>");
-    mine_options.add<long>("", "minSupport", 1000, "Min support for the patterns to mine", false);
+    mine_options.add<int64_t>("", "minSupport", 1000, "Min support for the patterns to mine", false);
     mine_options.add<int>("", "minLen", 2, "Min lengths of the patterns", false);
     mine_options.add<int>("", "maxLen", 10, "Max lengths of the patterns", false);
 

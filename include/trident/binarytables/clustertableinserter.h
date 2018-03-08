@@ -30,7 +30,7 @@
 class ClusterTableInserter : public BinaryTableInserter {
 private:
     //Common vars
-    long previousFirstTerm, previousSecondTerm;
+    int64_t previousFirstTerm, previousSecondTerm;
     short baseSecondTermFile;
     uint64_t baseSecondTermPos;
     short fileLastFirstTerm;
@@ -39,8 +39,8 @@ private:
     FileIndex *secondTermIndex;
     bool removeSecondTermIndex;
 
-    long lastSecondTerm;
-    long nElementsForIndexing;
+    int64_t lastSecondTerm;
+    int64_t nElementsForIndexing;
 
     //Additional vars used to write the second term
     int bytesUsed;
@@ -55,13 +55,13 @@ private:
     int getRelativeSecondTermPos(short file, int absPos);
     void writeNElementsAt(char b, short file, int pos);
     void insertSecondTerm(bool last);
-    void updateSecondTermIndex(long lastTermWritten, int bytesTaken,
+    void updateSecondTermIndex(int64_t lastTermWritten, int bytesTaken,
                                short currentFile, int currentPos);
-    long calculateSecondTermToWrite(long term);
-    uint64_t writeSecondTerm(long termToWrite);
-    void updateFirstTermIndex(const long t1);
-    void writeFirstTerm(long termToWrite);
-    long calculateFirstTermToWrite(long termToWrite);
+    int64_t calculateSecondTermToWrite(int64_t term);
+    uint64_t writeSecondTerm(int64_t termToWrite);
+    void updateFirstTermIndex(const int64_t t1);
+    void writeFirstTerm(int64_t termToWrite);
+    int64_t calculateFirstTermToWrite(int64_t termToWrite);
 
 public:
     int getType() {
@@ -70,7 +70,7 @@ public:
 
     void startAppend();
 
-    void append(long t1, long t2);
+    void append(int64_t t1, int64_t t2);
 
     void stopAppend();
 

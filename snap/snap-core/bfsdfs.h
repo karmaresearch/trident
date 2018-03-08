@@ -17,7 +17,7 @@ template <class PGraph> int GetNodesAtHops(const PGraph& Graph, const int& Start
 // Shortest paths
 /// Returns the length of the shortest path from node SrcNId to node DstNId. ##GetShortPath1
 template <class PGraph> int GetShortPath(const PGraph& Graph, const int& SrcNId, const int& DstNId, const bool& IsDir=false);
-template <class PGraph> std::vector<long> GetShortPath(const PGraph& Graph, std::vector<std::pair<long,long>> &pairs);
+template <class PGraph> std::vector< int64_t> GetShortPath(const PGraph& Graph, std::vector<std::pair< int64_t, int64_t>> &pairs);
 /// Returns the length of the shortest path from node SrcNId to all other nodes in the network. ##GetShortPath2
 template <class PGraph> int GetShortPath(const PGraph& Graph, const int& SrcNId, TIntH& NIdToDistH, const bool& IsDir=false, const int& MaxDist=TInt::Mx);
 
@@ -390,10 +390,10 @@ int GetShortPath(const PGraph& Graph, const int& SrcNId, const int& DstNId, cons
   return BFS.GetHops(SrcNId, DstNId);
 }
 template <class PGraph>
-std::vector<long> GetShortPath(const PGraph& Graph, std::vector<std::pair<long, long>> &pairs) {
-    std::vector<long> output;
+std::vector< int64_t> GetShortPath(const PGraph& Graph, std::vector<std::pair< int64_t,  int64_t>> &pairs) {
+    std::vector< int64_t> output;
     for(auto p : pairs) {
-        long len = GetShortPath(Graph, p.first, p.second);
+         int64_t len = GetShortPath(Graph, p.first, p.second);
         output.push_back(len);
     }
     return output;
@@ -439,10 +439,10 @@ double GetBfsEffDiam_stl(const PGraph& Graph, const int& NTestNodes, const bool&
   EffDiam = -1;  FullDiam = -1;  AvgSPL = -1;
   TIntFltH DistToCntH;
   TBreathFS<PGraph> BFS(Graph);
-  long minnodes = min((long)NTestNodes, Graph->GetNodes());
+   int64_t minnodes = min(( int64_t)NTestNodes, Graph->GetNodes());
 
   for (int tries = 0; tries < minnodes; tries++) {
-    const long NId = tries; //TODO
+    const  int64_t NId = tries; //TODO
     BFS.DoBfs(NId, true, ! IsDir, -1, TInt::Mx);
     for (int i = 0; i < BFS.NIdDistH.Len(); i++) {
       DistToCntH.AddDat(BFS.NIdDistH[i]) += 1; }

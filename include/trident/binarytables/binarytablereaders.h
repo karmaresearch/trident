@@ -54,7 +54,7 @@ public:
     }
 
     static uint64_t read(const char* buffer) {
-        uint64_t n = (long)(buffer[0] & 0xFF) << 24;
+        uint64_t n = (int64_t)(buffer[0] & 0xFF) << 24;
         n += (buffer[1] & 0xFF) << 16;
         n += (buffer[2] & 0xFF) << 8;
         n += buffer[3] & 0xFF;
@@ -71,8 +71,8 @@ public:
     }
 
     static uint64_t read(const char* buffer) {
-        uint64_t n = (long) (buffer[0]) << 32;
-        n += (long) (buffer[1] & 0xFF) << 24;
+        uint64_t n = (int64_t) (buffer[0]) << 32;
+        n += (int64_t) (buffer[1] & 0xFF) << 24;
         n += (buffer[2] & 0xFF) << 16;
         n += (buffer[3] & 0xFF) << 8;
         n += buffer[4] & 0xFF;
@@ -87,11 +87,11 @@ public:
     }
 
     static uint64_t read(const char* buffer) {
-        uint64_t n = (long) (buffer[0]) << 56;
-        n += (long) (buffer[1] & 0xFF) << 48;
-        n += (long) (buffer[2] & 0xFF) << 40;
-        n += (long) (buffer[3] & 0xFF) << 32;
-        n += (long) (buffer[4] & 0xFF) << 24;
+        uint64_t n = (int64_t) (buffer[0]) << 56;
+        n += (int64_t) (buffer[1] & 0xFF) << 48;
+        n += (int64_t) (buffer[2] & 0xFF) << 40;
+        n += (int64_t) (buffer[3] & 0xFF) << 32;
+        n += (int64_t) (buffer[4] & 0xFF) << 24;
         n += (buffer[5] & 0xFF) << 16;
         n += (buffer[6] & 0xFF) << 8;
         n += buffer[7] & 0xFF;

@@ -36,7 +36,7 @@ using namespace std;
 char StringBuffer::FINISH_THREAD[1];
 
 StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
-                           long cacheSize, Stats *stats) :
+                           int64_t cacheSize, Stats *stats) :
     dir(dir), factory(SB_BLOCK_SIZE, 2, factorySize), readOnly(readOnly), maxElementsInCache(
         max(5, (int) (cacheSize / SB_BLOCK_SIZE))) {
 
@@ -67,10 +67,10 @@ StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
     if (readOnly) {
         //Load the size of the compressed blocks and initialize the other vector
         std::ifstream file(dir + string("/sb.idx"), std::ios::binary);
-        file.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(long));
+        file.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(int64_t));
         while (!file.eof()) {
-            long pos;
-            if (file.read(reinterpret_cast<char*>(&pos), sizeof(long))) {
+            int64_t pos;
+            if (file.read(reinterpret_cast<char*>(&pos), sizeof(int64_t))) {
                 sizeCompressedBlocks.push_back(pos);
             }
         }
@@ -196,7 +196,7 @@ void StringBuffer::compressBlocks() {
                                 sCurrentUncompressedBuffer, maxSize,  4);
 #endif
 
-        long totalSize = 0;
+        int64_t totalSize = 0;
 
         sizeLock.lock();
         if (sizeCompressedBlocks.size() == 0) {
@@ -314,7 +314,7 @@ void StringBuffer::append(char *string, int size) {
     uncompressedSize += size + 1;
 }
 
-long StringBuffer::getSize() {
+int64_t StringBuffer::getSize() {
     return uncompressedSize;
 }
 
@@ -341,7 +341,7 @@ void StringBuffer::compressLastBlock() {
 }
 
 void StringBuffer::uncompressBlock(int b) {
-    long start = 0;
+    int64_t start = 0;
     int length = 0;
 
     if (!readOnly) {
@@ -430,7 +430,7 @@ int StringBuffer::getVInt(int &blockId, char *&block, int &offset) {
     }
 }
 
-void StringBuffer::get(long pos, char* outputBuffer, int &size) {
+void StringBuffer::get(int64_t pos, char* outputBuffer, int &size) {
     int idxBlock = pos / SB_BLOCK_SIZE;
     int initialIdx = idxBlock;
 
@@ -476,7 +476,7 @@ void StringBuffer::get(long pos, char* outputBuffer, int &size) {
     }
 }
 
-char* StringBuffer::get(long pos, int &size) {
+char* StringBuffer::get(int64_t pos, int &size) {
     get(pos, termSupportBuffer, size);
     termSupportBuffer[size] = '\0';
     return termSupportBuffer;
@@ -514,7 +514,7 @@ char *StringBuffer::getBlock(int idxBlock) {
     return block;
 }
 
-int StringBuffer::cmp(long pos, char *string, int sizeString) {
+int StringBuffer::cmp(int64_t pos, char *string, int sizeString) {
     int startBlock = pos / SB_BLOCK_SIZE;
     const int initialBlock = startBlock;
     char *block = getBlock(startBlock);
@@ -599,10 +599,10 @@ StringBuffer::~StringBuffer() {
 
         //Write all the indices
         std::ofstream file(dir + string("/sb.idx"), std::ios::binary);
-        file.write(reinterpret_cast<char*>(&uncompressedSize), sizeof(long));
+        file.write(reinterpret_cast<char*>(&uncompressedSize), sizeof(int64_t));
         for (int i = 0; i < sizeCompressedBlocks.size(); ++i) {
             file.write(reinterpret_cast<char*>(&(sizeCompressedBlocks[i])),
-                       sizeof(long));
+                       sizeof(int64_t));
         }
         file.close();
     }

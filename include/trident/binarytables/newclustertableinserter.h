@@ -30,11 +30,11 @@ class NewClusterTableInserter: public BinaryTableInserter {
 private:
     char reader1, reader2, countsize;
 
-    long prevt1;
-    std::vector<long> v2;
+    int64_t prevt1;
+    std::vector<int64_t> v2;
 
-    void writeFirstTerm(long t1);
-    void writeSecondTerm(long t2);
+    void writeFirstTerm(int64_t t1);
+    void writeSecondTerm(int64_t t2);
 
     void writeGroup();
 
@@ -52,7 +52,7 @@ public:
 
     void startAppend();
 
-    void append(long t1, long t2);
+    void append(int64_t t1, int64_t t2);
 
     void stopAppend();
 

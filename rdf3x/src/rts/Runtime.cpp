@@ -12,7 +12,7 @@
 void Register::reset()
    // Reset the register (both value and domain)
 {
-   value=~0lu;
+   value=UINT64_MAX;
    domain=0;
 }
 //---------------------------------------------------------------------------

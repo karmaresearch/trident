@@ -287,7 +287,7 @@ int Leaf::serialize(char *bytes, int pos) {
 //
 //  return true;
 //}
-bool Leaf::get(nTerm key, long &value) {
+bool Leaf::get(nTerm key, int64_t &value) {
     int p = pos(key);
     if (p < 0) {
         return false;
@@ -336,7 +336,7 @@ void insertStringIntoBuffer(tTerm *value, int sizeValue, int p, char* strings,
     }
 }
 
-Node *Leaf::insertAtPosition(int p, nTerm key, long coordinates) {
+Node *Leaf::insertAtPosition(int p, nTerm key, int64_t coordinates) {
     if (p < 0) {
         p = -p - 1;
         if (shouldSplit()) {
@@ -390,7 +390,7 @@ Node *Leaf::insertAtPosition(int p, nTerm key, long coordinates) {
 }
 
 
-Node *Leaf::put(nTerm key, long coordinates) {
+Node *Leaf::put(nTerm key, int64_t coordinates) {
     setState(STATE_MODIFIED);
     int p = pos(key);
     return insertAtPosition(p, key, coordinates);
@@ -471,7 +471,7 @@ Node *Leaf::append(tTerm *key, int sizeKey, nTerm value) {
     return insertAtPosition(p, key, sizeKey, value);
 }
 
-Node *Leaf::append(nTerm key, long coordinates) {
+Node *Leaf::append(nTerm key, int64_t coordinates) {
     int p = getCurrentSize();
     p = -p - 1;
     return insertAtPosition(p, key, coordinates);
@@ -704,15 +704,15 @@ Coordinates *Leaf::parseInternalLine(const int pos) {
     return first;
 }
 
-long Leaf::getKey(int pos) {
+int64_t Leaf::getKey(int pos) {
     return keyAt(pos);
 }
 
-long Leaf::smallestNumericKey() {
+int64_t Leaf::smallestNumericKey() {
     return localSmallestNumericKey();
 }
 
-long Leaf::largestNumericKey() {
+int64_t Leaf::largestNumericKey() {
     return localLargestNumericKey();
 }
 

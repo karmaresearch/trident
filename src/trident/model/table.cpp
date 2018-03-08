@@ -27,7 +27,7 @@
 #include <cstring>
 #include <cmath>
 
-bool TupleTableItr::same(const long l1, const long l2) const {
+bool TupleTableItr::same(const int64_t l1, const int64_t l2) const {
     return table->getPosAtRow(l1, 0) == table->getPosAtRow(l2, 0) &&
            table->getPosAtRow(l1, 1) == table->getPosAtRow(l2, 1);
 }
@@ -68,7 +68,7 @@ uint64_t TupleTableItr::getElementAt(const int pos) {
 }
 
 
-long TupleTableItr::count() {
+int64_t TupleTableItr::count() {
     if (skipLast) {
         while (nextpos < table->getNRows() && same(counter, nextpos)) {
             nextpos++;
@@ -293,9 +293,9 @@ TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
         const uint8_t *p2 = &(psort2[0]);
         const uint8_t npos = (uint8_t) psort1.size();
 
-        long count1 = 0;
-        long count2 = 0;
-        long output = 0;
+        int64_t count1 = 0;
+        int64_t count2 = 0;
+        int64_t output = 0;
 
         while (idx1 < getNRows() && idx2 < o->getNRows()) {
             const uint64_t *row1 = getRow(idx1);

@@ -31,7 +31,7 @@ class RmCompositeTermItr : public PairItr {
 private:
     PairItr *mainitr;
     PairItr *rmitr;
-    long currentCount, nextCount;
+    int64_t currentCount, nextCount;
 
     bool hnc, hn;
 
@@ -51,11 +51,11 @@ public:
         return rmitr;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         throw 10; //not supported
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         throw 10; //not supported
     }
 
@@ -74,11 +74,11 @@ public:
         throw 10;
     }
 
-    void moveto(const long c1, const long c2) {
+    void moveto(const int64_t c1, const int64_t c2) {
         throw 10;
     }
 
-    long getCount() {
+    int64_t getCount() {
         return currentCount;
     }
 

@@ -36,9 +36,9 @@ void NewColumnTableInserter::startAppend() {
     fileopen2 = false;
 }
 
-void NewColumnTableInserter::append(long t1, long t2) {
+void NewColumnTableInserter::append(int64_t t1, int64_t t2) {
     if (prevel1 != t1) {
-        const long totalsize2 = tmpsecondpairs.size() + offloadedElements2;
+        const int64_t totalsize2 = tmpsecondpairs.size() + offloadedElements2;
         if (totalsize2 - prevtotalsize2 > largestGroup) {
             largestGroup = totalsize2 - prevtotalsize2;
         }
@@ -113,7 +113,7 @@ void NewColumnTableInserter::append(long t1, long t2) {
 
 void NewColumnTableInserter::stopAppend() {
     //Check largest group
-    const long totalsize2 = tmpsecondpairs.size() + offloadedElements2;
+    const int64_t totalsize2 = tmpsecondpairs.size() + offloadedElements2;
     if (totalsize2 - prevtotalsize2 > largestGroup) {
         largestGroup = totalsize2 - prevtotalsize2;
     }
@@ -144,14 +144,14 @@ void NewColumnTableInserter::stopAppend() {
         offloadfile1_r.open(getRootDir() + "/tmpfile1" + to_string(perm));
         char *buffer = new char[16 * 1000];
 
-        long prevkey = -1;
-        long prevsize = -1;
+        int64_t prevkey = -1;
+        int64_t prevsize = -1;
         while (offloadedElements1 > 0) {
-            const long maxElsToRead = min(offloadedElements1, (long)1000);
+            const int64_t maxElsToRead = min(offloadedElements1, (int64_t)1000);
             offloadfile1_r.read(buffer, maxElsToRead * 16);
-            for (long i = 0; i < maxElsToRead * 16; i += 16) {
-                const long v1 = Utils::decode_long(buffer + i);
-                const long v2 = Utils::decode_long(buffer + i + 8);
+            for (int64_t i = 0; i < maxElsToRead * 16; i += 16) {
+                const int64_t v1 = Utils::decode_long(buffer + i);
+                const int64_t v2 = Utils::decode_long(buffer + i + 8);
                 if (prevkey != -1) {
                     writeLong(bytesPerFirstEntry, prevkey);
                     writeLong(bytesPerCount, v2 - prevsize);
@@ -199,10 +199,10 @@ void NewColumnTableInserter::stopAppend() {
         offloadfile2_r.open(getRootDir() + "/tmpfile2" + to_string(perm), ios_base::in);
         char buffer[8 * 1000];
         while (offloadedElements2 > 0) {
-            const long maxElsToRead = min(offloadedElements2, (long)1000);
+            const int64_t maxElsToRead = min(offloadedElements2, (int64_t)1000);
             offloadfile2_r.read(buffer, maxElsToRead * 8);
-            for (long i = 0; i < maxElsToRead * 8; i += 8) {
-                const long value = Utils::decode_long(buffer + i);
+            for (int64_t i = 0; i < maxElsToRead * 8; i += 8) {
+                const int64_t value = Utils::decode_long(buffer + i);
                 writeLong(bytesPerSecondEntry, value);
             }
             offloadedElements2 -= maxElsToRead;

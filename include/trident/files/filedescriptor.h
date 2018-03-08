@@ -85,21 +85,21 @@ public:
 
     void append(char *bytes, const uint64_t size);
 
-    uint64_t appendVLong(const long v);
+    uint64_t appendVLong(const int64_t v);
 
-    uint64_t appendVLong2(const long v);
+    uint64_t appendVLong2(const int64_t v);
 
-    void appendLong(const long v);
+    void appendLong(const int64_t v);
 
-    void appendInt(const long v);
+    void appendInt(const int64_t v);
 
-    void appendShort(const long v);
+    void appendShort(const int64_t v);
 
     void appendLong(const uint8_t nbytes, const uint64_t v);
 
     void overwriteAt(uint64_t pos, char byte);
 
-    void overwriteVLong2At(uint64_t pos, long number);
+    void overwriteVLong2At(uint64_t pos, int64_t number);
 
     void reserveBytes(const uint8_t n);
 

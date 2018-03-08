@@ -30,15 +30,15 @@ class RmItr : public PairItr {
 private:
     PairItr *itr;
     PairItr *rmitr;
-    long delnfirstterms;
+    int64_t delnfirstterms;
     bool rmitrvalid;
     bool noseccol;
-    long v1, v2;
-    long curCount, nextCount;
+    int64_t v1, v2;
+    int64_t curCount, nextCount;
     bool hnc, hn;
 
     bool savedrmitrvalid;
-    long savedv1, savedv2, savedcurCount, savednextCount;
+    int64_t savedv1, savedv2, savedcurCount, savednextCount;
 
 
     int cmp(PairItr *itr1, PairItr *itr2);
@@ -48,11 +48,11 @@ public:
         return RM_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
@@ -91,15 +91,15 @@ public:
         return rmitr;
     }
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 
-    void init(PairItr *itr, PairItr *rmitr, long nfirstterms);
+    void init(PairItr *itr, PairItr *rmitr, int64_t nfirstterms);
 
     bool hasNext();
 
     void next();
 
-    long getCount();
+    int64_t getCount();
 
     uint64_t getCardinality();
 

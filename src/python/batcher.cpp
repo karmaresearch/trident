@@ -33,7 +33,7 @@ static PyObject *Batcher_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 static int Batcher_init(trident_Batcher *self, PyObject *args, PyObject *kwds) {
     const char *path;
-    long batchsize, nthreads;
+    int64_t batchsize, nthreads;
     if (!PyArg_ParseTuple(args, "sll", &path, &batchsize, &nthreads))
         return -1;
     self->creator = std::unique_ptr<BatchCreator>(new BatchCreator(string(path), batchsize, nthreads));

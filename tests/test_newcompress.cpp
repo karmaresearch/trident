@@ -37,19 +37,19 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 	fs::path pNewFile = pFile;
 	pNewFile.replace_extension(to_string(params.itrN));
 	string newFile = pNewFile.string();
-	long compressedTriples = 0;
-	long compressedTerms = 0;
-	long uncompressedTerms = 0;
+	int64_t compressedTriples = 0;
+	int64_t compressedTerms = 0;
+	int64_t uncompressedTerms = 0;
 	LZ4Reader *uncommonTermsReader = NULL;
 
-	long nextTripleId = -1;
+	int64_t nextTripleId = -1;
 	int nextPos = -1;
-	long nextTerm = -1;
+	int64_t nextTerm = -1;
 	if (params.uncommonTermsFile != NULL) {
 		BOOST_LOG_TRIVIAL(debug)<< "I'm going to use " << *(params.uncommonTermsFile) << " to process the unfrequent terms";
 		uncommonTermsReader = new LZ4Reader(*(params.uncommonTermsFile));
 		if (!uncommonTermsReader->isEof()) {
-			long tripleId = uncommonTermsReader->parseLong();
+			int64_t tripleId = uncommonTermsReader->parseLong();
 			nextTripleId = tripleId >> 2;
 			nextPos = tripleId & 0x3;
 			nextTerm = uncommonTermsReader->parseLong();
@@ -61,7 +61,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 		BOOST_LOG_TRIVIAL(debug) << "No uncommon file is provided";
 	}
 
-	long currentTripleId = params.part;
+	int64_t currentTripleId = params.part;
 	int increment = params.parallelProcesses;
 	BOOST_LOG_TRIVIAL(debug)<<"My partition " << currentTripleId << " increment " << increment;
 
@@ -69,7 +69,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 		LZ4Reader r(pFile.string());
 		LZ4Writer w(newFile);
 
-		long triple[3];
+		int64_t triple[3];
 		char *tTriple = new char[MAX_TERM_SIZE * 3];
 		bool valid[3];
 
@@ -78,7 +78,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 		SimpleTripleWriter opsWriter(params.OPSoutputDir,
 				params.prefixOutputFile + to_string(params.part));
 
-		long processedTriples = 0;
+		int64_t processedTriples = 0;
 
 		while (!r.isEof()) {
 			for (int i = 0; i < 3; ++i) {
@@ -97,7 +97,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 						triple[i] = nextTerm;
 						valid[i] = true;
 						if (!uncommonTermsReader->isEof()) {
-							long tripleId = uncommonTermsReader->parseLong();
+							int64_t tripleId = uncommonTermsReader->parseLong();
 							if (tripleId < 0) {
 								cout << "TripleId == " << tripleId << endl;
 								exit(1);
@@ -162,7 +162,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 				for (int i = 0; i < 3; ++i) {
 					if (valid[i]) {
 						w.writeByte(1);
-						w.writeLong((long) triple[i]);
+						w.writeLong((int64_t) triple[i]);
 					} else {
 						w.writeByte(0);
 						char *t = tTriple + MAX_TERM_SIZE * i;

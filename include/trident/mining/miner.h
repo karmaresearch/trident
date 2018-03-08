@@ -38,10 +38,10 @@ class MyPatternContainer : public PatternContainer<PatternElement> {
     private:
         DictMgmt *dict;
         std::vector<FPattern<PatternElement>> patterns;
-        const long ignid;
+        const int64_t ignid;
 
     public:
-        MyPatternContainer(int minLen, DictMgmt *dict, long ignid) :
+        MyPatternContainer(int minLen, DictMgmt *dict, int64_t ignid) :
             PatternContainer(minLen),
             dict(dict), ignid(ignid) {
             }
@@ -57,7 +57,7 @@ class Miner {
     private:
         std::unique_ptr<KB> kb;
         DictMgmt *dict;
-        long ignid;
+        int64_t ignid;
 
         PatternElement rootValue;
         FPTree<PatternElement> tree;

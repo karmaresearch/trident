@@ -23,7 +23,7 @@
 #include <trident/iterators/compositescanitr.h>
 #include <trident/kb/querier.h>
 
-void CompositeScanItr::gotoKey(long keyToSearch) {
+void CompositeScanItr::gotoKey(int64_t keyToSearch) {
     throw 10; //not yet implemented
 }
 
@@ -60,9 +60,9 @@ void CompositeScanItr::next() {
         //Fix count and remove more terms
         count = 0;
         for (int i = children.size() - 1; i >= 0; i--) {
-            long thiskey = getKey();
-            long scanKey = children[i]->getKey();
-            long scanValue1 = children[i]->getValue1();
+            int64_t thiskey = getKey();
+            int64_t scanKey = children[i]->getKey();
+            int64_t scanValue1 = children[i]->getValue1();
             if (scanKey == thiskey &&
                     scanValue1 == v1) {
                 count += children[i]->getCount();
@@ -93,7 +93,7 @@ void CompositeScanItr::setQuerier(Querier *q) {
     this->q = q;
 }
 
-void CompositeScanItr::moveto(const long c1, const long c2) {
+void CompositeScanItr::moveto(const int64_t c1, const int64_t c2) {
     for (int i = 0; i < children.size(); ++i) {
         children[i]->moveto(c1, c2);
     }
@@ -131,7 +131,7 @@ void CompositeScanItr::ignoreSecondColumn() {
     }
 }
 
-long CompositeScanItr::getCount() {
+int64_t CompositeScanItr::getCount() {
     return count;
 }
 

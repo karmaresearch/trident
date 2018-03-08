@@ -28,12 +28,12 @@ class MemoryMappedFile {
 #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
 		int fd;
 #endif
-		long length;
+		size_t length;
 		char *data;
 
     public:
-        MemoryMappedFile(std::string file, bool ro, long start,
-                long len) {
+        MemoryMappedFile(std::string file, bool ro, off_t start,
+                size_t len) {
 #if defined(_WIN32)
 			fd = CreateFile(file.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			LARGE_INTEGER size;
@@ -59,11 +59,11 @@ class MemoryMappedFile {
         }
 
         MemoryMappedFile(std::string file, bool ro) : MemoryMappedFile(file, ro, 0,
-                (long)Utils::fileSize(file)) {
+                (int64_t)Utils::fileSize(file)) {
         }
 
         MemoryMappedFile(std::string file) : MemoryMappedFile(file, true, 0,
-                (long)Utils::fileSize(file)) {
+                (int64_t)Utils::fileSize(file)) {
         }
 
         ~MemoryMappedFile() {
@@ -80,7 +80,7 @@ class MemoryMappedFile {
             return data;
         }
 
-        long getLength() {
+        size_t getLength() {
             return length;
         }
 
@@ -102,7 +102,7 @@ class MemoryMappedFile {
 #endif
         }
 
-        void flush(long begin, long len) {
+        void flush(off_t begin, size_t len) {
 #if defined(_WIN32)
 			LOG(ERRORL) << "flush memory mapped file is not implemented";
 			throw 10;

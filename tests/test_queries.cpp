@@ -65,8 +65,8 @@ int test1(int argc, const char** argv) {
 //	itr.init(s, 0, 1121, strat.pair_handler(121), 0, 9787);
 //	while (itr.has_next()) {
 //		itr.next_pair();
-//		long v1 = itr.getValue1();
-//		long v2 = itr.getValue2();
+//		int64_t v1 = itr.getValue1();
+//		int64_t v2 = itr.getValue2();
 //		printf("Pair %ld %ld\n", v1, v2);
 //	}
 

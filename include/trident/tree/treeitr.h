@@ -42,9 +42,9 @@ public:
 
     bool hasNext();
 
-    long next(TermCoordinates *value);
+    int64_t next(TermCoordinates *value);
 
-    long next(long &value);
+    int64_t next(int64_t &value);
 };
 
 #endif /* TREEITR_H_ */

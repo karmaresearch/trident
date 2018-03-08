@@ -37,8 +37,8 @@ class Root;
 class StringBuffer;
 class TreeItr;
 
-#define DICTMGMT_INTEGER  0x4000000000000000lu
-#define DICTMGMT_FLOAT 0x8000000000000000lu
+#define DICTMGMT_INTEGER  UINT64_C(0x4000000000000000)
+#define DICTMGMT_FLOAT UINT64_C(0x8000000000000000)
 
 using namespace std;
 
@@ -89,8 +89,8 @@ class DictMgmt {
             std::shared_ptr<Root> dict;
             std::shared_ptr<Root> invdict;
             std::shared_ptr<StringBuffer> sb;
-            long size;
-            long nextid;
+            int64_t size;
+            int64_t nextid;
 
             Dict() {
                 stats = std::shared_ptr<Stats>(new Stats());
@@ -112,13 +112,13 @@ class DictMgmt {
     private:
 
         //Define the task to execute
-        //long* dataToProcess;
+        //int64_t* dataToProcess;
         int nTuples;
         int sTuples;
         bool printTuples;
 
-        long *insertedNewTerms;
-        long largestID;
+        int64_t *insertedNewTerms;
+        int64_t largestID;
 
         bool hash;
 
@@ -158,11 +158,11 @@ class DictMgmt {
             return gud_largestID;
         }
 
-        long getNTermsInserted() {
+        int64_t getNTermsInserted() {
             return insertedNewTerms[0];
         }
 
-        long getLargestIDInserted() {
+        int64_t getLargestIDInserted() {
             return largestID;
         }
 
@@ -178,7 +178,7 @@ class DictMgmt {
 
         bool getText(nTerm key, char *value, int &size);
 
-        void getTextFromCoordinates(long coordinates, char *output,
+        void getTextFromCoordinates(int64_t coordinates, char *output,
                 int &sizeOutput);
 
         LIBEXP bool getNumber(const char *key, const int sizeKey, nTerm *value);
@@ -186,11 +186,11 @@ class DictMgmt {
         bool putDict(const char *key, int sizeKey, nTerm &value);
 
         bool putDict(const char *key, int sizeKey, nTerm &value,
-                long &coordinates);
+                int64_t &coordinates);
 
         bool putInvDict(const char *key, int sizeKey, nTerm &value);
 
-        bool putInvDict(const nTerm key, const long coordinates);
+        bool putInvDict(const nTerm key, const int64_t coordinates);
 
         bool putPair(const char *key, int sizeKey, nTerm &value);
 
@@ -206,12 +206,12 @@ class DictMgmt {
 
         /*** METHODS USED WHEN THE IDS ARE ACTUAL NUMBERS ***/
         static bool isnumeric(uint64_t term) {
-            bool res = term & 0xC000000000000000lu; //check the two most significant bits are non-zero
+            bool res = term & UINT64_C(0xC000000000000000); //check the two most significant bits are non-zero
             return res;
         }
 
         static uint64_t getIntValue(uint64_t term) {
-            uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
+            uint64_t raw = term & UINT64_C(0x3FFFFFFFFFFFFFFF);
             return raw;
         }
 
@@ -229,19 +229,19 @@ class DictMgmt {
         }
 
         static string tostr(uint64_t term) {
-            uint64_t raw = term & 0x3FFFFFFFFFFFFFFFlu;
+            uint64_t raw = term & UINT64_C(0x3FFFFFFFFFFFFFFF);
             return to_string(raw);
         }
 
         static uint64_t getType(uint64_t term) {
-            uint64_t type = term & 0xC000000000000000lu;
+            uint64_t type = term & UINT64_C(0xC000000000000000);
             return type;
         }
 
         static int compare(uint64_t type1, uint64_t number1, uint64_t type2, uint64_t number2) {
             if (type1 == DICTMGMT_INTEGER && type2 == DICTMGMT_INTEGER) {
-                number1 = number1 & 0x3FFFFFFFFFFFFFFFlu;
-                number2 = number2 & 0x3FFFFFFFFFFFFFFFlu;
+                number1 = number1 & UINT64_C(0x3FFFFFFFFFFFFFFF);
+                number2 = number2 & UINT64_C(0x3FFFFFFFFFFFFFFF);
                 if (number1 < number2) {
                     return -1;
                 } else if (number1 > number2) {
@@ -250,7 +250,7 @@ class DictMgmt {
                     return 0;
                 }
             } else if (type1 == DICTMGMT_INTEGER) {
-                number1 = number1 & 0x3FFFFFFFFFFFFFFFlu;
+                number1 = number1 & UINT64_C(0x3FFFFFFFFFFFFFFF);
                 float n2 = *((float*)(((char*)&number2+4)));
                 if (number1 < n2) {
                     return -1;
@@ -261,7 +261,7 @@ class DictMgmt {
                 }
             } else if (type2 == DICTMGMT_INTEGER) {
                 float n1 = *((float*)(((char*)&number1+4)));
-                number2 = number2 & 0x3FFFFFFFFFFFFFFFlu;
+                number2 = number2 & UINT64_C(0x3FFFFFFFFFFFFFFF);
                 if (n1 < number2) {
                     return -1;
                 } else if (n1 > number2) {

@@ -66,6 +66,8 @@ class HttpServer {
 
         void waitForData();
 
+        uint64_t getMessageBodyLength(std::string& request);
+
     public:
         HttpServer(uint32_t port,
                 std::function<void(const std::string&, std::string&)> handler,

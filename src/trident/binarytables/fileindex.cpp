@@ -42,21 +42,21 @@ FileIndex::FileIndex() {
 
 void FileIndex::unserialize(char* buffer, int *offset) {
     size = Utils::decode_vint2(buffer, offset);
-    long *keys = NULL;
+    int64_t *keys = NULL;
     int *positions = NULL;
     short *files = NULL;
 
     if (size > 0) {
-        keys = new long[size];
+        keys = new int64_t[size];
         positions = new int[size];
         files = new short[size];
     }
-    long previousKey = 0;
+    int64_t previousKey = 0;
     int previousPos = 0;
 
     int oldFile = -1;
     for (int i = 0; i < size; ++i) {
-        long tmp_k = Utils::decode_vlong(buffer, offset);
+        int64_t tmp_k = Utils::decode_vlong(buffer, offset);
         int tmp_p = Utils::decode_vint2(buffer, offset);
 
         files[i] = Utils::decode_short((const char*)buffer, *offset);
@@ -79,9 +79,9 @@ void FileIndex::unserialize(char* buffer, int *offset) {
         // Read the additional indices
         additionalSize = Utils::decode_vint2(buffer, offset);
 
-        long *additionalKeys = new long[additionalSize];
+        int64_t *additionalKeys = new int64_t[additionalSize];
         FileIndex **additionalIndices = new FileIndex*[additionalSize];
-        long diffKey = 0;
+        int64_t diffKey = 0;
         for (int i = 0; i < additionalSize; ++i) {
             additionalKeys[i] = Utils::decode_vlong2(buffer, offset) + diffKey;
             diffKey = additionalKeys[i];
@@ -104,15 +104,15 @@ int FileIndex::pos(int idx) {
     return positions[idx];
 }
 
-long FileIndex::key(int idx) {
+int64_t FileIndex::key(int idx) {
     return keys[idx];
 }
 
-int FileIndex::idx(const long key) {
+int FileIndex::idx(const int64_t key) {
     return idx(0, key);
 }
 
-int FileIndex::idx(const int start, const long key) {
+int FileIndex::idx(const int start, const int64_t key) {
     //Little optimization. Maybe key  is less than following index
     if (key <= keys[start]) {
         return start;
@@ -124,7 +124,7 @@ int FileIndex::idx(const int start, const long key) {
     int high = size - 1;
     while (low <= high) {
         int mid = (low + high) >> 1;
-        long midVal = keys[mid];
+        int64_t midVal = keys[mid];
         if (midVal < key)
             low = mid + 1;
         else if (midVal > key)
@@ -139,7 +139,7 @@ int FileIndex::sizeIndex() {
     return size;
 }
 
-FileIndex *FileIndex::additional_idx(long key) {
+FileIndex *FileIndex::additional_idx(int64_t key) {
     if (additionalIndices == NULL)
         return NULL;
 
@@ -148,7 +148,7 @@ FileIndex *FileIndex::additional_idx(long key) {
     int high = additionalSize - 1;
     while (low <= high) {
         idx = (low + high) >> 1;
-        long midVal = additionalKeys[idx];
+        int64_t midVal = additionalKeys[idx];
         if (midVal < key)
             low = idx + 1;
         else if (midVal > key)
@@ -178,12 +178,12 @@ char* FileIndex::serialize(char *buffer, int &offset, int &maxSize) {
 
     offset = Utils::encode_vint2(buffer, offset, size);
 //  offset += 4;
-    long diffKey = 0;
+    int64_t diffKey = 0;
     int diffValue = 0;
     int oldFile = -1;
 
     for (int i = 0; i < size; ++i) {
-        long k;
+        int64_t k;
         int v;
         if (oldFile == files[i]) {
             k = keys[i] - diffKey;
@@ -220,7 +220,7 @@ char* FileIndex::serialize(char *buffer, int &offset, int &maxSize) {
     return buffer;
 }
 
-void FileIndex::add(long key, short file, int pos) {
+void FileIndex::add(int64_t key, short file, int pos) {
     checkLengthArrays(size);
     keys[size] = key;
     files[size] = file;
@@ -228,7 +228,7 @@ void FileIndex::add(long key, short file, int pos) {
     size++;
 }
 
-void FileIndex::addAdditionalIndex(long key, FileIndex *idx) {
+void FileIndex::addAdditionalIndex(int64_t key, FileIndex *idx) {
     checkLengthAdditionalArrays(additionalSize);
     additionalKeys[additionalSize] = key;
     additionalIndices[additionalSize++] = idx;

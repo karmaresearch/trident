@@ -34,14 +34,14 @@ void TridentTimings::init() {
 
 std::chrono::duration<double> TridentTimings::launchQuery(
     const int perm,
-    const long s,
-    const long p,
-    const long o,
+    const int64_t s,
+    const int64_t p,
+    const int64_t o,
     const int countIgnores,
-    long & c,
-    long & junk) {
+    int64_t & c,
+    int64_t & junk) {
 
-    long v1, v2, v3;
+    int64_t v1, v2, v3;
 
     PairItr *itr;
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();

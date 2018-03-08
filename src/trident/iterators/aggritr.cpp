@@ -27,7 +27,7 @@
 using namespace std;
 
 void AggrItr::setup_second_itr(const int idx) {
-    long coordinates = mainItr->getValue2();
+    int64_t coordinates = mainItr->getValue2();
     int idx2;
     if (idx == IDX_POS)
         idx2 = IDX_OPS;
@@ -79,10 +79,10 @@ bool AggrItr::hasNext() {
     return n;
 }
 
-long AggrItr::getCount() {
+int64_t AggrItr::getCount() {
     assert(noSecColumn);
     setup_second_itr(idx);
-    long els = secondItr->getCardinality();
+    int64_t els = secondItr->getCardinality();
     q->releaseItr(secondItr);
     secondItr = NULL;
     return els;
@@ -118,7 +118,7 @@ void AggrItr::clear() {
     secondItr = NULL;
 }
 
-void AggrItr::moveto(const long c1, const long c2) {
+void AggrItr::moveto(const int64_t c1, const int64_t c2) {
     if (c1 < value1 || (c1 == value1 && (noSecColumn || c2 <= value2))) {
         mainItr->moveto(value1, mainItr->getValue2());
         n = mainItr->hasNext();

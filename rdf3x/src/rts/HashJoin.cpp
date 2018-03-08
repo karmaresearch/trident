@@ -188,7 +188,7 @@ HashJoin::Entry* HashJoin::lookup(uint64_t key)
 uint64_t HashJoin::first()
     // Produce the first tuple
 {
-    currentIdx = -1;
+    currentIdx = (size_t) -1;
     observedOutputCardinality = 0;
     // Build the hash table if not already done
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -216,9 +216,9 @@ uint64_t HashJoin::first()
 uint64_t HashJoin::next()
     // Produce the next tuple
 {
-    if (currentIdx != -1) {
+    if (currentIdx != (size_t) -1) {
         Entry *e;
-        while (currentIdx < (long)hashTable.size()) {
+        while (currentIdx < hashTable.size()) {
             if ((e = hashTable[currentIdx++])
                     && !collectedRightValues.count(e->key)) {
                 for (uint64_t index = 0, limit = leftTail.size();

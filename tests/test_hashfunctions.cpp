@@ -49,13 +49,13 @@ void fillArray(char **array, int *size, int sizeArray, int sizeString) {
 	}
 }
 
-void init(long counters[16]) {
+void init(int64_t counters[16]) {
 	for (int i = 0; i < 16; ++i) {
 		counters[i] = 0;
 	}
 }
 
-void print(long counters[16]) {
+void print(int64_t counters[16]) {
 	for (int i = 0; i < 16; ++i) {
 		cout << counters[i] << " ";
 	}
@@ -72,11 +72,11 @@ int main(int argc, const char** argv) {
 	cout << "Finished filling the array" << endl;
 
 	cout << "Testing speed of the dbj2 hash function" << endl;
-	long counters[16];
+	int64_t counters[16];
 	init(counters);
 	boost::chrono::system_clock::time_point start =
 			boost::chrono::system_clock::now();
-	long sum = 0;
+	int64_t sum = 0;
 	for (int i = 0; i < n; ++i) {
 		counters[abs(Hashes::dbj2(array[i])) % 16]++;
 	}

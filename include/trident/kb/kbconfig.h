@@ -59,7 +59,7 @@ typedef enum {
     TREE_FACTORYSIZE,
     TREE_ALLOCATEDELEMENTS,
 
-    TREE_NODE_KEYS_FACTORY_SIZE, //Size factory of arrays of longs to be used in the nodes
+    TREE_NODE_KEYS_FACTORY_SIZE, //Size factory of arrays of int64_ts to be used in the nodes
     TREE_NODE_KEYS_PREALL_FACTORY_SIZE, //Same as before, only the preallocated size
 
 //The following parameters are equalivant to the previous but apply to the dictionary tree

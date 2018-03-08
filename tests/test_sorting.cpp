@@ -13,13 +13,13 @@ using namespace std;
 namespace timens = boost::chrono;
 namespace fs = boost::filesystem;
 
-void generateTriples(string input, long n) {
+void generateTriples(string input, int64_t n) {
    LZ4Writer writer(input);
-   long seed = 0;
-   for(long j = 0; j < n; ++j) {
-            long t1 = abs(seed++);
-            long t2 = abs(seed++);
-            long t3 = abs(seed++);
+   int64_t seed = 0;
+   for(int64_t j = 0; j < n; ++j) {
+            int64_t t1 = abs(seed++);
+            int64_t t2 = abs(seed++);
+            int64_t t3 = abs(seed++);
             writer.writeLong(t1);
             writer.writeLong(t2);
             writer.writeLong(t3);
@@ -33,7 +33,7 @@ void generateTriples(string input, long n) {
 
 int main(int argc, const char** argv) {
 
-    long n = 100000000000;
+    int64_t n = 100000000000;
 
     if (false) {
     //Generate random input

@@ -103,20 +103,20 @@ public:
         return clazz;
     }
 
-    virtual PairItr *getIterator(int idx, long first, long second, long third,
-                                 long &nfirstterms) = 0;
+    virtual PairItr *getIterator(int idx, int64_t first, int64_t second, int64_t third,
+                                 int64_t &nfirstterms) = 0;
 
-    virtual long getSize() const = 0;
+    virtual int64_t getSize() const = 0;
 
-    virtual long getCard(int idx, long first) const = 0;
+    virtual int64_t getCard(int idx, int64_t first) const = 0;
 
-    virtual long getNUniqueKeys(int idx) = 0;
+    virtual int64_t getNUniqueKeys(int idx) = 0;
 
     virtual void getTermListItr(int idx, DiffTermItr *itr) = 0;
 
-    virtual long getUniqueNFirstTerms(int idx) = 0;
+    virtual int64_t getUniqueNFirstTerms(int idx) = 0;
 
-    virtual long getNFirstTables(int idx) = 0;
+    virtual int64_t getNFirstTables(int idx) = 0;
 
     virtual ~DiffIndex() {}
 
@@ -124,53 +124,53 @@ public:
 
 class DiffIndex1 : public DiffIndex {
 private:
-    long size;
+    int64_t size;
     uint8_t nbytes;
-    long nkeys[3];
-    long nuniquekeys[3];
-    long nfirstterms[6];
-    long nuniquefirstterms[6];
+    int64_t nkeys[3];
+    int64_t nuniquekeys[3];
+    int64_t nfirstterms[6];
+    int64_t nuniquefirstterms[6];
 
-    long triple[3];
+    int64_t triple[3];
     uint8_t posValues;
     std::unique_ptr<ROMappedFile> values;
     std::unique_ptr<ROMappedFile> newpairs1;
     std::unique_ptr<ROMappedFile> newpairs2;
     Factory<Diff1Itr> *factory;
 
-    static long outerJoin(PairItr *itr, std::vector<uint64_t> &values, string filenewkeys);
+    static int64_t outerJoin(PairItr *itr, std::vector<uint64_t> &values, string filenewkeys);
 
-    bool valueInArray(const long v) const;
+    bool valueInArray(const int64_t v) const;
 
-    int posValueInArray(const long v) const;
+    int posValueInArray(const int64_t v) const;
 
-    long getNFirstTerms(const int idx, const long first, const long posfirst,
-                        const long second);
+    int64_t getNFirstTerms(const int idx, const int64_t first, const int64_t posfirst,
+                        const int64_t second);
 
 public:
     DiffIndex1(string dir, DiffIndex::TypeUpdate type);
 
-    PairItr *getIterator(int idx, long first, long second, long third,
-                         long &nfirstterms);
+    PairItr *getIterator(int idx, int64_t first, int64_t second, int64_t third,
+                         int64_t &nfirstterms);
 
-    long getSize() const;
+    int64_t getSize() const;
 
-    long getCard(int idx, long first) const;
+    int64_t getCard(int idx, int64_t first) const;
 
-    long getNUniqueKeys(int idx);
+    int64_t getNUniqueKeys(int idx);
 
     void getTermListItr(int idx, DiffTermItr *itr);
 
-    long getUniqueNFirstTerms(int idx);
+    int64_t getUniqueNFirstTerms(int idx);
 
-    long getNFirstTables(int idx);
+    int64_t getNFirstTables(int idx);
 
     void setFactoryIterators(Factory<Diff1Itr> *f);
 
     static void createDiffIndex(string outputdir,
                                 bool dumpRawFormat,
                                 Querier *q,
-                                long triple[3],
+                                int64_t triple[3],
                                 std::vector<uint64_t> &values,
                                 uint8_t posvalues);
 
@@ -179,11 +179,11 @@ public:
 class DiffIndex3 : public DiffIndex {
 private:
     struct StatStrategy {
-        long bothRowsSmallCounter;
-        long bothRowsCounter;
-        long bothColumnsCounter;
-        long columnRowCounter;
-        long rowColumnCounter;
+        int64_t bothRowsSmallCounter;
+        int64_t bothRowsCounter;
+        int64_t bothColumnsCounter;
+        int64_t columnRowCounter;
+        int64_t rowColumnCounter;
 
         StatStrategy() : bothRowsSmallCounter(0), bothRowsCounter(0),
             bothColumnsCounter(0), columnRowCounter(0),
@@ -192,11 +192,11 @@ private:
 
     std::string dir;
     std::unique_ptr<Root> s;
-    long nkeys_s;
+    int64_t nkeys_s;
     std::unique_ptr<Root> p;
-    long nkeys_p;
+    int64_t nkeys_p;
     std::unique_ptr<Root> o;
-    long nkeys_o;
+    int64_t nkeys_o;
     std::unique_ptr<ROMappedFile> spo_f;
     std::unique_ptr<ROMappedFile> sop_f;
     std::unique_ptr<ROMappedFile> pos_f;
@@ -206,12 +206,12 @@ private:
     Root *roots[6];
     const char *buffers[6];
     StorageStrat *strat;
-    long size;
+    int64_t size;
 
     //Data structures to contain the unique keys. At the moment they are not used
-    long nuniquekeys[6];
-    long nuniquefirstterms[6];
-    long nfirstterms[6];
+    int64_t nuniquekeys[6];
+    int64_t nuniquefirstterms[6];
+    int64_t nfirstterms[6];
 
     static bool shouldUseColumns(const std::vector<uint64_t> &table);
 
@@ -226,8 +226,8 @@ private:
                                    const std::vector<uint64_t> &tmp2,
                                    char *&buffer1,
                                    char *&buffer2,
-                                   long *counters1,
-                                   long *counters2,
+                                   int64_t *counters1,
+                                   int64_t *counters2,
                                    UpdateStats *stats,
                                    char &strat1,
                                    char &strat2);
@@ -236,8 +236,8 @@ private:
                                          const std::vector<uint64_t> &tmp2,
                                          char *&buffer1,
                                          char *&buffer2,
-                                         long *counters1,
-                                         long *counters2,
+                                         int64_t *counters1,
+                                         int64_t *counters2,
                                          UpdateStats *stats,
                                          char &strat1,
                                          char &strat2,
@@ -251,7 +251,7 @@ private:
                                       char &strat1,
                                       char &strat2);
 
-    static uint64_t storeTablesOnBuffer(const long key,
+    static uint64_t storeTablesOnBuffer(const int64_t key,
                                         const std::vector<uint64_t> &tmp1,
                                         const std::vector<uint64_t> &tmp2,
                                         const int perm1,
@@ -259,8 +259,8 @@ private:
                                         std::unique_ptr<RWMappedFile> &mappedFile1,
                                         std::unique_ptr<RWMappedFile> &mappedFile2,
                                         StatStrategy &stat,
-                                        long *counters1,
-                                        long *counters2,
+                                        int64_t *counters1,
+                                        int64_t *counters2,
                                         UpdateStats *stats);
 
     static size_t sortIndex(string outputdir,
@@ -282,24 +282,24 @@ public:
     DiffIndex3(std::string dir, const char **globalbuffers, KBConfig &config,
                TypeUpdate type);
 
-    PairItr *getIterator(int idx, long first, long second, long third,
-                         long &nfirstterms);
+    PairItr *getIterator(int idx, int64_t first, int64_t second, int64_t third,
+                         int64_t &nfirstterms);
 
-    PairItr *getIterator(int idx, long key, TermCoordinates &coord);
+    PairItr *getIterator(int idx, int64_t key, TermCoordinates &coord);
 
     PairItr *getScan(int idx, DiffScanItr *itr);
 
-    long getSize() const;
+    int64_t getSize() const;
 
-    long getCard(int idx, long first) const;
+    int64_t getCard(int idx, int64_t first) const;
 
-    long getNUniqueKeys(int idx);
+    int64_t getNUniqueKeys(int idx);
 
     void getTermListItr(int idx, DiffTermItr *itr);
 
-    long getUniqueNFirstTerms(int idx);
+    int64_t getUniqueNFirstTerms(int idx);
 
-    long getNFirstTables(int idx);
+    int64_t getNFirstTables(int idx);
 
     void setStorageStrat(StorageStrat *strat) {
         this->strat = strat;

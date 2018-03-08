@@ -15,7 +15,7 @@ class Thread
    /// Wait x ms
    static void sleep(unsigned time);
    /// Get the thread id
-   static long threadID();
+   static int64_t threadID();
    /// Activate the next thread
    static void yield();
    /// Get the current time in milliseconds

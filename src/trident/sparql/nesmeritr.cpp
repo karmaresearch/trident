@@ -33,8 +33,8 @@ PairItr *NestedMergeJoinItr::getFirstIterator(Pattern p) {
 }
 
 bool NestedMergeJoinItr::checkNext(PairItr *itr, bool shouldMoveToNext) {
-    long constraint1 = itr->getConstraint1();
-    long constraint2 = itr->getConstraint2();
+    int64_t constraint1 = itr->getConstraint1();
+    int64_t constraint2 = itr->getConstraint2();
 
     if (shouldMoveToNext) {
         if (!itr->hasNext()) {
@@ -52,7 +52,7 @@ bool NestedMergeJoinItr::checkNext(PairItr *itr, bool shouldMoveToNext) {
     return true;
 }
 
-long NestedMergeJoinItr::executePlan() {
+int64_t NestedMergeJoinItr::executePlan() {
     assert(outputTuples == 0);
     if (currentItr == NULL) {
         return 0;
@@ -85,7 +85,7 @@ skipNext:
         /***** Fill the row with the variables of the pattern just read *****/
         idxCurrentRow = startingVarPerPattern[idxCurrentPattern];
         for (int i = 0; i < nCurrentVarsPos; ++i) {
-            long val = 0;
+            int64_t val = 0;
             switch (currentVarsPos[i]) {
             case 0:
                 val = currentItr->getKey();
@@ -153,13 +153,13 @@ skipNext:
 exit:
 
     cleanup();
-    long results = outputTuples;
+    int64_t results = outputTuples;
     outputTuples = 0;
     currentItr = NULL;
     return results;
 }
 
-int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern,
+int NestedMergeJoinItr::executeJoin(int64_t *row, Pattern *patterns, int idxPattern,
                                     PairItr **iterators, JoinPoint *joins,
                                     const int nJoins) {
 
@@ -188,9 +188,9 @@ int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern
     }
     /***** GET THE NEW ITERATOR *****/
     if (itr == NULL) {
-        long s = patterns[idxPattern].subject();
-        long p = patterns[idxPattern].predicate();
-        long o = patterns[idxPattern].object();
+        int64_t s = patterns[idxPattern].subject();
+        int64_t p = patterns[idxPattern].predicate();
+        int64_t o = patterns[idxPattern].object();
 
         //Replace first term
         performed_joins = 0;
@@ -234,22 +234,22 @@ int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern
             assert(leftJoins < 3);
             if (leftJoins == 1) {
                 int i = performed_joins;
-                long v = compressedRow[joins[i].posRow];
+                int64_t v = compressedRow[joins[i].posRow];
                 joins[i].lastValue = v;
                 if (joins[i].posIndex == 1) {
                     itr->setConstraint1(v);
                     itr->moveto(v, 0);
                 } else {
-                    long value1 = itr->getValue1();
+                    int64_t value1 = itr->getValue1();
                     assert(value1 != -1);
                     itr->setConstraint2(v);
                     itr->moveto(value1, v);
                 }
             } else { //njoins == 2
-                long valtomove1 = -1;
-                long valtomove2 = -1;
+                int64_t valtomove1 = -1;
+                int64_t valtomove2 = -1;
                 for (int i = performed_joins; i < nJoins; ++i) {
-                    long v = compressedRow[joins[i].posRow];
+                    int64_t v = compressedRow[joins[i].posRow];
                     if (joins[i].posIndex == 1) {
                         valtomove1 = v;
                     } else {
@@ -266,7 +266,7 @@ int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern
 
         /*bool first = true;
         for (int i = performed_joins; i < nJoins; ++i) {
-            long v = compressedRow[joins[i].posRow];
+            int64_t v = compressedRow[joins[i].posRow];
             if (joins[i].posIndex == 1) {
                 if (!first) {
                     //I called moveto before. I must do hasNext()/next()
@@ -325,7 +325,7 @@ int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern
 
             //The value is smaller than the current one. I need to reset
             //the iterator first...
-            long joinvalue = compressedRow[joins[performed_joins].posRow];
+            int64_t joinvalue = compressedRow[joins[performed_joins].posRow];
             if (joinvalue <= joins[performed_joins].lastValue) {
                 itr->reset(0);
             }
@@ -341,10 +341,10 @@ int NestedMergeJoinItr::executeJoin(long *row, Pattern *patterns, int idxPattern
             joins[performed_joins].lastValue = joinvalue;
 
         } else if (remJoins == 2) {
-            long valuejoin1 = -1;
-            long valuejoin2 = -1;
-            long lastval1 = -1;
-            long lastval2 = -1;
+            int64_t valuejoin1 = -1;
+            int64_t valuejoin2 = -1;
+            int64_t lastval1 = -1;
+            int64_t lastval2 = -1;
             for (int i = performed_joins; i < performed_joins + 2; ++i) {
                 if (joins[i].posIndex == 1) {
                     valuejoin1 = compressedRow[joins[i].posRow];
@@ -394,10 +394,10 @@ int NestedMergeJoinItr::try_merge_join(PairItr **iterators, int idxCurrentPatter
         PairItr *sourceItr = iterators[joins[0].sourcePattern];
         PairItr *currentItr = iterators[idxCurrentPattern];
 
-        long value_to_join_with =
+        int64_t value_to_join_with =
             joins[0].sourcePosIndex == 1 ?
             sourceItr->getValue1() : sourceItr->getValue2();
-        long current_value =
+        int64_t current_value =
             joins[0].posIndex == 1 ?
             currentItr->getValue1() : currentItr->getValue2();
         //Two cases: the current value is smaller or larger.
@@ -449,7 +449,7 @@ void NestedMergeJoinItr::cleanup() {
     }
 }
 
-void NestedMergeJoinItr::init(PairItr *firstIterator, TupleTable *outputR, long limitOutputTuple) {
+void NestedMergeJoinItr::init(PairItr *firstIterator, TupleTable *outputR, int64_t limitOutputTuple) {
     /***** INIT VARIABLES *****/
     //nElements = 0; //# rows printed
     allJoins = plan->joins; //pointer to all joins to perform
@@ -497,7 +497,7 @@ void NestedMergeJoinItr::init(PairItr *firstIterator, TupleTable *outputR, long 
 bool NestedMergeJoinItr::hasNext() {
     if (remainingInBuffer == 0) {
         outputResults->clear();
-        long results = executePlan();
+        int64_t results = executePlan();
         if (results > 0) {
             assert(outputResults->getNRows() > 0);
             currentBuffer = outputResults->getRow(0);

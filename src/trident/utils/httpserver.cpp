@@ -21,14 +21,16 @@ HttpServer::HttpServer(uint32_t port,
         }
     }
 
-int getMessageBodyLength(std::string& request) {
-    int pos = request.find("Content-Length:");
+uint64_t HttpServer::getMessageBodyLength(std::string& request) {
+    size_t pos = request.find("Content-Length:");
     if (pos == std::string::npos) {
+        // For GET requests, usually message body is not present. Hence Content-Length field can be omitted
+        // For POST requests, if message body is not present, then it Content-Length is 0
         return 0;
     }
-    int endpos = request.find("\r\n", pos);
+    size_t endpos = request.find("\r\n", pos);
     std::string bodyLen = request.substr(pos + 16, endpos - pos - 16);
-    int ret = std::stoi(bodyLen);
+    uint64_t ret = std::stoul(bodyLen);
     return ret;
 }
 
@@ -56,8 +58,15 @@ void HttpServer::processSocket() {
             } else {
                 request += std::string(buffer, len);
                 int bodyLength = getMessageBodyLength(request);
+                int pos = request.find("\r\n\r\n");
+                int headerLength = 0;
+                if (pos == std::string::npos) {
+                    LOG(ERRORL) << "FATAL: End of header not found in the request";
+                }else {
+                    headerLength = pos;
+                }
                 if (bodyLength > 0) {
-                    int readBuffer = bodyLength - 1024;
+                    int readBuffer = bodyLength - (1024 - headerLength);
                     while (readBuffer > 0) {
                         auto len = read(connFd, buffer, 1024);
                         readBuffer -= len;

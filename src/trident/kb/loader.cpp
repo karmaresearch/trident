@@ -147,11 +147,11 @@ bool _sorter_pso(const Triple &a, const Triple &b) {
 }
 
 void __parseLineSnapFile(string &line, string &origline,
-        std::map<long, long> &dictionary, std::vector<Triple> &triples, long &counter) {
+        std::map<int64_t, int64_t> &dictionary, std::vector<Triple> &triples, int64_t &counter) {
     origline = line;
     char delim = '\t';
     if (line[0] != '#') {
-        long s,o;
+        int64_t s,o;
         auto pos = line.find(delim);
         if (pos == string::npos) {
             if (delim == '\t') {
@@ -185,7 +185,7 @@ void __parseLineSnapFile(string &line, string &origline,
     }
 }
 
-long Loader::parseSnapFile(string inputtriples,
+int64_t Loader::parseSnapFile(string inputtriples,
         string inputdict,
         string *permDirs,
         int nperms,
@@ -196,8 +196,8 @@ long Loader::parseSnapFile(string inputtriples,
     LOG(DEBUGL) << "Loading input graph from " << inputtriples;
 
     //Create the permutations
-    long counter = 0;
-    std::map<long, long> dictionary;
+    int64_t counter = 0;
+    std::map<int64_t, int64_t> dictionary;
     std::vector<Triple> triples;
     string line, origline;
     if (Utils::ends_with(inputtriples, ".gz")) {
@@ -255,7 +255,7 @@ long Loader::parseSnapFile(string inputtriples,
     }
 
     //Store the dictionary. I must ensure that the data is ordered by key.
-    std::map<long, long> inverseDict;
+    std::map<int64_t, int64_t> inverseDict;
     for(const auto &it : dictionary) {
         inverseDict.insert(std::make_pair(it.second, it.first));
     }
@@ -273,7 +273,7 @@ long Loader::parseSnapFile(string inputtriples,
 }
 
 void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
-        DiskLZ4Writer *writer, int id, long *output) {
+        DiskLZ4Writer *writer, int id, int64_t *output) {
     typedef std::istream_iterator<char> isitr;
 
     //size_t sizebuffer = 0;
@@ -281,7 +281,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     DiskReader::Buffer buffer = reader->getfile();
     std::vector<char> uncompressedByteArray;
 
-    long processedtriples = 0;
+    int64_t processedtriples = 0;
     const char *pivotbuffer = buffer.b;
     while (pivotbuffer != NULL) {
         //Read the file
@@ -312,7 +312,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
         const char *end = input + sizeinput;
         const char *tkn = start;
         int pos = 0;
-        long triple[3];
+        int64_t triple[3];
         while (start < end) {
             if (*start < 48 || *start > 57) {
                 if (start > tkn) {
@@ -380,7 +380,7 @@ void _convertDictFile(std::vector<string> ins, string out) {
         while (std::getline(compressedFile,line)) {
             int pos = line.find(' ');
             string sId = line.substr(0, pos);
-            long id = stol(sId);
+            int64_t id = stoll(sId);
             line = line.substr(pos + 1);
             pos = line.find(' ');
             string sLen = line.substr(0, pos);
@@ -396,7 +396,7 @@ void _convertDictFile(std::vector<string> ins, string out) {
     delete[] support;
 }
 
-long Loader::createPermsAndDictsFromFiles(string inputtriples,
+int64_t Loader::createPermsAndDictsFromFiles(string inputtriples,
         bool separateDictEntRels,
         string inputdict,
         string inputdictr,
@@ -445,14 +445,14 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
     }
 
     //Create the permutations
-    long ntriples = 0;
+    int64_t ntriples = 0;
     if (Utils::exists(inputtriples)) {
         zstr::ifstream compressedFile2(inputtriples);
         string line;
         LOG(DEBUGL) << "Start converting triple file";
         LZ4Writer writer(permDirs[0] + "/input-0");
         while(std::getline(compressedFile2, line)) {
-            long s,p,o;
+            int64_t s,p,o;
             int pos = line.find(' ');
             string ss = line.substr(0, pos);
             s = stol(ss);
@@ -491,7 +491,7 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
                     threadsPerPart, 3);
         }
 
-        long *outputs = new long[nthreads];
+        int64_t *outputs = new int64_t[nthreads];
         for(int i = 0; i < nthreads; ++i) {
             outputs[i] = 0;
             threads[i] = std::thread(
@@ -524,14 +524,14 @@ long Loader::createPermsAndDictsFromFiles(string inputtriples,
 
 void Loader::parallelmerge(FileMerger<Triple> *merger,
         int buffersize,
-        std::vector<long*> *buffers,
+        std::vector<int64_t*> *buffers,
         std::mutex *m_buffers,
         std::condition_variable *cond_buffers,
         std::list <
-        std::pair<long*, int >> *exchangeBuffers,
+        std::pair<int64_t*, int >> *exchangeBuffers,
         std::mutex *m_exchange,
         std::condition_variable *cond_exchange) {
-    long *buffer = NULL;
+    int64_t *buffer = NULL;
     std::unique_lock<std::mutex> l(*m_buffers);
     while (buffers->empty()) {
         cond_buffers->wait(l);
@@ -541,7 +541,7 @@ void Loader::parallelmerge(FileMerger<Triple> *merger,
     l.unlock();
 
     int i = 0;
-    long prevKey = -1;
+    int64_t prevKey = -1;
     while (!merger->isEmpty()) {
         Triple t = merger->get();
         if (i == buffersize) {
@@ -611,7 +611,7 @@ void Loader::dumpPermutation_seq(K *start, K *end,
             start++;
         }
     } else {
-        long box1, box2;
+        int64_t box1, box2;
         while (start < end) {
             Triple t;
             start->toTriple(t);
@@ -655,9 +655,9 @@ void Loader::dumpPermutation_seq(K *start, K *end,
 
 template<class K>
 void Loader::dumpPermutation(std::vector<K> &input,
-        long parallelProcesses,
-        long maxReadingThreads,
-        long maxValue,
+        int64_t parallelProcesses,
+        int64_t maxReadingThreads,
+        int64_t maxValue,
         string out,
         char sorter) {
     LOG(DEBUGL) << "Start sorting";
@@ -699,7 +699,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
     }
 
     //Find out the total size of the written elements
-    long realSize = maxValue;
+    int64_t realSize = maxValue;
     while (realSize > 0) {
         if (K::ismax(input[realSize - 1])) {
             realSize--;
@@ -714,10 +714,10 @@ void Loader::dumpPermutation(std::vector<K> &input,
         rawInput = &(input[0]);
 
     std::thread *threads = new std::thread[parallelProcesses];
-    long chunkSize = max((long)1, (long)(realSize / parallelProcesses));
-    long currentEnd = 0;
+    int64_t chunkSize = max((int64_t)1, (int64_t)(realSize / parallelProcesses));
+    int64_t currentEnd = 0;
     for(int i = 0; i < parallelProcesses; ++i) {
-        long nextEnd;
+        int64_t nextEnd;
         if (i == parallelProcesses - 1) {
             nextEnd = realSize;
         } else {
@@ -754,17 +754,17 @@ template<class K>
 void Loader::sortPermutation_seq(
         const int idReader,
         MultiDiskLZ4Reader *reader,
-        long start,
+        int64_t start,
         K *output,
-        long maxInserts,
-        long *count) {
+        int64_t maxInserts,
+        int64_t *count) {
 
-    long i = 0;
-    long currentIdx = start;
+    int64_t i = 0;
+    int64_t currentIdx = start;
     while (!reader->isEOF(idReader) && i < maxInserts) {
-        //long t1 = reader->readLong(idReader);
-        //long t2 = reader->readLong(idReader);
-        //long t3 = reader->readLong(idReader);
+        //int64_t t1 = reader->readLong(idReader);
+        //int64_t t2 = reader->readLong(idReader);
+        //int64_t t3 = reader->readLong(idReader);
         //output[currentIdx].first = t1;
         //output[currentIdx].second = t2;
         //output[currentIdx].third = t3;
@@ -781,9 +781,9 @@ void Loader::sortPermutation_seq(
     *count = i;
     while (i < maxInserts) {
         output[currentIdx] = K::max();
-        //output[currentIdx].first = ~0lu;
-        //output[currentIdx].second = ~0lu;
-        //output[currentIdx].third = ~0lu;
+        //output[currentIdx].first = UINT64_MAX;
+        //output[currentIdx].second = UINT64_MAX;
+        //output[currentIdx].third = UINT64_MAX;
         i++;
         currentIdx++;
     }
@@ -795,8 +795,8 @@ void Loader::sortPermutation(string inputDir,
         int maxReadingThreads,
         int parallelProcesses,
         bool initialSorting,
-        long estimatedSize,
-        long elementsMainMem,
+        int64_t estimatedSize,
+        int64_t elementsMainMem,
         int filesToMerge,
         bool readFirstByte,
         std::vector<std::pair<string, char>> &additionalPermutations) {
@@ -850,8 +850,8 @@ void Loader::sortPermutation(string inputDir,
         }
         std::thread *threads = new std::thread[parallelProcesses];
 
-        elementsMainMem = max((long)parallelProcesses,
-                min(elementsMainMem, (long)(estimatedSize * 1.2)));
+        elementsMainMem = max((int64_t)parallelProcesses,
+                min(elementsMainMem, (int64_t)(estimatedSize * 1.2)));
         LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
         std::vector<K> triples(elementsMainMem);
         LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << ". done";
@@ -860,14 +860,14 @@ void Loader::sortPermutation(string inputDir,
         if (triples.size() > 0) {
             rawTriples = &(triples[0]);
         }
-        long maxInserts = max((long)1, (long)(elementsMainMem / parallelProcesses));
+        int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
         bool isFinished = false;
         int iter = 0;
 
         LOG(DEBUGL) << "Start loop";
         while (!isFinished) {
             //Load in parallel all the triples from disk to the main memory
-            std::vector<long> counts(parallelProcesses);
+            std::vector<int64_t> counts(parallelProcesses);
             for (int i = 0; i < parallelProcesses; ++i) {
                 MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
                 int idReader = i / maxReadingThreads;
@@ -916,7 +916,7 @@ void Loader::sortPermutation(string inputDir,
             LOG(DEBUGL) << "Finished filling holes";
 
             //Sort and dump the results to disk
-            long maxValue = maxInserts * parallelProcesses;
+            int64_t maxValue = maxInserts * parallelProcesses;
             string outputFile = inputDir + string("/sorted-") + to_string(iter++);
             dumpPermutation(triples,
                     parallelProcesses,
@@ -974,7 +974,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     bool printstats = params.printstats;
     //SinkPtr logPtr = params.logPtr;
     bool removeInput = params.removeInput;
-    long estimatedSize = params.estimatedSize;
+    int64_t estimatedSize = params.estimatedSize;
     bool deletePreviousExt = params.deletePreviousExt;
 
     SimpleTripleWriter *posWriter = NULL;
@@ -986,8 +986,8 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     //Sort the triples and store them into files.
     LOG(DEBUGL) << "Start sorting...";
     //Calculate the maximum amount of main memory I can use
-    long mem = Utils::getSystemMemory() * 0.7 / nindices;
-    long nelements = mem / sizeof(L_Triple);
+    int64_t mem = Utils::getSystemMemory() * 0.7 / nindices;
+    int64_t nelements = mem / sizeof(L_Triple);
     LOG(DEBUGL) << "Triples I can store in main memory: " << nelements <<
         " size triple " << sizeof(L_Triple);
     std::vector<std::pair<string, char>> additionalPermutations; //This parameter is unused here. I use it somewhere else
@@ -1003,10 +1003,10 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     LOG(DEBUGL) << "...completed.";
 
     LOG(DEBUGL) << "Start inserting...";
-    long ps, pp, po; //Previous values. Used to remove duplicates.
+    int64_t ps, pp, po; //Previous values. Used to remove duplicates.
     ps = pp = po = -1;
-    long count = 0;
-    long countInput = 0;
+    int64_t count = 0;
+    int64_t countInput = 0;
     const int randThreshold = sampleRate * 100;
     assert(sampleWriter == NULL || randThreshold > 0);
 
@@ -1023,15 +1023,15 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         LOG(DEBUGL) << "Parallel insert";
         std::mutex m_buffers;
         std::condition_variable cond_buffers;
-        std::vector<long*> buffers;
+        std::vector<int64_t*> buffers;
 
         std::mutex m_exchange;
         std::condition_variable cond_exchange;
-        std::list<std::pair<long*, int>> exchangeBuffers;
+        std::list<std::pair<int64_t*, int>> exchangeBuffers;
 
         const int sizebuffer = 4 * 1000000 * 4;
         for (int i = 0; i < 3; ++i) { //Create three buffers
-            buffers.push_back(new long[sizebuffer]);
+            buffers.push_back(new int64_t[sizebuffer]);
         }
 
         //Start one thread to merge the files in a single stream. Put the results
@@ -1054,20 +1054,20 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
             while (exchangeBuffers.empty()) {
                 cond_exchange.wait(le);
             }
-            std::pair<long*, int> b = exchangeBuffers.front();
+            std::pair<int64_t*, int> b = exchangeBuffers.front();
             exchangeBuffers.pop_front();
             le.unlock();
 
             const int currentsize = b.second;
             //Do the processing
-            long *buf = b.first;
+            int64_t *buf = b.first;
 
             for (int i = 0; i < currentsize; i += 4) {
                 countInput++;
-                const long s = buf[i];
-                const long p = buf[i + 1];
-                const long o = buf[i + 2];
-                const long countt = buf[i + 3];
+                const int64_t s = buf[i];
+                const int64_t p = buf[i + 1];
+                const int64_t o = buf[i + 2];
+                const int64_t countt = buf[i + 3];
                 if (count % 5000000000 == 0) {
                     LOG(DEBUGL) << "..." << count << "...";
                 }
@@ -1113,7 +1113,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         //Exit
         t.join();
         while (!buffers.empty()) {
-            long *b = buffers.back();
+            int64_t *b = buffers.back();
             buffers.pop_back();
             delete[] b;
         }
@@ -1197,7 +1197,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
     //alldictfiles.insert(alldictfiles.begin(), dictFileInput);
 
     //Read n. popular terms
-    //nTerm key = ((long)1 << 40);
+    //nTerm key = ((int64_t)1 << 40);
     nTerm key = 0;
     if (Utils::exists(dictFileInput)) {
         LZ4Reader in(dictFileInput);
@@ -1225,7 +1225,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
                     dict->appendPair(value, size, key);
                 } else {
                     //In this case I only insert the "dict" entries
-                    long coordinates;
+                    int64_t coordinates;
                     resp = dict->putDict(value, size, key, coordinates);
                     tmpWriter->writeLong(key);
                     tmpWriter->writeLong(coordinates);
@@ -1250,7 +1250,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
         LZ4Reader in(dictFileInput);
         LOG(DEBUGL) << "Parsing " << dictFileInput;
         key = 0;
-        //key = ((long)1 << 40);
+        //key = ((int64_t)1 << 40);
         while (!in.isEof()) {
             //The key in the files is continuosly resetted. I cannot use it.
             //I use key instead.
@@ -1265,7 +1265,7 @@ void Loader::insertDictionary(const int part, DictMgmt *dict, string
                     resp = dict->putPair(value + 2, size - 2, key);
                 } else {
                     //In this case I only insert the "dict" entries
-                    long coordinates;
+                    int64_t coordinates;
                     resp = dict->putDict(value + 2, size - 2, key, coordinates);
                     tmpWriter->writeLong(key);
                     tmpWriter->writeLong(coordinates);
@@ -1342,9 +1342,9 @@ void Loader::exportFiles(string tripleDir, string* dictFiles,
             string dictFile = dictFiles[i];
             LOG(DEBUGL) << "Exporting dict file " << dictFile;
             LZ4Reader reader(dictFile);
-            long counter = 0;
+            int64_t counter = 0;
             while (!reader.isEof()) {
-                long n = reader.parseLong();
+                int64_t n = reader.parseLong();
                 int size;
                 const char* s = reader.parseString(size);
                 out << to_string(n) << " " << to_string(size - 2) << " ";
@@ -1400,12 +1400,12 @@ void Loader::monitorPerformance(/*SinkPtr logger,*/ int seconds, std::condition_
             break;
         lck.unlock();
 
-        long mem = TridentUtils::getVmRSS();
+        int64_t mem = TridentUtils::getVmRSS();
         double cpu = TridentUtils::getCPUUsage();
-        long diskread = TridentUtils::diskread();
-        long diskwrite = TridentUtils::diskwrite();
-        long phy_diskread = TridentUtils::phy_diskread();
-        long phy_diskwrite = TridentUtils::phy_diskwrite();
+        int64_t diskread = TridentUtils::diskread();
+        int64_t diskwrite = TridentUtils::diskwrite();
+        int64_t phy_diskread = TridentUtils::phy_diskread();
+        int64_t phy_diskwrite = TridentUtils::phy_diskwrite();
         LOG(DEBUGL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes=" << diskwrite << "\tphydiskread_bytes=" << phy_diskread << "\tphydiskwrite_bytes=" << phy_diskwrite;
         //logger->flush();
     }
@@ -1503,7 +1503,7 @@ void Loader::load(ParamsLoad p) {
         }
     }
 
-    long totalCount = 0;
+    int64_t totalCount = 0;
     string *permDirs = new string[nperms];
     for (int i = 0; i < nperms; ++i) {
         permDirs[i] = p.tmpDir + string("/permtmp-") + to_string(i);
@@ -1629,9 +1629,9 @@ void Loader::load(ParamsLoad p) {
     LOG(INFOL) << "Loading is finished: Time (sec) " << sec.count();
 }
 
-void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
+void Loader::rewriteKG(string inputdir, std::unordered_map<int64_t,int64_t> &map) {
     //For each file in the directory, replace the predicate IDs with new ones
-    long counter = 0;
+    int64_t counter = 0;
     auto files = Utils::getFiles(inputdir);
     for (auto pathfile : files) {
         {
@@ -1639,9 +1639,9 @@ void Loader::rewriteKG(string inputdir, std::unordered_map<long,long> &map) {
             LZ4Writer writer(pathfile + "-new");
             LOG(DEBUGL) << "Converting " << pathfile;
             while (!reader.isEof()) {
-                long s = reader.parseLong();
-                long p = reader.parseLong();
-                long o = reader.parseLong();
+                int64_t s = reader.parseLong();
+                int64_t p = reader.parseLong();
+                int64_t o = reader.parseLong();
                 if (map.count(p)) {
                     p = map[p];
                 } else {
@@ -1718,7 +1718,7 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                 t.writeTo(&writer);
                 if (t.first > t.third) {
                     //swap them
-                    long box = t.first;
+                    int64_t box = t.first;
                     t.first = t.third;
                     t.third = box;
                 }
@@ -1749,7 +1749,7 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                     LOG(ERRORL) << "RelOwnIDs is set to true. Also storeDicts must be set to true";
                     throw 10;
                 }
-                std::unordered_map<long,long> ent2rel;
+                std::unordered_map<int64_t,int64_t> ent2rel;
                 //The input is on the form SPO
                 rewriteKG(permDirs[0], ent2rel);
                 //Store the map in a file
@@ -1766,7 +1766,7 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                     LZ4Reader in(fin);
                     LOG(DEBUGL) << "Parsing " << fin;
                     while (!in.isEof()) {
-                        long k = in.parseLong();
+                        int64_t k = in.parseLong();
                         int size;
                         const char *value = in.parseString(size);
                         writer.writeLong(k);
@@ -1787,7 +1787,7 @@ void Loader::loadKB_createSamples(string kbDir,
         double sampleRate,
         int nindices,
         ParamsLoad &p,
-        long totalCount,
+        int64_t totalCount,
         int signaturePerms) {
 
     LOG(DEBUGL) << "Creating a sample dataset";
@@ -1810,7 +1810,7 @@ void Loader::loadKB_createSamples(string kbDir,
     config.setParamBool(AGGRINDICES, false);
     config.setParamBool(USEFIXEDSTRAT, false);
     printStats = false;
-    MemoryOptimizer::optimizeForWriting((long)(totalCount * sampleRate), config);
+    MemoryOptimizer::optimizeForWriting((int64_t)(totalCount * sampleRate), config);
     KB kb(sampleKB.c_str(), false, false, false, config);
 
     ParamsLoad samplep = p;
@@ -1886,7 +1886,7 @@ void Loader::loadKB_createTree(KB &kb,
 
 void Loader::loadKB(KB &kb,
         ParamsLoad &p,
-        long totalCount,
+        int64_t totalCount,
         string *permDirs,
         int nperms,
         int signaturePerms,
@@ -1907,7 +1907,7 @@ void Loader::loadKB(KB &kb,
     double sampleRate = p.sampleRate;
     bool storePlainList = p.storePlainList;
     string remoteLocation = p.remoteLocation;
-    long limitSpace = p.limitSpace;
+    int64_t limitSpace = p.limitSpace;
     int parallelProcesses = p.parallelThreads;
     int maxReadingThreads = p.maxReadingThreads;
     string graphTransformation = p.graphTransformation;
@@ -2015,7 +2015,7 @@ void Loader::generateNewPermutation_seq(MultiDiskLZ4Reader *reader,
         int pos0,
         int pos1,
         int pos2) {
-    long triple[3];
+    int64_t triple[3];
     while (!reader->isEOF(idx)) {
         Triple t;
         t.readFrom(idx, reader);
@@ -2098,7 +2098,7 @@ void Loader::generateNewPermutation(string outputdir,
     LOG(DEBUGL) << "Finished";
 }
 
-void Loader::moveData(string remoteLocation, string inputDir, long limitSpace) {
+void Loader::moveData(string remoteLocation, string inputDir, int64_t limitSpace) {
     //If the space of the device where the inputDir is located is less than limitSpace,
     //then I will move it to remoteLocation
     LOG(DEBUGL) << "Check whether I should move " << inputDir << " to " << remoteLocation << " limit " << limitSpace;
@@ -2124,14 +2124,14 @@ void Loader::moveData(string remoteLocation, string inputDir, long limitSpace) {
 /*void Loader::sortChunks(string inputdir,
   int maxReadingThreads,
   int parallelProcesses,
-  long estimatedSize,
+  int64_t estimatedSize,
   std::vector<std::pair<string, char>> &additionalPermutations) {
 
 //calculate the number of elements
-long mem = Utils::getSystemMemory() * 0.7;
-long nelements = mem / sizeof(L_Triple);
-long elementsMainMem = max((long)parallelProcesses,
-min(nelements, (long)(estimatedSize * 1.2)));
+int64_t mem = Utils::getSystemMemory() * 0.7;
+int64_t nelements = mem / sizeof(L_Triple);
+int64_t elementsMainMem = max((int64_t)parallelProcesses,
+min(nelements, (int64_t)(estimatedSize * 1.2)));
 
 Loader::sortPermutation<L_Triple>(inputdir,
 maxReadingThreads,
@@ -2160,8 +2160,8 @@ void Loader::parallel_createIndices(
         SimpleTripleWriter *sampleWriter,
         double sampleRate,
         string remotePath,
-        long limitSpace,
-        long estimatedSize,
+        int64_t limitSpace,
+        int64_t estimatedSize,
         int nindices) {
 
     if (aggrIndices && nindices != 6) {
@@ -2397,8 +2397,8 @@ void Loader::seq_createIndices(
         SimpleTripleWriter *sampleWriter,
         double sampleRate,
         string remotePath,
-        long limitSpace,
-        long estimatedSize) {
+        int64_t limitSpace,
+        int64_t estimatedSize) {
 
     LOG(DEBUGL) << "SortAndIndex one-by-one";
 
@@ -2643,8 +2643,8 @@ void Loader::createIndices(
         SimpleTripleWriter *sampleWriter,
         double sampleRate,
         string remotePath,
-        long limitSpace,
-        long estimatedSize,
+        int64_t limitSpace,
+        int64_t estimatedSize,
         int nindices) {
     if (createIndicesInBlocks) {
         seq_createIndices(parallelProcesses, maxReadingThreads,
@@ -2682,7 +2682,7 @@ void Loader::createPermutations(string inputDir, int nperms, int signaturePerms,
 
     //Read all triples
     vector<string> files = Utils::getFiles(inputDir);
-    long count = 0;
+    int64_t count = 0;
     int currentPart = 0;
     for (std::vector<string>::iterator itr = files.begin(); itr != files.end();
             ++itr) {
@@ -2694,7 +2694,7 @@ void Loader::createPermutations(string inputDir, int nperms, int signaturePerms,
         reader.parseByte();
 #endif
         while (!reader.isEof()) {
-            long triple[3];
+            int64_t triple[3];
             triple[0] = reader.parseLong();
             triple[1] = reader.parseLong();
             triple[2] = reader.parseLong();

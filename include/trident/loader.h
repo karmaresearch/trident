@@ -47,8 +47,8 @@ typedef enum _InputFormat { RDF, SNAP } InputFormat;
 
 typedef class PairLong {
     public:
-        long n1;
-        long n2;
+        int64_t n1;
+        int64_t n2;
 
         void readFrom(LZ4Reader *reader) {
             n1 = reader->parseLong();
@@ -71,7 +71,7 @@ typedef class PairLong {
 
 typedef struct TreeEl {
     nTerm key;
-    long nElements;
+    int64_t nElements;
     int pos;
     short file;
     char strat;
@@ -86,7 +86,7 @@ class TreeWriter: public TreeInserter {
             fos.open(path);
         }
 
-        void addEntry(nTerm key, long nElements, short file, int pos,
+        void addEntry(nTerm key, int64_t nElements, short file, int pos,
                 char strategy) {
             Utils::encode_long(supportBuffer, 0, key);
             Utils::encode_long(supportBuffer, 8, nElements);
@@ -221,7 +221,7 @@ struct ParamSortAndInsert {
     bool printstats;
     //SinkPtr logPtr;
     bool removeInput;
-    long estimatedSize;
+    int64_t estimatedSize;
     bool deletePreviousExt;
 };
 
@@ -401,7 +401,7 @@ struct ParamsLoad {
     int thresholdSkipTable;
     //SinkPtr logPtr;
     string remoteLocation;
-    long limitSpace;
+    int64_t limitSpace;
     string graphTransformation;
     int timeoutStats;
     bool storeDicts;
@@ -428,8 +428,8 @@ class Loader {
                     int maxReadingThreads,
                     int parallelProcesses,
                     bool initialSort,
-                    long estimatedSize,
-                    long elementsMainMem,
+                    int64_t estimatedSize,
+                    int64_t elementsMainMem,
                     int filesToMerge,
                     bool readFirstByte,
                     std::vector<std::pair<string, char>> &additionalPermutations);
@@ -437,16 +437,16 @@ class Loader {
         template<class K>
             static void sortPermutation_seq(const int idReader,
                     MultiDiskLZ4Reader *reader,
-                    long start,
+                    int64_t start,
                     K *output,
-                    long maxInserts,
-                    long *count);
+                    int64_t maxInserts,
+                    int64_t *count);
 
         template<class K>
             static void dumpPermutation(std::vector<K> &input,
-                    long parallelProcesses,
-                    long maxReadingThreads,
-                    long maxValue,
+                    int64_t parallelProcesses,
+                    int64_t maxReadingThreads,
+                    int64_t maxValue,
                     string out,
                     char sorter);
 
@@ -459,11 +459,11 @@ class Loader {
 
         static void parallelmerge(FileMerger<Triple> *merger,
                 int buffersize,
-                std::vector<long*> *buffers,
+                std::vector<int64_t*> *buffers,
                 std::mutex *m_buffers,
                 std::condition_variable *cond_buffers,
                 std::list <
-                std::pair<long*, int >> *exchangeBuffers,
+                std::pair<int64_t*, int >> *exchangeBuffers,
                 std::mutex *m_exchange,
                 std::condition_variable *cond_exchange);
 
@@ -506,8 +506,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remotePath,
-                long limitSpace,
-                long estimatedSize);
+                int64_t limitSpace,
+                int64_t estimatedSize);
 
         void parallel_createIndices(
                 int parallelProcesses,
@@ -525,8 +525,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remotePath,
-                long limitSpace,
-                long estimatedSize,
+                int64_t limitSpace,
+                int64_t estimatedSize,
                 int nindices);
 
         void createIndices(
@@ -545,8 +545,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remoteLocation,
-                long limitSpace,
-                long estimatedSize,
+                int64_t limitSpace,
+                int64_t estimatedSize,
                 int nindices);
 
         void loadKB_createSamples(string kbDir,
@@ -557,7 +557,7 @@ class Loader {
                 double sampleRate,
                 int nindices,
                 ParamsLoad &p,
-                long totalCount,
+                int64_t totalCount,
                 int signaturePerms);
 
         void loadKB_storeDicts(KB &kb,
@@ -584,7 +584,7 @@ class Loader {
 
         void loadKB(KB &kb,
                 ParamsLoad &p,
-                long totalCount,
+                int64_t totalCount,
                 string *permDirs,
                 int nperms,
                 int signaturePerms,
@@ -601,12 +601,12 @@ class Loader {
 
         static void moveData(string remoteLocation,
                 string inputDir,
-                long limitSpace);
+                int64_t limitSpace);
 
         static void createPermsAndDictsFromFiles_seq(DiskReader *reader,
-                DiskLZ4Writer *writer, int id, long *output);
+                DiskLZ4Writer *writer, int id, int64_t *output);
 
-        static long createPermsAndDictsFromFiles(
+        static int64_t createPermsAndDictsFromFiles(
                 string inputtriples,
                 bool separateDictEntRels,
                 string inputdict,
@@ -618,7 +618,7 @@ class Loader {
                 int maxReadingThreads,
                 int parallelProcesses);
 
-        static long parseSnapFile(
+        static int64_t parseSnapFile(
                 string inputtriples,
                 string inputdict,
                 string *permDirs,
@@ -638,7 +638,7 @@ class Loader {
         static void monitorPerformance(/*SinkPtr logger, */int seconds,
                 std::condition_variable *cv, std::mutex *mtx, bool *isFinished);
 
-        static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);
+        static void rewriteKG(string inputdir, std::unordered_map<int64_t,int64_t> &map);
 
     public:
 

@@ -28,7 +28,7 @@ class ParallelRange {
 
 class ParallelTasks {
     private:
-        static long nthreads;
+        static int32_t nthreads;
 
         template<typename It, typename Cmp>
             static void inplace_merge(It begin,
@@ -60,7 +60,7 @@ class ParallelTasks {
                     const Cmp &cmp) {
                 std::vector<typename std::iterator_traits<It>::value_type> support;
                 support.resize(std::distance(begin, end));
-                long idxSupport = 0;
+                size_t idxSupport = 0;
                 It a = begin;
                 It b = mid;
                 while (true) {
@@ -85,13 +85,13 @@ class ParallelTasks {
 
 
     public:
-        static void setNThreads(uint32_t nthreads) {
+        static void setNThreads(int32_t nthreads) {
             ParallelTasks::nthreads = nthreads;
         }
 
         //Procedure inspired by https://stackoverflow.com/questions/24130307/performance-problems-in-parallel-mergesort-c
         template<typename It, typename Cmp>
-            static void sort_int(It begin, It end, const Cmp &cmp, long nthreads) {
+            static void sort_int(It begin, It end, const Cmp &cmp, int32_t nthreads) {
                 auto len = std::distance(begin, end);
                 if (len <= 1024 || nthreads < 2) {
                     std::sort(begin, end, cmp);
@@ -105,7 +105,7 @@ class ParallelTasks {
             }
 
         template<typename It>
-            static void sort_int(It begin, It end, long nthreads = -1) {
+            static void sort_int(It begin, It end, int32_t nthreads = -1) {
                 if (nthreads == -1) {
                     if (ParallelTasks::nthreads != -1) {
                         //Limit the number of threads to the one specified by the user
@@ -132,7 +132,7 @@ class ParallelTasks {
                     size_t end,
                     size_t grainsize,
                     Container c,
-                    long nthreads = -1) {
+                    int32_t nthreads = -1) {
                 if (nthreads == -1) {
                     if (ParallelTasks::nthreads != -1) {
                         //Limit the number of threads to the one specified by the user

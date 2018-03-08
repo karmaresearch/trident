@@ -42,12 +42,12 @@ int GetCommon(TIntV& A, TIntV& B) {
   return ret;
 }
 
-long GetCommon(const std::vector<long>& A, const std::vector<long>& B) {
-  long i, j;
-  long ret = 0;
-  long alen, blen;
-  long d;
-  long ai;
+ int64_t GetCommon(const std::vector< int64_t>& A, const std::vector< int64_t>& B) {
+   int64_t i, j;
+   int64_t ret = 0;
+   int64_t alen, blen;
+   int64_t d;
+   int64_t ai;
 
   alen = A.size();
   blen = B.size();

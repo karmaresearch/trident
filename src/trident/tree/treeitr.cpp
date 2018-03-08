@@ -54,12 +54,12 @@ bool TreeItr::hasNext() {
     return true;
 }
 
-long TreeItr::next(TermCoordinates *value) {
+int64_t TreeItr::next(TermCoordinates *value) {
     currentLeaf->getValueAtPos(currentPos, value);
     return currentLeaf->getKey(currentPos++);
 }
 
-long TreeItr::next(long &value) {
+int64_t TreeItr::next(int64_t &value) {
     nTerm v;
     currentLeaf->getValueAtPos(currentPos, &v);
     value = v;

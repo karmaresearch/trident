@@ -52,7 +52,7 @@ void FileMarks::parse(string path) {
     this->end = this->begin + this->sizeMarks * 11;
 }
 
-TableStorage::TableStorage(bool readOnly, string pathDir, long maxFileSize,
+TableStorage::TableStorage(bool readOnly, string pathDir, int64_t maxFileSize,
         int maxNFiles,
         MemoryManager<FileDescriptor> *bytesTracker,
         Stats &stats, int perm) :
@@ -131,7 +131,7 @@ std::string TableStorage::getPath() {
     return std::string(pathDir, sizePathDir);
 }
 
-std::pair<const char*, const char*> TableStorage::getTable(short file, long mark) {
+std::pair<const char*, const char*> TableStorage::getTable(short file, int64_t mark) {
     //I assume all the table is in one file
     if (!marksLoaded[file]) {
 #ifdef MT
@@ -156,7 +156,7 @@ std::pair<const char*, const char*> TableStorage::getTable(short file, long mark
     return make_pair(start, end);
 }
 
-long TableStorage::startAppend(const long key,
+int64_t TableStorage::startAppend(const int64_t key,
         const char strat,
         BinaryTableInserter *handler) {
 
@@ -198,12 +198,12 @@ void TableStorage::setStrategy(const char strat) {
     marksToStore[lastCreatedFile].back().strat = strat;
 }
 
-void TableStorage::append(long t1, long t2) {
+void TableStorage::append(int64_t t1, int64_t t2) {
     nTriplesInserted++;
     insertHandler->appendPair(t1, t2);
 }
 
-long TableStorage::getNTriplesInserted() {
+int64_t TableStorage::getNTriplesInserted() {
     return nTriplesInserted;
 }
 
@@ -244,7 +244,7 @@ void TableStorage::storeFileIndex(const std::vector<WrittenMarks> &input,
             //char *buffer = static_cast<char*>(mapped_rgn.get_address());
             MemoryMappedFile mf(pathFile, false, 0, 8);
             char *buffer = mf.getData();
-            long existing_n = Utils::decode_long(buffer);
+            int64_t existing_n = Utils::decode_long(buffer);
             Utils::encode_long(buffer, existing_n + input.size());
             mf.flush(0, 8);
             //mapped_rgn.flush(0, 8);
@@ -255,7 +255,7 @@ void TableStorage::storeFileIndex(const std::vector<WrittenMarks> &input,
         Utils::encode_long(supportArray, 0, input.size());
         oFile.write(supportArray, 8);
     }
-    for(long i = 0; i < input.size(); ++i) {
+    for(int64_t i = 0; i < input.size(); ++i) {
         const WrittenMarks &m = input[i];
         Utils::encode_longNBytes(supportArray, 5, m.pos);
         Utils::encode_longNBytes(supportArray+5, 5,  m.key);

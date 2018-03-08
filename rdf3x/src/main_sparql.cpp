@@ -169,14 +169,14 @@ void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
         LOG(INFOL) << "Runtime queryexec: " << durationQ.count() * 1000 << "ms.";
         LOG(INFOL) << "Runtime totalexec: " << duration.count() * 1000 << "ms.";
         ResultsPrinter *p = (ResultsPrinter*) operatorTree;
-        long nElements = p->getPrintedRows();
+        uint64_t nElements = p->getPrintedRows();
         LOG(INFOL) << "# rows = " << nElements;
         delete operatorTree;
     }
 }
 
 void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent) {
-    long nElements = 0;
+    uint64_t nElements = 0;
     char bufferTerm[MAX_TERM_SIZE];
     DictMgmt *dict = kb.getDictMgmt();
     string queryFileName = vm["query"].as<string>();

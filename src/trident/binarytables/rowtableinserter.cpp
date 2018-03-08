@@ -27,9 +27,9 @@ void RowTableInserter::startAppend() {
     nElements = 0;
 }
 
-void RowTableInserter::append(long t1, long t2) {
+void RowTableInserter::append(int64_t t1, int64_t t2) {
     bool writeIndexEntry = false;
-    long keyToStore = 0;
+    int64_t keyToStore = 0;
     if (t1 != previousValue1 && nElements >= FIRST_INDEX_SIZE) {
         keyToStore = previousValue1;
         writeIndexEntry = index != NULL;
@@ -56,7 +56,7 @@ void RowTableInserter::append(long t1, long t2) {
 void RowTableInserter::stopAppend() {
 }
 
-void RowTableInserter::writeFirstTerm(long t) {
+void RowTableInserter::writeFirstTerm(int64_t t) {
     switch (comprValue1) {
     case COMPR_1:
         writeVLong(t);
@@ -70,7 +70,7 @@ void RowTableInserter::writeFirstTerm(long t) {
     }
 }
 
-void RowTableInserter::writeSecondTerm(long t) {
+void RowTableInserter::writeSecondTerm(int64_t t) {
     switch (comprValue2) {
     case COMPR_1:
         writeVLong(t);

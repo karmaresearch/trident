@@ -30,8 +30,8 @@
 #include <trident/iterators/pairitr.h>
 
 struct _Triple {
-    long s, p, o;
-    _Triple(long s, long p, long o) {
+    int64_t s, p, o;
+    _Triple(int64_t s, int64_t p, int64_t o) {
         this->s = s;
         this->p = p;
         this->o = o;
@@ -44,7 +44,7 @@ struct _Triple {
     }
 };
 
-void _reorderTriple(int perm, PairItr *itr, long triple[3]);
+void _reorderTriple(int perm, PairItr *itr, int64_t triple[3]);
 
 bool _less_spo(const _Triple &p1, const _Triple &p2);
 bool _less_sop(const _Triple &p1, const _Triple &p2);
@@ -53,8 +53,8 @@ bool _less_osp(const _Triple &p1, const _Triple &p2);
 bool _less_pso(const _Triple &p1, const _Triple &p2);
 bool _less_pos(const _Triple &p1, const _Triple &p2);
 
-void _copyCurrentFirst(int perm, long triple[3], long v);
-void _copyCurrentFirstSecond(int perm, long triple[3], long v1, long v2);
+void _copyCurrentFirst(int perm, int64_t triple[3], int64_t v);
+void _copyCurrentFirstSecond(int perm, int64_t triple[3], int64_t v1, int64_t v2);
 
 LIBEXP void _test_createqueries(string inputfile, string queryfile);
 
@@ -71,13 +71,13 @@ public:
 
     LIBEXP void init();
 
-    LIBEXP std::chrono::duration<double> launchQuery(const int perm,
-            const long s,
-            const long p,
-            const long o,
+	LIBEXP std::chrono::duration<double> launchQuery(const int perm,
+            const int64_t s,
+            const int64_t p,
+            const int64_t o,
             const int countIgnores,
-            long &c,
-            long &junk);
+            int64_t &c,
+            int64_t &junk);
 
     ~TridentTimings() {
         if (q != NULL)
@@ -90,9 +90,9 @@ private:
     std::vector<_Triple> triples;
     Querier *q;
 
-    bool shouldFail(int idx, long first, long second, long third);
+    bool shouldFail(int idx, int64_t first, int64_t second, int64_t third);
     void tryjumps(int perm, size_t s, size_t e);
-    void test_moveto_ignoresecond(int perm, long key,
+    void test_moveto_ignoresecond(int perm, int64_t key,
                                   std::vector<uint64_t> &firsts);
 public:
     TestTrident(KB *kb) {

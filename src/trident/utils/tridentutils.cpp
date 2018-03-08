@@ -38,18 +38,17 @@
 
 using namespace std;
 
-long parseLine(char* line, int skip){
-    long i = strlen(line);
+int64_t parseLine(char* line, int skip){
+    int i = strlen(line);
     const char* p = line;
     while (*p <'0' || *p > '9') p++;
     line[i - skip] = '\0';
-    i = atol(p);
-    return i;
+    return std::stoll(p);
 }
 
-long TridentUtils::getVmRSS() {
+int64_t TridentUtils::getVmRSS() {
     FILE* file = fopen("/proc/self/status", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -87,9 +86,9 @@ double TridentUtils::getCPUUsage() {
     return percent;
 }
 
-long TridentUtils::diskread() {
+int64_t TridentUtils::diskread() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -102,9 +101,9 @@ long TridentUtils::diskread() {
     return result;
 }
 
-long TridentUtils::diskwrite() {
+int64_t TridentUtils::diskwrite() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -117,9 +116,9 @@ long TridentUtils::diskwrite() {
     return result;
 }
 
-long TridentUtils::phy_diskread() {
+int64_t TridentUtils::phy_diskread() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -132,9 +131,9 @@ long TridentUtils::phy_diskread() {
     return result;
 }
 
-long TridentUtils::phy_diskwrite() {
+int64_t TridentUtils::phy_diskwrite() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -147,14 +146,14 @@ long TridentUtils::phy_diskwrite() {
     return result;
 }
 
-void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
+void TridentUtils::loadFromFile(string inputfile, std::vector<int64_t> &values) {
     std::ifstream ifs(inputfile);
     std::string line;
     while (std::getline(ifs, line)) {
-        long value;
+        int64_t value;
         try {
-            value = TridentUtils::lexical_cast<long>(line);
-        } catch (int v) {
+            value = TridentUtils::lexical_cast<int64_t>(line);
+        } catch (int &v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }
@@ -164,16 +163,16 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
 }
 
 void TridentUtils::loadPairFromFile(std::string inputfile,
-        std::vector<std::pair<long,long>> &values, char sep) {
+        std::vector<std::pair<int64_t,int64_t>> &values, char sep) {
     std::ifstream ifs(inputfile);
     std::string line;
     while (std::getline(ifs, line)) {
-        long v1, v2;
+        int64_t v1, v2;
         try {
             auto pos = line.find(sep);
-            v1 = TridentUtils::lexical_cast<long>(line.substr(0, pos));
-            v2 = TridentUtils::lexical_cast<long>(line.substr(pos+1, line.size()));
-        } catch (int v) {
+            v1 = TridentUtils::lexical_cast<int64_t>(line.substr(0, pos));
+            v2 = TridentUtils::lexical_cast<int64_t>(line.substr(pos+1, line.size()));
+        } catch (int &v) {
             LOG(ERRORL) << "Failed conversion of " << line;
             throw 10;
         }

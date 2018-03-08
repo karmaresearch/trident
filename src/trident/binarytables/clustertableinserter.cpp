@@ -35,7 +35,7 @@ void ClusterTableInserter::startAppend() {
     baseSecondTermPos = getCurrentPosition();
 }
 
-void ClusterTableInserter::append(long t1, long t2) {
+void ClusterTableInserter::append(int64_t t1, int64_t t2) {
     if (t1 != previousFirstTerm) {
         if (previousFirstTerm != -1) {
 //          increaseIfNecessary();
@@ -140,7 +140,7 @@ void ClusterTableInserter::insertSecondTerm(bool last) {
                           getCurrentPosition());
 }
 
-void ClusterTableInserter::updateSecondTermIndex(long lastTermWritten,
+void ClusterTableInserter::updateSecondTermIndex(int64_t lastTermWritten,
         int bytesTaken, short currentFile, int currentPos) {
     if (smallGroupMode) {
         if (bytesUsed + bytesTaken > 255) {
@@ -162,7 +162,7 @@ void ClusterTableInserter::updateSecondTermIndex(long lastTermWritten,
     }
 }
 
-long ClusterTableInserter::calculateSecondTermToWrite(long term) {
+int64_t ClusterTableInserter::calculateSecondTermToWrite(int64_t term) {
     // First calculate the term to write
     if (previousSecondTerm == -1) {
         previousSecondTerm = term;
@@ -172,7 +172,7 @@ long ClusterTableInserter::calculateSecondTermToWrite(long term) {
     return term;
 }
 
-uint64_t ClusterTableInserter::writeSecondTerm(long termToWrite) {
+uint64_t ClusterTableInserter::writeSecondTerm(int64_t termToWrite) {
     if (compr2 == COMPR_1) {
         return writeVLong(termToWrite);
     } else if (compr2 == COMPR_2) {
@@ -182,7 +182,7 @@ uint64_t ClusterTableInserter::writeSecondTerm(long termToWrite) {
     }
 }
 
-void ClusterTableInserter::updateFirstTermIndex(const long t1) {
+void ClusterTableInserter::updateFirstTermIndex(const int64_t t1) {
     // Should a write an entry in the index?
     if (nElementsForIndexing >= FIRST_INDEX_SIZE && previousFirstTerm != -1) {
         nElementsForIndexing = 0;
@@ -190,7 +190,7 @@ void ClusterTableInserter::updateFirstTermIndex(const long t1) {
     }
 }
 
-void ClusterTableInserter::writeFirstTerm(long termToWrite) {
+void ClusterTableInserter::writeFirstTerm(int64_t termToWrite) {
     if (compr1 == COMPR_1) {
         writeVLong(termToWrite);
     } else if (compr1 == COMPR_2) {
@@ -200,7 +200,7 @@ void ClusterTableInserter::writeFirstTerm(long termToWrite) {
     }
 }
 
-long ClusterTableInserter::calculateFirstTermToWrite(long termToWrite) {
+int64_t ClusterTableInserter::calculateFirstTermToWrite(int64_t termToWrite) {
     // First determine which term to write
     if (diffMode1 == W_DIFFERENCE && previousFirstTerm != -1) {
         termToWrite -= previousFirstTerm;

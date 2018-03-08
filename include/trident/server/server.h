@@ -86,7 +86,7 @@ class TridentServer {
         //OK
         static void execSPARQLQuery(string sparqlquery,
                 bool explain,
-                long nterms,
+                int64_t nterms,
                 TridentLayer &db,
                 bool printstdout,
                 bool jsonoutput,

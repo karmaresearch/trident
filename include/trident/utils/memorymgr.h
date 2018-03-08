@@ -34,7 +34,7 @@ template<class K>
 struct MemoryBlock {
     K *block;
     K** parentBlock;
-    long bytes;
+    size_t bytes;
     int idx;
     int lock;
 };
@@ -42,8 +42,8 @@ struct MemoryBlock {
 template<class K>
 class MemoryManager {
 private:
-    const long cacheMaxSize;
-    long bytes;
+    const size_t cacheMaxSize;
+    size_t bytes;
 
     MemoryBlock<K> **blocks;
     int start;
@@ -68,7 +68,7 @@ private:
     }
 
 public:
-    MemoryManager(long cacheMaxSize) :
+    MemoryManager(size_t cacheMaxSize) :
         cacheMaxSize(cacheMaxSize) {
             assert(cacheMaxSize > 0);
         bytes = 0;
@@ -78,7 +78,7 @@ public:
         blocksLeft = MAX_N_BLOCKS_IN_CACHE;
     }
 
-    void update(int idx, long bytes) {
+    void update(int idx, size_t bytes) {
         this->bytes -= blocks[idx]->bytes;
         this->bytes += bytes;
         blocks[idx]->bytes = bytes;
@@ -116,7 +116,7 @@ public:
         blocks[idx]->lock--;
     }
 
-    int add(long bytes, K *element, int idxInParentArray, K **parentArray) {
+    int add(size_t bytes, K *element, int idxInParentArray, K **parentArray) {
         if (this->bytes + bytes > cacheMaxSize) {
             while (this->bytes >= cacheMaxSize || blocksLeft == 0) {
                 removeOneBlock();

@@ -25,10 +25,10 @@ void sortAndInsert(int permutation, string inputDir,
         string POSoutputDir, TreeWriter *treeWriter, Inserter *ins) {
 
     BOOST_LOG_TRIVIAL(debug) << "Start inserting...";
-    long ps, pp, po; //Previous values. Used to remove duplicates.
+    int64_t ps, pp, po; //Previous values. Used to remove duplicates.
     ps = pp = po = -1;
-    long count = 0;
-    long countInput = 0;
+    int64_t count = 0;
+    int64_t countInput = 0;
     const int randThreshold = 0.01 * 100;
 
     auto inputmerge = Utils::getFiles(inputDir, true);
@@ -39,15 +39,15 @@ void sortAndInsert(int permutation, string inputDir,
     BOOST_LOG_TRIVIAL(debug) << "Parallel insert";
     std::mutex m_buffers;
     std::condition_variable cond_buffers;
-    std::vector<long*> buffers;
+    std::vector<int64_t*> buffers;
 
     std::mutex m_exchange;
     std::condition_variable cond_exchange;
-    std::list<std::pair<long*, int>> exchangeBuffers;
+    std::list<std::pair<int64_t*, int>> exchangeBuffers;
 
     const int sizebuffer = 4 * 1000000 * 4;
     for (int i = 0; i < 3; ++i) { //Create three buffers
-        buffers.push_back(new long[sizebuffer]);
+        buffers.push_back(new int64_t[sizebuffer]);
     }
 
     //Start one thread to merge the files in a single stream. Put the results
@@ -65,27 +65,27 @@ void sortAndInsert(int permutation, string inputDir,
 
     //I read the stream and process it
     int countrandom = 0;
-    long prevKey = -1;
+    int64_t prevKey = -1;
 
     do {
         std::unique_lock<std::mutex> le(m_exchange);
         while (exchangeBuffers.empty()) {
             cond_exchange.wait(le);
         }
-        std::pair<long*, int> b = exchangeBuffers.front();
+        std::pair<int64_t*, int> b = exchangeBuffers.front();
         exchangeBuffers.pop_front();
         le.unlock();
 
         const int currentsize = b.second;
         //Do the processing
-        long *buf = b.first;
+        int64_t *buf = b.first;
 
         for (int i = 0; i < currentsize; i += 4) {
             countInput++;
-            const long s = buf[i];
-            const long p = buf[i + 1];
-            const long o = buf[i + 2];
-            const long countt = buf[i + 3];
+            const int64_t s = buf[i];
+            const int64_t p = buf[i + 1];
+            const int64_t o = buf[i + 2];
+            const int64_t countt = buf[i + 3];
             if (count % 100000000 == 0) {
                 BOOST_LOG_TRIVIAL(debug) << "..." << count << "...";
             }
@@ -119,7 +119,7 @@ void sortAndInsert(int permutation, string inputDir,
     //Exit
     t.join();
     while (!buffers.empty()) {
-        long *b = buffers.back();
+        int64_t *b = buffers.back();
         buffers.pop_back();
         delete[] b;
     }

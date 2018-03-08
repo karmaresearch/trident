@@ -41,9 +41,9 @@ typedef struct Coordinates {
 class TermCoordinates {
 private:
     short fileIdxs[N_PARTITIONS];
-    long marks[N_PARTITIONS];
+    int64_t marks[N_PARTITIONS];
     char strategies[N_PARTITIONS];
-    long nElements[N_PARTITIONS];
+    int64_t nElements[N_PARTITIONS];
     bool activePermutations[N_PARTITIONS];
 public:
 
@@ -70,7 +70,7 @@ public:
         }
     }
 
-    void set(int permutation, short file, long pos, long nElements,
+    void set(int permutation, short file, int64_t pos, int64_t nElements,
              char strategy) {
         activePermutations[permutation] = true;
         fileIdxs[permutation] = file;
@@ -83,7 +83,7 @@ public:
         return fileIdxs[perm];
     }
 
-    long getMark(int perm) const {
+    int64_t getMark(int perm) const {
         return marks[perm];
     }
 
@@ -91,7 +91,7 @@ public:
         return strategies[perm];
     }
 
-    long getNElements(int perm) const {
+    int64_t getNElements(int perm) const {
         return nElements[perm];
     }
 
@@ -99,7 +99,7 @@ public:
         return activePermutations[perm];
     }
 
-    uint64_t* getValues(int perm, long *size) {
+    uint64_t* getValues(int perm, int64_t *size) {
         LOG(ERRORL) << "Not implemented";
         return NULL;
     }

@@ -78,7 +78,7 @@ void NewColumnTable::first() {
     next_pair();
 }
 
-void NewColumnTable::moveToClosestFirstTerm(long c1) {
+void NewColumnTable::moveToClosestFirstTerm(int64_t c1) {
     assert(bytesFirstBlock > 0);
     assert(bytesPerSecondEntry > 0);
     if (c1 < currentValue1)
@@ -136,7 +136,7 @@ void NewColumnTable::moveToClosestFirstTerm(long c1) {
     }
 }
 
-void NewColumnTable::moveToClosestSecondTerm(long c1, long c2) {
+void NewColumnTable::moveToClosestSecondTerm(int64_t c1, int64_t c2) {
     if (currentValue1 > c1) {
         return;
     } else if (currentValue1 < c1) {
@@ -253,7 +253,7 @@ void NewColumnTable::columnNotIn(uint8_t columnId, NewColumnTable *other,
     }
 }
 
-/*long NewColumnTable::getCount() {
+/*int64_t NewColumnTable::getCount() {
     return currentCount;
 }
 

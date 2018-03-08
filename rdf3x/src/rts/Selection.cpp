@@ -30,14 +30,14 @@
 //---------------------------------------------------------------------------
 using namespace std;
 
-long _getLong(const std::string &s) {
+int64_t _getLong(const std::string &s) {
     auto pos = s.find_first_of('"',1);
     std::string number;
     if (pos != string::npos)
         number = s.substr(1, pos-1);
     else
         number = s;
-    return std::stol(number);
+    return std::stoll(number);
 }
 
 double _getDouble(const std::string &s) {
@@ -79,15 +79,15 @@ bool Selection::numLess(const Result &l, const Result &r) {
     auto tl = getNumType(l.value);
     auto tr = getNumType(r.value);
     if (tl == NumType::INT && tr == NumType::INT) {
-        long v1 = _getLong(l.value);
-        long v2 = _getLong(r.value);
+        int64_t v1 = _getLong(l.value);
+        int64_t v2 = _getLong(r.value);
         return v1 < v2;
     } else if (tl == NumType::DECIMAL && tr == NumType::INT) {
         double v1 = _getDouble(l.value);
-        long v2 = _getLong(r.value);
+        int64_t v2 = _getLong(r.value);
         return v1 < v2;
     } else if (tl == NumType::INT && tr == NumType::DECIMAL) {
-        long v1 = _getLong(l.value);
+        int64_t v1 = _getLong(l.value);
         double v2 = _getDouble(r.value);
         return v1 < v2;
     } else {
