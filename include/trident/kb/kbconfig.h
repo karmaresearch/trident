@@ -114,9 +114,9 @@ public:
 
     int getParamInt(KBParam key);
 
-    void setParamLong(KBParam key, long value);
+    void setParamLong(KBParam key, int64_t value);
 
-    long getParamLong(KBParam key);
+    int64_t getParamLong(KBParam key);
 
     void setParamBool(KBParam key, bool value);
 

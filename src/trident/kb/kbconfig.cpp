@@ -112,11 +112,11 @@ int KBConfig::getParamInt(KBParam key) {
     return internalMap.getInt(key);
 }
 
-void KBConfig::setParamLong(KBParam key, long value) {
+void KBConfig::setParamLong(KBParam key, int64_t value) {
     internalMap.setLong(key, value);
 }
 
-long KBConfig::getParamLong(KBParam key) {
+int64_t KBConfig::getParamLong(KBParam key) {
     return internalMap.getLong(key);
 }
 

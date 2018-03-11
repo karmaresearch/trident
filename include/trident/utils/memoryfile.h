@@ -80,8 +80,27 @@ class MemoryMappedFile {
 
         ~MemoryMappedFile() {
 #if defined(_WIN32)
-			UnmapViewOfFile(mappedfd);
-			CloseHandle(fd);
+			int res = UnmapViewOfFile(data);
+			if (res == 0) {
+				std::string error;
+				DWORD errorMessageID = ::GetLastError();
+				if (errorMessageID != 0) {
+					LPSTR messageBuffer = nullptr;
+					size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+						NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+					error = string(messageBuffer, size);
+					LocalFree(messageBuffer);
+				}
+				LOG(ERRORL) << "Error unmapping file: " << error;
+			}
+			res = CloseHandle(mappedfd);
+			if (res == 0) {
+				LOG(ERRORL) << "Error closing the mapped file";
+			}
+			res = CloseHandle(fd);
+			if (res == 0) {
+				LOG(ERRORL) << "Error closing the file";
+		}
 #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
             munmap(const_cast<char*>(data), length);
             close(fd);

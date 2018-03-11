@@ -220,13 +220,6 @@ FileDescriptor::~FileDescriptor() {
         mappedFile->flushAll();
         mappedFile = NULL;
     }
-    //if (mapped_rgn != NULL) {
-    //    mapped_rgn->flush(0, size);
-    //    delete mapped_rgn;
-    //    mapped_rgn = NULL;
-    //}
-
-    //delete mapping;
 
     if (!readOnly) {
         if (size == 0) {

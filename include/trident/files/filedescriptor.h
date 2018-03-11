@@ -42,9 +42,6 @@ private:
 
     const int id;
 
-    //bip::file_mapping *mapping;
-
-    //bip::mapped_region* mapped_rgn;
     std::unique_ptr<MemoryMappedFile> mappedFile;
 
     char* buffer;
