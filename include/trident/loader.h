@@ -83,7 +83,7 @@ class TreeWriter: public TreeInserter {
         char supportBuffer[23];
     public:
         TreeWriter(string path) {
-            fos.open(path);
+            fos.open(path, ios_base::binary);
         }
 
         void addEntry(nTerm key, int64_t nElements, short file, int pos,
@@ -102,7 +102,6 @@ class TreeWriter: public TreeInserter {
 
         ~TreeWriter() {
         }
-        ;
 };
 
 class CoordinatesMerger {
@@ -125,23 +124,23 @@ class CoordinatesMerger {
             ncoordinates(ncoordinates) {
 
                 //Open the three files
-                spo.open(coordinates[0]);
+                spo.open(coordinates[0], ios_base::binary);
                 spoFinished = !getFirst(&elspo, &spo);
 
                 if (ncoordinates > 1) {
-                    ops.open(coordinates[1]);
+                    ops.open(coordinates[1], ios_base::binary);
                     opsFinished = !getFirst(&elops, &ops);
-                    pos.open(coordinates[2]);
+                    pos.open(coordinates[2], ios_base::binary);
                     posFinished = !getFirst(&elpos, &pos);
                 }
 
                 if (ncoordinates == 4) {
-                    pso.open(coordinates[3]);
+                    pso.open(coordinates[3], ios_base::binary);
                     getFirst(&elpso, &pso);
                 } else if (ncoordinates == 6 || ncoordinates == 2) {
-                    sop.open(coordinates[3]);
-                    osp.open(coordinates[4]);
-                    pso.open(coordinates[5]);
+                    sop.open(coordinates[3], ios_base::binary);
+                    osp.open(coordinates[4], ios_base::binary);
+                    pso.open(coordinates[5], ios_base::binary);
                     sopFinished = !getFirst(&elsop, &sop);
                     ospFinished = !getFirst(&elosp, &osp);
                     psoFinished = !getFirst(&elpso, &pso);
@@ -399,7 +398,6 @@ struct ParamsLoad {
     bool sample;
     double sampleRate;
     int thresholdSkipTable;
-    //SinkPtr logPtr;
     string remoteLocation;
     int64_t limitSpace;
     string graphTransformation;
@@ -412,7 +410,6 @@ struct ParamsLoad {
 class Loader {
     private:
         bool printStats;
-        //SinkPtr logPtr;
 
     public:
         static void generateNewPermutation(string outputdir,

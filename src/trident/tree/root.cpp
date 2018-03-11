@@ -76,8 +76,8 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
 
         // Check the directory to see whether the intermediate nodes are stored
         // on disk
-        std::string f = path + string("/tree");
-        std::ifstream is(f.c_str());
+        std::string f = path + DIR_SEP + string("tree");
+        std::ifstream is(f.c_str(), ios_base::binary);
 
         if (is.good()) {
             is.seekg(0, std::ios_base::end);
@@ -261,7 +261,7 @@ void Root::flushChildrenToCache() {
 Root::~Root() {
     if (!readOnly) {
         // Save metainformation about the tree
-        ofstream file(path + string("/tree"));
+        ofstream file(path + DIR_SEP + string("tree"), ios_base::binary);
         char buffer[16];
         Utils::encode_long(buffer, 0, rootNode->getId());
         Utils::encode_long(buffer, 8, context->getNewNodeID());

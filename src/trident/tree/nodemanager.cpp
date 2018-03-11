@@ -58,15 +58,10 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
         if (!readOnly) {
             readOnlyStoredNodes = NULL;
             nodesLoaded = NULL;
-            //mapping = NULL;
-            //mapped_rgn = NULL;
             rawInput = NULL;
 
             //Load existing nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                //rawInput = static_cast<char*>(mapped_rgn->get_address());
                 mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
                 rawInput = mappedFile->getData();
 
@@ -79,9 +74,6 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
         } else {
             //Load the nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                //rawInput = static_cast<char*>(mapped_rgn->get_address());
                 mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
                 rawInput = mappedFile->getData();
 
@@ -221,13 +213,6 @@ void NodeManager::compressSpace(string path) {
         MemoryMappedFile mf(sFileIdx);
         int64_t size = mf.getLength();
         char *raw_input = mf.getData();
-
-        //bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
-        //        bip::read_only);
-        //bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
-        //        bip::read_only);
-        //int64_t size = mapped_rgn->get_size();
-        //char *raw_input = static_cast<char*>(mapped_rgn->get_address());
         
         int nnodes = Utils::decode_int(raw_input, 0);
         int64_t pos = 4 + 4 * nnodes;
@@ -245,8 +230,6 @@ void NodeManager::compressSpace(string path) {
             nodes[currentFile].push_back(node);
             totalNumberNodes++;
         }
-        //delete mapped_rgn;
-        //delete mapping;
     }
 
     //2-- Rewrite each file eliminating the blank spaces
@@ -264,7 +247,7 @@ void NodeManager::compressSpace(string path) {
         vector<CachedNode> *fileNodes = &nodes[i];
         //Open the old file and create a new file
         string pOldFile = path + DIR_SEP + to_string(i);
-        ifstream sOldfile(pOldFile);
+        ifstream sOldfile(pOldFile, ios_base::binary);
         string pNewFile = path + DIR_SEP + to_string(i) + ".new";
         ofstream sNewFile(pNewFile, ios_base::binary);
 
@@ -368,8 +351,6 @@ NodeManager::~NodeManager() {
         delete[] readOnlyStoredNodes;
         delete[] nodesLoaded;
         rawInput = NULL;
-        //delete mapped_rgn;
-        //delete mapping;
     }
 
     delete manager;

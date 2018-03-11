@@ -72,8 +72,6 @@ private:
     //Used in cache it's read-only
     CachedNode *readOnlyStoredNodes;
     bool *nodesLoaded;
-    //bip::file_mapping *mapping;
-    //bip::mapped_region *mapped_rgn;
     std::unique_ptr<MemoryMappedFile> mappedFile;
     char *rawInput;
 

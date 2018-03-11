@@ -15,7 +15,7 @@ class FlatRoot : public Root {
             public:
                 FlatTreeWriter(string f, bool unlabeled, bool undirected) :
                     unlabeled(unlabeled), undirected(undirected) {
-                    ofs.open(f);
+                    ofs.open(f, ios_base::binary);
                     zeros = std::unique_ptr<char>(new char[83]);
                     memset(zeros.get(), 0, 83);
                 }
