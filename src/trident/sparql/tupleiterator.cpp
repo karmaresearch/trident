@@ -30,21 +30,21 @@ void TupleKBItr::init(Querier *querier, const Tuple *t,
                       const std::vector<uint8_t> *fieldsToSort, bool onlyVars) {
     this->onlyVars = onlyVars;
     this->querier = querier;
-    long s, p, o;
+    int64_t s, p, o;
     if (t->get(0).isVariable()) {
         s = -1;
     } else {
-        s = (long)t->get(0).getValue();
+        s = (int64_t)t->get(0).getValue();
     }
     if (t->get(1).isVariable()) {
         p = -1;
     } else {
-        p = (long)t->get(1).getValue();
+        p = (int64_t)t->get(1).getValue();
     }
     if (t->get(2).isVariable()) {
         o = -1;
     } else {
-        o = (long)t->get(2).getValue();
+        o = (int64_t)t->get(2).getValue();
     }
 
     if (fieldsToSort == NULL) {

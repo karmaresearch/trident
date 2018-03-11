@@ -3,7 +3,6 @@
 
 #include <trident/utils/parallel.h>
 
-#include <strings.h>
 #include <string>
 #include <thread>
 #include <inttypes.h>
@@ -15,7 +14,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
-#endif
+#include <strings.h>
 
 class HttpServer {
     private:
@@ -85,5 +84,6 @@ class HttpServer {
 
         static std::string unescape(std::string s);
 };
+#endif
 
 #endif

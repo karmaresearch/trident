@@ -17,7 +17,7 @@ class GrowableMappedFile
 {
    public:
    /// Typedef for offsets and sizes
-   typedef unsigned long ofs_t;
+   typedef intptr_t ofs_t;
 
    private:
    /// os dependent data

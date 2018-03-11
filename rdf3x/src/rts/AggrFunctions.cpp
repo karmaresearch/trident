@@ -76,14 +76,14 @@ bool __endsWith(const std::string &s, const std::string &suffix) {
     return false;
 }
 
-long __getLong(const std::string &s) {
+int64_t __getLong(const std::string &s) {
     auto pos = s.find_first_of('"',1);
     std::string number;
     if (pos != string::npos)
         number = s.substr(1, pos-1);
     else
         number = s;
-    return std::stol(number);
+    return std::stoll(number);
 }
 
 double __getDouble(const std::string &s) {
@@ -122,7 +122,7 @@ void AggrFunctions::updateVar(std::pair<unsigned,Register*> &var,
                     hdl.updateVarDec(var.first, v1, currentCount);
                 } else if (__endsWith(s,i)) {
                     //Integer number
-                    long v1 = __getLong(s);
+                    int64_t v1 = __getLong(s);
                     hdl.updateVarInt(var.first, v1, currentCount);
                 } else {
                     //Treat the symbol as integer

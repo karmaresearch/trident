@@ -41,8 +41,8 @@ void generateNewPerm_seq(MultiDiskLZ4Reader *reader,
         int pos0,
         int pos1,
         int pos2) {
-    	long triple[3];
-	long count = 0;
+    	int64_t triple[3];
+	int64_t count = 0;
     	while (!reader->isEOF(idx)) {
         	Triple t;
         	t.readFrom(idx, reader);

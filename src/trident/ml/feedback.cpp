@@ -1,6 +1,6 @@
 #include <trident/ml/feedback.h>
 
-bool Feedback::shouldBeIncluded(long s, long p, long o) {
+bool Feedback::shouldBeIncluded(int64_t s, int64_t p, int64_t o) {
     if (currentEpoch < minFullEpochs) {
         return true;
     }
@@ -8,7 +8,7 @@ bool Feedback::shouldBeIncluded(long s, long p, long o) {
     key_spo |= p;
     if (queries_sp.count(key_spo)) {
         auto el = queries_sp.find(key_spo);
-        //long positions = 0;
+        //int64_t positions = 0;
         //for (auto pos : el->second) {
         //    positions += pos;
         //}
@@ -23,7 +23,7 @@ bool Feedback::shouldBeIncluded(long s, long p, long o) {
     key_pos |= o;
     if (queries_po.count(key_pos)) {
         auto el = queries_po.find(key_pos);
-        //long positions = 0;
+        //int64_t positions = 0;
         //for (auto pos : el->second) {
         //    positions += pos;
         //}

@@ -41,20 +41,20 @@ class BinaryTableInserter {
         FileIndex *index;
         int perm;
 
-        uint64_t writeLong(long t) {
+        uint64_t writeLong(int64_t t) {
             manager->appendLong(t);
             currentPos += 8;
             return 8;
         }
 
-        uint64_t writeLongInt(long t) {
+        uint64_t writeLongInt(int64_t t) {
             manager->appendLong(5, t);
             currentPos += 5;
             return 5;
         }
 
 
-        uint64_t writeInt(long t) {
+        uint64_t writeInt(int64_t t) {
             manager->appendInt(t);
             currentPos += 4;
             return 4;
@@ -66,7 +66,7 @@ class BinaryTableInserter {
             return 1;
         }
 
-        uint64_t writeShort(long t) {
+        uint64_t writeShort(int64_t t) {
             manager->appendShort(t);
             currentPos += 2;
             return 2;
@@ -74,17 +74,17 @@ class BinaryTableInserter {
 
         string getRootDir();
 
-        void writeLong(const uint8_t nbytes, const long v);
+        void writeLong(const uint8_t nbytes, const int64_t v);
 
-        uint64_t writeVLong(long t) {
+        uint64_t writeVLong(int64_t t) {
             uint64_t prevPos = currentPos;
             currentPos = manager->appendVLong(t);
             return currentPos - prevPos;
         }
 
-        uint64_t writeVLong2(long t);
+        uint64_t writeVLong2(int64_t t);
 
-        void overwriteVLong2(short file, uint64_t pos, long number);
+        void overwriteVLong2(short file, uint64_t pos, int64_t number);
 
         void overwriteBAt(char b, short file, uint64_t pos) {
             manager->overwriteAt(file, pos, b);
@@ -102,7 +102,7 @@ class BinaryTableInserter {
             }
         }
 
-        long getNBytesFrom(short file, uint64_t pos);
+        int64_t getNBytesFrom(short file, uint64_t pos);
 
         uint64_t getFileSize(const short idFile) {
             assert(idFile <= manager->getIdLastFile());
@@ -119,8 +119,8 @@ class BinaryTableInserter {
 
         virtual void startAppend() = 0;
 
-        virtual void append(long t1,
-                long t2) = 0;
+        virtual void append(int64_t t1,
+                int64_t t2) = 0;
 
         virtual void stopAppend() = 0;
 
@@ -134,8 +134,8 @@ class BinaryTableInserter {
             startAppend();
         }
 
-        void appendPair(const long t1,
-                const long t2);
+        void appendPair(const int64_t t1,
+                const int64_t t2);
 
         void stopTableAppend() {
             stopAppend();

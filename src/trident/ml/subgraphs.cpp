@@ -52,9 +52,9 @@ void AvgSubgraphs<double>::processItr(Querier *q,
     //int size = 0;
 
 
-    long count = 0;
-    long prevo = -1;
-    long prevp = -1;
+    int64_t count = 0;
+    int64_t prevo = -1;
+    int64_t prevp = -1;
     while (itr->hasNext()) {
         itr->next();
         uint64_t o = itr->getKey();

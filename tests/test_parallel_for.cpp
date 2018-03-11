@@ -19,7 +19,7 @@ class Container {
 
 };
 
-long ParallelTasks::nthreads = -1;
+int ParallelTasks::nthreads = -1;
 int main(int argc, const char** argv) {
     int nthreads = 8;
 

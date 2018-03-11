@@ -44,7 +44,7 @@ void fillArray(char **array, int *size, int sizeArray, int sizeString) {
 
 char **stringArray = NULL;
 int *sizeArray = NULL;
-long *positions = NULL;
+int64_t *positions = NULL;
 StringBuffer *b = NULL;
 int n = 50000000;
 vector<int> v(n);
@@ -67,7 +67,7 @@ int main(int argc, const char** argv) {
 	int x = 20;
 	stringArray = new char*[n];
 	sizeArray = new int[n];
-	positions = new long[n];
+	positions = new int64_t[n];
 	fillArray(stringArray, sizeArray, n, x);
 	cout << "Finished filling the array" << endl;
 

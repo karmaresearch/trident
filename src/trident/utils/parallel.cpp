@@ -1,3 +1,3 @@
 #include <trident/utils/parallel.h>
 
-long ParallelTasks::nthreads = -1;
+int32_t ParallelTasks::nthreads = -1;

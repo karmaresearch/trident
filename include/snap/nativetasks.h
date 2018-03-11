@@ -11,8 +11,8 @@
 class Querier;
 class NativeTasks {
     private:
-        static long GetCommon(const char *p1, const int len1, const long s1,
-                const char *p2, int len2, const long s2);
+        static int64_t GetCommon(const char *p1, const int len1, const int64_t s1,
+                const char *p2, int len2, const int64_t s2);
 
     public:
         template <typename T> static int sgn(T val) {
@@ -20,32 +20,32 @@ class NativeTasks {
         }
 
         template<class K> //This function is taken from the original Snap library. Modified to make it faster for trident
-            static long getShortPath(const K &Graph,
-                    const long src,
-                    const long dst) {
+            static int64_t getShortPath(const K &Graph,
+                    const int64_t src,
+                    const int64_t dst) {
                 int limitDist = ~0;
                 TUInt64H NIdDistH;
                 NIdDistH.AddDat(src, 0);
                 bool FollowOut = true;
                 bool FollowIn = true;
 
-                long MxDist = 0;
-                TSnapQueue<long> Queue(Graph->GetNodes());
+                int64_t MxDist = 0;
+                TSnapQueue<int64_t> Queue(Graph->GetNodes());
                 Queue.Clr(false);
                 Queue.Push(src);
-                long v;
+                int64_t v;
 
                 while (!Queue.Empty()) {
-                    const long NId = Queue.Top();
+                    const int64_t NId = Queue.Top();
                     Queue.Pop();
-                    const long Dist = NIdDistH.GetDat(NId);
+                    const int64_t Dist = NIdDistH.GetDat(NId);
                     if (Dist == limitDist) {
                         break;
                     }
                     const typename K::TObj::TNodeI NodeI = Graph->GetNI(NId);
                     if (FollowOut) {
                         for (v = 0; v < NodeI.GetOutDeg(); v++) {
-                            const long DstNId = NodeI.GetOutNId(v);
+                            const int64_t DstNId = NodeI.GetOutNId(v);
                             if (!NIdDistH.IsKey(DstNId)) {
                                 NIdDistH.AddDat(DstNId, Dist+1);
                                 MxDist = TMath::Mx(MxDist, Dist+1);
@@ -59,7 +59,7 @@ class NativeTasks {
 
                     if (FollowIn) {
                         for (v = 0; v < NodeI.GetInDeg(); v++) {
-                            const long DstNId = NodeI.GetInNId(v);
+                            const int64_t DstNId = NodeI.GetInNId(v);
                             if (!NIdDistH.IsKey(DstNId)) {
                                 NIdDistH.AddDat(DstNId, Dist+1);
                                 MxDist = TMath::Mx(MxDist, Dist+1);
@@ -75,11 +75,11 @@ class NativeTasks {
             }
 
         template<class K>
-            static std::vector<long> getShortPath2(const K &Graph,
-                    std::vector<std::pair<long,long>> &pairs) {
-                std::vector<long> distances;
+            static std::vector<int64_t> getShortPath2(const K &Graph,
+                    std::vector<std::pair<int64_t,int64_t>> &pairs) {
+                std::vector<int64_t> distances;
                 for (auto p : pairs) {
-                    long d = getShortPath(Graph, p.first, p.second);
+                    int64_t d = getShortPath(Graph, p.first, p.second);
                     distances.push_back(d);
                 }
                 return distances;
@@ -87,18 +87,18 @@ class NativeTasks {
 
         template <class PGraph>
             static void GetTriads(const PGraph& Graph,
-                    std::vector<std::pair<long,long>>& NIdCOTriadV) {
-                long NNodes;
+                    std::vector<std::pair<int64_t,int64_t>>& NIdCOTriadV) {
+                int64_t NNodes;
                 NNodes = Graph->GetNodes();
                 NIdCOTriadV.resize(NNodes);
-                for (long node = 0; node < NNodes; node++) {
+                for (int64_t node = 0; node < NNodes; node++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(node);
                     if (NI.GetDeg() < 2) {
                         NIdCOTriadV[node] = std::make_pair(0, 0); // zero triangles
                         continue;
                     }
                     // count connected neighbors
-                    long OpenCnt1 = 0, CloseCnt1 = 0;
+                    int64_t OpenCnt1 = 0, CloseCnt1 = 0;
 
                     const auto reader1_out = NI.GetOutReader();
                     const auto begin1_out = NI.GetBeginOut();
@@ -110,8 +110,8 @@ class NativeTasks {
                       const int len1_in = NI.GetInLenField();
                       const auto size1_in = NI.GetInDeg();*/
 
-                    for (long srcNbr = 0; srcNbr < size1_out; srcNbr++) {
-                        const long nbr1 = reader1_out(begin1_out, srcNbr);
+                    for (int64_t srcNbr = 0; srcNbr < size1_out; srcNbr++) {
+                        const int64_t nbr1 = reader1_out(begin1_out, srcNbr);
                         typename PGraph::TObj::TNodeI NI2 = Graph->GetNI(nbr1);
 
                         const auto begin2_out = NI2.GetBeginOut();
@@ -137,10 +137,10 @@ class NativeTasks {
             static void clustcoef(const PGraph& Graph, std::vector<float>& NIdCCfH) {
                 NIdCCfH.clear();
                 NIdCCfH.reserve(Graph->GetNodes());
-                std::vector<std::pair<long,long>> NIdCOTriadV;
+                std::vector<std::pair<int64_t,int64_t>> NIdCOTriadV;
                 GetTriads<PGraph>(Graph, NIdCOTriadV);
-                for (long i = 0; i < NIdCOTriadV.size(); i++) {
-                    const long D = NIdCOTriadV[i].first+NIdCOTriadV[i].second;
+                for (int64_t i = 0; i < NIdCOTriadV.size(); i++) {
+                    const int64_t D = NIdCOTriadV[i].first+NIdCOTriadV[i].second;
                     const double CCf = D!=0 ? NIdCOTriadV[i].first / double(D) : 0.0;
                     NIdCCfH[i] = CCf;
                 }
@@ -153,19 +153,19 @@ class NativeTasks {
                 int64 FullDiam = -1;
                 TIntFltH DistToCntH;
                 TBreathFS<PGraph> BFS(Graph);
-                long minnodes = min((long)NTestNodes, Graph->GetNodes());
+                int64_t minnodes = min((int64_t)NTestNodes, Graph->GetNodes());
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<long> dis(0, Graph->GetNodes());
+                std::uniform_int_distribution<int64_t> dis(0, Graph->GetNodes());
                 for (int tries = 0; tries < minnodes; tries++) {
-                    const long NId = dis(gen);
+                    const int64_t NId = dis(gen);
                     BFS.DoBfs(NId, true, ! IsDir, -1, TInt::Mx);
-                    for (long i = 0; i < BFS.NIdDistH.Len(); i++) {
+                    for (int64_t i = 0; i < BFS.NIdDistH.Len(); i++) {
                         DistToCntH.AddDat(BFS.NIdDistH[i]) += 1; }
                 }
                 TIntFltKdV DistNbrsPdfV;
                 double SumPathL=0, PathCnt=0;
-                for (long i = 0; i < DistToCntH.Len(); i++) {
+                for (int64_t i = 0; i < DistToCntH.Len(); i++) {
                     DistNbrsPdfV.Add(TIntFltKd(DistToCntH.GetKey(i), DistToCntH[i]));
                     SumPathL += DistToCntH.GetKey(i) * DistToCntH[i];
                     PathCnt += DistToCntH[i];
@@ -177,18 +177,18 @@ class NativeTasks {
 
         template<typename PGraph>
             static double GetMod(const PGraph& Graph,
-                    const std::vector<long>& NIdV,
-                    long GEdges) {
+                    const std::vector<int64_t>& NIdV,
+                    int64_t GEdges) {
                 if (GEdges == -1) { GEdges = Graph->GetEdges(); }
                 double EdgesIn = 0.0, EEdgesIn = 0.0;
                 TUInt64Set input_s(NIdV.size());
                 for(const auto el : NIdV)
                     input_s.AddKey(el);
 
-                for (long e1 = 0; e1 < NIdV.size(); e1++) {
+                for (int64_t e1 = 0; e1 < NIdV.size(); e1++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(NIdV[e1]);
                     EEdgesIn += NI.GetOutDeg();
-                    for (long i = 0; i < NI.GetOutDeg(); i++) {
+                    for (int64_t i = 0; i < NI.GetOutDeg(); i++) {
                         if (input_s.IsKey(NI.GetOutNId(i))) { EdgesIn += 1; }
                     }
                 }

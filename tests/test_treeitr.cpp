@@ -48,7 +48,7 @@ int main(int argc, const char** argv) {
     TreeItr *itr = root.itr();
     TermCoordinates coord;
     while (itr->hasNext()) {
-        long key = itr->next(&coord);
+        int64_t key = itr->next(&coord);
         std::cout << key << endl;
     }
 

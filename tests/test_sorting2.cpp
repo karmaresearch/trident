@@ -41,7 +41,7 @@ void sortPart(ParamsSortPartition params) {
     int idWriter = params.idWriter;
     string prefixIntFiles = params.prefixIntFiles;
     int part = params.part;
-    long maxMem = params.maxMem;
+    int64_t maxMem = params.maxMem;
 
     std::vector<string> filesToSort;
 
@@ -77,7 +77,7 @@ void sortPart(ParamsSortPartition params) {
     StringCollection col(128 * 1024 * 1024);
     std::vector<SimplifiedAnnotatedTerm> tuples;
     std::vector<string> sortedFiles;
-    long bytesAllocated = 0;
+    int64_t bytesAllocated = 0;
     int idx = 0;
     std::unique_ptr<char[]> tmpprefix = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE]);
 
@@ -153,7 +153,7 @@ void mergePart(ParamsSortPartition params) {
     int idWriter = params.idWriter;
     string prefixIntFiles = params.prefixIntFiles;
     int part = params.part;
-    long maxMem = params.maxMem;
+    int64_t maxMem = params.maxMem;
 
 
     	std::vector<string> sortedFiles;
@@ -219,8 +219,8 @@ void mergePart(ParamsSortPartition params) {
             const char *prevPrefix = NULL;
             char *previousTerm = new char[MAX_TERM_SIZE];
             int previousTermSize = 0;
-            long counterTerms = -1;
-            long counterPairs = 0;
+            int64_t counterTerms = -1;
+            int64_t counterPairs = 0;
             //Sort the files
             for (int i = 0; i < sortedFiles.size(); ++i) {
                 std::vector<string> cont1;
@@ -244,7 +244,7 @@ void mergePart(ParamsSortPartition params) {
                     //    dictWriter->writeString(idDictWriter, t.term, t.size);
                     //} else {
                     //    int lenprefix = Utils::decode_short(t.prefix);
-                    //    long len = lenprefix + t.size;
+                    //    int64_t len = lenprefix + t.size;
                     //    dictWriter->writeVLong(idDictWriter, len);
                     //    dictWriter->writeRawArray(idDictWriter, t.prefix + 2,
                     //            lenprefix);
@@ -268,7 +268,7 @@ int main(int argc, const char** argv) {
 
 	int maxReadingThreads = 8;
 	int partitions = 72;
-	long maxMem = (long)10521374418;
+	int64_t maxMem = (int64_t)10521374418;
 
         std::vector<uint64_t> counters(partitions);
         std::vector<boost::thread> threads(partitions);

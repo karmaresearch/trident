@@ -28,7 +28,7 @@ public:
     DuplLimit(Operator* input,
               const std::vector<Register*>& outputArgs,
               DuplicateHandling duplicateHandling,
-              uint64_t limit = ~0lu);
+              uint64_t limit = UINT64_MAX);
 
     /// Destructor
     ~DuplLimit() {

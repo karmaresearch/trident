@@ -24,6 +24,7 @@
 #define TUPLE_TABLE_H
 
 #include <trident/iterators/tupleiterators.h>
+#include <trident/kb/consts.h>
 
 #include <kognac/logs.h>
 
@@ -83,7 +84,7 @@ public:
         //double selectivity2;
 
         double ratio;
-        long size;
+        int64_t size;
     };
 
     TupleTable(std::vector<int> sig) : sizeRow(sig.size()), signature(sig), empty(true) {
@@ -145,7 +146,7 @@ public:
         }
     }
 
-    TupleTable *sortBy(std::vector<uint8_t> fields);
+	DDLEXPORT TupleTable *sortBy(std::vector<uint8_t> fields);
 
     TupleTable *sortByAll();
 
@@ -159,9 +160,9 @@ public:
 
     TupleTable *join(TupleTable *o);
 
-    JoinHitStats joinHitRates(TupleTable *o);
+	DDLEXPORT JoinHitStats joinHitRates(TupleTable *o);
 
-    std::vector<std::pair<uint8_t, uint8_t>> getPosJoins(TupleTable *o);
+	DDLEXPORT std::vector<std::pair<uint8_t, uint8_t>> getPosJoins(TupleTable *o);
 
     std::pair<std::shared_ptr<TupleTable>, std::shared_ptr<TupleTable>> getDenseSparseForBifocalSampling(TupleTable *t2);
 
@@ -177,20 +178,20 @@ public:
 
 class TupleTableItr : public TupleIterator {
     std::shared_ptr<TupleTable> table;
-    long counter;
+    int64_t counter;
     bool skipLast;
     bool hnc, hn;
-    long nextpos;
+    int64_t nextpos;
 
 private:
-    bool same(const long l1, const long l2) const;
+    bool same(const int64_t l1, const int64_t l2) const;
 
 public:
     TupleTableItr(std::shared_ptr<TupleTable> table) : table(table),
         counter(-1), skipLast(false), hnc(false), hn(false),
         nextpos(0) {}
 
-    long count();
+    int64_t count();
 
     void skipLastColumn();
 

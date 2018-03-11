@@ -31,7 +31,7 @@ class CompositeTermItr : public PairItr {
 private:
     std::vector<PairItr*> children;
     std::vector<PairItr*> activechildren;
-    long currentCount;
+    int64_t currentCount;
 
     static bool _sorter(PairItr *i1, PairItr *i2) {
         return i1->getKey() > i2->getKey();
@@ -41,11 +41,11 @@ public:
         return COMPOSITETERM_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return 0;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return 0;
     }
 
@@ -66,11 +66,11 @@ public:
         throw 10;
     }
 
-    void moveto(const long c1, const long c2) {
+    void moveto(const int64_t c1, const int64_t c2) {
         throw 10;
     }
 
-    long getCount() {
+    int64_t getCount() {
         return currentCount;
     }
 
@@ -114,7 +114,7 @@ public:
     }
 
     void next() {
-        const long key = activechildren.back()->getKey();
+        const int64_t key = activechildren.back()->getKey();
         setKey(key);
         currentCount = 0;
         //Move also all other iterators with the same key

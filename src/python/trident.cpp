@@ -60,16 +60,16 @@ static int Db_init(trident_Db *self, PyObject *args, PyObject *kwds) {
 }
 
 static PyObject *db_exists(PyObject *self, PyObject *args) {
-    long s, p, o;
+    int64_t s, p, o;
     if (!PyArg_ParseTuple(args, "lll", &s, &p, &o))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_SPO, s, p, o);
+    const int64_t nresults = q->getCardOnIndex(IDX_SPO, s, p, o);
     return PyBool_FromLong(nresults);
 }
 
 static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
-    long term;
+    int64_t term;
     PyObject *tuple;
     const char *pattern;
     if (!PyArg_ParseTuple(args, "lOs", &term, &tuple, &pattern))
@@ -79,18 +79,18 @@ static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
         PyObject *op1 = PyTuple_GetItem(tuple, 0);
         PyObject *op2 = PyTuple_GetItem(tuple, 1);
         PyObject *oo2 = PyTuple_GetItem(tuple, 2);
-        long p1 = PyLong_AsLong(op1);
-        long p2 = PyLong_AsLong(op2);
-        long o2 = PyLong_AsLong(oo2);
+        int64_t p1 = PyLong_AsLong(op1);
+        int64_t p2 = PyLong_AsLong(op2);
+        int64_t o2 = PyLong_AsLong(oo2);
         Querier *q = ((trident_Db*)self)->q;
         auto itr1 = q->getPermuted(IDX_SPO, term, p1, -1, true);
         auto itr2 = q->getPermuted(IDX_OPS, o2, p2, -1, true);
         //Merge join
-        long found = 0;
-        long v2 = -1;
+        int64_t found = 0;
+        int64_t v2 = -1;
         while (itr1->hasNext()) {
             itr1->next();
-            long v1 = itr1->getValue2();
+            int64_t v1 = itr1->getValue2();
             while (v2 == -1 || v2 < v1) {
                 if (itr2->hasNext()) {
                     itr2->next();
@@ -121,52 +121,52 @@ static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_counts(PyObject *self, PyObject *args) {
-    long s;
+    int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_SPO, s, -1, -1);
+    const int64_t nresults = q->getCardOnIndex(IDX_SPO, s, -1, -1);
     return PyLong_FromLong(nresults);
 }
 
 static PyObject *db_counto(PyObject *self, PyObject *args) {
-    long o;
+    int64_t o;
     if (!PyArg_ParseTuple(args, "l", &o))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_OPS, -1, -1, o);
+    const int64_t nresults = q->getCardOnIndex(IDX_OPS, -1, -1, o);
     return PyLong_FromLong(nresults);
 }
 
 static PyObject *db_countp(PyObject *self, PyObject *args) {
-    long p;
+    int64_t p;
     if (!PyArg_ParseTuple(args, "l", &p))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_POS, -1, p, -1);
+    const int64_t nresults = q->getCardOnIndex(IDX_POS, -1, p, -1);
     return PyLong_FromLong(nresults);
 }
 
 static PyObject *db_ns(PyObject *self, PyObject *args) {
-    long p, o;
+    int64_t p, o;
     if (!PyArg_ParseTuple(args, "ll", &p, &o))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_OPS, -1, p, o);
+    const int64_t nresults = q->getCardOnIndex(IDX_OPS, -1, p, o);
     return PyLong_FromLong(nresults);
 }
 
 static PyObject *db_no(PyObject *self, PyObject *args) {
-    long s, p;
+    int64_t s, p;
     if (!PyArg_ParseTuple(args, "ll", &s, &p))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
-    const long nresults = q->getCardOnIndex(IDX_SPO, s, p, -1);
+    const int64_t nresults = q->getCardOnIndex(IDX_SPO, s, p, -1);
     return PyLong_FromLong(nresults);
 }
 
 static PyObject *db_alls(PyObject *self, PyObject *args) {
-    long p, o;
+    int64_t p, o;
     if (!PyArg_ParseTuple(args, "ll", &p, &o))
         return NULL;
 
@@ -176,7 +176,7 @@ static PyObject *db_alls(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_OPS, o, p, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getValue2();
+        int64_t s = itr->getValue2();
         PyObject *value = PyLong_FromLong(s);
         PyList_Append(obj, value);
         Py_DECREF(value);
@@ -186,7 +186,7 @@ static PyObject *db_alls(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_alls_fast(PyObject *self, PyObject *args) {
-    long p, o;
+    int64_t p, o;
     if (!PyArg_ParseTuple(args, "ll", &p, &o))
         return NULL;
 
@@ -200,7 +200,7 @@ static PyObject *db_alls_fast(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_alls_aggr(PyObject *self, PyObject *args) {
-    long o;
+    int64_t o;
     if (!PyArg_ParseTuple(args, "l", &o))
         return NULL;
 
@@ -211,7 +211,7 @@ static PyObject *db_alls_aggr(PyObject *self, PyObject *args) {
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getValue1();
+        int64_t s = itr->getValue1();
         PyObject *value = PyLong_FromLong(s);
         PyList_Append(obj, value);
         Py_DECREF(value);
@@ -232,7 +232,7 @@ static PyObject *db_lists(PyObject *self, PyObject *args) {
     PairItr *itr = q->getTermList(IDX_SPO);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
+        int64_t s = itr->getKey();
         PyObject *value;
         if (!text) {
             value = PyLong_FromLong(s);
@@ -264,7 +264,7 @@ static PyObject *db_listp(PyObject *self, PyObject *args) {
     PairItr *itr = q->getTermList(IDX_POS);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
+        int64_t s = itr->getKey();
         PyObject *value;
         if (!text) {
             value = PyLong_FromLong(s);
@@ -296,7 +296,7 @@ static PyObject *db_listo(PyObject *self, PyObject *args) {
     PairItr *itr = q->getTermList(IDX_OPS);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
+        int64_t s = itr->getKey();
         PyObject *value;
         if (!text) {
             value = PyLong_FromLong(s);
@@ -322,9 +322,9 @@ static PyObject *db_degree(PyObject *self, PyObject *args) {
     TreeItr *itr = kb->getItrTerms();
     TermCoordinates coord;
     while (itr->hasNext()) {
-        long key = itr->next(&coord);
-        long inels = 0;
-        long outels = 0;
+        int64_t key = itr->next(&coord);
+        int64_t inels = 0;
+        int64_t outels = 0;
         if (coord.exists(IDX_SOP)) {
             inels = coord.getNElements(IDX_SOP);
         } else {
@@ -355,8 +355,8 @@ static PyObject *db_indegree(PyObject *self, PyObject *args) {
     TreeItr *itr = kb->getItrTerms();
     TermCoordinates coord;
     while (itr->hasNext()) {
-        long key = itr->next(&coord);
-        long inels = 0;
+        int64_t key = itr->next(&coord);
+        int64_t inels = 0;
         if (coord.exists(IDX_OSP)) {
             inels = coord.getNElements(IDX_OSP);
         } else {
@@ -380,8 +380,8 @@ static PyObject *db_outdegree(PyObject *self, PyObject *args) {
     TreeItr *itr = kb->getItrTerms();
     TermCoordinates coord;
     while (itr->hasNext()) {
-        long key = itr->next(&coord);
-        long outels = 0;
+        int64_t key = itr->next(&coord);
+        int64_t outels = 0;
         if (coord.exists(IDX_SOP)) {
             outels = coord.getNElements(IDX_SOP);
         } else {
@@ -411,9 +411,9 @@ static PyObject *db_all(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_SPO, -1, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
-        long p = itr->getValue1();
-        long o = itr->getValue2();
+        int64_t s = itr->getKey();
+        int64_t p = itr->getValue1();
+        int64_t o = itr->getValue2();
         PyObject *t = PyTuple_New(3);
 
         if (!text) {
@@ -421,7 +421,7 @@ static PyObject *db_all(PyObject *self, PyObject *args) {
             PyTuple_SetItem(t, 1, PyLong_FromLong(p));
             PyTuple_SetItem(t, 2, PyLong_FromLong(o));
         } else {
-            long ids[3];
+            int64_t ids[3];
             ids[0] = s;
             ids[1] = p;
             ids[2] = o;
@@ -443,7 +443,7 @@ static PyObject *db_all(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_allo(PyObject *self, PyObject *args) {
-    long s, p;
+    int64_t s, p;
     if (!PyArg_ParseTuple(args, "ll", &s, &p))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
@@ -451,7 +451,7 @@ static PyObject *db_allo(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_SPO, s, p, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long o = itr->getValue2();
+        int64_t o = itr->getValue2();
         PyObject *value = PyLong_FromLong(o);
         PyList_Append(obj, value);
         Py_DECREF(value);
@@ -462,7 +462,7 @@ static PyObject *db_allo(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_allo_aggr(PyObject *self, PyObject *args) {
-    long s;
+    int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
@@ -471,7 +471,7 @@ static PyObject *db_allo_aggr(PyObject *self, PyObject *args) {
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
-        long o = itr->getValue1();
+        int64_t o = itr->getValue1();
         PyObject *value = PyLong_FromLong(o);
         PyList_Append(obj, value);
         Py_DECREF(value);
@@ -497,7 +497,7 @@ static PyObject *db_nrels(PyObject *self, PyObject *args) {
     return PyLong_FromLong(dict->getNRels());
 }
 static PyObject *db_allpo(PyObject *self, PyObject *args) {
-    long s;
+    int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
@@ -505,8 +505,8 @@ static PyObject *db_allpo(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_SPO, s, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long p = itr->getValue1();
-        long o = itr->getValue2();
+        int64_t p = itr->getValue1();
+        int64_t o = itr->getValue2();
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(p));
         PyTuple_SetItem(t, 1, PyLong_FromLong(o));
@@ -518,7 +518,7 @@ static PyObject *db_allpo(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_allps(PyObject *self, PyObject *args) {
-    long o;
+    int64_t o;
     if (!PyArg_ParseTuple(args, "l", &o))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
@@ -526,8 +526,8 @@ static PyObject *db_allps(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_OPS, o, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long p = itr->getValue1();
-        long s = itr->getValue2();
+        int64_t p = itr->getValue1();
+        int64_t s = itr->getValue2();
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(p));
         PyTuple_SetItem(t, 1, PyLong_FromLong(s));
@@ -539,7 +539,7 @@ static PyObject *db_allps(PyObject *self, PyObject *args) {
 }
 
 static PyObject *db_allos(PyObject *self, PyObject *args) {
-    long p;
+    int64_t p;
     if (!PyArg_ParseTuple(args, "l", &p))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
@@ -547,8 +547,8 @@ static PyObject *db_allos(PyObject *self, PyObject *args) {
     PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
-        long o = itr->getValue1();
-        long s = itr->getValue2();
+        int64_t o = itr->getValue1();
+        int64_t s = itr->getValue2();
         PyObject *t = PyTuple_New(2);
         PyTuple_SetItem(t, 0, PyLong_FromLong(s));
         PyTuple_SetItem(t, 1, PyLong_FromLong(o));
@@ -575,7 +575,7 @@ static PyObject * trident_lookup_id(PyObject *self, PyObject *args) {
 }
 
 static PyObject * trident_lookup_str(PyObject *self, PyObject *args) {
-    long id;
+    int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
     KB *kb = ((trident_Db*)self)->kb;
@@ -591,7 +591,7 @@ static PyObject * trident_lookup_str(PyObject *self, PyObject *args) {
 }
 
 static PyObject * trident_lookup_relstr(PyObject *self, PyObject *args) {
-    long id;
+    int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
     KB *kb = ((trident_Db*)self)->kb;
@@ -617,8 +617,8 @@ static PyObject * trident_search_id(PyObject *self, PyObject *args) {
     string sTermToSearch(term);
     PyObject *obj = PyList_New(0);
     while (itr->hasNext()) {
-        long value;
-        long key = itr->next(value);
+        int64_t value;
+        int64_t key = itr->next(value);
         int size;
         const char *text = sb->get(value, size);
         string sTerm(text, size);

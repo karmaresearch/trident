@@ -33,7 +33,7 @@
 class DiffIndex;
 class CompositeItr: public PairItr {
 private:
-    long v1, v2;
+    int64_t v1, v2;
     bool ignseccol;
 
     std::vector<PairItr*> children;
@@ -43,11 +43,11 @@ private:
     bool hn, hnc;
     bool isSorted,decreasedKey;
     DiffIndex *currentdiff;
-    long currentCount;
-    long nfirstterms;
+    int64_t currentCount;
+    int64_t nfirstterms;
     PairItr *kbitr;
 
-    long savedv1, savedv2, savedcurrentCount;
+    int64_t savedv1, savedv2, savedcurrentCount;
     int savedlastIdx;
     bool savedhn, savedhnc;
 
@@ -58,11 +58,11 @@ public:
         return COMPOSITE_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
@@ -72,7 +72,7 @@ public:
 
     void ignoreSecondColumn();
 
-    long getCount();
+    int64_t getCount();
 
     DiffIndex *getCurrentDiff();
 
@@ -93,7 +93,7 @@ public:
 	savedhn = hn;
 	savedhnc = hnc;
 	kbitr->mark();
-	for (int i = children.size() - 1; i >= 0; i--) {
+	for (size_t i = children.size() - 1; i >= 0; i--) {
 	    children[i]->mark();
 	}
     }
@@ -107,14 +107,14 @@ public:
 	hn = savedhn;
 	hnc = savedhnc;
 	kbitr->reset(r);
-	for (int i = children.size() - 1; i >= 0; i--) {
+	for (size_t i = children.size() - 1; i >= 0; i--) {
 	    children[i]->reset(r);
 	}
     }
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 
-    void init(std::vector<PairItr*> &iterators, long nfirstterms,
+    void init(std::vector<PairItr*> &iterators, int64_t nfirstterms,
               PairItr *kbitr);
 
     std::vector<PairItr*> getChildren();

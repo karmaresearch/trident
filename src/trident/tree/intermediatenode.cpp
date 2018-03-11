@@ -36,15 +36,15 @@ IntermediateNode::IntermediateNode(TreeContext *context, Node *child1,
         Node *child2) :
     Node(context) {
         children = new Node*[context->getMaxElementsPerNode() + 1];
-        idChildren = new long[context->getMaxElementsPerNode() + 1];
+        idChildren = new int64_t[context->getMaxElementsPerNode() + 1];
 
         if (context->textKeys()) {
             int size = 0;
             tTerm *key = child1->largestTextualKey(&size);
             putkeyAt(key, size, 0);
         } else {
-            long key1 = child1->largestNumericKey();
-            long key2 = child2->smallestNumericKey();
+            int64_t key1 = child1->largestNumericKey();
+            int64_t key2 = child2->smallestNumericKey();
             putkeyAt((key1 + key2) / 2, 0);
         }
         children[0] = child1;
@@ -60,11 +60,11 @@ int IntermediateNode::unserialize(char *bytes, int pos) {
 
     if (children == NULL) {
         children = new Node*[getCurrentSize() + 1];
-        idChildren = new long[getCurrentSize() + 1];
+        idChildren = new int64_t[getCurrentSize() + 1];
     }
 
     for (int i = 0; i < getCurrentSize() + 1; ++i) {
-        long id = Utils::decode_long(bytes, pos);
+        int64_t id = Utils::decode_long(bytes, pos);
         pos += 8;
         idChildren[i] = id;
         children[i] = NULL;
@@ -76,7 +76,7 @@ int IntermediateNode::serialize(char *bytes, int pos) {
     pos = Node::serialize(bytes, pos);
 
     for (int i = 0; i < getCurrentSize() + 1; ++i) {
-        long id;
+        int64_t id;
         if (children[i] != NULL) {
             id = children[i]->getId();
         } else {
@@ -88,7 +88,7 @@ int IntermediateNode::serialize(char *bytes, int pos) {
     return pos;
 }
 
-Node *IntermediateNode::getChildForKey(long key) {
+Node *IntermediateNode::getChildForKey(int64_t key) {
     int p = pos(key);
     if (p < 0) {
         p = -p - 1;
@@ -126,12 +126,12 @@ int IntermediateNode::getPosChild(Node *child) {
     return CHILD_NOT_FOUND;
 }
 
-long IntermediateNode::smallestNumericKey() {
+int64_t IntermediateNode::smallestNumericKey() {
     ensureChildIsLoaded(0);
     return children[0]->smallestNumericKey();
 }
 
-long IntermediateNode::largestNumericKey() {
+int64_t IntermediateNode::largestNumericKey() {
     ensureChildIsLoaded(getCurrentSize());
     return children[getCurrentSize()]->largestNumericKey();
 }
@@ -174,7 +174,7 @@ bool IntermediateNode::get(tTerm *key, const int sizeKey, nTerm *value) {
 //  ensureChildIsLoaded(p);
 //  return children[p]->get(key, container);
 //}
-bool IntermediateNode::get(nTerm key, long &coordinates) {
+bool IntermediateNode::get(nTerm key, int64_t &coordinates) {
     int p = pos(key);
     if (p < 0) {
         p = -p - 1;
@@ -193,8 +193,8 @@ bool IntermediateNode::get(nTerm key, TermCoordinates *value) {
 }
 
 void numAvg(Node *parent, int p, Node *child1, Node *child2) {
-    long key1 = child1->largestNumericKey();
-    long key2 = child2->smallestNumericKey();
+    int64_t key1 = child1->largestNumericKey();
+    int64_t key2 = child2->smallestNumericKey();
     parent->putkeyAt((key1 + key2) / 2, p);
 }
 
@@ -215,7 +215,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
         if (n1->children == NULL) {
             n1->children = new Node*[getContext()->getMaxElementsPerNode() + 1];
             n1->idChildren =
-                new long[getContext()->getMaxElementsPerNode() + 1];
+                new int64_t[getContext()->getMaxElementsPerNode() + 1];
         }
 
         int minSize = getContext()->getMinElementsPerNode();
@@ -236,7 +236,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
             memmove(children + p + 2, children + p + 1,
                     (getCurrentSize() - p - 1) * sizeof(Node *));
             memmove(idChildren + p + 2, idChildren + p + 1,
-                    (getCurrentSize() - p - 1) * sizeof(long));
+                    (getCurrentSize() - p - 1) * sizeof(int64_t));
             children[p + 1] = split;
             split->setParent(this);
 
@@ -258,7 +258,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
                 memmove(n1->children + p + 2, n1->children + p + 1,
                         sizeof(Node *) * (minSize - p - 1));
                 memmove(n1->idChildren + p + 2, n1->idChildren + p + 1,
-                        sizeof(long) * (minSize - p - 1));
+                        sizeof(int64_t) * (minSize - p - 1));
 
                 insertAverage(n1, p, n1->children[p], split);
                 n1->children[p + 1] = split;
@@ -266,7 +266,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
                 memmove(n1->children + 1, n1->children,
                         minSize * sizeof(Node*));
                 memmove(n1->idChildren + 1, n1->idChildren,
-                        minSize * sizeof(long));
+                        minSize * sizeof(int64_t));
                 n1->children[0] = split;
             }
 
@@ -279,7 +279,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
         memmove(children + p + 2, children + p + 1,
                 (getCurrentSize() - p - 1) * sizeof(Node*));
         memmove(idChildren + p + 2, idChildren + p + 1,
-                (getCurrentSize() - p - 1) * sizeof(long));
+                (getCurrentSize() - p - 1) * sizeof(int64_t));
         children[p + 1] = split;
         split->setParent(this);
         getContext()->getCache()->registerNode(split);
@@ -287,7 +287,7 @@ Node *IntermediateNode::updateChildren(Node *split, int p,
     }
 }
 
-Node *IntermediateNode::put(nTerm key, long coordinatesTTerm) {
+Node *IntermediateNode::put(nTerm key, int64_t coordinatesTTerm) {
     // Forward the request to the children
     int p = pos(key);
     if (p < 0) {
@@ -361,7 +361,7 @@ Node *IntermediateNode::append(nTerm key, TermCoordinates *value) {
     }
 }
 
-Node *IntermediateNode::append(nTerm key, long coordinatesTerm) {
+Node *IntermediateNode::append(nTerm key, int64_t coordinatesTerm) {
     int p = getCurrentSize();
     ensureChildIsLoaded(p);
 

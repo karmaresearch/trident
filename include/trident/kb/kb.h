@@ -64,12 +64,12 @@ class KB {
         bool dictHash;
         std::vector<DictMgmt::Dict> dictUpdates;
 
-        long ntables[N_PARTITIONS];
-        long nFirstTables[N_PARTITIONS];
+        int64_t ntables[N_PARTITIONS];
+        int64_t nFirstTables[N_PARTITIONS];
 
-        long totalNumberTriples;
-        long totalNumberTerms;
-        long nextID;
+        int64_t totalNumberTriples;
+        int64_t totalNumberTerms;
+        int64_t nextID;
         GraphType graphType;
 
         int nindices;
@@ -107,17 +107,17 @@ class KB {
         void loadDict(KBConfig *config);
 
     public:
-        KB(const char *path, bool readOnly, bool reasoning,
+        DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
                 bool dictEnabled, KBConfig &config) : KB(path, readOnly, reasoning,
                     dictEnabled, config, std::vector<string>()) {
                 }
 
-        KB(const char *path, bool readOnly, bool reasoning,
+        DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
                 bool dictEnabled, KBConfig &config, std::vector<string> locationUpdates);
 
-        Querier *query();
+        DDLEXPORT Querier *query();
 
-        Inserter *insert();
+        DDLEXPORT Inserter *insert();
 
         DictMgmt *getDictMgmt() {
             return dictManager;
@@ -127,9 +127,9 @@ class KB {
 
         void close();
 
-        Stats getStats();
+        DDLEXPORT Stats getStats();
 
-        Stats *getStatsDict();
+        DDLEXPORT Stats *getStatsDict();
 
         string getDictPath(int i);
 
@@ -173,11 +173,11 @@ class KB {
             return sampleRate;
         }
 
-        long getSize() {
+        int64_t getSize() {
             return totalNumberTriples;
         }
 
-        long getNextID() {
+        int64_t getNextID() {
             return nextID;
         }
 
@@ -189,7 +189,7 @@ class KB {
 
         void addDiffIndex(string inputdir, const char **globalbuffers, Querier *q);
 
-        ~KB();
+        DDLEXPORT ~KB();
 };
 
 #endif /* KBB_H_ */

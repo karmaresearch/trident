@@ -36,7 +36,7 @@ using namespace std;
 class TreeContext;
 
 typedef struct CachedNode {
-    long id;
+    int64_t id;
     CachedNode *previous;
     CachedNode *next;
     int nodeSize;
@@ -47,12 +47,12 @@ typedef struct CachedNode {
 } CachedNode;
 
 struct StoredNodesKeyHasher {
-    std::size_t operator()(long n) const {
+    std::size_t operator()(int64_t n) const {
         return (int) n;
     }
 };
 struct StoredNodesKeyCmp {
-    bool operator()(long o1, long o2) const {
+    bool operator()(int64_t o1, int64_t o2) const {
         return o1 == o2;
     }
 };
@@ -66,14 +66,12 @@ private:
     const int nodeMinSize;
 
     //Used during the writing
-    std::unordered_map<long, CachedNode*, StoredNodesKeyHasher,
+    std::unordered_map<int64_t, CachedNode*, StoredNodesKeyHasher,
           StoredNodesKeyCmp> storedNodes;
 
     //Used in cache it's read-only
     CachedNode *readOnlyStoredNodes;
     bool *nodesLoaded;
-    //bip::file_mapping *mapping;
-    //bip::mapped_region *mapped_rgn;
     std::unique_ptr<MemoryMappedFile> mappedFile;
     char *rawInput;
 
@@ -90,13 +88,13 @@ private:
 
 public:
     NodeManager(TreeContext *context, int nodeMinBytes, int fileMaxSize,
-                int maxNFiles, long cacheMaxSize, std::string path);
+                int maxNFiles, int64_t cacheMaxSize, std::string path);
 
     char* get(CachedNode *node);
 
     void put(Node *node, char *buffer, int sizeBuffer);
 
-    CachedNode *getCachedNode(long id);
+    CachedNode *getCachedNode(int64_t id);
 
     static void compressSpace(string path);
 

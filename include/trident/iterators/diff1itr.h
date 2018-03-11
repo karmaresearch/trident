@@ -28,7 +28,7 @@
 
 class Diff1Itr : public PairItr {
 private:
-    long v1, v2;
+    int64_t v1, v2;
     bool noseccol;
     bool first;
 
@@ -36,18 +36,18 @@ private:
     const char *e;
     uint8_t posarray;
     uint8_t nbytes;
-    long nelements;
+    int64_t nelements;
 
 public:
     int getTypeItr() {
         return DIFF1_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
@@ -101,7 +101,7 @@ public:
         }
     }
 
-    long getCount() {
+    int64_t getCount() {
         switch (posarray) {
         case 0:
             return 1;
@@ -129,7 +129,7 @@ public:
         return getCardinality();
     }
 
-    void moveto(const long c1, const long c2) {
+    void moveto(const int64_t c1, const int64_t c2) {
         //TODO
         throw 10;
     }
@@ -138,8 +138,8 @@ public:
         return s != e;
     }
 
-    void init(long key, long first, long second, const char *values,
-              uint8_t nbytes, long nelements, uint8_t posarray) {
+    void init(int64_t key, int64_t first, int64_t second, const char *values,
+              uint8_t nbytes, int64_t nelements, uint8_t posarray) {
 	initializeConstraints();
         noseccol = false;
         setKey(key);

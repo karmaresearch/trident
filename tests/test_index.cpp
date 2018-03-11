@@ -35,11 +35,11 @@ int main(int argc, const char** argv) {
 	Root *root = new Root("/Users/jacopo/Desktop/kb/tree", NULL, false, config);
 	TreeItr *itr = root->itr();
 	TermCoordinates t;
-	long count = 0;
+	int64_t count = 0;
 	int keys = 0;
 	while (itr->hasNext()) {
 		keys = (keys+1) % 100;
-		long k = itr->next(&t);
+		int64_t k = itr->next(&t);
 		if (keys == 0) {
 			cout << k << endl;
 		}

@@ -29,7 +29,7 @@ void ColumnTableInserter::startAppend() {
     maxGroupSize = 0;
 }
 
-void ColumnTableInserter::append(long t1, long t2) {
+void ColumnTableInserter::append(int64_t t1, int64_t t2) {
     if (tmpfirstpairs.size() == 0 || tmpfirstpairs.at(tmpfirstpairs.size() - 1).first != t1) {
         if (!tmpfirstpairs.empty() && tmpsecondpairs.size() - tmpfirstpairs.back().second > maxGroupSize) {
             maxGroupSize = tmpsecondpairs.size() - tmpfirstpairs.back().second;
@@ -42,7 +42,7 @@ void ColumnTableInserter::append(long t1, long t2) {
     }
 }
 
-uint8_t ColumnTableInserter::getNBytes(const int comprType, const long value) const {
+uint8_t ColumnTableInserter::getNBytes(const int comprType, const int64_t value) const {
     switch (comprType) {
     case COMPR_1:
         return (uint8_t) Utils::numBytes(value);
@@ -62,11 +62,11 @@ void ColumnTableInserter::stopAppend() {
 
     createNewFileIfCurrentIsTooLarge();
     uint64_t firstElement = tmpfirstpairs[0].first;
-    writeFirstTerm(firstElement);
+    writeFirstTerm((long)firstElement);
     if (tmpfirstpairs.size() > 1) {
-        writeVLong2(tmpfirstpairs[1].second);
+        writeVLong2((long)tmpfirstpairs[1].second);
     } else {
-        writeVLong2(tmpsecondpairs.size());
+        writeVLong2((long)tmpsecondpairs.size());
     }
 
     short fileCoordinates = getCurrentFile();
@@ -99,12 +99,12 @@ void ColumnTableInserter::stopAppend() {
             }
 
             //reserve space for pointer
-            int cp = getCurrentPosition();
+            uint64_t cp = getCurrentPosition();
             reserveBytes(bytesPerPointer);
             assert((cp + bytesPerPointer) == getCurrentPosition());
 
             //write diff first term
-            writeFirstTerm(itr->first - firstElement);
+            writeFirstTerm((long)(itr->first - firstElement));
             uint8_t bytesToFill = (uint8_t) (cp + bytesPerPointer +
                                              bytesPerFirstEntry - getCurrentPosition());
             assert(bytesToFill < bytesPerFirstEntry);
@@ -143,7 +143,7 @@ void ColumnTableInserter::stopAppend() {
     uint64_t firstSecondTerm = 0;
     bool addPos = true;
 
-    long bp = getCurrentPosition();
+    int64_t bp = getCurrentPosition();
     short bpf = getCurrentFile();
     uint64_t nElements = 0;
     uint64_t nElementsGroup = 0;
@@ -172,7 +172,7 @@ void ColumnTableInserter::stopAppend() {
                 //short origFile = getCurrentFile();
                 //size_t origPos = getCurrentPosition();
 
-                long diff = getNBytesFrom(bpf, bp);
+                int64_t diff = getNBytesFrom(bpf, bp);
                 short fileToWrite = fileCoordinates;
                 size_t posToWrite = posCoordinates + currentCoordinate * (bytesPerFirstEntry + bytesPerPointer + bytesPerNElements);
                 while (posToWrite >= getFileSize(fileToWrite)) {
@@ -213,7 +213,7 @@ void ColumnTableInserter::stopAppend() {
     tmpsecondpairs.clear();
 }
 
-void ColumnTableInserter::writeFirstTerm(long t) {
+void ColumnTableInserter::writeFirstTerm(int64_t t) {
     switch (compr1) {
     case COMPR_1:
         writeVLong(t);
@@ -227,7 +227,7 @@ void ColumnTableInserter::writeFirstTerm(long t) {
     }
 }
 
-void ColumnTableInserter::writeSecondTerm(long t) {
+void ColumnTableInserter::writeSecondTerm(int64_t t) {
     switch (compr2) {
     case COMPR_1:
         writeVLong(t);

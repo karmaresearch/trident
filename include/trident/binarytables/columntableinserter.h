@@ -34,11 +34,11 @@ private:
     int compr2;
     uint8_t bytesPerFirstEntry, bytesPerPointer, bytesPerNElements;
 
-    void writeFirstTerm(long t1);
+    void writeFirstTerm(int64_t t1);
 
-    void writeSecondTerm(long t2);
+    void writeSecondTerm(int64_t t2);
 
-    uint8_t getNBytes(const int comprType, const long value) const;
+    uint8_t getNBytes(const int comprType, const int64_t value) const;
 
 public:
 
@@ -50,7 +50,7 @@ public:
 
     void startAppend();
 
-    void append(long t1, long t2);
+    void append(int64_t t1, int64_t t2);
 
     void stopAppend();
 

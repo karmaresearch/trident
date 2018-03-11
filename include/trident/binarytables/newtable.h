@@ -37,12 +37,12 @@ class AbsNewTable : public PairItr {
 
         virtual void setup(const char* start, const char *end) = 0;
 
-        virtual void setup(long c1, const char* start, const char *end) = 0;
+        virtual void setup(int64_t c1, const char* start, const char *end) = 0;
 
-        virtual void setup(long c1, long c2, const char* start, const char *end) = 0;
+        virtual void setup(int64_t c1, int64_t c2, const char* start, const char *end) = 0;
 
-        virtual long _getValue1AtRow(const char *start,
-                const long rowId) const  {
+        virtual int64_t _getValue1AtRow(const char *start,
+                const int64_t rowId) const  {
             throw 10;
         }
 };

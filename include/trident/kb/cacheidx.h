@@ -63,7 +63,7 @@ private:
 public:
 
     CacheIdx() {
-        keyMap.set_empty_key(~0lu);
+        keyMap.set_empty_key(UINT64_MAX);
     }
 
     std::pair<std::vector<std::pair<uint64_t, uint64_t>>*,

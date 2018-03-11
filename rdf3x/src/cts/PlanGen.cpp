@@ -213,7 +213,7 @@ Plan* PlanGen::buildFilters(const QueryGraph::SubQuery& query, Plan* plan, uint6
 static void normalizePattern(DBLayer::DataOrder order, uint64_t& c1, uint64_t& c2, uint64_t& c3)
     // Extract subject/predicate/object order
 {
-    uint64_t s = ~0lu, p = ~0lu, o = ~0lu;
+    uint64_t s = UINT64_MAX, p = UINT64_MAX, o = UINT64_MAX;
     switch (order) {
         case DBLayer::Order_No_Order_SPO:
         case DBLayer::Order_Subject_Predicate_Object:
@@ -282,11 +282,11 @@ void PlanGen::buildIndexScan(const QueryGraph::SubQuery& query, DBLayer::DataOrd
         if (!~value2) {
             plan->ordering = value3;
         } else {
-            scanned = getCardinality(*db, order, value1C, value2C, ~0lu);
+            scanned = getCardinality(*db, order, value1C, value2C, UINT64_MAX);
             plan->ordering = value2;
         }
     } else {
-        scanned = getCardinality(*db, order, value1C, ~0lu, ~0lu);
+        scanned = getCardinality(*db, order, value1C, UINT64_MAX, UINT64_MAX);
         plan->ordering = value1;
     }
     /*unsigned pages = 1 + static_cast<unsigned>(db->getFacts(order).getPages() * (static_cast<double>(scanned) / static_cast<double>(db->getFacts(order).getCardinality())));
@@ -328,7 +328,7 @@ void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLaye
     plan->next = 0;
 
     // Compute the statistics
-    uint64_t scanned = getCardinality(*db, order, value1C, value2C, ~0lu);
+    uint64_t scanned = getCardinality(*db, order, value1C, value2C, UINT64_MAX);
     uint64_t fullSize = db->getCardinality();
     if (scanned > fullSize)
         scanned = fullSize;
@@ -354,7 +354,7 @@ void PlanGen::buildAggregatedIndexScan(const QueryGraph::SubQuery& query, DBLaye
 
 
     // Apply filters
-    plan = buildFilters(query, plan, value1, value2, ~0lu);
+    plan = buildFilters(query, plan, value1, value2, UINT64_MAX);
 
     // And store it
     addPlan(result, plan);
@@ -372,7 +372,7 @@ void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, D
     plan->next = 0;
 
     // Compute the statistics
-    uint64_t scanned = getCardinality(*db, order, value1C, ~0lu, ~0lu);
+    uint64_t scanned = getCardinality(*db, order, value1C, UINT64_MAX, UINT64_MAX);
     uint64_t fullSize = db->getCardinality();
     if (scanned > fullSize)
         scanned = fullSize;
@@ -396,7 +396,7 @@ void PlanGen::buildFullyAggregatedIndexScan(const QueryGraph::SubQuery& query, D
         plan->ordering = ~0u;
 
     // Apply filters
-    plan = buildFilters(query, plan, value1, ~0lu, ~0lu);
+    plan = buildFilters(query, plan, value1, UINT64_MAX, UINT64_MAX);
 
     // And store it
     addPlan(result, plan);
@@ -525,8 +525,8 @@ PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const Qu
     bool unusedObject = (!node.constObject) && isUnused(*fullQuery, node, node.object);
 
     // Lookup variables
-    uint64_t s = node.constSubject ? ~0lu : node.subject, p = node.constPredicate ? ~0lu : node.predicate, o = node.constObject ? ~0lu : node.object;
-    uint64_t sc = node.constSubject ? node.subject : ~0lu, pc = node.constPredicate ? node.predicate : ~0lu, oc = node.constObject ? node.object : ~0lu;
+    uint64_t s = node.constSubject ? UINT64_MAX : node.subject, p = node.constPredicate ? UINT64_MAX : node.predicate, o = node.constObject ? UINT64_MAX : node.object;
+    uint64_t sc = node.constSubject ? node.subject : UINT64_MAX, pc = node.constPredicate ? node.predicate : UINT64_MAX, oc = node.constObject ? node.object : UINT64_MAX;
 
     // Build all relevant scans
     if ((unusedSubject + unusedPredicate + unusedObject) >= 2) {
@@ -615,7 +615,7 @@ PlanGen::JoinDescription PlanGen::buildJoinInfo(const QueryGraph::SubQuery& quer
         //Another is to do some rough approximations
         //I choose the second one.
         //
-        result.selectivity = ~0lu;
+        result.selectivity = -1;
     }
 
     // Look up suitable orderings
@@ -1012,9 +1012,9 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
             if (~(*iter2).id)
                 input.insert((*iter2).id);
         for (unsigned index = 0; index < query.nodes.size(); index++) {
-            uint64_t s = query.nodes[index].constSubject ? ~0lu : query.nodes[index].subject;
-            uint64_t p = query.nodes[index].constPredicate ? ~0lu : query.nodes[index].predicate;
-            uint64_t o = query.nodes[index].constObject ? ~0lu : query.nodes[index].object;
+            uint64_t s = query.nodes[index].constSubject ? INT64_MAX : query.nodes[index].subject;
+            uint64_t p = query.nodes[index].constPredicate ? INT64_MAX : query.nodes[index].predicate;
+            uint64_t o = query.nodes[index].constObject ? INT64_MAX : query.nodes[index].object;
             if (input.count(s) || input.count(p) || input.count(o) || input.empty())
                 join.left.set(index);
         }

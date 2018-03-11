@@ -47,7 +47,7 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
         bool textValues = conf.getBool(TEXT_VALUES);
         int maxElementsPerNode = conf.getInt(MAX_EL_PER_NODE, 2048);
 
-        nodesKeysFactory = new PreallocatedArraysFactory<long>(maxElementsPerNode,
+        nodesKeysFactory = new PreallocatedArraysFactory<int64_t>(maxElementsPerNode,
                 conf.getInt(NODE_KEYS_FACTORY_SIZE, 10),
                 conf.getInt(NODE_KEYS_PREALL_FACTORY_SIZE, 10));
 
@@ -76,16 +76,16 @@ Root::Root(string path, StringBuffer *buffer, bool readOnly, PropertyMap &conf) 
 
         // Check the directory to see whether the intermediate nodes are stored
         // on disk
-        std::string f = path + string("/tree");
-        std::ifstream is(f.c_str());
+        std::string f = path + DIR_SEP + string("tree");
+        std::ifstream is(f.c_str(), ios_base::binary);
 
         if (is.good()) {
             is.seekg(0, std::ios_base::end);
             std::size_t size = is.tellg();
             is.seekg(0, std::ios_base::beg);
-            char raw_input[size];
-            is.read(raw_input, size);
-            long id = Utils::decode_long(raw_input, 0);
+			std::unique_ptr<char> raw_input = std::unique_ptr<char>(new char[size]);
+            is.read(raw_input.get(), size);
+            int64_t id = Utils::decode_long(raw_input.get(), 0);
             is.close();
             rootNode = cache->getNodeFromCache(id);
         } else { // new tree
@@ -111,7 +111,7 @@ bool Root::get(nTerm key, TermCoordinates *value) {
     return resp;
 }
 
-bool Root::get(nTerm key, long &coordinates) {
+bool Root::get(nTerm key, int64_t &coordinates) {
     Node *node = rootNode;
     while (node->canHaveChildren()) {
         node = node->getChildForKey(key);
@@ -127,7 +127,7 @@ bool Root::get(tTerm *key, const int sizeKey, nTerm *value) {
     return node->get(key, sizeKey, value);
 }
 
-void Root::put(nTerm key, long coordinates) {
+void Root::put(nTerm key, int64_t coordinates) {
     if (readOnly) {
         LOG(ERRORL) << "Put is requested on a read-only tree";
         throw 10;
@@ -176,7 +176,7 @@ void Root::append(tTerm *key, int sizeKey, nTerm &value) {
     }
 }
 
-void Root::append(nTerm key, long coordinates) {
+void Root::append(nTerm key, int64_t coordinates) {
     Node *n = rootNode->append(key, coordinates);
     if (n != NULL) {
         IntermediateNode *newRoot = cache->newIntermediateNode(rootNode, n);
@@ -229,7 +229,7 @@ TreeItr *Root::itr() {
         }
     } else {
         while (node->canHaveChildren()) {
-            node = node->getChildForKey((long) 0);
+            node = node->getChildForKey((int64_t) 0);
         }
     }
 
@@ -261,7 +261,7 @@ void Root::flushChildrenToCache() {
 Root::~Root() {
     if (!readOnly) {
         // Save metainformation about the tree
-        ofstream file(path + string("/tree"));
+        ofstream file(path + DIR_SEP + string("tree"), ios_base::binary);
         char buffer[16];
         Utils::encode_long(buffer, 0, rootNode->getId());
         Utils::encode_long(buffer, 8, context->getNewNodeID());

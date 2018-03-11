@@ -72,7 +72,7 @@ template <class PGraph> void PrintInfo(const PGraph& Graph, const TStr& Desc="",
 // Implementation
 
 // Forward declaration, definition in triad.h
-template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriads, int64& OpenTriads, long SampleNodes=-1);
+template <class PGraph> int64 GetTriads(const PGraph& Graph, int64& ClosedTriads, int64& OpenTriads,  int64_t SampleNodes=-1);
 template <class PGraph> double GetBfsEffDiam(const PGraph& Graph, const int& NTestNodes, const bool& IsDir, double& EffDiam, int& FullDiam);
 template <class PGraph> double GetMxWccSz(const PGraph& Graph);
 template <class PGraph> double GetMxSccSz(const PGraph& Graph);

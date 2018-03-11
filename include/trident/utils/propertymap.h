@@ -55,23 +55,23 @@ public:
         return defaultvalue;
     }
 
-    void setLong(int key, long value) {
+    void setLong(int key, int64_t value) {
         string svalue = to_string(value);
         set(key, svalue);
     }
 
-    long getLong(int key, long defaultv) {
+    int64_t getLong(int key, int64_t defaultv) {
         map<int, string>::iterator itr = privateMap.find(key);
         if (itr != privateMap.end()) {
-            return stol(itr->second);
+            return stoll(itr->second);
         }
         return defaultv;
     }
 
-    long getLong(int key) {
+    int64_t getLong(int key) {
         map<int, string>::iterator itr = privateMap.find(key);
         if (itr != privateMap.end()) {
-            return stol(itr->second);
+            return stoll(itr->second);
         }
         throw 10;
     }

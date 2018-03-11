@@ -41,34 +41,34 @@ class TreeContext;
 
 class Node {
 private:
-    long id;
+    int64_t id;
     IntermediateNode *parent;
     TreeContext * const context;
     int currentSize;
     bool deallocate;
 
-    long firstKey;
-    long *keys;
+    int64_t firstKey;
+    int64_t *keys;
     bool consecutive;
     int consecutiveStep;
     char state;
 
 protected:
-    int pos(long key);
+    int pos(int64_t key);
 
     int pos(tTerm *key, int size);
 
-    long localSmallestNumericKey() {
+    int64_t localSmallestNumericKey() {
         return firstKey;
     }
 
-    long localLargestNumericKey();
+    int64_t localLargestNumericKey();
 
     tTerm *localSmallestTextualKey(int *size);
 
     tTerm *localLargestTextualKey(int *size);
 
-    long keyAt(int pos);
+    int64_t keyAt(int pos);
 
     bool shouldSplit();
 
@@ -93,7 +93,7 @@ public:
         state = STATE_UNMODIFIED;
     }
 
-    void setId(long id) {
+    void setId(int64_t id) {
         this->id = id;
     }
 
@@ -121,7 +121,7 @@ public:
         this->currentSize = size;
     }
 
-    long getId() {
+    int64_t getId() {
         return id;
     }
 
@@ -159,7 +159,7 @@ public:
         return false;
     }
 
-    virtual Node *getChildForKey(long key) {
+    virtual Node *getChildForKey(int64_t key) {
         return NULL;
     }
 
@@ -167,9 +167,9 @@ public:
 
     virtual int serialize(char* bytes, int pos);
 
-    virtual long smallestNumericKey() = 0;
+    virtual int64_t smallestNumericKey() = 0;
 
-    virtual long largestNumericKey() = 0;
+    virtual int64_t largestNumericKey() = 0;
 
     virtual tTerm *smallestTextualKey(int *size) = 0;
 
@@ -179,19 +179,19 @@ public:
         return NULL;
     }
 
-    virtual bool get(nTerm key, long &coordinates) = 0;
+    virtual bool get(nTerm key, int64_t &coordinates) = 0;
 
     virtual bool get(tTerm *key, int sizeKey, nTerm *value) = 0;
 
     virtual bool get(nTerm key, TermCoordinates *value) = 0;
 
-    virtual Node *put(nTerm key, long coordinatesTTerm) = 0;
+    virtual Node *put(nTerm key, int64_t coordinatesTTerm) = 0;
 
     virtual Node *put(tTerm *key, int sizeKey, nTerm value) = 0;
 
     virtual Node *append(tTerm *key, int sizeKey, nTerm value) = 0;
 
-    virtual Node *append(nTerm key, long coordinates) = 0;
+    virtual Node *append(nTerm key, int64_t coordinates) = 0;
 
     virtual Node *append(nTerm key, TermCoordinates *value) = 0;
 

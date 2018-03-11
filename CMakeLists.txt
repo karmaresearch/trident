@@ -10,6 +10,7 @@ cmake_minimum_required (VERSION 2.8)
 project (Trident)
 include(ExternalProject)
 set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_VS_PLATFORM_NAME, "x64")
 
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
@@ -38,11 +39,13 @@ IF(MT)
 ENDIF()
 
 #Set compiler options
+if(CMAKE_COMPILER_IS_GNUCXX)
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
-set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_C_COMPILER "gcc")
+#set(CMAKE_CXX_COMPILER "g++")
+#set(CMAKE_C_COMPILER "gcc")
+endif()
 
 #Set to release mode if nothing is specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -87,7 +90,7 @@ ENDIF()
 #LZ4
 find_library(lz4 lz4)
 find_path (lz4h lz4.h)
-IF ((${lz4} STREQUAL "lz4-NOTFOUND") OR (${lz4h} STREQUAL "lz4h-NOTFOUND"))
+IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
     message("Could not find LZ4. I'm going to use the version from kognac")
     include_directories(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib/)
     LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib)

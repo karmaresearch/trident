@@ -13,7 +13,7 @@ namespace timens = boost::chrono;
 int main(int argc, const char** argv) {
 
 	int n = 10000000;
-    std::vector<std::pair<long, long>> pairs;
+    std::vector<std::pair<int64_t, int64_t>> pairs;
 	for (int i = 0; i < n; ++i) {
         pairs.push_back(std::make_pair(i + 1024, 0));
 	}
@@ -56,7 +56,7 @@ int main(int argc, const char** argv) {
     //Add the first 1024
     for(int i = 0; i < 1024; ++i) {
         cout << "Inserting " << i << endl;
-        root->put((long)i, (long)0);
+        root->put((int64_t)i, (int64_t)0);
     }
 
 	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()

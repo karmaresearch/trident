@@ -34,7 +34,7 @@ class TermItr: public PairItr {
     private:
         TableStorage *tables;
         size_t currentfile, nfiles;
-        long currentMark;
+        int64_t currentMark;
         const char *buffer;
         const char *endbuffer;
         uint64_t size;
@@ -52,17 +52,17 @@ class TermItr: public PairItr {
             return currentfile;
         }
 
-        long getCurrentMark() {
+        int64_t getCurrentMark() {
             return currentMark;
         }
 
         char getCurrentStrat();
 
-        long getValue1() {
+        int64_t getValue1() {
             return 0;
         }
 
-        long getValue2() {
+        int64_t getValue2() {
             return 0;
         }
 
@@ -70,7 +70,7 @@ class TermItr: public PairItr {
             throw 10; //not supported
         }
 
-        long getCount();
+        int64_t getCount();
 
         bool hasNext();
 
@@ -86,9 +86,9 @@ class TermItr: public PairItr {
 
         void reset(const char i);
 
-        void gotoKey(long c);
+        void gotoKey(int64_t c);
 
-        void moveto(const long c1, const long c2);
+        void moveto(const int64_t c1, const int64_t c2);
 };
 
 #endif

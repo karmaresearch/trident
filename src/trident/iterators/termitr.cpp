@@ -59,7 +59,7 @@ bool TermItr::hasNext() {
 
 void TermItr::next() {
     buffer += 5;
-    const long key = Utils::decode_longFixedBytes(buffer, 5);
+    const int64_t key = Utils::decode_longFixedBytes(buffer, 5);
     setKey(key);
     buffer += 6;
     currentMark++;
@@ -90,9 +90,9 @@ void TermItr::reset(char i) {
     throw 10; //not implemented
 }
 
-void TermItr::gotoKey(long keyToSearch) {
+void TermItr::gotoKey(int64_t keyToSearch) {
     //Is the file within the file range?
-    const long lastKey = Utils::decode_longFixedBytes(endbuffer - 6, 5);
+    const int64_t lastKey = Utils::decode_longFixedBytes(endbuffer - 6, 5);
     if (keyToSearch > lastKey) {
         if (currentfile < nfiles - 1) {
             int nextfile = currentfile + 1;
@@ -130,7 +130,7 @@ void TermItr::gotoKey(long keyToSearch) {
     while (start < end) {
         const size_t nels = (end - start) / 11;
         const char *middle = start + (nels / 2) * 11;
-        const long k = Utils::decode_long(middle + 5);
+        const int64_t k = Utils::decode_long(middle + 5);
         if (k < keyToSearch) {
             start = middle + 11;
         } else if (k > keyToSearch) {
@@ -146,7 +146,7 @@ void TermItr::gotoKey(long keyToSearch) {
     buffer = end;
 }
 
-long TermItr::getCount() {
+int64_t TermItr::getCount() {
     TermCoordinates values;
     bool resp = tree->get(key, &values);
     if (!resp) {
@@ -160,6 +160,6 @@ long TermItr::getCount() {
     }
 }
 
-void TermItr::moveto(const long c1, const long c2) {
+void TermItr::moveto(const int64_t c1, const int64_t c2) {
     throw 10; //not implemented
 }

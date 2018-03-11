@@ -41,7 +41,7 @@ struct JoinPoint {
 
     bool merge;
 
-    long lastValue;
+    int64_t lastValue;
 
     JoinPoint() {
         lastValue = 0;
@@ -52,7 +52,7 @@ typedef struct PatternInfo {
     vector<std::pair<Pattern *, uint64_t> >::iterator pos;
     int nvars;
     int njoins;
-    long card;
+    int64_t card;
 } PatternInfo;
 
 class Querier;

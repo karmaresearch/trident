@@ -16,20 +16,20 @@ class Minus : public Operator
         struct HashVectors {
             std::vector<uint64_t> &v1;
             std::vector<uint64_t> &v2;
-            const unsigned size;
+            const size_t size;
             HashVectors(std::vector<uint64_t> &v1,
-                    std::vector<uint64_t> &v2, unsigned size) : v1(v1),
+                    std::vector<uint64_t> &v2, size_t size) : v1(v1),
             v2(v2), size(size) {
             }
-            std::size_t operator()(long const& idx) const {
+            std::size_t operator()(size_t const& idx) const {
                 size_t hash = size;
                 if (idx == -1) {
-                    for(long i = 0; i < size; ++i) {
+                    for(size_t i = 0; i < size; ++i) {
                         hash ^= v1[i] + 0x9e3779b9 + (hash << 6) + (hash >> 2);
                     }
                 } else {
-                    const long start = idx * size;
-                    for(long i = 0; i < size; ++i) {
+                    const size_t start = idx * size;
+                    for(size_t i = 0; i < size; ++i) {
                         hash ^= v2[start + i] + 0x9e3779b9 + (hash << 6) + (hash >> 2);
                     }
                 }
@@ -40,26 +40,26 @@ class Minus : public Operator
         struct EqualVectors {
             std::vector<uint64_t> &v1;
             std::vector<uint64_t> &v2;
-            const unsigned size;
+            const size_t size;
 
             EqualVectors(std::vector<uint64_t> &v1,
-                    std::vector<uint64_t> &v2, unsigned size) : v1(v1),
+                    std::vector<uint64_t> &v2, size_t size) : v1(v1),
             v2(v2), size(size) {
             }
 
-            const bool operator()(const long &lhs, const long &rhs) const {
+            const bool operator()(const size_t &lhs, const size_t &rhs) const {
                 if (lhs != rhs) {
                     if (lhs == -1) {
-                        const long start = rhs * size;
-                        for(unsigned i = 0; i < size; ++i) {
+                        const size_t start = rhs * size;
+                        for(size_t i = 0; i < size; ++i) {
                             if (v1[i] != v2[start + i]) {
                                 return false;
                             }
                         }
                         return true;
                     } else if (rhs == -1) {
-                        const long start = lhs * size;
-                        for(unsigned i = 0; i < size; ++i) {
+                        const size_t start = lhs * size;
+                        for(size_t i = 0; i < size; ++i) {
                             if (v1[i] != v2[start + i]) {
                                 return false;
                             }
@@ -81,7 +81,7 @@ class Minus : public Operator
         std::vector<uint64_t> valuesHashMap;
         HashVectors hashF;
         EqualVectors equalF;
-        std::unordered_set<long, HashVectors, EqualVectors> valuesToCheck;
+        std::unordered_set<size_t, HashVectors, EqualVectors> valuesToCheck;
 
     public:
         /// Constructor

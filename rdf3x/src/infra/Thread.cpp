@@ -21,8 +21,8 @@ bool Thread::start(void (*starter)(void*),void* arg,bool boost)
    // Create a new thread
 {
 #ifdef CONFIG_WINDOWS
-   unsigned long handle=_beginthread(starter,4096,arg);
-   if (handle==0xFFFFFFFFul) return false;
+   uintptr_t handle=_beginthread(starter,0,arg);	// 4096 stacksize is very small; Let sys decide ... --Ceriel
+   if (handle==(uintptr_t) -1L) return false;
    if (!boost)
       return true;
    return SetThreadPriority(reinterpret_cast<HANDLE>(handle),THREAD_PRIORITY_ABOVE_NORMAL);
@@ -86,13 +86,13 @@ void Thread::sleep(unsigned time)
 #endif
 }
 //---------------------------------------------------------------------------
-long Thread::threadID()
+int64_t Thread::threadID()
    // Threadid
 {
 #ifdef CONFIG_WINDOWS
-   return static_cast<long>(GetCurrentThreadId());
+   return static_cast<int64_t>(GetCurrentThreadId());
 #else
-   union { pthread_t a; long b; } c;
+   union { pthread_t a; int64_t b; } c;
    c.b=0;
    c.a=pthread_self();
    return c.b;

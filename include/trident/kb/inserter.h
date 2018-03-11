@@ -36,12 +36,12 @@
 #include <vector>
 #include <iostream>
 
-#define POSAGGRBYTE 0x100000000000l
+#define POSAGGRBYTE INT64_C(0x100000000000)
 
 class TreeInserter {
 
     public:
-        virtual void addEntry(nTerm key, long nElements, short file, int pos,
+        virtual void addEntry(nTerm key, int64_t nElements, short file, int pos,
                 char stategy) = 0;
 
         virtual ~TreeInserter() {}
@@ -53,7 +53,7 @@ class Inserter {
 
         Root* tree;
         TableStorage **files;
-        const long nTerms;
+        const int64_t nTerms;
 
         const bool useFixedStrategy;
         const char fixedStrategy;
@@ -62,12 +62,12 @@ class Inserter {
         size_t thresholdForColumnStorage;
         const size_t thresholdSkipTable;
 
-        long currentT1[N_PARTITIONS];
-        long currentT2[N_PARTITIONS];
-        long nElements[N_PARTITIONS];
+        int64_t currentT1[N_PARTITIONS];
+        int64_t currentT2[N_PARTITIONS];
+        int64_t nElements[N_PARTITIONS];
 
-        long *values1[N_PARTITIONS];
-        long *values2[N_PARTITIONS];
+        int64_t *values1[N_PARTITIONS];
+        int64_t *values2[N_PARTITIONS];
 
         short fileIdx[N_PARTITIONS];
         int startPositions[N_PARTITIONS];
@@ -76,13 +76,13 @@ class Inserter {
         bool skipTable[N_PARTITIONS];
 
         //Used for the aggregated indices
-        long lastFirstTerm[N_PARTITIONS];
-        long countLastFirstTerm[N_PARTITIONS];
-        long coordinatesLastFirstTerm[N_PARTITIONS];
-        long posElements[N_PARTITIONS];
+        int64_t lastFirstTerm[N_PARTITIONS];
+        int64_t countLastFirstTerm[N_PARTITIONS];
+        int64_t coordinatesLastFirstTerm[N_PARTITIONS];
+        int64_t posElements[N_PARTITIONS];
 
         Statistics stats[N_PARTITIONS];
-        long skippedTables[N_PARTITIONS];
+        int64_t skippedTables[N_PARTITIONS];
 
         StorageStrat storageStrategy[N_PARTITIONS];
         Factory<RowTableInserter> listFactory[N_PARTITIONS];
@@ -94,29 +94,29 @@ class Inserter {
         BinaryTableInserter *currentPairHandler[N_PARTITIONS];
 
         //Store the number of virtual tables per partition
-        long *ntables;
+        int64_t *ntables;
         //Store the number of all first terms in all tables
-        long *nFirstElsNTables;
+        int64_t *nFirstElsNTables;
 
         std::mutex mutex;
 
-        long getCoordinatesForPOS(const int p);
+        int64_t getCoordinatesForPOS(const int p);
         void writeCurrentEntryIntoTree(int permutation, TripleWriter *posArray,
                 TreeInserter *treeInserter,
                 const bool aggregated,
                 const bool canSkipTables);
 
-        void storeInmemoryValuesIntoFiles(int permutation, long* v1, long* v2,
+        void storeInmemoryValuesIntoFiles(int permutation, int64_t* v1, int64_t* v2,
                 int n, TripleWriter *posArray,
                 const bool aggregated,
                 const bool canSkipTables);
 
 
     public:
-        Inserter(Root *tree, TableStorage **files, long nTerms,
+        Inserter(Root *tree, TableStorage **files, int64_t nTerms,
                 bool useFixedStrategy, char fixedStrategy,
                 const size_t thresholdSkipTable,
-                long *ntables, long *nFirstElsNTables) : nTerms(nTerms),
+                int64_t *ntables, int64_t *nFirstElsNTables) : nTerms(nTerms),
         useFixedStrategy(useFixedStrategy), fixedStrategy(fixedStrategy),
         useRowForLargeTables(false),
         thresholdForColumnStorage(StorageStrat::getBinaryBreakingPoint()),
@@ -128,8 +128,8 @@ class Inserter {
 
             for (int i = 0; i < N_PARTITIONS; ++i) {
                 currentT1[i] = -1;
-                values1[i] = new long[THRESHOLD_KEEP_MEMORY + 1];
-                values2[i] = new long[THRESHOLD_KEEP_MEMORY + 1];
+                values1[i] = new int64_t[THRESHOLD_KEEP_MEMORY + 1];
+                values2[i] = new int64_t[THRESHOLD_KEEP_MEMORY + 1];
                 storageStrategy[i].init(/*NULL, NULL, NULL,*/ NULL, NULL, NULL,
                         &listFactory[i],
                         &comprFactory[i],
@@ -156,8 +156,8 @@ class Inserter {
             useRowForLargeTables = true;
         }
 
-        bool insert(const int permutation, const long t1, const long t2,
-                const long t3, const long count,
+        bool insert(const int permutation, const int64_t t1, const int64_t t2,
+                const int64_t t3, const int64_t count,
                 TripleWriter *posArray, TreeInserter *treeInserter,
                 const bool aggregated, const bool canSkipTables);
 

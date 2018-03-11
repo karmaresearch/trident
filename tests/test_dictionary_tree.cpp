@@ -95,9 +95,9 @@ int main(int argc, const char** argv) {
 
 	//Get some numbers
 	for (int i = 0; i < n; i+=4) {
-//		long key = random() % n;
-		long key = i;
-		long value;
+//		int64_t key = random() % n;
+		int64_t key = i;
+		int64_t value;
 		if (root->get((nTerm)key, value)) {
 			if (key != value) {
 //				//Check if this key appears multiple times.

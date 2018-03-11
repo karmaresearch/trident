@@ -300,6 +300,8 @@ uint64_t ResultsPrinter::first()
             }
             cout << '\n';
             nrows++;
+			if (nrows >= limit)
+				break;
         } while ((count == input->next()) != 0);
         return 1;
     }

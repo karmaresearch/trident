@@ -102,7 +102,7 @@ void CompositeItr::next() {
 void CompositeItr::ignoreSecondColumn() {
     ignseccol = true;
     currentCount = 0;
-    for (int i = children.size() - 1; i >= 0; i--) {
+    for (size_t i = children.size() - 1; i >= 0; i--) {
         children[i]->ignoreSecondColumn();
         if (v1 != -1) {
             if (children[i]->getValue1() == v1) {
@@ -140,7 +140,7 @@ void CompositeItr::rearrangeChildren() {
     isSorted = true;
 }
 
-long CompositeItr::getCount() {
+int64_t CompositeItr::getCount() {
     return currentCount;
 }
 
@@ -184,7 +184,7 @@ uint64_t CompositeItr::estCardinality() {
     }
 }
 
-void CompositeItr::moveto(const long c1, const long c2) {
+void CompositeItr::moveto(const int64_t c1, const int64_t c2) {
     if (c1 == v1 && (ignseccol || c2 == v2)) {
         //I might have to reconsider also the iterators that were removed
         while (lastIdx < children.size() - 1 &&
@@ -213,14 +213,14 @@ void CompositeItr::moveto(const long c1, const long c2) {
 }
 
 void CompositeItr::init(std::vector<PairItr*> &iterators,
-                        long nfirstterms, PairItr * kbitr) {
+                        int64_t nfirstterms, PairItr * kbitr) {
     initializeConstraints();
     ignseccol = false;
     v1 = v2 = -1;
     children = iterators;
     hn = !children.empty();
     hnc =  true;
-    lastIdx = children.size() - 1;
+    lastIdx = (int)children.size() - 1;
     currentdiff = NULL;
     currentCount = 1;
     decreasedKey = isSorted = false;

@@ -339,7 +339,7 @@ struct FactoryNewClusterTable {
     static void getReader(const char nbytes1,
             const char nbytes2,
             const char ncountbytes,
-            long (**output)(const char*, const long)) {
+            int64_t (**output)(const char*, const int64_t)) {
 
         switch (nbytes1) {
             case 0:
@@ -834,7 +834,7 @@ struct FactoryNewRowTable {
     }
     static void getReader(const char nbytes1,
             const char nbytes2,
-            long (**output)(const char*, const long)) {
+            int64_t (**output)(const char*, const int64_t)) {
         output = NULL;
         switch (nbytes1) {
             case 0:

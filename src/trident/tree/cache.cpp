@@ -32,7 +32,7 @@
 using namespace std;
 
 void Cache::init(TreeContext *context, std::string path, int fileMaxSize,
-        int maxNFiles, long cacheMaxSize, int sizeLeavesFactory,
+        int maxNFiles, int64_t cacheMaxSize, int sizeLeavesFactory,
         int sizePreallLeavesFactory, int nodeMinBytes) {
     //      LOG(DEBUGL) << "file_max_size: " << fileMaxSize << " cache_max_size: " << cacheMaxSize << " size_leaf_factory: " << sizeLeavesFactory <<
     //      " preall: " << sizePreallLeavesFactory <<
@@ -45,7 +45,7 @@ void Cache::init(TreeContext *context, std::string path, int fileMaxSize,
             maxNFiles, cacheMaxSize, path);
 }
 
-Node *Cache::getNodeFromCache(long id) {
+Node *Cache::getNodeFromCache(int64_t id) {
     CachedNode *cachedVersion = manager->getCachedNode(id);
     char* b = manager->get(cachedVersion);
 

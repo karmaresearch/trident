@@ -209,8 +209,8 @@ TupleIterator *KBScan::getSampleIterator() {
 
 }
 
-long KBScan::estimateCost() {
-    long s, p, o;
+int64_t KBScan::estimateCost() {
+    int64_t s, p, o;
     if (t.get(0).isVariable()) {
         s = -1;
     } else {
@@ -279,7 +279,7 @@ TupleIterator *ReasoningScan::getIterator(std::vector<uint8_t> &positions,
     }
 }
 
-long ReasoningScan::estimateCost() {
+int64_t ReasoningScan::estimateCost() {
     return reasoner.estimate(pattern, NULL, NULL, *layer, *program, dict);
 }
 
@@ -293,7 +293,7 @@ MaterializedScan::MaterializedScan(std::shared_ptr<SemiNaiver> sn,
     bool isSConst = false;
     bool isPConst = false;
     bool isOConst = false;
-    long s, pr, o;
+    int64_t s, pr, o;
     // LOG(DEBUGL) << "MaterializedScan: [" << p->subject() << ", "
     //                          << p->predicate() << ", " << p->object() << "]; " << p->toString();
     // Here, if there are variables in the pattern, the corresponding
@@ -387,7 +387,7 @@ TupleIterator *MaterializedScan::getSampleIterator() {
     throw 10;
 }
 
-long MaterializedScan::estimateCost() {
+int64_t MaterializedScan::estimateCost() {
     return table->getNRows();
 }
 

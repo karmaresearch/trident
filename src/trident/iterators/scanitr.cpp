@@ -99,7 +99,7 @@ bool ScanItr::hasNext() {
     if (itr2) {
         if (itr2->hasNext()) {
             itr2->next();
-            const long key2 = itr2->getKey();
+            const int64_t key2 = itr2->getKey();
             //itr1 can be either equal, greater or being finished
             if (itr1) {
                 if (itr1->getKey() < key2) {
@@ -132,10 +132,10 @@ void ScanItr::next() {
     if (currentTable == NULL) {
         if (reversedItr == NULL) {
             if (itr2 && (!itr1 || itr2->getKey() != itr1->getKey())) {
-                const long key = itr2->getKey();
+                const int64_t key = itr2->getKey();
                 char strategy = itr2->getCurrentStrat();
                 short file = itr2->getCurrentFile();
-                long mark = itr2->getCurrentMark();
+                int64_t mark = itr2->getCurrentMark();
                 //cerr << "New reversed iterator for key " << key << " itr1=" << itr1->getKey() << " mark=" << mark << " file=" << file << endl;
                 //Need to get reversed table
                 PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
@@ -150,10 +150,10 @@ void ScanItr::next() {
                 q->releaseItr(itr);
                 setKey(key);
             } else {
-                const long key = itr1->getKey();
+                const int64_t key = itr1->getKey();
                 char strategy = itr1->getCurrentStrat();
                 short file = itr1->getCurrentFile();
-                long mark = itr1->getCurrentMark();
+                int64_t mark = itr1->getCurrentMark();
                 currentTable = q->get(idx, key, file, mark, strategy,
                                       -1, -1, false, false);
                 if (ignseccolumn)
@@ -173,16 +173,16 @@ void ScanItr::next() {
     hnc = false;
 }
 
-bool ScanItr::next(long &v1, long &v2, long &v3) {
+bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
     bool hasNext;
 
     if (currentTable == NULL) {
         if (reversedItr == NULL) {
             if (itr2 && (!itr1 || itr2->getKey() != itr1->getKey())) {
-                const long key = itr2->getKey();
+                const int64_t key = itr2->getKey();
                 char strategy = itr2->getCurrentStrat();
                 short file = itr2->getCurrentFile();
-                long mark = itr2->getCurrentMark();
+                int64_t mark = itr2->getCurrentMark();
                 //cerr << "New reversed iterator for key " << key << " itr1=" << itr1->getKey() << " mark=" << mark << " file=" << file << endl;
                 //Need to get reversed table
                 PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
@@ -197,10 +197,10 @@ bool ScanItr::next(long &v1, long &v2, long &v3) {
                 q->releaseItr(itr);
                 setKey(key);
             } else {
-                const long key = itr1->getKey();
+                const int64_t key = itr1->getKey();
                 char strategy = itr1->getCurrentStrat();
                 short file = itr1->getCurrentFile();
-                long mark = itr1->getCurrentMark();
+                int64_t mark = itr1->getCurrentMark();
                 //cerr << "New table for key " << key << " itr2 " << itr2->getKey() << " mark=" << mark << " file=" << file << endl;
                 currentTable = q->get(idx, key, file, mark, strategy,
                                       -1, -1, false, false);
@@ -254,7 +254,7 @@ void ScanItr::mark() {
 void ScanItr::reset(const char i) {
 }
 
-void ScanItr::gotoKey(long k) {
+void ScanItr::gotoKey(int64_t k) {
     if (k > getKey()) {
         if (currentTable) {
             //release it
@@ -276,7 +276,7 @@ void ScanItr::gotoKey(long k) {
     }
 }
 
-void ScanItr::moveto(const long c1, const long c2) {
+void ScanItr::moveto(const int64_t c1, const int64_t c2) {
     assert(reversedItr != NULL || currentTable != NULL);
     if (reversedItr) {
         reversedItr->moveto(c1, c2);

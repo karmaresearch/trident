@@ -23,7 +23,7 @@
 #include <trident/iterators/diffscanitr.h>
 #include <trident/kb/querier.h>
 
-void DiffScanItr::gotoKey(long keyToSearch) {
+void DiffScanItr::gotoKey(int64_t keyToSearch) {
     throw 10; //not yet implemented
 }
 
@@ -98,7 +98,7 @@ void DiffScanItr::setQuerier(Querier *q) {
     this->q = q;
 }
 
-void DiffScanItr::moveto(const long c1, const long c2) {
+void DiffScanItr::moveto(const int64_t c1, const int64_t c2) {
     currentItr->moveto(c1, c2);
 }
 

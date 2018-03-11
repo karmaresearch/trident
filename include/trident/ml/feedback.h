@@ -28,7 +28,7 @@ class Feedback {
             threshold(threshold),
             minFullEpochs(minFullEpochs) {}
 
-        bool shouldBeIncluded(long s, long p, long o);
+        bool shouldBeIncluded(int64_t s, int64_t p, int64_t o);
 
         void setCurrentEpoch(uint16_t epoch) {
             currentEpoch = epoch;

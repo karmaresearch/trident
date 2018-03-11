@@ -24,12 +24,13 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 char one[1] = { 1 };
 char zero[1] = { 0 };
 
 NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
-        int fileMaxSize, int maxNFiles, long cacheMaxSize, std::string path) :
+        int fileMaxSize, int maxNFiles, int64_t cacheMaxSize, std::string path) :
     readOnly(context->isReadOnly()), path(path), nodeMinSize(nodeMinBytes) {
         lastNodeInserted = NULL;
 
@@ -52,20 +53,15 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
                 bytesTracker, NULL);
 
         //Init storedNodes and firstElementPerFile
-        string file = path + string("/idx");
+        string file = path + DIR_SEP + string("idx");
 
         if (!readOnly) {
             readOnlyStoredNodes = NULL;
             nodesLoaded = NULL;
-            //mapping = NULL;
-            //mapped_rgn = NULL;
             rawInput = NULL;
 
             //Load existing nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                //rawInput = static_cast<char*>(mapped_rgn->get_address());
                 mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
                 rawInput = mappedFile->getData();
 
@@ -78,9 +74,6 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
         } else {
             //Load the nodes in the array
             if (Utils::exists(file) && Utils::fileSize(file) > 0) {
-                //mapping = new bip::file_mapping(file.c_str(), bip::read_only);
-                //mapped_rgn = new bip::mapped_region(*mapping, bip::read_only);
-                //rawInput = static_cast<char*>(mapped_rgn->get_address());
                 mappedFile = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(file));
                 rawInput = mappedFile->getData();
 
@@ -93,7 +86,7 @@ NodeManager::NodeManager(TreeContext *context, int nodeMinBytes,
     }
 
 void NodeManager::unserializeNodeFrom(CachedNode *node, char *buffer, int pos) {
-    long id = Utils::decode_long(buffer, pos);
+    int64_t id = Utils::decode_long(buffer, pos);
     pos += 8;
 
     bool canHaveChildren = buffer[pos++] == 1 ? true : false;
@@ -134,7 +127,7 @@ char* NodeManager::get(CachedNode *node) {
     return manager->getBuffer(node->fileIndex, node->posIndex, &len);
 }
 
-CachedNode *NodeManager::getCachedNode(long id) {
+CachedNode *NodeManager::getCachedNode(int64_t id) {
     if (readOnly) {
         if (!nodesLoaded[id]) {
             //Load the node from rawInput
@@ -181,7 +174,7 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
         c->id = node->getId();
         c->children = node->canHaveChildren();
         c->nodeSize = sizeBuffer;
-        c->availableSize = max(nodeMinSize, sizeBuffer);
+        c->availableSize = std::max(nodeMinSize, sizeBuffer);
 
         //Is the file too big?
         if (manager->sizeLastFile() >= manager->getFileMaxSize()) {
@@ -214,22 +207,15 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
 void NodeManager::compressSpace(string path) {
     //1-- Load all the nodes and sort them by file
     vector<vector<CachedNode> > nodes;
-    string sFileIdx = path + string("/idx");
+    string sFileIdx = path + DIR_SEP + string("idx");
     int totalNumberNodes = 0;
     if (Utils::exists(path) && Utils::fileSize(sFileIdx) > 0) {
         MemoryMappedFile mf(sFileIdx);
-        long size = mf.getLength();
+        int64_t size = mf.getLength();
         char *raw_input = mf.getData();
-
-        //bip::file_mapping *mapping = new bip::file_mapping(sFileIdx.c_str(),
-        //        bip::read_only);
-        //bip::mapped_region *mapped_rgn = new bip::mapped_region(*mapping,
-        //        bip::read_only);
-        //long size = mapped_rgn->get_size();
-        //char *raw_input = static_cast<char*>(mapped_rgn->get_address());
         
         int nnodes = Utils::decode_int(raw_input, 0);
-        long pos = 4 + 4 * nnodes;
+        int64_t pos = 4 + 4 * nnodes;
 
         int currentFile = -1;
         while (pos < size) {
@@ -244,14 +230,12 @@ void NodeManager::compressSpace(string path) {
             nodes[currentFile].push_back(node);
             totalNumberNodes++;
         }
-        //delete mapped_rgn;
-        //delete mapping;
     }
 
     //2-- Rewrite each file eliminating the blank spaces
     char *supportBuffer = new char[SIZE_SUPPORT_BUFFER];
     Utils::remove(sFileIdx);
-    ofstream fileIdx(sFileIdx);
+    ofstream fileIdx(sFileIdx, ios_base::binary);
     int sizeCoordinates = 4 * totalNumberNodes;
     char *coordinatesSpace = new char[sizeCoordinates];
     Utils::encode_int(coordinatesSpace, 0, totalNumberNodes);
@@ -262,10 +246,10 @@ void NodeManager::compressSpace(string path) {
     for (int i = 0; i < nodes.size(); ++i) {
         vector<CachedNode> *fileNodes = &nodes[i];
         //Open the old file and create a new file
-        string pOldFile = path + string("/") + to_string(i);
-        ifstream sOldfile(pOldFile);
-        string pNewFile = path + string("/") + to_string(i) + ".new";
-        ofstream sNewFile(pNewFile);
+        string pOldFile = path + DIR_SEP + to_string(i);
+        ifstream sOldfile(pOldFile, ios_base::binary);
+        string pNewFile = path + DIR_SEP + to_string(i) + ".new";
+        ofstream sNewFile(pNewFile, ios_base::binary);
 
         //Go through all the nodes and copy the contents from the old node to the new one
         int size = fileNodes->size();
@@ -293,11 +277,11 @@ void NodeManager::compressSpace(string path) {
         sNewFile.close();
 
         //Remove the old file
-        long oldSize = Utils::fileSize(pOldFile);
+        int64_t oldSize = Utils::fileSize(pOldFile);
         Utils::remove_all(pOldFile);
 
         //Rename the new file
-        long newSize = Utils::fileSize(pNewFile);
+        int64_t newSize = Utils::fileSize(pNewFile);
         Utils::rename(pNewFile, pOldFile);
 
         LOG(DEBUGL) << "Oldsize file " << i << ": " << oldSize << " newsize: " << newSize;
@@ -314,8 +298,8 @@ NodeManager::~NodeManager() {
     delete bytesTracker;
 
     if (!readOnly) {
-        string file = path + string("/idx");
-        ofstream out(file);
+        string file = path + DIR_SEP + string("idx");
+        ofstream out(file, ios_base::binary);
         char supportBuffer[512];
 
         //Write at the beginning of the file the number of nodes and the position where the nodes are being stored
@@ -328,7 +312,7 @@ NodeManager::~NodeManager() {
         //Move the file to the next position
         out.seekp(4 + sizeCoordinates);
 
-        long wastedSpace = 0;
+        int64_t wastedSpace = 0;
         for (int i = 0; i < firstElementsPerFile.size(); ++i) {
             CachedNode *node = firstElementsPerFile[i];
             if (node != NULL) {
@@ -367,8 +351,6 @@ NodeManager::~NodeManager() {
         delete[] readOnlyStoredNodes;
         delete[] nodesLoaded;
         rawInput = NULL;
-        //delete mapped_rgn;
-        //delete mapping;
     }
 
     delete manager;

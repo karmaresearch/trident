@@ -28,25 +28,28 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
-#include <sys/statvfs.h>
 #include <thread>
 #include <condition_variable>
 
+#if defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+#include <sys/statvfs.h>
+#elif defined(_WIN32)
+
+#endif
 
 using namespace std;
 
-long parseLine(char* line, int skip){
-    long i = strlen(line);
+int64_t parseLine(char* line, int skip){
+    int i = strlen(line);
     const char* p = line;
     while (*p <'0' || *p > '9') p++;
     line[i - skip] = '\0';
-    i = atol(p);
-    return i;
+    return std::stoll(p);
 }
 
-long TridentUtils::getVmRSS() {
+int64_t TridentUtils::getVmRSS() {
     FILE* file = fopen("/proc/self/status", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -84,9 +87,9 @@ double TridentUtils::getCPUUsage() {
     return percent;
 }
 
-long TridentUtils::diskread() {
+int64_t TridentUtils::diskread() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -99,9 +102,9 @@ long TridentUtils::diskread() {
     return result;
 }
 
-long TridentUtils::diskwrite() {
+int64_t TridentUtils::diskwrite() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -114,9 +117,9 @@ long TridentUtils::diskwrite() {
     return result;
 }
 
-long TridentUtils::phy_diskread() {
+int64_t TridentUtils::phy_diskread() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -129,9 +132,9 @@ long TridentUtils::phy_diskread() {
     return result;
 }
 
-long TridentUtils::phy_diskwrite() {
+int64_t TridentUtils::phy_diskwrite() {
     FILE* file = fopen("/proc/self/io", "r");
-    long result = -1;
+    int64_t result = -1;
     char line[128];
 
     while (fgets(line, 128, file) != NULL){
@@ -144,15 +147,15 @@ long TridentUtils::phy_diskwrite() {
     return result;
 }
 
-void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
+void TridentUtils::loadFromFile(string inputfile, std::vector<int64_t> &values) {
     std::ifstream ifs(inputfile);
     std::string line;
     while (std::getline(ifs, line)) {
-        long value;
+        int64_t value;
         try {
-            value = TridentUtils::lexical_cast<long>(line);
-        } catch (int &v) {
-            LOG(ERRORL) << "Failed conversion of " << line;
+            value = TridentUtils::lexical_cast<int64_t>(line);
+        } catch (int v) {
+            LOG(ERRORL) << "Failed conversion of " << line << v;
             throw 10;
         }
         values.push_back(value);
@@ -161,17 +164,17 @@ void TridentUtils::loadFromFile(string inputfile, std::vector<long> &values) {
 }
 
 void TridentUtils::loadPairFromFile(std::string inputfile,
-        std::vector<std::pair<long,long>> &values, char sep) {
+        std::vector<std::pair<int64_t,int64_t>> &values, char sep) {
     std::ifstream ifs(inputfile);
     std::string line;
     while (std::getline(ifs, line)) {
-        long v1, v2;
+        int64_t v1, v2;
         try {
             auto pos = line.find(sep);
-            v1 = TridentUtils::lexical_cast<long>(line.substr(0, pos));
-            v2 = TridentUtils::lexical_cast<long>(line.substr(pos+1, line.size()));
-        } catch (int &v) {
-            LOG(ERRORL) << "Failed conversion of " << line;
+            v1 = TridentUtils::lexical_cast<int64_t>(line.substr(0, pos));
+            v2 = TridentUtils::lexical_cast<int64_t>(line.substr(pos+1, line.size()));
+        } catch (int v) {
+            LOG(ERRORL) << "Failed conversion of " << line << v;
             throw 10;
         }
         values.push_back(std::make_pair(v1, v2));
@@ -180,10 +183,15 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
 }
 
 uint64_t TridentUtils::spaceLeft(std::string location) {
+#if defined(_WIN32)
+	LOG(ERRORL) << "spaceLeft not supported under Windows";
+	throw 10;
+#else
+	//Does it work on the mac?
     struct statvfs stat;
     statvfs(location.c_str(), &stat);
     return stat.f_bsize * stat.f_bfree;
-    //TODO: does it work on the mac?
+#endif
 }
 
 void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
