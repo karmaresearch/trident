@@ -239,19 +239,15 @@ void TableStorage::storeFileIndex(const std::vector<WrittenMarks> &input,
     ofstream oFile;
     if (Utils::exists(pathFile)) {
         {
-            //bip::file_mapping mapping(pathFile.c_str(), bip::read_write);
-            //bip::mapped_region mapped_rgn(mapping, bip::read_write, 0, 8);
-            //char *buffer = static_cast<char*>(mapped_rgn.get_address());
             MemoryMappedFile mf(pathFile, false, 0, 8);
             char *buffer = mf.getData();
             int64_t existing_n = Utils::decode_long(buffer);
             Utils::encode_long(buffer, existing_n + input.size());
             mf.flush(0, 8);
-            //mapped_rgn.flush(0, 8);
         }
-        oFile.open(pathFile, std::ios_base::app);
+        oFile.open(pathFile, std::ios_base::app | std::ios_base::binary);
     } else {
-        oFile.open(pathFile, std::ios_base::app);
+        oFile.open(pathFile, std::ios_base::app | std::ios_base::binary);
         Utils::encode_long(supportArray, 0, input.size());
         oFile.write(supportArray, 8);
     }

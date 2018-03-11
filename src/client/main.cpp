@@ -99,7 +99,7 @@ void dump(KB *kb, string outputdir) {
     Utils::create_directories(outputdir);
 
     //Create output file
-    string filename = outputdir + "/graph.gz";
+    string filename = outputdir + DIR_SEP + "graph.gz";
     zstr::ofstream out(filename, std::ios_base::out);
 
     //Get dictionary
@@ -199,8 +199,8 @@ void testkb(string kbDir, ProgramArgs &vm) {
     }
     TestTrident test(&kb);
     //Check whether there is a _diff dir
-    if (Utils::exists(kbDir + "/_diff")) {
-        std::vector<string> ups = Utils::getSubdirs(kbDir + "/_diff");
+    if (Utils::exists(kbDir + DIR_SEP + "_diff")) {
+        std::vector<string> ups = Utils::getSubdirs(kbDir + DIR_SEP + "_diff");
         std::vector<string> childrenupdates;
         for (int i = 0; i < ups.size(); ++i) {
             string f = ups[i];
@@ -215,7 +215,7 @@ void testkb(string kbDir, ProgramArgs &vm) {
         sort(childrenupdates.begin(), childrenupdates.end(), _sort_by_number);
         locUpdates = childrenupdates;
     }
-    test.prepare(kbDir + string("/p0/raw"), locUpdates);
+    test.prepare(kbDir + DIR_SEP + string("p0") + DIR_SEP + "raw", locUpdates);
     test.test_existing(permutations);
     test.test_nonexist(permutations);
     test.test_moveto(permutations);
@@ -383,7 +383,7 @@ int main(int argc, const char** argv) {
     } else if (cmd == "testkb") {
         testkb(kbDir, vm);
     } else if (cmd == "testcq") {
-        string inputFile = kbDir + string("/p0/raw");
+        string inputFile = kbDir + DIR_SEP + string("p0") + DIR_SEP + string("raw");
         _test_createqueries(inputFile, vm["testqueryfile"].as<string>());
     } else if (cmd == "testti") {
         TridentTimings ti(kbDir, vm["testqueryfile"].as<string>());
