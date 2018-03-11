@@ -176,7 +176,7 @@ class DictMgmt {
 
         bool getTextRel(nTerm key, char *value, int &size);
 
-        bool getText(nTerm key, char *value, int &size);
+		DDLEXPORT bool getText(nTerm key, char *value, int &size);
 
         void getTextFromCoordinates(int64_t coordinates, char *output,
                 int &sizeOutput);

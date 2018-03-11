@@ -24,6 +24,7 @@
 #define TUPLE_TABLE_H
 
 #include <trident/iterators/tupleiterators.h>
+#include <trident/kb/consts.h>
 
 #include <kognac/logs.h>
 
@@ -145,7 +146,7 @@ public:
         }
     }
 
-    TupleTable *sortBy(std::vector<uint8_t> fields);
+	DDLEXPORT TupleTable *sortBy(std::vector<uint8_t> fields);
 
     TupleTable *sortByAll();
 
@@ -159,9 +160,9 @@ public:
 
     TupleTable *join(TupleTable *o);
 
-    JoinHitStats joinHitRates(TupleTable *o);
+	DDLEXPORT JoinHitStats joinHitRates(TupleTable *o);
 
-    std::vector<std::pair<uint8_t, uint8_t>> getPosJoins(TupleTable *o);
+	DDLEXPORT std::vector<std::pair<uint8_t, uint8_t>> getPosJoins(TupleTable *o);
 
     std::pair<std::shared_ptr<TupleTable>, std::shared_ptr<TupleTable>> getDenseSparseForBifocalSampling(TupleTable *t2);
 
