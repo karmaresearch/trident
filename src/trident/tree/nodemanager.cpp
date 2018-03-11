@@ -252,7 +252,7 @@ void NodeManager::compressSpace(string path) {
     //2-- Rewrite each file eliminating the blank spaces
     char *supportBuffer = new char[SIZE_SUPPORT_BUFFER];
     Utils::remove(sFileIdx);
-    ofstream fileIdx(sFileIdx);
+    ofstream fileIdx(sFileIdx, ios_base::binary);
     int sizeCoordinates = 4 * totalNumberNodes;
     char *coordinatesSpace = new char[sizeCoordinates];
     Utils::encode_int(coordinatesSpace, 0, totalNumberNodes);
@@ -266,7 +266,7 @@ void NodeManager::compressSpace(string path) {
         string pOldFile = path + DIR_SEP + to_string(i);
         ifstream sOldfile(pOldFile);
         string pNewFile = path + DIR_SEP + to_string(i) + ".new";
-        ofstream sNewFile(pNewFile);
+        ofstream sNewFile(pNewFile, ios_base::binary);
 
         //Go through all the nodes and copy the contents from the old node to the new one
         int size = fileNodes->size();
@@ -316,7 +316,7 @@ NodeManager::~NodeManager() {
 
     if (!readOnly) {
         string file = path + DIR_SEP + string("idx");
-        ofstream out(file);
+        ofstream out(file, ios_base::binary);
         char supportBuffer[512];
 
         //Write at the beginning of the file the number of nodes and the position where the nodes are being stored

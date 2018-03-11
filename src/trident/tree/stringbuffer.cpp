@@ -57,8 +57,8 @@ StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
 
     ios_base::openmode mode =
         readOnly ?
-        std::fstream::in :
-        std::fstream::in | std::fstream::out | std::fstream::app;
+        std::fstream::in | std::fstream::binary :
+        std::fstream::in | std::fstream::out | std::fstream::app | std::fstream::binary;
     if (!Utils::exists(dir)) {
         Utils::create_directories(dir);
     }
