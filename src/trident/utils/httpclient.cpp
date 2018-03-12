@@ -59,10 +59,10 @@ bool HttpClient::getResponse(const std::string &request,
         bool processedHeaders = false;
         bool processBody = false;
 
-        long totalSize = 0; //used if not chunked
+        //uint64_t totalSize = 0; //used if not chunked
         bool isChunked = false;
-        unsigned long sizeChunk = 0;
-        unsigned long currentChunkSize = 0;
+        uint64_t sizeChunk = 0;
+        uint64_t currentChunkSize = 0;
 
         //Pointers to the buffer
         size_t sizebuffer = 0;
@@ -84,7 +84,7 @@ bool HttpClient::getResponse(const std::string &request,
                     if (currentChunkSize < sizeChunk) {
                         //Read until sizeChunk
                         int remainingSize = std::min(
-                                (int)(sizeChunk - currentChunkSize),
+                                (size_t)(sizeChunk - currentChunkSize),
                                 sizebuffer);
                         response += std::string(remaining,
                                 remainingSize);
@@ -209,7 +209,7 @@ bool HttpClient::post(const std::string &path,
     }
     //Construct the request
     std::string request = "POST " + path + " HTTP/1.1\r\nHost: " +
-        address + ":" + std::to_string(port) + "\r\n" + 
+        address + ":" + std::to_string(port) + "\r\n" +
         "Content-Type: " + contenttype + "\r\n" +
         "Content-Length: " + std::to_string(sparams.size()) + "\r\n\r\n" +
         sparams;

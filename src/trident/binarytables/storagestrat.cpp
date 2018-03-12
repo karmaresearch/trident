@@ -24,42 +24,6 @@
 
 #include <climits>
 
-/*unsigned StorageStrat::getStrat1() {
-  unsigned output = 0;
-  output = StorageStrat::setStorageType(output, CLUSTER_ITR);
-  output = StorageStrat::setCompr1(output, COMPR_2);
-  output = StorageStrat::setCompr2(output, COMPR_2);
-  output = StorageStrat::setDiff1(output, NO_DIFFERENCE);
-  return output;
-  }
-
-  unsigned StorageStrat::getStrat2() {
-  unsigned output = 0;
-  output = StorageStrat::setStorageType(output, ROW_ITR);
-  output = StorageStrat::setCompr1(output, COMPR_2);
-  output = StorageStrat::setCompr2(output, COMPR_2);
-  output = StorageStrat::setDiff1(output, NO_DIFFERENCE);
-  return output;
-  }
-
-  unsigned StorageStrat::getStrat3() {
-  unsigned output = 0;
-  output = StorageStrat::setStorageType(output, COLUMN_ITR);
-  output = StorageStrat::setCompr1(output, COMPR_2);
-  output = StorageStrat::setCompr2(output, COMPR_2);
-  output = StorageStrat::setDiff1(output, NO_DIFFERENCE);
-  return output;
-  }
-
-  unsigned StorageStrat::getStrat4() {
-  unsigned output = 0;
-  output = StorageStrat::setStorageType(output, ROW_ITR);
-  output = StorageStrat::setCompr1(output, NO_COMPR);
-  output = StorageStrat::setCompr2(output, NO_COMPR);
-  output = StorageStrat::setDiff1(output, NO_DIFFERENCE);
-  return output;
-  }*/
-
 unsigned StorageStrat::getStrat5() {
     unsigned output = 0;
     output = StorageStrat::setStorageType(output, NEWCOLUMN_ITR);
@@ -494,7 +458,7 @@ char StorageStrat::determineStrategyOld(int64_t *v1, int64_t *v2, const int size
             for (int delta = 0; delta < 2; delta++) {
                 //Size first term
                 int64_t value;
-                if (delta == DIFFERENCE && prevFirstValue != -1) {
+                if (delta == W_DIFFERENCE && prevFirstValue != -1) {
                     value = v1[i] - prevFirstValue;
                 } else {
                     value = v1[i];

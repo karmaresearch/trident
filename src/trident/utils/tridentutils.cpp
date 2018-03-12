@@ -63,11 +63,11 @@ int64_t TridentUtils::getVmRSS() {
     return result;
 }
 
-static unsigned long long lastTotalUser = 0, lastTotalUserLow = 0, lastTotalSys = 0, lastTotalIdle = 0;
+static uint64_t lastTotalUser = 0, lastTotalUserLow = 0, lastTotalSys = 0, lastTotalIdle = 0;
 double TridentUtils::getCPUUsage() {
     double percent;
     FILE* file;
-    unsigned long long totalUser, totalUserLow, totalSys, totalIdle, total;
+    uint64_t totalUser, totalUserLow, totalSys, totalIdle, total;
     file = fopen("/proc/stat", "r");
     fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow, &totalSys, &totalIdle);
     fclose(file);
@@ -184,10 +184,10 @@ void TridentUtils::loadPairFromFile(std::string inputfile,
 
 uint64_t TridentUtils::spaceLeft(std::string location) {
 #if defined(_WIN32)
-	LOG(ERRORL) << "spaceLeft not supported under Windows";
-	throw 10;
+    LOG(ERRORL) << "spaceLeft not supported under Windows";
+    throw 10;
 #else
-	//Does it work on the mac?
+    //Does it work on the mac?
     struct statvfs stat;
     statvfs(location.c_str(), &stat);
     return stat.f_bsize * stat.f_bfree;
@@ -204,17 +204,15 @@ void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
             break;
         lck.unlock();
 
-        long mem = TridentUtils::getVmRSS();
+        uint64_t mem = TridentUtils::getVmRSS();
         double cpu = TridentUtils::getCPUUsage();
-        long diskread = TridentUtils::diskread();
-        long diskwrite = TridentUtils::diskwrite();
-        long phy_diskread = TridentUtils::phy_diskread();
-        long phy_diskwrite = TridentUtils::phy_diskwrite();
+        uint64_t diskread = TridentUtils::diskread();
+        uint64_t diskwrite = TridentUtils::diskwrite();
+        uint64_t phy_diskread = TridentUtils::phy_diskread();
+        uint64_t phy_diskwrite = TridentUtils::phy_diskwrite();
         LOG(DEBUGL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu
             << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes="
             << diskwrite << "\tphydiskread_bytes=" << phy_diskread
             << "\tphydiskwrite_bytes=" << phy_diskwrite;
     }
 }
-
-

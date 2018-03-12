@@ -13,7 +13,7 @@ namespace chr = std::chrono;
 HttpServer::HttpServer(uint32_t port,
         std::function<void(const std::string&, std::string&)> handler,
         uint32_t nthreads,
-        long maxLifeConn) : port(port),
+        uint64_t maxLifeConn) : port(port),
     maxLifeConn(maxLifeConn), handlerFunction(handler) {
         threads.resize(nthreads);
         for(uint32_t i = 0; i < nthreads; ++i) {
@@ -75,7 +75,7 @@ void HttpServer::processSocket() {
                 }
                 std::string response = "";
                 handlerFunction(request, response);
-                long size = 0;
+                uint64_t size = 0;
                 do {
                     size += send(connFd, response.c_str() + size,
                             response.size() - size, 0);
@@ -93,7 +93,7 @@ void HttpServer::processSocket() {
 
 void HttpServer::waitForData() {
     std::vector<pollfd> events;
-    std::vector<long> idletime;
+    std::vector<uint64_t > idletime;
 
     while (true) {
         while (!queueWait.isEmpty()) {

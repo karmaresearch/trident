@@ -102,7 +102,7 @@ void CompositeItr::next() {
 void CompositeItr::ignoreSecondColumn() {
     ignseccol = true;
     currentCount = 0;
-    for (size_t i = children.size() - 1; i >= 0; i--) {
+    for (int64_t i = children.size() - 1; i >= 0; i--) {
         children[i]->ignoreSecondColumn();
         if (v1 != -1) {
             if (children[i]->getValue1() == v1) {

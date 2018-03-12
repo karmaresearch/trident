@@ -195,7 +195,7 @@ void TridentServer::execSPARQLQuery(string sparqlquery,
 
         }
         if (printstdout) {
-            long nElements = p->getPrintedRows();
+            uint64_t nElements = p->getPrintedRows();
             LOG(INFOL) << "# rows = " << nElements;
         }
         delete operatorTree;

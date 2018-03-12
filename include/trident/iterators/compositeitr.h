@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _COMPOSITE_ITR_H
@@ -32,92 +32,92 @@
 
 class DiffIndex;
 class CompositeItr: public PairItr {
-private:
-    int64_t v1, v2;
-    bool ignseccol;
+    private:
+        int64_t v1, v2;
+        bool ignseccol;
 
-    std::vector<PairItr*> children;
-    int lastIdx;
-    //std::vector<PairItr*> allchildren;
+        std::vector<PairItr*> children;
+        int lastIdx;
+        //std::vector<PairItr*> allchildren;
 
-    bool hn, hnc;
-    bool isSorted,decreasedKey;
-    DiffIndex *currentdiff;
-    int64_t currentCount;
-    int64_t nfirstterms;
-    PairItr *kbitr;
+        bool hn, hnc;
+        bool isSorted,decreasedKey;
+        DiffIndex *currentdiff;
+        int64_t currentCount;
+        int64_t nfirstterms;
+        PairItr *kbitr;
 
-    int64_t savedv1, savedv2, savedcurrentCount;
-    int savedlastIdx;
-    bool savedhn, savedhnc;
+        int64_t savedv1, savedv2, savedcurrentCount;
+        int savedlastIdx;
+        bool savedhn, savedhnc;
 
-    void rearrangeChildren();
+        void rearrangeChildren();
 
-public:
-    int getTypeItr() {
-        return COMPOSITE_ITR;
-    }
+    public:
+        int getTypeItr() {
+            return COMPOSITE_ITR;
+        }
 
-    int64_t getValue1() {
-        return v1;
-    }
+        int64_t getValue1() {
+            return v1;
+        }
 
-    int64_t getValue2() {
-        return v2;
-    }
+        int64_t getValue2() {
+            return v2;
+        }
 
-    bool hasNext();
+        bool hasNext();
 
-    void next();
+        void next();
 
-    void ignoreSecondColumn();
+        void ignoreSecondColumn();
 
-    int64_t getCount();
+        int64_t getCount();
 
-    DiffIndex *getCurrentDiff();
+        DiffIndex *getCurrentDiff();
 
-    uint64_t getCardinality();
+        uint64_t getCardinality();
 
-    uint64_t estCardinality();
+        uint64_t estCardinality();
 
-    void clear() {
-        children.clear();
-        //allchildren.clear();
-    }
+        void clear() {
+            children.clear();
+            //allchildren.clear();
+        }
 
-    void mark() {
-	savedv1 = v1;
-	savedv2 = v2;
-	savedcurrentCount = currentCount;
-	savedlastIdx = lastIdx;
-	savedhn = hn;
-	savedhnc = hnc;
-	kbitr->mark();
-	for (size_t i = children.size() - 1; i >= 0; i--) {
-	    children[i]->mark();
-	}
-    }
+        void mark() {
+            savedv1 = v1;
+            savedv2 = v2;
+            savedcurrentCount = currentCount;
+            savedlastIdx = lastIdx;
+            savedhn = hn;
+            savedhnc = hnc;
+            kbitr->mark();
+            for (int64_t i = children.size() - 1; i >= 0; i--) {
+                children[i]->mark();
+            }
+        }
 
-    void reset(const char r) {
-	LOG(DEBUGL) << "reset: r = " << (int) r;
-	v1 = savedv1;
-	v2 = savedv2;
-	currentCount = savedcurrentCount;
-	lastIdx = savedlastIdx;
-	hn = savedhn;
-	hnc = savedhnc;
-	kbitr->reset(r);
-	for (size_t i = children.size() - 1; i >= 0; i--) {
-	    children[i]->reset(r);
-	}
-    }
+        void reset(const char r) {
+            LOG(DEBUGL) << "reset: r = " << (int) r;
+            v1 = savedv1;
+            v2 = savedv2;
+            currentCount = savedcurrentCount;
+            lastIdx = savedlastIdx;
+            hn = savedhn;
+            hnc = savedhnc;
+            kbitr->reset(r);
+            for (int64_t i = children.size() - 1; i >= 0; i--) {
+                children[i]->reset(r);
+            }
+        }
 
-    void moveto(const int64_t c1, const int64_t c2);
+        void moveto(const int64_t c1, const int64_t c2);
 
-    void init(std::vector<PairItr*> &iterators, int64_t nfirstterms,
-              PairItr *kbitr);
+        void init(std::vector<PairItr*> &iterators, int64_t nfirstterms,
+                PairItr *kbitr);
 
-    std::vector<PairItr*> getChildren();
+        std::vector<PairItr*> getChildren();
 };
 
 #endif

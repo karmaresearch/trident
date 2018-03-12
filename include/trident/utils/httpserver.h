@@ -72,7 +72,7 @@ class HttpServer {
         HttpServer(uint32_t port,
                 std::function<void(const std::string&, std::string&)> handler,
                 uint32_t nthreads = 1,
-                long maxLifeConn = 7000); //after one second, connections are closed
+                uint64_t maxLifeConn = 7000); //after one second, connections are closed
 
         void start();
 

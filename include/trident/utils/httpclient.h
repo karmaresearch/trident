@@ -21,7 +21,7 @@ class HttpClient {
         int sockfd;
         uint32_t port;
         std::string address;
-        struct sockaddr_in server;
+        //struct sockaddr_in server;
 
         bool getResponse(const std::string &request,
                 std::string &headers,

@@ -26,16 +26,17 @@
 #include <inttypes.h>
 
 #if defined(_WIN32)
-#define DDLIMPORT __declspec(dllimport)
-#define DDLEXPORT __declspec(dllexport)
-#if TRIDENT_SHARED_LIB
-#define LIBEXP DDLEXPORT
+    #define DDLIMPORT __declspec(dllimport)
+    #define DDLEXPORT __declspec(dllexport)
+    #if TRIDENT_SHARED_LIB
+        #define LIBEXP DDLEXPORT
+    #else
+        #define LIBEXP DDLIMPORT
+    #endif
 #else
-#define LIBEXP DDLIMPORT
-#endif
-
-#else
-#define LIBEXP
+    #define LIBEXP
+    #define DDLIMPORT
+    #define DDLEXPORT
 #endif
 
 //This is a list of all permutation IDs. It is replicated in tridentcompr/Compressor.h

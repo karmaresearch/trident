@@ -39,12 +39,10 @@ IF(MT)
 ENDIF()
 
 #Set compiler options
-if(CMAKE_COMPILER_IS_GNUCXX)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
-#set(CMAKE_CXX_COMPILER "g++")
-#set(CMAKE_C_COMPILER "gcc")
 endif()
 
 #Set to release mode if nothing is specified
@@ -188,7 +186,7 @@ if (ANALYTICS)
     add_library(snap STATIC IMPORTED)
     IF(NOT EXISTS "${CMAKE_SOURCE_DIR}/snap/snap-core/libsnap.a")
         #Call make to compile the library
-        message("Must compile SNAP first!")
+        message("I'm also going to compile SNAP")
         ExternalProject_Add(srcsnap
             SOURCE_DIR ${CMAKE_SOURCE_DIR}/snap/snap-core
             DOWNLOAD_DIR .

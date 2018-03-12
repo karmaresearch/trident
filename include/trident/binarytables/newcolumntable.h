@@ -355,7 +355,7 @@ class NewColumnTable: public AbsNewTable {
 
         int64_t getCount() {
             if (isSecondColumnIgnored)
-                return (long)currentCount;
+                return (int64_t)currentCount;
             else
                 return 1;
         }

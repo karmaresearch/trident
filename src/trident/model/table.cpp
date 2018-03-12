@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/model/table.h>
@@ -29,12 +29,12 @@
 
 bool TupleTableItr::same(const int64_t l1, const int64_t l2) const {
     return table->getPosAtRow(l1, 0) == table->getPosAtRow(l2, 0) &&
-           table->getPosAtRow(l1, 1) == table->getPosAtRow(l2, 1);
+        table->getPosAtRow(l1, 1) == table->getPosAtRow(l2, 1);
 }
 
 bool TupleTableItr::hasNext() {
     if (table->getSizeRow() == 0) {
-	return counter == -1 ? ! table->isEmpty() : false;
+        return counter == -1 ? ! table->isEmpty() : false;
     }
     if (!hnc) {
         if (skipLast && counter != -1) {
@@ -53,7 +53,7 @@ bool TupleTableItr::hasNext() {
 
 void TupleTableItr::next() {
     if (table->getSizeRow() == 0) {
-	counter++;
+        counter++;
     }
     counter = nextpos;
     hnc = false;
@@ -323,9 +323,9 @@ TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
                 }
 
                 //Increment the counters
-                count1 += (long)(endrange1 - startrange1);
-                count2 += (long)(endrange2 - startrange2);
-                output += (long)((endrange1 - startrange1) * (endrange2 - startrange2));
+                count1 += (int64_t)(endrange1 - startrange1);
+                count2 += (int64_t)(endrange2 - startrange2);
+                output += (int64_t)((endrange1 - startrange1) * (endrange2 - startrange2));
 
                 idx1 = endrange1;
                 idx2 = endrange2;
@@ -346,75 +346,75 @@ TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
 
 std::pair<std::shared_ptr<TupleTable>,
     std::shared_ptr<TupleTable>> TupleTable::getDenseSparseForBifocalSampling(
-TupleTable *o) {
+            TupleTable *o) {
 
-    //Calculate the number of fields on which we should perfom the join
-    std::vector<uint8_t> joinFields;
-    for (uint8_t i = 0; i < signature.size(); ++i) {
-        for (uint8_t j = 0; j < o->signature.size(); ++j) {
-            if (signature[i] == o->signature[j])
-                joinFields.push_back(i);
-        }
-    }
-
-    //Sort the table by the joinFields
-    TupleTable *sortedTable = sortBy(joinFields);
-
-    //Threshold is...
-    const double threshold = sqrt(sortedTable->getNRows());
-    std::shared_ptr<TupleTable> denseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
-    std::shared_ptr<TupleTable> sparseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
-
-    int startRow = 0;
-    const uint64_t *prevRow = sortedTable->getRow(0);
-    for (size_t i = 1; i < sortedTable->getNRows(); ++i) {
-        //cmp with previous row
-        const uint64_t *row = sortedTable->getRow(i);
-        bool same = true;
-        for (std::vector<uint8_t>::iterator itr = joinFields.begin(); itr != joinFields.end();
-                ++itr) {
-            if (row[*itr] != prevRow[*itr]) {
-                same = false;
-                break;
+        //Calculate the number of fields on which we should perfom the join
+        std::vector<uint8_t> joinFields;
+        for (uint8_t i = 0; i < signature.size(); ++i) {
+            for (uint8_t j = 0; j < o->signature.size(); ++j) {
+                if (signature[i] == o->signature[j])
+                    joinFields.push_back(i);
             }
         }
 
-        if (!same) {
-            //Copy all the rows
-            if ((i - startRow) > threshold) {
-                //Copy in dense
-                for (int j = startRow; j < i; ++j) {
-                    denseTable->addRow(getRow(j));
-                }
-            } else {
-                //Copy in sparse
-                for (int j = startRow; j < i; ++j) {
-                    sparseTable->addRow(getRow(j));
+        //Sort the table by the joinFields
+        TupleTable *sortedTable = sortBy(joinFields);
+
+        //Threshold is...
+        const double threshold = sqrt(sortedTable->getNRows());
+        std::shared_ptr<TupleTable> denseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
+        std::shared_ptr<TupleTable> sparseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
+
+        int startRow = 0;
+        const uint64_t *prevRow = sortedTable->getRow(0);
+        for (size_t i = 1; i < sortedTable->getNRows(); ++i) {
+            //cmp with previous row
+            const uint64_t *row = sortedTable->getRow(i);
+            bool same = true;
+            for (std::vector<uint8_t>::iterator itr = joinFields.begin(); itr != joinFields.end();
+                    ++itr) {
+                if (row[*itr] != prevRow[*itr]) {
+                    same = false;
+                    break;
                 }
             }
-            startRow = (int)i;
+
+            if (!same) {
+                //Copy all the rows
+                if ((i - startRow) > threshold) {
+                    //Copy in dense
+                    for (int j = startRow; j < i; ++j) {
+                        denseTable->addRow(getRow(j));
+                    }
+                } else {
+                    //Copy in sparse
+                    for (int j = startRow; j < i; ++j) {
+                        sparseTable->addRow(getRow(j));
+                    }
+                }
+                startRow = (int)i;
+            }
+
+            prevRow = row;
         }
 
-        prevRow = row;
+        //Copy the last rows
+        if ((getNRows() - startRow) > threshold) {
+            //Copy in dense
+            for (int j = startRow; j < getNRows(); ++j) {
+                denseTable->addRow(getRow(j));
+            }
+        } else {
+            //Copy in sparse
+            for (int j = startRow; j < getNRows(); ++j) {
+                sparseTable->addRow(getRow(j));
+            }
+        }
+
+        delete sortedTable;
+
+        return make_pair(denseTable, sparseTable);
     }
-
-    //Copy the last rows
-    if ((getNRows() - startRow) > threshold) {
-        //Copy in dense
-        for (int j = startRow; j < getNRows(); ++j) {
-            denseTable->addRow(getRow(j));
-        }
-    } else {
-        //Copy in sparse
-        for (int j = startRow; j < getNRows(); ++j) {
-            sparseTable->addRow(getRow(j));
-        }
-    }
-
-    delete sortedTable;
-
-    return make_pair(denseTable, sparseTable);
-}
 
 TupleTable *TupleTable::join(TupleTable *o) {
     if (signature.size() == 0 || o->signature.size() == 0) {
@@ -566,7 +566,7 @@ int TupleTable::cmp(const uint64_t *r1, const uint64_t *r2, const size_t s) {
 }
 
 int TupleTable::cmp(const uint64_t *r1, const uint64_t *r2, const uint8_t *p1,
-                    const uint8_t *p2, const uint8_t npos) {
+        const uint8_t *p2, const uint8_t npos) {
     for (size_t i = 0; i < npos; ++i) {
         if (r1[p1[i]] < r2[p2[i]])
             return -1;

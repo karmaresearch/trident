@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/iterators/arrayitr.h>
@@ -87,8 +87,8 @@ int64_t ArrayItr::getCount() {
 }
 
 void ArrayItr::next() {
-    v1 = (long)(array->at(pos).first);
-    v2 = (long)(array->at(pos).second);
+    v1 = (int64_t)(array->at(pos).first);
+    v2 = (int64_t)(array->at(pos).second);
     pos++;
     hasNextChecked = false;
     countElems = 0;
@@ -112,7 +112,7 @@ void ArrayItr::moveto(const int64_t c1, const int64_t c2) {
     assert(ignSecondColumn || v2 != -1);
 
     if (v1 >= c1 && (ignSecondColumn || v1 > c1 || v2 >= c2)) {
-	// Position is backwards.
+        // Position is backwards.
         pos--; //so that hasNext will move to the same point
         hasNextChecked = true;
         n = true;
@@ -125,7 +125,7 @@ void ArrayItr::moveto(const int64_t c1, const int64_t c2) {
     }
     pos = p;
     while (pos < nElements && (array->at(pos).first < c1 ||
-                               (array->at(pos).first == c1 && array->at(pos).second < c2))) {
+                (array->at(pos).first == c1 && array->at(pos).second < c2))) {
         pos++;
     }
     hasNextChecked = false;
@@ -164,8 +164,8 @@ int ArrayItr::binarySearch(Pairs *array, int start, int end, uint64_t key) {
 void ArrayItr::init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2) {
     this->array = values;
     nElements = (int)values->size();
-    constraint1 = (long)v1;
-    constraint2 = (long)v2;
+    constraint1 = (int64_t)v1;
+    constraint2 = (int64_t)v2;
     countElems = 0;
     hasNextChecked = false;
     ignSecondColumn = false;
@@ -206,22 +206,22 @@ uint64_t ArrayItr::getCardinality() {
         while (pos2 < nElements) {
             if (array->at(pos2).first != existingV1) {
                 count++;
-                existingV1 = (long)(array->at(pos2).first);
+                existingV1 = (int64_t)(array->at(pos2).first);
             }
             pos2++;
         }
         return count;
     } else {
         /*uint64_t count = 1;
-        size_t pos2 = pos + 1;
-        while (pos2 < nElements) {
-            if (array->at(pos2).first != constraint1) {
-                break;
-            }
-            count++;
-            pos2++;
-        }
-        return count;*/
+          size_t pos2 = pos + 1;
+          while (pos2 < nElements) {
+          if (array->at(pos2).first != constraint1) {
+          break;
+          }
+          count++;
+          pos2++;
+          }
+          return count;*/
         return nElements;
     }
     //} else {
