@@ -61,8 +61,8 @@ bool HttpClient::getResponse(const std::string &request,
 
         //uint64_t totalSize = 0; //used if not chunked
         bool isChunked = false;
-        uint64_t sizeChunk = 0;
-        uint64_t currentChunkSize = 0;
+        size_t sizeChunk = 0;
+        size_t currentChunkSize = 0;
 
         //Pointers to the buffer
         size_t sizebuffer = 0;

@@ -145,19 +145,23 @@ class ParallelTasks {
                 }
                 assert(nthreads >= 1);
                 const size_t delta = std::max(grainsize, (size_t) (end - begin + nthreads - 1) / nthreads);
-                std::vector<std::thread> threads;
+                std::vector<std::future<void>> threads;
                 size_t currentbegin = 0;
                 size_t currentend = 0;
                 for (size_t i = 0; i < nthreads && currentend < end; ++i) {
-                    currentbegin = begin + i * delta;
+                    currentbegin = currentend;
                     currentend = currentbegin + delta;
-                    if (currentend > end)
-                        currentend = end;
+		    if (currentend >= end) {
+			// Leave the last chunk for "our" thread.
+			break;
+		    }
                     ParallelRange range(currentbegin, currentend);
-                    threads.push_back(std::thread(&Container::operator(), c, range));
+                    threads.push_back(std::async(&Container::operator(), c, range));
                 }
+		ParallelRange range(currentbegin, end);
+		c(range);
                 for(auto &t : threads) {
-                    t.join();
+                    t.wait();
                 }
             }
 };
