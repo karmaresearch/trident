@@ -61,11 +61,11 @@ bool HttpClient::getResponse(const std::string &request,
 
         long totalSize = 0; //used if not chunked
         bool isChunked = false;
-        unsigned long sizeChunk = 0;
-        unsigned long currentChunkSize = 0;
+        size_t sizeChunk = 0;
+        size_t currentChunkSize = 0;
 
         //Pointers to the buffer
-        size_t sizebuffer = 0;
+        int sizebuffer = 0;
         const char *remaining;
 
         while (true) {

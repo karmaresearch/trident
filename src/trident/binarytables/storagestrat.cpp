@@ -494,7 +494,7 @@ char StorageStrat::determineStrategyOld(int64_t *v1, int64_t *v2, const int size
             for (int delta = 0; delta < 2; delta++) {
                 //Size first term
                 int64_t value;
-                if (delta == DIFFERENCE && prevFirstValue != -1) {
+                if (delta == W_DIFFERENCE && prevFirstValue != -1) {
                     value = v1[i] - prevFirstValue;
                 } else {
                     value = v1[i];

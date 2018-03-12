@@ -36,6 +36,8 @@
 
 #else
 #define LIBEXP
+#define DDLIMPORT
+#define DDLEXPORT
 #endif
 
 //This is a list of all permutation IDs. It is replicated in tridentcompr/Compressor.h
