@@ -14,7 +14,7 @@ class SubgraphHandler {
 
         void loadSubgraphs(string subgraphsFile, string subFormat);
 
-        long isAnswerInSubGraphs(uint64_t a,
+        int64_t isAnswerInSubGraphs(uint64_t a,
                 const std::vector<uint64_t> &subgraphs, Querier *q);
 
         void selectRelevantSubGraphs(DIST dist,
@@ -24,7 +24,7 @@ class SubgraphHandler {
                 std::vector<uint64_t> &output,
                 uint32_t topk);
 
-        long numberInstancesInSubgraphs(
+        int64_t numberInstancesInSubgraphs(
                 Querier *q,
                 const std::vector<uint64_t> &subgs);
 

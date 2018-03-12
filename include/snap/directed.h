@@ -20,12 +20,12 @@ class Trident_TNGraph {
     private:
         static void getNewColumnPointer(int bytesEl,
                 int totalBytes,
-                long (**output)(const char*, const long));
+                int64_t (**output)(const char*, const int64_t));
 
         static bool getNodeInfo(TermCoordinates &coord,
                 Querier *q,
-                long &indeg,
-                long &outdeg,
+                int64_t &indeg,
+                int64_t &outdeg,
                 const char*& osp,
                 const char*& sop,
                 SnapReaders::pReader& ospReader,
@@ -46,7 +46,7 @@ class Trident_TNGraph {
 
         std::unique_ptr<MemoryMappedFile> mf;
         const char *rawnodes;
-        long nnodes;
+        int64_t nnodes;
 
     public:
         Trident_TNGraph(KB *kb);
@@ -55,17 +55,17 @@ class Trident_TNGraph {
             return q;
         }
 
-        bool IsNode(long id) {
+        bool IsNode(int64_t id) {
             return id >= 0 && id < nnodes;
         }
 
         /// Returns the number of nodes in the graph.
-        long GetNodes() const {
+        int64_t GetNodes() const {
             return nnodes;
         }
 
         /// Returns the number of edges in the graph.
-        long GetEdges() const {
+        int64_t GetEdges() const {
             return kb->getSize();
         }
 
@@ -88,15 +88,15 @@ class Trident_TNGraph {
         }
 
         /// Returns an iterator referring to the node of ID NId in the graph.
-        TNodeI GetNI(const long& NId) const {
+        TNodeI GetNI(const int64_t& NId) const {
             return TNodeI(rawnodes + 31 * NId);
         }
 
         /// Gets a vector IDs of all nodes in the graph.
-        void GetNIdV(std::vector<long>& NIdV) const {
+        void GetNIdV(std::vector<int64_t>& NIdV) const {
             NIdV.resize(GetNodes());
-            for (long i = 0; i < nnodes; ++i) {
-                const long v = (*(long*)(rawnodes + 31 * i)) & 0XFFFFFFFFFFl;
+            for (int64_t i = 0; i < nnodes; ++i) {
+                const int64_t v = (*(int64_t*)(rawnodes + 31 * i)) & 0XFFFFFFFFFFl;
                 NIdV[i] = v;
             }
         }

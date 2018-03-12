@@ -48,7 +48,7 @@ private:
     std::vector<CacheBlock> *existingBlocks;
 
     uint64_t currentIdx, v1, v2;
-    long lastDeltaValue, startDelta;
+    int64_t lastDeltaValue, startDelta;
     bool groupSet;
 
     bool hasNextChecked, n;
@@ -60,12 +60,12 @@ public:
         return CACHE_ITR;
     }
 
-    void init(Querier *q, const uint64_t estimatedSize, CacheIdx *cache, long c1,
-              long c2);
+    void init(Querier *q, const uint64_t estimatedSize, CacheIdx *cache, int64_t c1,
+              int64_t c2);
 
-    long getValue1();
+    int64_t getValue1();
 
-    long getValue2();
+    int64_t getValue2();
 
     bool hasNext();
 
@@ -73,9 +73,9 @@ public:
 
     void clear();
 
-    bool gotoFirstTerm(long c1);
+    bool gotoFirstTerm(int64_t c1);
 
-    void gotoSecondTerm(long c2);
+    void gotoSecondTerm(int64_t c2);
 
     void mark();
 

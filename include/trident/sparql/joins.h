@@ -43,29 +43,29 @@ class NestedMergeJoinItr : public TupleIterator {
         Querier *q;
         std::shared_ptr<NestedJoinPlan> plan;
 
-        long compressedRow[MAX_N_PATTERNS];
+        int64_t compressedRow[MAX_N_PATTERNS];
         PairItr *iterators[MAX_N_PATTERNS];
 
         PairItr *getFirstIterator(Pattern p);
 
         void cleanup();
 
-        int executeJoin(long *row, Pattern *patterns, int idxPattern,
+        int executeJoin(int64_t *row, Pattern *patterns, int idxPattern,
                 PairItr **iterators, JoinPoint *joins, const int nJoins);
 
         static int try_merge_join(PairItr **iterators, int idxCurrentPattern,
                 const JoinPoint *joins, const int nJoins);
 
-        void init(PairItr *firstIterator, TupleTable *outputR, long limitOutputTuple);
+        void init(PairItr *firstIterator, TupleTable *outputR, int64_t limitOutputTuple);
 
-        long executePlan();
+        int64_t executePlan();
 
         static bool checkNext(PairItr *itr, bool shouldMoveToNext);
 
         //Fields used during the execution of the query
         PairItr *currentItr;
 
-        //long nElements;
+        //int64_t nElements;
         JoinPoint **allJoins;
         int *nJoins;
         int idxCurrentPattern;
@@ -98,7 +98,7 @@ class NestedMergeJoinItr : public TupleIterator {
 
         NestedMergeJoinItr(Querier *q, std::shared_ptr<NestedJoinPlan> plan,
                 PairItr *firstIterator,
-                TupleTable *outputR, long limitOutputTuple) {
+                TupleTable *outputR, int64_t limitOutputTuple) {
             this->q = q;
             this->plan = plan;
             init(firstIterator, outputR, limitOutputTuple);

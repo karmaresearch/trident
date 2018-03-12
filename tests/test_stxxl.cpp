@@ -11,9 +11,9 @@
 #include <stxxl/sort>
 
 typedef struct Triple {
-	long t1, t2, t3;
+	int64_t t1, t2, t3;
 
-	Triple(long s, long p, long o) {
+	Triple(int64_t s, int64_t p, int64_t o) {
 		this->t1 = s;
 		this->t2 = p;
 		this->t3 = o;
@@ -24,11 +24,11 @@ typedef struct Triple {
 	}
 } Triple;
 
-const Triple minv(std::numeric_limits<long>::min(),
-		std::numeric_limits<long>::min(), std::numeric_limits<long>::min());
+const Triple minv(std::numeric_limits<int64_t>::min(),
+		std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::min());
 
-const Triple maxv(std::numeric_limits<long>::max(),
-		std::numeric_limits<long>::max(), std::numeric_limits<long>::max());
+const Triple maxv(std::numeric_limits<int64_t>::max(),
+		std::numeric_limits<int64_t>::max(), std::numeric_limits<int64_t>::max());
 
 struct cmp: std::less<Triple> {
 	bool operator ()(const Triple& a, const Triple& b) const {

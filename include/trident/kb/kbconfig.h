@@ -59,7 +59,7 @@ typedef enum {
     TREE_FACTORYSIZE,
     TREE_ALLOCATEDELEMENTS,
 
-    TREE_NODE_KEYS_FACTORY_SIZE, //Size factory of arrays of longs to be used in the nodes
+    TREE_NODE_KEYS_FACTORY_SIZE, //Size factory of arrays of int64_ts to be used in the nodes
     TREE_NODE_KEYS_PREALL_FACTORY_SIZE, //Same as before, only the preallocated size
 
 //The following parameters are equalivant to the previous but apply to the dictionary tree
@@ -104,7 +104,7 @@ private:
     PropertyMap internalMap;
 
 public:
-    KBConfig();
+    LIBEXP KBConfig();
 
     void setParam(KBParam key, string value);
 
@@ -114,9 +114,9 @@ public:
 
     int getParamInt(KBParam key);
 
-    void setParamLong(KBParam key, long value);
+    void setParamLong(KBParam key, int64_t value);
 
-    long getParamLong(KBParam key);
+    int64_t getParamLong(KBParam key);
 
     void setParamBool(KBParam key, bool value);
 

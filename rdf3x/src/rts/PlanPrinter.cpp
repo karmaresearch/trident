@@ -119,7 +119,7 @@ string DebugPlanPrinter::formatRegister(const Register* reg)
    return result.str();
 }
 //---------------------------------------------------------------------------
-string DebugPlanPrinter::formatValue(unsigned long value)
+string DebugPlanPrinter::formatValue(uint64_t value)
    // Format a constant value (for generic annotations)
 {
    stringstream result;

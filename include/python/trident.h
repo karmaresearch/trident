@@ -43,7 +43,7 @@ typedef struct {
     std::vector<uint64_t> batch1;
     std::vector<uint64_t> batch2;
     std::vector<uint64_t> batch3;
-    long batchsize;
+    int64_t batchsize;
 } trident_Batcher;
 
 extern PyTypeObject trident_BatcherType;

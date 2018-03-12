@@ -11,11 +11,11 @@ using namespace std;
 
 int main(int argc, const char** argv) {
 
-    long fakeSum = 0;
-    long found = 0;
+    int64_t fakeSum = 0;
+    int64_t found = 0;
     int i = 16;
     for (; i < 2048; i *= 2) {
-        std::vector<long> vector1;
+        std::vector<int64_t> vector1;
         //std::vector<int> vector2;
 
 
@@ -30,7 +30,7 @@ int main(int argc, const char** argv) {
 
         //measure the time for some random lookups
 
-        const long* values = &vector1[0];
+        const int64_t* values = &vector1[0];
         //const int* values2 = &vector2[0];
         timens::system_clock::time_point start = timens::system_clock::now();
         for (int lookups = 0; lookups < 100000; ++lookups) {
@@ -49,7 +49,7 @@ int main(int argc, const char** argv) {
         start = timens::system_clock::now();
         for (std::vector<size_t>::const_iterator itr = idsToSearch.begin();
                 itr != idsToSearch.end(); ++itr) {
-            std::vector<long>::const_iterator itrP = vector1.begin();
+            std::vector<int64_t>::const_iterator itrP = vector1.begin();
             while (itrP != vector1.end()) {
                 if (*itrP >= vector1[*itr]) {
                     break;

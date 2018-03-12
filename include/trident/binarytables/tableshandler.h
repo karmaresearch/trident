@@ -43,8 +43,8 @@ class FileMarks {
         const char *begin;
         const char *end;
 
-        long sizeMarks;
-        long sizefile;
+        int64_t sizeMarks;
+        int64_t sizefile;
         std::unique_ptr<MemoryMappedFile> mappedFile;
 
     public:
@@ -58,7 +58,7 @@ class FileMarks {
 
         void parse(string path);
 
-        std::pair<uint64_t, uint64_t> getPos(const long mark) {
+        std::pair<uint64_t, uint64_t> getPos(const int64_t mark) {
             const uint64_t startpos = Utils::decode_longFixedBytes(begin + 11 * mark, 5);
             uint64_t endpos;
             if (mark == sizeMarks - 1) {
@@ -74,8 +74,8 @@ class FileMarks {
 };
 
 struct WrittenMarks {
-    long key;
-    long pos;
+    int64_t key;
+    int64_t pos;
     char  strat;
 };
 
@@ -84,7 +84,7 @@ class TableStorage {
         const bool readOnly;
         char pathDir[MAX_LENGTH_PATHFILE];
         int sizePathDir;
-        long nTriplesInserted;
+        int64_t nTriplesInserted;
 
         FileMarks *marks[MAX_N_FILES];
         bool marksLoaded[MAX_N_FILES];
@@ -96,7 +96,7 @@ class TableStorage {
         FileManager<FileDescriptor, FileDescriptor> *cache;
 
         short lastCreatedFile;
-        long sizeLastCreatedFile;
+        int64_t sizeLastCreatedFile;
 
         //Statistics
         Stats stats;
@@ -108,7 +108,7 @@ class TableStorage {
         bool indicesWritten;
         BinaryTableInserter* insertHandler;
         std::vector<std::vector<WrittenMarks>> marksToStore;
-        std::vector<long> createdMarks;
+        std::vector<int64_t> createdMarks;
         int fileCurrentIndex;
         int filePreviousIndex;
         //*** END INSERT ***
@@ -118,31 +118,31 @@ class TableStorage {
                 string pathFile);
 
     public:
-        TableStorage(bool readOnly, std::string pathDir, long maxFileSize,
+        TableStorage(bool readOnly, std::string pathDir, int64_t maxFileSize,
                 int maxNFiles, MemoryManager<FileDescriptor> *bytesTracker,
                 Stats &stats, int perm);
 
         std::string getPath();
 
-        std::pair<const char*, const char*> getTable(short file, long mark);
+        std::pair<const char*, const char*> getTable(short file, int64_t mark);
 
-        long startAppend(const long key,
+        int64_t startAppend(const int64_t key,
                 const char strat,
                 BinaryTableInserter* handler);
 
         void setStrategy(const char strat);
 
-        void append(long v1, long v2);
+        void append(int64_t v1, int64_t v2);
 
         void stopAppend();
 
-        long getNTriplesInserted();
+        int64_t getNTriplesInserted();
 
         short getLastCreatedFile() {
             return lastCreatedFile;
         }
 
-        long getLastFileSize() {
+        int64_t getLastFileSize() {
             return sizeLastCreatedFile;
         }
 

@@ -25,7 +25,7 @@
 #include <algorithm>
 #include <assert.h>
 
-void RmItr::init(PairItr *itr, PairItr *rmitr, long nfirstterms) {
+void RmItr::init(PairItr *itr, PairItr *rmitr, int64_t nfirstterms) {
     initializeConstraints();
     this->itr = itr;
     this->rmitr = rmitr;
@@ -42,7 +42,7 @@ void RmItr::init(PairItr *itr, PairItr *rmitr, long nfirstterms) {
     curCount = nextCount = 0;
 }
 
-void RmItr::moveto(const long c1, const long c2) {
+void RmItr::moveto(const int64_t c1, const int64_t c2) {
     assert(v1 != -1);
     itr->moveto(c1, c2);
     rmitr->moveto(c1, c2);
@@ -112,7 +112,7 @@ void RmItr::next() {
     hnc = false;
 }
 
-long RmItr::getCount() {
+int64_t RmItr::getCount() {
     return curCount;
 }
 
@@ -136,7 +136,7 @@ int RmItr::cmp(PairItr *itr1, PairItr *itr2) {
         if (itr1->getKey() < itr2->getKey()) {
             return -1;
         } else if (itr1->getKey() == itr2->getKey()) {
-            long diff = itr1->getValue1() - itr2->getValue1();
+            int64_t diff = itr1->getValue1() - itr2->getValue1();
             if (diff < 0)
                 return -1;
             else if (diff > 0)
@@ -150,13 +150,13 @@ int RmItr::cmp(PairItr *itr1, PairItr *itr2) {
         if (itr1->getKey() < itr2->getKey()) {
             return -1;
         } else if (itr1->getKey() == itr2->getKey()) {
-            long diff = itr1->getValue1() - itr2->getValue1();
+            int64_t diff = itr1->getValue1() - itr2->getValue1();
             if (diff < 0) {
                 return -1;
             } else if (diff > 0) {
                 return 1;
             } else {
-                long diff2 = itr1->getValue2() - itr2->getValue2();
+                int64_t diff2 = itr1->getValue2() - itr2->getValue2();
                 if (diff2 < 0) {
                     return -1;
                 } else if (diff2 > 0) {

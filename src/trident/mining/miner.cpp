@@ -51,8 +51,8 @@ bool __sortBySupport(const FPattern<PatternElement> &el1,
 }
 
 struct Tripl {
-    long s, p, o;
-    long count;
+    int64_t s, p, o;
+    int64_t count;
 };
 
 bool cmpTripl(const Tripl& x, const Tripl& y) {
@@ -122,7 +122,7 @@ void Miner::mine() {
     //Now we can count the frequencies
     LOG(INFOL) << "Counting the frequencies ...";
     std::pair<uint64_t, uint64_t> prevPair = std::make_pair(0, 0);
-    long count = 0;
+    int64_t count = 0;
     size_t prevIdx = 0;
     size_t currentIdx = 0;
     for (; currentIdx < triples.size(); ++currentIdx) {
@@ -152,8 +152,8 @@ void Miner::mine() {
     buffer.reserve(100);
 
     //Scan the KB
-    long currentS = -1;
-    long counter = 0;
+    int64_t currentS = -1;
+    int64_t counter = 0;
     for (const auto &triple : triples) {
         //LOG(INFOL) << triple.s << " " << triple.p << " " << triple.o << " " << triple.count;
         if (triple.s != currentS) {

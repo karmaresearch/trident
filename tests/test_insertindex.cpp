@@ -23,10 +23,10 @@ namespace timens = boost::chrono;
     SimpleTripleWriter *posWriter = NULL;
 
     BOOST_LOG_TRIVIAL(debug) << "Start inserting...";
-    long ps, pp, po; //Previous values. Used to remove duplicates.
+    int64_t ps, pp, po; //Previous values. Used to remove duplicates.
     ps = pp = po = -1;
-    long count = 0;
-    long countInput = 0;
+    int64_t count = 0;
+    int64_t countInput = 0;
     FileMerger<Triple> merger(Utils::getFiles(inputDir));
     while (!merger.isEmpty()) {
         Triple t = merger.get();

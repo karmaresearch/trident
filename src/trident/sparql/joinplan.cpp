@@ -346,7 +346,7 @@ void NestedJoinPlan::prepare(Querier *q, std::vector<Pattern *> patterns,
 
     std::vector<string> headerRow;
     std::vector<int> pHeaderRow;
-    long tmpS, tmpP, tmpO;
+    int64_t tmpS, tmpP, tmpO;
 
     for (int i = 0; i < nPatterns; ++i) {
         Pattern *p = patterns[i];
@@ -620,8 +620,8 @@ bool NestedJoinPlan::canIApplyMergeJoin(Querier *q, std::vector<Pattern *> *patt
 void NestedJoinPlan::printInfo() {
     //Print some info on the plan
     for (int i = 0; i < nPatterns; ++i) {
-        printf("Pattern %ld %ld %ld\n", patterns[i].subject(),
-                patterns[i].predicate(), patterns[i].object());
+        printf("Pattern %lld %lld %lld\n", (long long) patterns[i].subject(),
+                (long long) patterns[i].predicate(), (long long) patterns[i].object());
         printf("->idx=%d\n", patterns[i].idx());
 
         for (unsigned int j = 0; j < patterns[i].getPosVars()->size(); ++j) {

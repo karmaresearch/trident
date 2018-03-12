@@ -16,7 +16,7 @@ void PairwiseLearner::gen_random(
         const bool subjObjs,
         const uint16_t ntries) {
     for(uint32_t i = 0; i < input.size(); ++i) {
-        long s, p, o;
+        int64_t s, p, o;
         s = io.field1[i];
         p = io.field2[i];
         o = io.field3[i];

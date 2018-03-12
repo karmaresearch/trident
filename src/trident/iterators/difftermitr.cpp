@@ -71,15 +71,15 @@ uint64_t DiffTermItr::getNUniqueKeys() {
     return nuniquekeys;
 }
 
-void DiffTermItr::gotoKey(long keyToSearch) {
+void DiffTermItr::gotoKey(int64_t keyToSearch) {
     throw 10; //not yet implemented
 }
 
-long DiffTermItr::getCount() {
+int64_t DiffTermItr::getCount() {
     return values.getNElements(perm);
 }
 
-void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, TreeItr * itr) {
+void DiffTermItr::init(int perm, int64_t nkeys, int64_t nuniquekeys, TreeItr * itr) {
     initializeConstraints();
     this->perm = perm;
     this->nkeys = nkeys;
@@ -89,7 +89,7 @@ void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, TreeItr * itr) {
     this->itr = std::unique_ptr<TreeItr>(itr);
 }
 
-void DiffTermItr::init(int perm, long nkeys, long nuniquekeys,
+void DiffTermItr::init(int perm, int64_t nkeys, int64_t nuniquekeys,
           const char *array,
           const uint8_t nbytes) {
     initializeConstraints();
@@ -103,7 +103,7 @@ void DiffTermItr::init(int perm, long nkeys, long nuniquekeys,
     this->nbytes = nbytes;
 }
 
-void DiffTermItr::init(int perm, long nkeys, long nuniquekeys, const long value) {
+void DiffTermItr::init(int perm, int64_t nkeys, int64_t nuniquekeys, const int64_t value) {
     initializeConstraints();
     this->perm = perm;
     this->nkeys = nkeys;

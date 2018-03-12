@@ -47,8 +47,8 @@ typedef enum _InputFormat { RDF, SNAP } InputFormat;
 
 typedef class PairLong {
     public:
-        long n1;
-        long n2;
+        int64_t n1;
+        int64_t n2;
 
         void readFrom(LZ4Reader *reader) {
             n1 = reader->parseLong();
@@ -71,7 +71,7 @@ typedef class PairLong {
 
 typedef struct TreeEl {
     nTerm key;
-    long nElements;
+    int64_t nElements;
     int pos;
     short file;
     char strat;
@@ -83,10 +83,10 @@ class TreeWriter: public TreeInserter {
         char supportBuffer[23];
     public:
         TreeWriter(string path) {
-            fos.open(path);
+            fos.open(path, ios_base::binary);
         }
 
-        void addEntry(nTerm key, long nElements, short file, int pos,
+        void addEntry(nTerm key, int64_t nElements, short file, int pos,
                 char strategy) {
             Utils::encode_long(supportBuffer, 0, key);
             Utils::encode_long(supportBuffer, 8, nElements);
@@ -102,7 +102,6 @@ class TreeWriter: public TreeInserter {
 
         ~TreeWriter() {
         }
-        ;
 };
 
 class CoordinatesMerger {
@@ -125,23 +124,23 @@ class CoordinatesMerger {
             ncoordinates(ncoordinates) {
 
                 //Open the three files
-                spo.open(coordinates[0]);
+                spo.open(coordinates[0], ios_base::binary);
                 spoFinished = !getFirst(&elspo, &spo);
 
                 if (ncoordinates > 1) {
-                    ops.open(coordinates[1]);
+                    ops.open(coordinates[1], ios_base::binary);
                     opsFinished = !getFirst(&elops, &ops);
-                    pos.open(coordinates[2]);
+                    pos.open(coordinates[2], ios_base::binary);
                     posFinished = !getFirst(&elpos, &pos);
                 }
 
                 if (ncoordinates == 4) {
-                    pso.open(coordinates[3]);
+                    pso.open(coordinates[3], ios_base::binary);
                     getFirst(&elpso, &pso);
                 } else if (ncoordinates == 6 || ncoordinates == 2) {
-                    sop.open(coordinates[3]);
-                    osp.open(coordinates[4]);
-                    pso.open(coordinates[5]);
+                    sop.open(coordinates[3], ios_base::binary);
+                    osp.open(coordinates[4], ios_base::binary);
+                    pso.open(coordinates[5], ios_base::binary);
                     sopFinished = !getFirst(&elsop, &sop);
                     ospFinished = !getFirst(&elosp, &osp);
                     psoFinished = !getFirst(&elpso, &pso);
@@ -221,7 +220,7 @@ struct ParamSortAndInsert {
     bool printstats;
     //SinkPtr logPtr;
     bool removeInput;
-    long estimatedSize;
+    int64_t estimatedSize;
     bool deletePreviousExt;
 };
 
@@ -399,9 +398,8 @@ struct ParamsLoad {
     bool sample;
     double sampleRate;
     int thresholdSkipTable;
-    //SinkPtr logPtr;
     string remoteLocation;
-    long limitSpace;
+    int64_t limitSpace;
     string graphTransformation;
     int timeoutStats;
     bool storeDicts;
@@ -412,7 +410,6 @@ struct ParamsLoad {
 class Loader {
     private:
         bool printStats;
-        //SinkPtr logPtr;
 
     public:
         static void generateNewPermutation(string outputdir,
@@ -428,8 +425,8 @@ class Loader {
                     int maxReadingThreads,
                     int parallelProcesses,
                     bool initialSort,
-                    long estimatedSize,
-                    long elementsMainMem,
+                    int64_t estimatedSize,
+                    int64_t elementsMainMem,
                     int filesToMerge,
                     bool readFirstByte,
                     std::vector<std::pair<string, char>> &additionalPermutations);
@@ -437,16 +434,16 @@ class Loader {
         template<class K>
             static void sortPermutation_seq(const int idReader,
                     MultiDiskLZ4Reader *reader,
-                    long start,
+                    int64_t start,
                     K *output,
-                    long maxInserts,
-                    long *count);
+                    int64_t maxInserts,
+                    int64_t *count);
 
         template<class K>
             static void dumpPermutation(std::vector<K> &input,
-                    long parallelProcesses,
-                    long maxReadingThreads,
-                    long maxValue,
+                    int64_t parallelProcesses,
+                    int64_t maxReadingThreads,
+                    int64_t maxValue,
                     string out,
                     char sorter);
 
@@ -459,11 +456,11 @@ class Loader {
 
         static void parallelmerge(FileMerger<Triple> *merger,
                 int buffersize,
-                std::vector<long*> *buffers,
+                std::vector<int64_t*> *buffers,
                 std::mutex *m_buffers,
                 std::condition_variable *cond_buffers,
                 std::list <
-                std::pair<long*, int >> *exchangeBuffers,
+                std::pair<int64_t*, int >> *exchangeBuffers,
                 std::mutex *m_exchange,
                 std::condition_variable *cond_exchange);
 
@@ -506,8 +503,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remotePath,
-                long limitSpace,
-                long estimatedSize);
+                int64_t limitSpace,
+                int64_t estimatedSize);
 
         void parallel_createIndices(
                 int parallelProcesses,
@@ -525,8 +522,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remotePath,
-                long limitSpace,
-                long estimatedSize,
+                int64_t limitSpace,
+                int64_t estimatedSize,
                 int nindices);
 
         void createIndices(
@@ -545,8 +542,8 @@ class Loader {
                 SimpleTripleWriter *sampleWriter,
                 double sampleRate,
                 string remoteLocation,
-                long limitSpace,
-                long estimatedSize,
+                int64_t limitSpace,
+                int64_t estimatedSize,
                 int nindices);
 
         void loadKB_createSamples(string kbDir,
@@ -557,7 +554,7 @@ class Loader {
                 double sampleRate,
                 int nindices,
                 ParamsLoad &p,
-                long totalCount,
+                int64_t totalCount,
                 int signaturePerms);
 
         void loadKB_storeDicts(KB &kb,
@@ -584,7 +581,7 @@ class Loader {
 
         void loadKB(KB &kb,
                 ParamsLoad &p,
-                long totalCount,
+                int64_t totalCount,
                 string *permDirs,
                 int nperms,
                 int signaturePerms,
@@ -601,12 +598,12 @@ class Loader {
 
         static void moveData(string remoteLocation,
                 string inputDir,
-                long limitSpace);
+                int64_t limitSpace);
 
         static void createPermsAndDictsFromFiles_seq(DiskReader *reader,
-                DiskLZ4Writer *writer, int id, long *output);
+                DiskLZ4Writer *writer, int id, int64_t *output);
 
-        static long createPermsAndDictsFromFiles(
+        static int64_t createPermsAndDictsFromFiles(
                 string inputtriples,
                 bool separateDictEntRels,
                 string inputdict,
@@ -618,7 +615,7 @@ class Loader {
                 int maxReadingThreads,
                 int parallelProcesses);
 
-        static long parseSnapFile(
+        static int64_t parseSnapFile(
                 string inputtriples,
                 string inputdict,
                 string *permDirs,
@@ -635,7 +632,7 @@ class Loader {
                 int pos1,
                 int pos2);
 
-        static void rewriteKG(string inputdir, std::unordered_map<long,long> &map);
+        static void rewriteKG(string inputdir, std::unordered_map<int64_t,int64_t> &map);
 
     public:
 
@@ -643,7 +640,7 @@ class Loader {
             printStats = true;
         }
 
-        void load(ParamsLoad p);
+        LIBEXP void load(ParamsLoad p);
 
         void testLoadingTree(string inputdir, Inserter *ins, int nindices);
 };

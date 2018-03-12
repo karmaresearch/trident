@@ -57,7 +57,7 @@ private:
 
     Node *insertAtPosition(int p, tTerm *key, int sizeKey, nTerm value);
 
-    Node *insertAtPosition(int p, nTerm key, long coordinates);
+    Node *insertAtPosition(int p, nTerm key, int64_t coordinates);
 
     Node *insertAtPosition(int p, nTerm key, TermCoordinates *value);
 
@@ -79,19 +79,19 @@ public:
 
     int serialize(char *bytes, int pos);
 
-    bool get(nTerm key, long &coordinates);
+    bool get(nTerm key, int64_t &coordinates);
 
     bool get(tTerm *key, const int sizeKey, nTerm *value);
 
     bool get(nTerm key, TermCoordinates *value);
 
-    Node *put(nTerm key, long coordinateTerms);
+    Node *put(nTerm key, int64_t coordinateTerms);
 
     Node *put(tTerm *key, int sizeKey, nTerm value);
 
     Node *append(tTerm *key, int sizeKey, nTerm value);
 
-    Node *append(nTerm key, long coordinateTerms);
+    Node *append(nTerm key, int64_t coordinateTerms);
 
     Node *append(nTerm key, TermCoordinates *value);
 
@@ -100,15 +100,15 @@ public:
 
     Node *put(nTerm key, TermCoordinates *value);
 
-    long getKey(int pos);
+    int64_t getKey(int pos);
 
     void getValueAtPos(int pos, nTerm *value);
 
     void getValueAtPos(int pos, TermCoordinates *value);
 
-    long smallestNumericKey();
+    int64_t smallestNumericKey();
 
-    long largestNumericKey();
+    int64_t largestNumericKey();
 
     tTerm *smallestTextualKey(int *size);
 

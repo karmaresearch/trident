@@ -7,6 +7,10 @@
 #include <sstream>
 #include <algorithm>
 
+#if defined(_WIN32)
+//The Http Client and Server are only supported under Linux/Mac
+#else
+
 bool HttpClient::connect() {
     //Get IP address of the host
     struct addrinfo hints, *res, *res0;
@@ -61,7 +65,7 @@ bool HttpClient::getResponse(const std::string &request,
         unsigned long currentChunkSize = 0;
 
         //Pointers to the buffer
-        int sizebuffer = 0;
+        size_t sizebuffer = 0;
         const char *remaining;
 
         while (true) {
@@ -221,3 +225,5 @@ void HttpClient::disconnect() {
 HttpClient::~HttpClient() {
     disconnect();
 }
+
+#endif

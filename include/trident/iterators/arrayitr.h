@@ -37,13 +37,13 @@ private:
     std::shared_ptr<Pairs> array;
     int nElements;
     int pos;
-    long v1, v2;
+    int64_t v1, v2;
 
     int markPos;
     bool hasNextChecked;
     bool n;
     bool ignSecondColumn;
-    long countElems;
+    int64_t countElems;
 
     static int binarySearch(Pairs *array,
                             int start, int end, uint64_t key);
@@ -53,15 +53,15 @@ public:
         return ARRAY_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return v1;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return v2;
     }
 
-    long getCount();
+    int64_t getCount();
 
     uint64_t getCardinality();
 
@@ -79,7 +79,7 @@ public:
 
     void clear();
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 
     void init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2);
 };

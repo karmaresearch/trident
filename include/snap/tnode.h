@@ -32,49 +32,49 @@ class TNode {
         }
 
         /// Returns ID of the current node.
-        long GetId() const {
-            const long v = (*(long*)(rawblock)) & 0XFFFFFFFFFFl;
+        int64_t GetId() const {
+            const int64_t v = (*(int64_t*)(rawblock)) & 0XFFFFFFFFFFl;
             //return Utils::decode_longFixedBytes(rawblock, 5);
             return v;
         }
 
         /// Returns degree of the current node, the sum of in-degree and out-degree.
-        long GetDeg() const {
+        int64_t GetDeg() const {
             return GetInDeg() + GetOutDeg();
         }
 
         /// Returns in-degree of the current node.
-        long GetInDeg() const {
-            const long v = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
+        int64_t GetInDeg() const {
+            const int64_t v = (*(int64_t*)(rawblock + 18)) & 0XFFFFFFFFFFl;
             return v;
         }
 
         /// Returns out-degree of the current node.
-        long GetOutDeg() const {
-            const long v = (*(long*)(rawblock + 5)) & 0XFFFFFFFFFFl;
+        int64_t GetOutDeg() const {
+            const int64_t v = (*(int64_t*)(rawblock + 5)) & 0XFFFFFFFFFFl;
             return v;
         }
 
         /// Returns ID of NodeN-th in-node (the node pointing to the current node). ##TNGraph::TNodeI::GetInNId
-        long GetInNId(const long& NodeN) const {
+        int64_t GetInNId(const int64_t& NodeN) const {
             //This code does not work for newcolumn reader because there I would need to further advance to remove some initial bytes that store metadata. However, newcolumn layout is never triggered so it should be fine
             const uint8_t strat = rawblock[23];
             SnapReaders::pReader reader = SnapReaders::readers[strat];
             const short file = *(short*)(rawblock + 24);
             const char *p = SnapReaders::f_osp[file];
-            const long pos = (*(long*)(rawblock + 26)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 26)) & 0XFFFFFFFFFFl;
             const char *osp = p + pos;
             return reader(osp, NodeN);
         }
 
         /// Returns ID of NodeN-th out-node (the node the current node points to). ##TNGraph::TNodeI::GetOutNId
-        long GetOutNId(const long& NodeN) const {
+        int64_t GetOutNId(const int64_t& NodeN) const {
             //The same warning as before applies also to here
             const uint8_t strat = rawblock[10];
             SnapReaders::pReader reader = SnapReaders::readers[strat];
             const short file = *(short*)(rawblock + 11);
             const char *p = SnapReaders::f_sop[file];
-            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
             return reader(sop, NodeN);
         }
@@ -128,7 +128,7 @@ class TNode {
         const char *GetBeginOut() const {
             const short file = *(short*)(rawblock + 11);
             const char *p = SnapReaders::f_sop[file];
-            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
             return sop;
         }
@@ -136,13 +136,13 @@ class TNode {
         const char *GetBeginIn() const {
             const short file = *(short*)(rawblock + 24);
             const char *p = SnapReaders::f_osp[file];
-            const long pos = (*(long*)(rawblock + 26)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 26)) & 0XFFFFFFFFFFl;
             const char *osp = p + pos;
             return osp;
         }
 
         /// Returns ID of NodeN-th neighboring node. ##TNGraph::TNodeI::GetNbrNId
-        long GetNbrNId(const long& NodeN) const {
+        int64_t GetNbrNId(const int64_t& NodeN) const {
             if (NodeN < GetInDeg()) {
                 return GetInNId(NodeN);
             } else {
@@ -151,17 +151,17 @@ class TNode {
         }
 
         /// Tests whether node with ID NId points to the current node.
-        bool IsInNId(const long& NId) const {
+        bool IsInNId(const int64_t& NId) const {
             throw 10; //not implemented
         }
 
         /// Tests whether the current node points to node with ID NId.
-        bool IsOutNId(const long& NId) const {
+        bool IsOutNId(const int64_t& NId) const {
             throw 10; //not defined for directed graph
         }
 
         /// Tests whether node with ID NId is a neighbor of the current node.
-        bool IsNbrNId(const long& NId) const {
+        bool IsNbrNId(const int64_t& NId) const {
             throw 10; //not defined for directed graph
         }
 };

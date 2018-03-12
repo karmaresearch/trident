@@ -38,8 +38,8 @@ void Timings::launchTests() {
     std::chrono::duration<double> durationsW[6 * 5];
     std::vector<double> medianC[6 * 5];
     std::vector<double> medianW[6 * 5];
-    long nqueries[6 * 5];
-    long totalResults[6 * 5];
+    int64_t nqueries[6 * 5];
+    int64_t totalResults[6 * 5];
     for (int i = 0; i < 6 * 5; ++i) {
         durationsC[i] =  std::chrono::duration<double>::zero();
         durationsW[i] =  std::chrono::duration<double>::zero();
@@ -47,7 +47,7 @@ void Timings::launchTests() {
         totalResults[i] = 0;
     }
 
-    long junk = 0;
+    int64_t junk = 0;
     //end statistics
 
     //Init the DB
@@ -55,22 +55,22 @@ void Timings::launchTests() {
 
     ifstream infile(queryfile);
     string line;
-    long succ = 0;
+    int64_t succ = 0;
     while (std::getline(infile, line)) {
         //Parse the line
         std::stringstream ls(line);
-        long tokens[6];
+        int64_t tokens[6];
         int idx = 0;
-        long temp;
+        int64_t temp;
         while (ls >> temp) {
             tokens[idx++] = temp;
         }
 
         //Launch the query
         const int perm = tokens[0];
-        const long nElements = tokens[4];
+        const int64_t nElements = tokens[4];
         const int type = tokens[5];
-        long s, p, o;
+        int64_t s, p, o;
         switch (perm) {
         case T_SPO:
             s = tokens[1];
@@ -130,7 +130,7 @@ void Timings::launchTests() {
         std::chrono::duration<double> durC;
         std::chrono::duration<double> durW;
 
-        long c = 0;
+        int64_t c = 0;
         //Cold run
         durC = launchQuery(perm, s, p, o, countIgnores, c, junk);
         //Warm run

@@ -63,8 +63,8 @@ private:
     PreallocatedStratArraysFactory<char> factory;
     const bool readOnly;
     std::vector<char*> blocks;
-    std::vector<long> sizeCompressedBlocks;
-    long uncompressedSize;
+    std::vector<int64_t> sizeCompressedBlocks;
+    int64_t uncompressedSize;
     char *currentBuffer;
     int writingCurrentBufferSize;
 
@@ -128,18 +128,18 @@ private:
     int calculatePrefixWithBaseEntry(char *origBuffer, char *string, int size);
 
 public:
-    StringBuffer(string dir, bool readOnly, int factorySize, long cacheSize,
+    StringBuffer(string dir, bool readOnly, int factorySize, int64_t cacheSize,
                  Stats *stats);
 
-    long getSize();
+    int64_t getSize();
 
     void append(char *string, int size);
 
-    void get(long pos, char* outputBuffer, int &size);
+    void get(int64_t pos, char* outputBuffer, int &size);
 
-    char* get(long pos, int &size);
+    char* get(int64_t pos, int &size);
 
-    int cmp(long pos, char *string, int sizeString);
+    int cmp(int64_t pos, char *string, int sizeString);
 
     ~StringBuffer();
 };

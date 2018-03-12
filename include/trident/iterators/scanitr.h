@@ -56,14 +56,14 @@ public:
         return SCAN_ITR;
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         if (!reversedItr)
             return currentTable->getValue1();
         else
             return reversedItr->getValue1();
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         if (!reversedItr)
             return currentTable->getValue2();
         else
@@ -83,7 +83,7 @@ public:
             reversedItr->ignoreSecondColumn();
     }
 
-    long getCount() {
+    int64_t getCount() {
         if (!reversedItr)
             return currentTable->getCount();
         else
@@ -98,7 +98,7 @@ public:
 
     void next();
 
-    bool next(long &v1, long &v2, long &v3);
+    bool next(int64_t &v1, int64_t &v2, int64_t &v3);
 
     void clear();
 
@@ -106,9 +106,9 @@ public:
 
     uint64_t estCardinality();
 
-    void gotoKey(long k);
+    void gotoKey(int64_t k);
 
-    void moveto(const long c1, const long c2);
+    void moveto(const int64_t c1, const int64_t c2);
 };
 
 #endif

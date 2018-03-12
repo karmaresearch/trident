@@ -29,7 +29,7 @@
 class IntermediateNode: public Node {
 private:
     Node **children;
-    long *idChildren;
+    int64_t *idChildren;
     int lastUpdatedChild;
 
     Node *updateChildren(Node *split, int p,
@@ -47,13 +47,13 @@ public:
 
     IntermediateNode(TreeContext *context, Node *child1, Node *child2);
 
-    bool get(nTerm key, long &coordinates);
+    bool get(nTerm key, int64_t &coordinates);
 
     bool get(tTerm *key, const int sizeKey, nTerm *value);
 
     bool get(nTerm key, TermCoordinates *value);
 
-    Node *put(nTerm key, long coordinatesTerm);
+    Node *put(nTerm key, int64_t coordinatesTerm);
 
     Node *put(tTerm *key, int sizeKey, nTerm value);
 
@@ -61,7 +61,7 @@ public:
 
     Node *append(tTerm *key, int sizeKey, nTerm value);
 
-    Node *append(nTerm key, long coordinatesTerm);
+    Node *append(nTerm key, int64_t coordinatesTerm);
 
     Node *append(nTerm key, TermCoordinates *value);
 
@@ -76,15 +76,15 @@ public:
         return true;
     }
 
-    long smallestNumericKey();
+    int64_t smallestNumericKey();
 
-    long largestNumericKey();
+    int64_t largestNumericKey();
 
     tTerm *smallestTextualKey(int *size);
 
     tTerm *largestTextualKey(int *size);
 
-    Node *getChildForKey(long key);
+    Node *getChildForKey(int64_t key);
 
     Node *getChildForKey(tTerm *key, const int sizeKey);
 

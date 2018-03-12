@@ -47,7 +47,7 @@ void BatchCreator::createInputForBatch(bool createTraining,
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
     auto itr = q->get(IDX_POS, -1, -1, -1);
-    long s,p,o;
+    int64_t s,p,o;
 
     ofstream ofs_valid;
     if (valid > 0) {
@@ -109,17 +109,17 @@ struct _pso {
     const char *rawtriples;
     _pso(const char *rawtriples) : rawtriples(rawtriples) {}
     bool operator() (const uint64_t idx1, const uint64_t idx2) const {
-        long s1 = *(long*)(rawtriples + idx1 * 15);
+        int64_t s1 = *(int64_t*)(rawtriples + idx1 * 15);
         s1 = s1 & 0xFFFFFFFFFFl;
-        long p1 = *(long*)(rawtriples + idx1 * 15 + 5);
+        int64_t p1 = *(int64_t*)(rawtriples + idx1 * 15 + 5);
         p1 = p1 & 0xFFFFFFFFFFl;
-        long o1 = *(long*)(rawtriples + idx1 * 15 + 10);
+        int64_t o1 = *(int64_t*)(rawtriples + idx1 * 15 + 10);
         o1 = o1 & 0xFFFFFFFFFFl;
-        long s2 = *(long*)(rawtriples + idx2 * 15);
+        int64_t s2 = *(int64_t*)(rawtriples + idx2 * 15);
         s2 = s2 & 0xFFFFFFFFFFl;
-        long p2 = *(long*)(rawtriples + idx2 * 15 + 5);
+        int64_t p2 = *(int64_t*)(rawtriples + idx2 * 15 + 5);
         p2 = p2 & 0xFFFFFFFFFFl;
-        long o2 = *(long*)(rawtriples + idx2 * 15 + 10);
+        int64_t o2 = *(int64_t*)(rawtriples + idx2 * 15 + 10);
         o2 = o2 & 0xFFFFFFFFFFl;
         if (p1 != p2) {
             return p1 < p2;
@@ -156,7 +156,7 @@ void BatchCreator::start() {
 
     LOG(DEBUGL) << "Creating index array ...";
     this->indices.resize(this->ntriples);
-    for(long i = 0; i < this->ntriples; ++i) {
+    for(int64_t i = 0; i < this->ntriples; ++i) {
         this->indices[i] = i;
     }
 
@@ -167,11 +167,11 @@ void BatchCreator::start() {
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
-    long i = 0;
+    int64_t i = 0;
     output.resize(this->batchsize * 3);
     //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
     while (i < batchsize && currentidx < ntriples) {
-        long idx = indices[currentidx];
+        int64_t idx = indices[currentidx];
         uint64_t s,p,o;
         if (createBatchFile) {
             s = *(uint64_t*)(rawtriples + idx * 15);
@@ -197,21 +197,21 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
     return i > 0;
 }
 
-bool BatchCreator::shouldBeUsed(long s, long p, long o) {
+bool BatchCreator::shouldBeUsed(int64_t s, int64_t p, int64_t o) {
     return feedback->shouldBeIncluded(s, p, o);
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
         std::vector<uint64_t> &output2,
         std::vector<uint64_t> &output3) {
-    long i = 0;
+    int64_t i = 0;
     output1.resize(this->batchsize);
     output2.resize(this->batchsize);
     output3.resize(this->batchsize);
     //The output vector is already supposed to contain batchsize elements.
     //Otherwise, resize it
     while (i < batchsize && currentidx < ntriples) {
-        long idx = indices[currentidx];
+        int64_t idx = indices[currentidx];
         uint64_t s,p,o;
         if (createBatchFile) {
             s = *(uint64_t *)(rawtriples + idx * 15);
@@ -244,11 +244,11 @@ void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
     char *start = mf.getData();
     char *end = start + mf.getLength();
     while (start < end) {
-        long s = *(long*)(start);
+        int64_t s = *(int64_t*)(start);
         s = s & 0xFFFFFFFFFFl;
-        long p = *(long*)(start + 5);
+        int64_t p = *(int64_t*)(start + 5);
         p = p & 0xFFFFFFFFFFl;
-        long o = *(long*)(start + 10);
+        int64_t o = *(int64_t*)(start + 10);
         o = o & 0xFFFFFFFFFFl;
         output.push_back(s);
         output.push_back(p);
@@ -281,14 +281,14 @@ void BatchCreator::KBBatch::populateCoordinates() {
 
         //Get beginning of the table
         short currentFile = itr->getCurrentFile();
-        long currentMark = itr->getCurrentMark();
+        int64_t currentMark = itr->getCurrentMark();
         string fdidx = posdir + "/" + to_string(currentFile) + ".idx";
         if (Utils::exists(fdidx)) {
             ifstream idxfile(fdidx);
             idxfile.seekg(8 + 11 * currentMark);
             char buffer[5];
             idxfile.read(buffer, 5);
-            long pos = Utils::decode_longFixedBytes(buffer, 5);
+            int64_t pos = Utils::decode_longFixedBytes(buffer, 5);
             info.buffer = allposfiles[currentFile] + pos;
         } else {
             LOG(ERRORL) << "Cannot happen!";

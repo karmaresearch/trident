@@ -19,11 +19,11 @@ using namespace std;
 void testKB(Querier *q, std::vector<uint64_t> *v, std::vector<uint64_t> *v1) {
     for(int j = 0; j < 10; j++) {
         int begin = 0;
-        long prevs = -1;
+        int64_t prevs = -1;
         for(int i = 0; i < v->size(); i+=3) {
-            long s = v->at(i);
-            long p = v->at(i+1);
-            long o = v->at(i+2);
+            int64_t s = v->at(i);
+            int64_t p = v->at(i+1);
+            int64_t o = v->at(i+2);
             if (prevs != s) {
                 if (i != begin) {
                     //Test the KB
@@ -31,8 +31,8 @@ void testKB(Querier *q, std::vector<uint64_t> *v, std::vector<uint64_t> *v1) {
                     int tmp = begin;
                     while (itr->hasNext()) {
                         itr->next();
-                        long currentp = itr->getValue1();
-                        long currento = itr->getValue2();
+                        int64_t currentp = itr->getValue1();
+                        int64_t currento = itr->getValue2();
                         if (currentp != v->at(tmp + 1) || currento != v->at(tmp + 2)) {
                             cout << "Error! s=" << prevs << " p=" << v->at(tmp+1) << " currentp=" << currentp << " o=" << currento << " currento=" << v->at(tmp+2) << endl;
                             exit(1);
@@ -51,11 +51,11 @@ void testKB(Querier *q, std::vector<uint64_t> *v, std::vector<uint64_t> *v1) {
             }
         }
         begin = 0;
-        long prevo = -1;
+        int64_t prevo = -1;
         for(int i = 0; i < v1->size(); i+=3) {
-            long s = v1->at(i);
-            long p = v1->at(i+1);
-            long o = v1->at(i+2);
+            int64_t s = v1->at(i);
+            int64_t p = v1->at(i+1);
+            int64_t o = v1->at(i+2);
             if (prevo != o) {
                 if (i != begin) {
                     //Test the KB
@@ -63,8 +63,8 @@ void testKB(Querier *q, std::vector<uint64_t> *v, std::vector<uint64_t> *v1) {
                     int tmp = begin;
                     while (itr->hasNext()) {
                         itr->next();
-                        long currentp = itr->getValue1();
-                        long currents = itr->getValue2();
+                        int64_t currentp = itr->getValue1();
+                        int64_t currents = itr->getValue2();
                         if (currentp != v1->at(tmp + 1) || currents != v1->at(tmp)) {
                             cout << "Error! itr->getKey()" << itr->getKey() << " itr->getValue1()=" << currentp << " itr->getValue2()=" << currents << " s=" << v1->at(tmp) << " p=" << v1->at(tmp+1) << " o=" << v1->at(tmp+2) << endl;
                             exit(1);
@@ -95,9 +95,9 @@ int main(int argc, const char** argv) {
     auto itr = q->get(IDX_SPO, -1, -1, -1);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
-        long p = itr->getValue1();
-        long o = itr->getValue2();
+        int64_t s = itr->getKey();
+        int64_t p = itr->getValue1();
+        int64_t o = itr->getValue2();
         v.push_back(s);
         v.push_back(p);
         v.push_back(o);
@@ -107,9 +107,9 @@ int main(int argc, const char** argv) {
     itr = q->get(IDX_OPS, -1, -1, -1);
     while (itr->hasNext()) {
         itr->next();
-        long s = itr->getKey();
-        long p = itr->getValue1();
-        long o = itr->getValue2();
+        int64_t s = itr->getKey();
+        int64_t p = itr->getValue1();
+        int64_t o = itr->getValue2();
         v1.push_back(o);
         v1.push_back(p);
         v1.push_back(s);

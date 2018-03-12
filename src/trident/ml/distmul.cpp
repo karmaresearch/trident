@@ -324,9 +324,9 @@ void DistMulLearner::process_batch(BatchIO &io,
     //Check gradients E
     /*** DEBUG ***/
     /*const double delta = 0.0001;
-      long good_h, bad_h;
+      int64_t good_h, bad_h;
       good_h = bad_h = 0;
-      long idx = 0;
+      int64_t idx = 0;
       cout << "gradients size " << gradientsE.size() << endl;
       for(auto &i : gradientsE) {
       double *emb = E->get(i.id);

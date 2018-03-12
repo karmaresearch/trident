@@ -41,7 +41,7 @@ class PlanPrinter
    /// Format a register (for generic annotations)
    virtual std::string formatRegister(const Register* reg) = 0;
    /// Format a constant value (for generic annotations)
-   virtual std::string formatValue(unsigned long value) = 0;
+   virtual std::string formatValue(uint64_t value) = 0;
 };
 //---------------------------------------------------------------------------
 /// Print implementation for debug purposes
@@ -84,7 +84,7 @@ class DebugPlanPrinter : public PlanPrinter
    /// Format a register (for generic annotations)
    std::string formatRegister(const Register* reg);
    /// Format a constant value (for generic annotations)
-   std::string formatValue(unsigned long value);
+   std::string formatValue(uint64_t value);
 };
 //---------------------------------------------------------------------------
 #endif

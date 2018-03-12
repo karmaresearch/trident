@@ -27,7 +27,7 @@ void NewClusterTableInserter::startAppend() {
     v2.clear();
 }
 
-void NewClusterTableInserter::append(long t1, long t2) {
+void NewClusterTableInserter::append(int64_t t1, int64_t t2) {
     if (t1 != prevt1) {
         //Write down the group
         writeGroup();
@@ -56,7 +56,7 @@ void NewClusterTableInserter::writeGroup() {
     }
 }
 
-void NewClusterTableInserter::writeFirstTerm(long t) {
+void NewClusterTableInserter::writeFirstTerm(int64_t t) {
     switch (reader1) {
     case 0:
         writeByte(t);
@@ -73,7 +73,7 @@ void NewClusterTableInserter::writeFirstTerm(long t) {
     }
 }
 
-void NewClusterTableInserter::writeSecondTerm(long t) {
+void NewClusterTableInserter::writeSecondTerm(int64_t t) {
     switch (reader2) {
     case 0:
         writeByte(t);

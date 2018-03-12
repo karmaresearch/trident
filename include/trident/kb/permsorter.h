@@ -31,14 +31,14 @@
 
 class PermSorter {
     private:
-        static void writeTermInBuffer(char *buffer, const long n);
+        static void writeTermInBuffer(char *buffer, const int64_t n);
 
         static void sortChunks_seq(const int idReader,
                 MultiDiskLZ4Reader *reader,
                 std::vector<std::unique_ptr<char[]>> *rawTriples,
-                long start,
-                long end,
-                long *count,
+                int64_t start,
+                int64_t end,
+                int64_t *count,
                 std::vector<std::pair<string, char>> additionalPermutations,
                 bool outputSPO);
 
@@ -48,12 +48,12 @@ class PermSorter {
                 MultiDiskLZ4Writer *currentWriter,
                 int currentPart);
 
-        static void dumpPermutation(char *input, long end,
+        static void dumpPermutation(char *input, int64_t end,
                 int parallelProcesses,
                 int maxReadingThreads,
                 string outputFile);
 
-        static bool isMax(char *input, long idx);
+        static bool isMax(char *input, int64_t idx);
 
         static void sortPermutation(char *start,
                 char *end, int nthreads);
@@ -62,10 +62,10 @@ class PermSorter {
         static void sortChunks(string inputdir,
                 int maxReadingThreads,
                 int parallelProcesses,
-                long estimatedSize,
+                int64_t estimatedSize,
                 bool outputSPO,
                 std::vector<std::pair<string, char>> &additionalPermutations);
 
-        static long readTermFromBuffer(char *buffer);
+        static int64_t readTermFromBuffer(char *buffer);
 };
 #endif

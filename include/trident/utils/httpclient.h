@@ -15,7 +15,6 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#endif
 
 class HttpClient {
     private:
@@ -49,5 +48,7 @@ class HttpClient {
 
         ~HttpClient();
 };
+
+#endif
 
 #endif

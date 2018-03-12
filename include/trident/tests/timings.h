@@ -23,6 +23,8 @@
 #ifndef _TIMINGS_H
 #define _TIMINGS_H
 
+#include <trident/kb/consts.h>
+
 #include <string>
 #include <chrono>
 
@@ -43,14 +45,14 @@ public:
     virtual void init() = 0;
 
     virtual std::chrono::duration<double> launchQuery(const int perm,
-            const long s,
-            const long p,
-            const long o,
+            const int64_t s,
+            const int64_t p,
+            const int64_t o,
             const int countIgnores,
-            long &c,
-            long &junk) = 0;
+            int64_t &c,
+            int64_t &junk) = 0;
 
-    void launchTests();
+    LIBEXP void launchTests();
 };
 
 #endif

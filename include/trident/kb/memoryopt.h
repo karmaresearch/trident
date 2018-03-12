@@ -29,10 +29,10 @@ class MemoryOptimizer {
 
 private:
 
-    static int calculateBytesPerDictPair(long nTerms, int leafSize);
+    static int calculateBytesPerDictPair(int64_t nTerms, int leafSize);
 
 public:
-    static void optimizeForWriting(long inputTriples, KBConfig &config);
+    static void optimizeForWriting(int64_t inputTriples, KBConfig &config);
 
     static void optimizeForReading(int ndicts, KBConfig &config);
 

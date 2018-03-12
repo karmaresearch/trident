@@ -27,7 +27,7 @@
 #include <cstring>
 #include <cmath>
 
-bool TupleTableItr::same(const long l1, const long l2) const {
+bool TupleTableItr::same(const int64_t l1, const int64_t l2) const {
     return table->getPosAtRow(l1, 0) == table->getPosAtRow(l2, 0) &&
            table->getPosAtRow(l1, 1) == table->getPosAtRow(l2, 1);
 }
@@ -68,7 +68,7 @@ uint64_t TupleTableItr::getElementAt(const int pos) {
 }
 
 
-long TupleTableItr::count() {
+int64_t TupleTableItr::count() {
     if (skipLast) {
         while (nextpos < table->getNRows() && same(counter, nextpos)) {
             nextpos++;
@@ -84,7 +84,7 @@ void TupleTableItr::skipLastColumn() {
 }
 
 TupleTable *TupleTable::sortBy(std::vector<uint8_t> fields) {
-    TupleTable *out = new TupleTable(sizeRow, signature);
+    TupleTable *out = new TupleTable((int)sizeRow, signature);
 
     std::vector<uint64_t *> toBeSorted;
     for (size_t i = 0; i < getNRows(); ++i) {
@@ -104,7 +104,7 @@ TupleTable *TupleTable::sortBy(std::vector<uint8_t> fields) {
 }
 
 TupleTable *TupleTable::sortByAll() {
-    TupleTable *out = new TupleTable(sizeRow, signature);
+    TupleTable *out = new TupleTable((int)sizeRow, signature);
 
     std::vector<uint64_t *> toBeSorted;
     for (size_t i = 0; i < getNRows(); ++i) {
@@ -128,7 +128,7 @@ TupleTable *TupleTable::retain(TupleTable *t) {
     std::vector<uint64_t>::iterator itr1 = values.begin();
     std::vector<uint64_t>::iterator itr2 = t->values.begin();
 
-    TupleTable *outputTable = new TupleTable(sizeRow);
+    TupleTable *outputTable = new TupleTable((int)sizeRow);
     std::vector<uint64_t> *retainedVector = &(outputTable->values);
     uint64_t *row1 = new uint64_t[sizeRow];
     uint64_t *prevrow1 = new uint64_t[sizeRow];
@@ -184,7 +184,7 @@ TupleTable *TupleTable::merge(TupleTable *t) {
     std::vector<uint64_t>::iterator itr1 = values.begin();
     std::vector<uint64_t>::iterator itr2 = t->values.begin();
 
-    TupleTable *outputTable = new TupleTable(sizeRow);
+    TupleTable *outputTable = new TupleTable((int)sizeRow);
     std::vector<uint64_t> *retainedVector = &(outputTable->values);
     uint64_t *row1 = new uint64_t[sizeRow];
     bool toRead1 = true;
@@ -293,9 +293,9 @@ TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
         const uint8_t *p2 = &(psort2[0]);
         const uint8_t npos = (uint8_t) psort1.size();
 
-        long count1 = 0;
-        long count2 = 0;
-        long output = 0;
+        int64_t count1 = 0;
+        int64_t count2 = 0;
+        int64_t output = 0;
 
         while (idx1 < getNRows() && idx2 < o->getNRows()) {
             const uint64_t *row1 = getRow(idx1);
@@ -323,9 +323,9 @@ TupleTable::JoinHitStats TupleTable::joinHitRates(TupleTable *o) {
                 }
 
                 //Increment the counters
-                count1 += endrange1 - startrange1;
-                count2 += endrange2 - startrange2;
-                output += (endrange1 - startrange1) * (endrange2 - startrange2);
+                count1 += (long)(endrange1 - startrange1);
+                count2 += (long)(endrange2 - startrange2);
+                output += (long)((endrange1 - startrange1) * (endrange2 - startrange2));
 
                 idx1 = endrange1;
                 idx2 = endrange2;
@@ -362,8 +362,8 @@ TupleTable *o) {
 
     //Threshold is...
     const double threshold = sqrt(sortedTable->getNRows());
-    std::shared_ptr<TupleTable> denseTable(new TupleTable(sortedTable->getSizeRow(), signature));
-    std::shared_ptr<TupleTable> sparseTable(new TupleTable(sortedTable->getSizeRow(), signature));
+    std::shared_ptr<TupleTable> denseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
+    std::shared_ptr<TupleTable> sparseTable(new TupleTable((int)sortedTable->getSizeRow(), signature));
 
     int startRow = 0;
     const uint64_t *prevRow = sortedTable->getRow(0);
@@ -392,7 +392,7 @@ TupleTable *o) {
                     sparseTable->addRow(getRow(j));
                 }
             }
-            startRow = i;
+            startRow = (int)i;
         }
 
         prevRow = row;

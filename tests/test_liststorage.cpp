@@ -20,7 +20,7 @@ public:
 		this->ins = ins;
 	}
 
-	void addEntry(nTerm key, long nElements, short file, int pos,
+	void addEntry(nTerm key, int64_t nElements, short file, int pos,
 			char strategy) {
 		c.set(0, file, pos, nElements, strategy);
 		ins->insert(key, &c);
@@ -30,14 +30,14 @@ public:
 int main(int argc, const char** argv) {
 
 	int n1 = 10000000 * 3;
-	long *array1 = new long[n1];
-	for (long i = 0; i < n1; ++i) {
+	int64_t *array1 = new int64_t[n1];
+	for (int64_t i = 0; i < n1; ++i) {
 		array1[i] = i;
 	}
 
-	long firstKey = n1;
-	long *array2 = new long[n1];
-	for (long i = 0; i < n1; ++i) {
+	int64_t firstKey = n1;
+	int64_t *array2 = new int64_t[n1];
+	for (int64_t i = 0; i < n1; ++i) {
 		if (i % 300 == 0)
 			firstKey = i + n1;
 		if (i % 3 == 0)
@@ -46,10 +46,10 @@ int main(int argc, const char** argv) {
 			array2[i] = i + n1;
 	}
 
-	long startN3 = 2 * n1;
+	int64_t startN3 = 2 * n1;
 	firstKey = startN3;
-	long *array3 = new long[n1];
-	for (long i = 0; i < n1; ++i) {
+	int64_t *array3 = new int64_t[n1];
+	for (int64_t i = 0; i < n1; ++i) {
 		if (i % 30000 == 0)
 			firstKey = i + startN3;
 		if (i % 3 == 0)

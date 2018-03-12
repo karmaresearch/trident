@@ -43,7 +43,7 @@ class NewColumnTable: public AbsNewTable {
         uint8_t bytesPerCount, bytesPerStartingPoint;
         uint8_t bytesFirstBlock;
 
-        long currentValue1, currentValue2;
+        int64_t currentValue1, currentValue2;
         uint64_t nTerms, nUniqueFirstTerms;
 
         uint64_t currentCount, scannedCounts;
@@ -64,12 +64,12 @@ class NewColumnTable: public AbsNewTable {
 #endif
 
         // For mark/reset
-        long savedCurrentValue1;
+        int64_t savedCurrentValue1;
         const char *savedCurrentpos1;
         uint64_t savedCurrentCount;
         uint64_t savedScannedCounts;
         const char *savedStartblock2;
-        long savedCurrentValue2;
+        int64_t savedCurrentValue2;
         const char *savedCurrentpos2;
 #if DEBUG
         bool savedmovetoAllowed;
@@ -119,11 +119,11 @@ class NewColumnTable: public AbsNewTable {
             return bytesPerStartingPoint;
         }
 
-        long getValue1() {
+        int64_t getValue1() {
             return currentValue1;
         }
 
-        long getValue2() {
+        int64_t getValue2() {
             return currentValue2;
         }
 
@@ -184,7 +184,7 @@ class NewColumnTable: public AbsNewTable {
             }
         }
 
-        bool next(long &v1, long &v2, long &v3) {
+        bool next(int64_t &v1, int64_t &v2, int64_t &v3) {
             next();
             v2 = currentValue1;
             v3 = currentValue2;
@@ -195,7 +195,7 @@ class NewColumnTable: public AbsNewTable {
             next();
         }
 
-        void moveto(const long c1, const long c2) {
+        void moveto(const int64_t c1, const int64_t c2) {
 #if DEBUG
             assert(bytesFirstBlock > 0);
             assert(bytesPerSecondEntry > 0);
@@ -353,9 +353,9 @@ class NewColumnTable: public AbsNewTable {
 #endif
         }
 
-        long getCount() {
+        int64_t getCount() {
             if (isSecondColumnIgnored)
-                return currentCount;
+                return (long)currentCount;
             else
                 return 1;
         }
@@ -404,7 +404,7 @@ class NewColumnTable: public AbsNewTable {
             assert(bytesPerSecondEntry > 0);
         }
 
-        void setup(long c1, const char* s, const char *e) {
+        void setup(int64_t c1, const char* s, const char *e) {
             //Search for the right c1. Then sets the limits.
             setup(s, e);
             limitsSet = true;
@@ -435,7 +435,7 @@ class NewColumnTable: public AbsNewTable {
             }
         }
 
-        void setup(long c1, long c2, const char* s, const char *e) {
+        void setup(int64_t c1, int64_t c2, const char* s, const char *e) {
             //Search for the right c1. Then sets the limits.
             setup(s, e);
             limitsSet = true;
@@ -463,21 +463,21 @@ class NewColumnTable: public AbsNewTable {
             }
         }
 
-        long getValue1AtRow(long rowid) {
+        int64_t getValue1AtRow(int64_t rowid) {
             const char *pos = startpos1 + bytesFirstBlock * rowid;
             return Utils::decode_longFixedBytes(pos, bytesPerFirstEntry);
         }
 
-        long getValue2AtRow(long rowid) {
+        int64_t getValue2AtRow(int64_t rowid) {
             const char *pos = startblock2 + bytesPerSecondEntry * rowid;
             return Utils::decode_longFixedBytes(pos, bytesPerSecondEntry);
         }
 
         template<int nbytes, int nskip>
-            static long s_getValue1AtRow(const char *start,
-                    const long rowId) {
+            static int64_t s_getValue1AtRow(const char *start,
+                    const int64_t rowId) {
                 const char *currentpos1= start + (nbytes + nskip) * rowId;
-                const long v = Utils::decode_longFixedBytes(currentpos1, nbytes);
+                const int64_t v = Utils::decode_longFixedBytes(currentpos1, nbytes);
                 return v;
             }
 

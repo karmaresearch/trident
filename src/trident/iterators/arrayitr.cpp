@@ -67,7 +67,7 @@ bool ArrayItr::hasNext() {
     return n;
 }
 
-long ArrayItr::getCount() {
+int64_t ArrayItr::getCount() {
     if (!ignSecondColumn) {
         throw 10;
     }
@@ -87,8 +87,8 @@ long ArrayItr::getCount() {
 }
 
 void ArrayItr::next() {
-    v1 = array->at(pos).first;
-    v2 = array->at(pos).second;
+    v1 = (long)(array->at(pos).first);
+    v2 = (long)(array->at(pos).second);
     pos++;
     hasNextChecked = false;
     countElems = 0;
@@ -107,7 +107,7 @@ void ArrayItr::reset(const char i) {
     hasNextChecked = false;
 }
 
-void ArrayItr::moveto(const long c1, const long c2) {
+void ArrayItr::moveto(const int64_t c1, const int64_t c2) {
     assert(v1 != -1);
     assert(ignSecondColumn || v2 != -1);
 
@@ -141,7 +141,7 @@ int ArrayItr::binarySearch(Pairs *array, int start, int end, uint64_t key) {
 
     while (low <= high) {
         int mid = (low + high) >> 1;
-        long midVal = array->at(mid).first;
+        int64_t midVal = array->at(mid).first;
 
         if (midVal < key)
             low = mid + 1;
@@ -164,8 +164,8 @@ int ArrayItr::binarySearch(Pairs *array, int start, int end, uint64_t key) {
 void ArrayItr::init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2) {
     this->array = values;
     nElements = (int)values->size();
-    constraint1 = v1;
-    constraint2 = v2;
+    constraint1 = (long)v1;
+    constraint2 = (long)v2;
     countElems = 0;
     hasNextChecked = false;
     ignSecondColumn = false;
@@ -202,11 +202,11 @@ uint64_t ArrayItr::getCardinality() {
     if (ignSecondColumn) {
         uint64_t count = 0;
         size_t pos2 = 0;
-        long existingV1 = -1;
+        int64_t existingV1 = -1;
         while (pos2 < nElements) {
             if (array->at(pos2).first != existingV1) {
                 count++;
-                existingV1 = array->at(pos2).first;
+                existingV1 = (long)(array->at(pos2).first);
             }
             pos2++;
         }

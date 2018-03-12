@@ -53,12 +53,12 @@ int main(int argc, const char** argv) {
     cout << endl << "Runtime ClusterCoeff: " << durationCF.count() << " ms." << endl;
 
     start = std::chrono::system_clock::now();
-    long c = TSnap::CountTriangles(Graph);
+    int64_t c = TSnap::CountTriangles(Graph);
     std::chrono::milliseconds durationTriangles = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     cout << endl << "Runtime Triangles: " << durationTriangles.count() << " ms." << c << endl;
 
     start = std::chrono::system_clock::now();
-    long output = TSnap::GetBfsFullDiam(Graph, 1000, true);
+    int64_t output = TSnap::GetBfsFullDiam(Graph, 1000, true);
     std::chrono::milliseconds durationDiam = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     cout << endl << "Runtime Diameter: " << durationDiam.count() << " ms." << output << endl;
 
@@ -73,7 +73,7 @@ int main(int argc, const char** argv) {
     cout << endl << "Runtime MaxScc: " << durationMaxScc.count() << " ms." << outputScc << endl;
 
     TIntV Values;
-    std::vector<long> InputNodes;
+    std::vector<int64_t> InputNodes;
     std::ifstream ifs(string(argsMod.CStr()));
     std::string line;
     while (std::getline(ifs, line)) {
@@ -82,18 +82,18 @@ int main(int argc, const char** argv) {
         InputNodes.push_back(v);
     }
     ifs.close();
-    long len = 3;
+    int64_t len = 3;
     start = std::chrono::system_clock::now();
     auto randWalk = TSnap::randomWalk2(Graph, InputNodes, len);
     std::chrono::milliseconds durationRW = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
     cout << endl << "Runtime RandomWalk: " << durationRW.count() << " ms." << randWalk.size() << endl;
 
     std::ifstream ifs2(string(pairNodes.CStr()));
-    std::vector<std::pair<long, long>> pairs;
+    std::vector<std::pair<int64_t, int64_t>> pairs;
     while (std::getline(ifs2, line)) {
         auto pos = line.find('\t');
-        long v1 = boost::lexical_cast<long>(line.substr(0, pos));
-        long v2 = boost::lexical_cast<long>(line.substr(pos+1, line.size()));
+        int64_t v1 = boost::lexical_cast<int64_t>(line.substr(0, pos));
+        int64_t v2 = boost::lexical_cast<int64_t>(line.substr(pos+1, line.size()));
         pairs.push_back(std::make_pair(v1, v2));
     }
     ifs2.close();

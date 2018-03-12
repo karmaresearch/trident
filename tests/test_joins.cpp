@@ -61,7 +61,7 @@ int checkResults(string file, std::vector<string> results) {
 std::vector<string> createTwoJoinsInput(string filePath, int size1, int size2, int pos1, int pos2, int pos3, int pos4) {
     ofstream file;
 	file.open(filePath);
-	long counter = 0;
+	int64_t counter = 0;
 	string triple[3];
     vector<string> results;
     
@@ -112,7 +112,7 @@ std::vector<string> createOneJoinInput(string filePath, int pos1, int pos2,
     
 	ofstream file;
 	file.open(filePath);
-	long counter = 0;
+	int64_t counter = 0;
 	string triple[3];
     
 	if (posConstA1 != -1) {
@@ -163,14 +163,14 @@ std::vector<string> createOneJoinInput(string filePath, int pos1, int pos2,
         
 		//Add the results in a container
 		if (i < size1 || (posConstA1 == -1 || posConstA2 == -1)) {
-			long c = 0;
+			int64_t c = 0;
 			for (int m = 0; m < size1; ++m) {
                 if (m == 0 || posConstB1 == -1 || posConstB2 == -1) {
                     string t1 =
                     (posConstA1 != -1) ? "" : "<" + to_string(c++) + "> ";
                     string t2 =
                     (posConstA2 != -1) ? "" : "<" + to_string(c++) + "> ";
-                    long counterT3 = (posConstB2 == -1) ? counter - 2 : counter - 1;
+                    int64_t counterT3 = (posConstB2 == -1) ? counter - 2 : counter - 1;
                     string t3 =
                     (posConstB1 != -1) ?
                     "" : "<" + to_string(counterT3) + "> ";
@@ -252,7 +252,7 @@ int testTwoJoinsQueryAndTest(int pos1, int pos2, int pos3, int pos4, std::vector
 	std::ofstream out(queryFile + string(".results"));
 	std::streambuf *coutbuf = std::cout.rdbuf();
 	std::cout.rdbuf(out.rdbuf());
-	long nElements = exec.executePlan(&plan, true, true);
+	int64_t nElements = exec.executePlan(&plan, true, true);
 	std::cout.flush();
 	std::cout.rdbuf(coutbuf);
 	out.close();
@@ -348,7 +348,7 @@ int testOneJoinQueryAndTest(int pos1, int pos2, int posConstA1, int posConstA2,
 	std::ofstream out(queryFile + string(".results"));
 	std::streambuf *coutbuf = std::cout.rdbuf();
 	std::cout.rdbuf(out.rdbuf());
-	long nElements = exec.executePlan(&plan, true, true);
+	int64_t nElements = exec.executePlan(&plan, true, true);
 	std::cout.flush();
 	std::cout.rdbuf(coutbuf);
 	out.close();

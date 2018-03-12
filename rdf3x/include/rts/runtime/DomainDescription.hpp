@@ -23,7 +23,7 @@ class DomainDescription
    /// The desired bloom filter size
    static const unsigned filterSize = 128;
    /// An filter entry
-   typedef unsigned long FilterEntry;
+   typedef uint64_t FilterEntry;
    /// Bits in a filter entry
    static const unsigned filterEntryBits = 8*sizeof(FilterEntry);
    /// '1' as filter entry

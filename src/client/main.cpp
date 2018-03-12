@@ -81,7 +81,7 @@ void lookup(DictMgmt *dict, ProgramArgs &vm) {
             cout << value << endl;
         }
     } else {
-        nTerm key = vm["number"].as<long>();
+        nTerm key = vm["number"].as<int64_t>();
         char supportText[4096];
         if (!dict->getText(key, supportText)) {
             cout << "Term " << key << " not found" << endl;
@@ -99,7 +99,7 @@ void dump(KB *kb, string outputdir) {
     Utils::create_directories(outputdir);
 
     //Create output file
-    string filename = outputdir + "/graph.gz";
+    string filename = outputdir + DIR_SEP + "graph.gz";
     zstr::ofstream out(filename, std::ios_base::out);
 
     //Get dictionary
@@ -110,7 +110,7 @@ void dump(KB *kb, string outputdir) {
     const bool print_p = kb->getGraphType() == GraphType::DEFAULT;
     PairItr *itr = q->get(IDX_SOP, -1, -1, -1);
     while (itr->hasNext()) {
-        long s, p, o;
+        int64_t s, p, o;
         itr->next();
         s = itr->getKey();
         o = itr->getValue1();
@@ -199,15 +199,15 @@ void testkb(string kbDir, ProgramArgs &vm) {
     }
     TestTrident test(&kb);
     //Check whether there is a _diff dir
-    if (Utils::exists(kbDir + "/_diff")) {
-        std::vector<string> ups = Utils::getSubdirs(kbDir + "/_diff");
+    if (Utils::exists(kbDir + DIR_SEP + "_diff")) {
+        std::vector<string> ups = Utils::getSubdirs(kbDir + DIR_SEP + "_diff");
         std::vector<string> childrenupdates;
         for (int i = 0; i < ups.size(); ++i) {
             string f = ups[i];
             string fn = Utils::filename(f);
             if (!fn.empty() && std::find_if(fn.begin(),  fn.end(),
                         [](char c) {
-                        return !std::isdigit(c);
+                        return !isdigit(c);
                         }) == fn.end()) {
                 childrenupdates.push_back(f);
             }
@@ -215,7 +215,7 @@ void testkb(string kbDir, ProgramArgs &vm) {
         sort(childrenupdates.begin(), childrenupdates.end(), _sort_by_number);
         locUpdates = childrenupdates;
     }
-    test.prepare(kbDir + string("/p0/raw"), locUpdates);
+    test.prepare(kbDir + DIR_SEP + string("p0") + DIR_SEP + "raw", locUpdates);
     test.test_existing(permutations);
     test.test_nonexist(permutations);
     test.test_moveto(permutations);
@@ -259,8 +259,8 @@ void printStats(KB &kb, Querier *q) {
     LOG(DEBUGL) << "RowLayouts: " << c.statsRow << " ClusterLayouts: " << c.statsCluster << " ColumnLayouts: " << c.statsColumn;
     LOG(DEBUGL) << "AggrIndices: " << c.aggrIndices << " NotAggrIndices: " << c.notAggrIndices << " CacheIndices: " << c.cacheIndices;
     LOG(DEBUGL) << "Permutations: spo " << c.spo << " ops " << c.ops << " pos " << c.pos << " sop " << c.sop << " osp " << c.osp << " pso " << c.pso;
-    long nblocks = 0;
-    long nbytes = 0;
+    int64_t nblocks = 0;
+    int64_t nbytes = 0;
     for (int i = 0; i < kb.getNDictionaries(); ++i) {
         nblocks = kb.getStatsDict()[i].getNReadIndexBlocks();
         nbytes = kb.getStatsDict()[i].getNReadIndexBytes();
@@ -283,7 +283,7 @@ void launchAnalytics(KB &kb, string op, string param1, string param2) {
 #endif
 
 #ifdef ML
-void mineFrequentPatterns(string kbdir, int minLen, int maxLen, long minSupport) {
+void mineFrequentPatterns(string kbdir, int minLen, int maxLen, int64_t minSupport) {
     LOG(INFOL) << "Mining frequent graphs";
     Miner miner(kbdir, 1000);
     miner.mine();
@@ -383,7 +383,7 @@ int main(int argc, const char** argv) {
     } else if (cmd == "testkb") {
         testkb(kbDir, vm);
     } else if (cmd == "testcq") {
-        string inputFile = kbDir + string("/p0/raw");
+        string inputFile = kbDir + DIR_SEP + string("p0") + DIR_SEP + string("raw");
         _test_createqueries(inputFile, vm["testqueryfile"].as<string>());
     } else if (cmd == "testti") {
         TridentTimings ti(kbDir, vm["testqueryfile"].as<string>());
@@ -443,7 +443,7 @@ int main(int argc, const char** argv) {
         //p.logPtr = logptr;
         p.timeoutStats = vm["timeoutStats"].as<int>();
         p.remoteLocation = vm["remoteLoc"].as<string>();
-        p.limitSpace = vm["limitSpace"].as<long>();
+        p.limitSpace = vm["limitSpace"].as<int64_t>();
         p.graphTransformation = vm["gf"].as<string>();
         p.storeDicts = vm["storedicts"].as<bool>();
         p.relsOwnIDs = vm["relsOwnIDs"].as<bool>();
@@ -458,11 +458,11 @@ int main(int argc, const char** argv) {
     } else if (cmd == "add") {
         string updatedir = vm["update"].as<string>();
         Updater up;
-        up.creatediffupdate(DiffIndex::TypeUpdate::ADDITION, kbDir, updatedir);
+        up.creatediffupdate(DiffIndex::TypeUpdate::ADDITION_df, kbDir, updatedir);
     } else if (cmd == "rm") {
         string updatedir = vm["update"].as<string>();
         Updater up;
-        up.creatediffupdate(DiffIndex::TypeUpdate::DELETE, kbDir, updatedir);
+        up.creatediffupdate(DiffIndex::TypeUpdate::DELETE_df, kbDir, updatedir);
     } else if (cmd == "analytics") {
 #ifdef ANALYTICS
         KBConfig config;
@@ -475,7 +475,7 @@ int main(int argc, const char** argv) {
 #endif
     } else if (cmd == "mine")  {
 #ifdef ML
-        long minSupport = vm["minSupport"].as<long>();
+        int64_t minSupport = vm["minSupport"].as<int64_t>();
         int minLen = vm["minLen"].as<int>();
         int maxLen = vm["maxLen"].as<int>();
         mineFrequentPatterns(kbDir, minLen, maxLen, minSupport);

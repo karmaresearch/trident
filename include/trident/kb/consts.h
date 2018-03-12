@@ -25,6 +25,19 @@
 
 #include <inttypes.h>
 
+#if defined(_WIN32)
+#define DDLIMPORT __declspec(dllimport)
+#define DDLEXPORT __declspec(dllexport)
+#if TRIDENT_SHARED_LIB
+#define LIBEXP DDLEXPORT
+#else
+#define LIBEXP DDLIMPORT
+#endif
+
+#else
+#define LIBEXP
+#endif
+
 //This is a list of all permutation IDs. It is replicated in tridentcompr/Compressor.h
 #define IDX_SPO 0
 #define IDX_OPS 1
@@ -55,8 +68,8 @@
 #define RMCOMPOSITETERM_ITR 19
 
 //Use for dynamic layout
-#define DIFFERENCE 0
-#define NO_DIFFERENCE 1
+#define W_DIFFERENCE 0
+#define WO_DIFFERENCE 1
 #define COMPR_1 0
 #define COMPR_2 1
 #define NO_COMPR 2

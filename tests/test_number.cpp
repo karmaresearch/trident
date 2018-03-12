@@ -9,13 +9,13 @@
 
 int main(int argc, const char** args) {
 
-    long n = 100000000;
+    int64_t n = 100000000;
     uint64_t *numbers = new uint64_t[n];
     //Fill the numbers
     std::random_device rd;
     std::mt19937 e2(rd());
     std::uniform_int_distribution<long long int> dist(std::llround(std::pow(2, 0)), std::llround(std::pow(2, 48)));
-    for (long i = 0; i < n; ++i) {
+    for (int64_t i = 0; i < n; ++i) {
         numbers[i] = dist(e2);
     }
     cout << "Finished generating the numbers" << endl;
@@ -24,7 +24,7 @@ int main(int argc, const char** args) {
 
     boost::chrono::system_clock::time_point start =
         boost::chrono::system_clock::now();
-    for (long i = 0; i < n; ++i) {
+    for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
             cout << i << endl;
@@ -44,7 +44,7 @@ int main(int argc, const char** args) {
     int offset = 0;
     char test1[9];
     start = boost::chrono::system_clock::now();
-    for (long i = 0; i < n; ++i) {
+    for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
             cout << i << endl;
@@ -64,7 +64,7 @@ int main(int argc, const char** args) {
 
     offset = 0;
     start = boost::chrono::system_clock::now();
-    for (long i = 0; i < n; ++i) {
+    for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
             cout << i << endl;

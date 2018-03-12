@@ -33,8 +33,8 @@ class TreeItr;
 class DiffTermItr : public PairItr {
 private:
     int perm;
-    long nkeys;
-    long nuniquekeys;
+    int64_t nkeys;
+    int64_t nuniquekeys;
 
     uint8_t mode;
     std::unique_ptr<TreeItr> itr;
@@ -44,7 +44,7 @@ private:
     const char *e;
     uint8_t nbytes;
 
-    long constantvalue;
+    int64_t constantvalue;
     uint8_t remaining;
 
 public:
@@ -55,11 +55,11 @@ public:
     void clear() {
     }
 
-    long getValue1() {
+    int64_t getValue1() {
         return 0;
     }
 
-    long getValue2() {
+    int64_t getValue2() {
         return 0;
     }
 
@@ -75,19 +75,19 @@ public:
         throw 10; //not supported
     }
 
-    void moveto(const long c1, const long c2) {
+    void moveto(const int64_t c1, const int64_t c2) {
         throw 10; //not implemented
     }
 
-    void init(int perm, long nkeys, long nuniquekeys, TreeItr *itr);
+    void init(int perm, int64_t nkeys, int64_t nuniquekeys, TreeItr *itr);
 
-    void init(int perm, long nkeys, long nuniquekeys, const char *array, const uint8_t nbytes);
+    void init(int perm, int64_t nkeys, int64_t nuniquekeys, const char *array, const uint8_t nbytes);
 
-    void init(int perm, long nkeys, long nuniquekeys, const long value);
+    void init(int perm, int64_t nkeys, int64_t nuniquekeys, const int64_t value);
 
-    long getCount();
+    int64_t getCount();
 
-    void gotoKey(long keyToSearch);
+    void gotoKey(int64_t keyToSearch);
 
     bool hasNext();
 

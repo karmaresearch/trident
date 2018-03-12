@@ -70,13 +70,13 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     }
 }
 
-long SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
+int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
         const std::vector<uint64_t> &subgs, Querier *q) {
     DictMgmt *dict = q->getDictMgmt();
     char buffer[MAX_TERM_SIZE];
     int size;
 
-    long out = 0;
+    int64_t out = 0;
     for(auto subgraphid : subgs) {
         Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
 
@@ -103,10 +103,10 @@ long SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
     return -1;
 }
 
-long SubgraphHandler::numberInstancesInSubgraphs(
+int64_t SubgraphHandler::numberInstancesInSubgraphs(
         Querier *q,
         const std::vector<uint64_t> &subgs) {
-    long out = 0;
+    int64_t out = 0;
     for(auto subgraphid : subgs) {
         Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
         out += meta.size;
@@ -213,14 +213,14 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         selectRelevantSubGraphs(L1, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphs, 10);
-        long foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
-        long totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
+        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
+        int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         selectRelevantSubGraphs(L1, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
                 r, h, relevantSubgraphs, 10);
-        long foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
-        long totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
+        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
+        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
         //Now I have the list of relevant subgraphs. It the answer in one of these?
         if (foundH >= 0) {
             counth++;

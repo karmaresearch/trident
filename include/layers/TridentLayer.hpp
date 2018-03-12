@@ -115,7 +115,7 @@ class TridentLayer : public DBLayer {
                     sampleRate);
         }
 
-        long getSizeOutput(long s, long p, long o,
+        int64_t getSizeOutput(int64_t s, int64_t p, int64_t o,
                 std::vector<uint8_t> *posToFilter,
                 std::vector<uint64_t> *valuesToFilter);
 
@@ -131,8 +131,8 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
         double bifocalSampling_DenseDense(bool valueL1,
                 uint64_t value1CL,
@@ -146,8 +146,8 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
         double bifocalSampling_SparseAny(bool valueL1,
                 uint64_t value1CL,
@@ -161,15 +161,15 @@ class TridentLayer : public DBLayer {
                 uint64_t value2CR,
                 bool value3R,
                 uint64_t value3CR,
-                const long card1,
-                const long card2);
+                const int64_t card1,
+                const int64_t card2);
 
     public:
         TridentLayer(KB &kb) : kb(kb), dict(kb.getDictMgmt()), q(kb.query()),
         bifSampl(true), nindices(kb.getNIndices()), supportBuffer(new
                 char[MAX_TERM_SIZE]) { }
 
-        bool lookup(const std::string& text,
+		DDLEXPORT bool lookup(const std::string& text,
                 ::Type::ID type,
                 unsigned subType,
                 uint64_t& id);
@@ -178,21 +178,21 @@ class TridentLayer : public DBLayer {
             bifSampl = false;
         }
 
-        bool lookupById(uint64_t id,
+		DDLEXPORT bool lookupById(uint64_t id,
                 const char*& start,
                 const char*& stop,
                 ::Type::ID& type,
                 unsigned& subType);
 
-        bool lookupById(uint64_t id,
+		DDLEXPORT bool lookupById(uint64_t id,
                 char *output,
                 size_t &length,
                 ::Type::ID& type,
                 unsigned& subType);
 
-        uint64_t getNextId();
+        DDLEXPORT uint64_t getNextId();
 
-        double getScanCost(DBLayer::DataOrder order,
+        DDLEXPORT double getScanCost(DBLayer::DataOrder order,
                 uint64_t value1,
                 uint64_t value1C,
                 uint64_t value2,
@@ -200,13 +200,13 @@ class TridentLayer : public DBLayer {
                 uint64_t value3,
                 uint64_t value3C);
 
-        double getScanCost(DBLayer::DataOrder order,
+		DDLEXPORT double getScanCost(DBLayer::DataOrder order,
                 uint64_t value1,
                 uint64_t value1C,
                 uint64_t value2,
                 uint64_t value2C);
 
-        double getJoinSelectivity(bool valueL1,
+		DDLEXPORT double getJoinSelectivity(bool valueL1,
                 uint64_t value1CL,
                 bool value2L,
                 uint64_t value2CL,
@@ -219,21 +219,21 @@ class TridentLayer : public DBLayer {
                 bool value3R,
                 uint64_t value3CR);
 
-        double getScanCost(DBLayer::DataOrder order,
+		DDLEXPORT double getScanCost(DBLayer::DataOrder order,
                 uint64_t value1,
                 uint64_t value1C);
 
-        uint64_t getCardinality(uint64_t c1,
+        DDLEXPORT uint64_t getCardinality(uint64_t c1,
                 uint64_t c2,
                 uint64_t c3);
 
-        uint64_t getCardinality();
+        DDLEXPORT uint64_t getCardinality();
 
         uint64_t getNTerms() {
             return kb.getNTerms();
         }
 
-        std::unique_ptr<DBLayer::Scan> getScan(const DBLayer::DataOrder order,
+		DDLEXPORT std::unique_ptr<DBLayer::Scan> getScan(const DBLayer::DataOrder order,
                 const DBLayer::Aggr_t,
                 Hint *hint);
 

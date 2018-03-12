@@ -220,10 +220,10 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
 }
 
 bool checkMachineConstraints() {
-    if (sizeof(long) != 8) {
-        LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
-        return false;
-    }
+//   if (sizeof(long) != 8) {
+//       LOG(ERRORL) << "Trident expects a 'long' to be 8 bytes";
+//       return false;
+//   }
     if (sizeof(int) != 4) {
         LOG(ERRORL) << "Trident expects a 'int' to be 4 bytes";
         return false;
@@ -283,8 +283,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     load_options.add<bool>("","incrindices", false, "Create the indices a few at the time (saves space). Default is 'false'", false);
     load_options.add<bool>("","aggrIndices", false, "Use aggredated indices. Default is 'false'", false);
     load_options.add<bool>("","enableFixedStrat", false, "Should we store the tables with a fixed layout?. Default is 'false'", false);
-    string textStrat = "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(StorageStrat::FIXEDSTRAT5) + " for row-layout " + to_string(StorageStrat::FIXEDSTRAT6) + " for a cluster-layout " + to_string(StorageStrat::FIXEDSTRAT7);
-    load_options.add<int>("","fixedStrat", StorageStrat::FIXEDSTRAT5, textStrat.c_str(), false);
+    string textStrat = "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(FIXEDSTRAT5) + " for row-layout " + to_string(FIXEDSTRAT6) + " for a cluster-layout " + to_string(FIXEDSTRAT7);
+    load_options.add<int>("","fixedStrat", FIXEDSTRAT5, textStrat.c_str(), false);
     load_options.add<int>("","popArg", 128,
             "Argument for the method to identify the popular terms. If the method is sample, then it represents the sample percentage (x/10000)."
             "If it it hash, then it indicates the number of popular terms."

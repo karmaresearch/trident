@@ -34,23 +34,23 @@
 class TridentUtils {
     public:
 
-        static long getVmRSS();
+        static int64_t getVmRSS();
 
         static double getCPUUsage();
 
-        static long diskread();
+        static int64_t diskread();
 
-        static long diskwrite();
+        static int64_t diskwrite();
 
-        static long phy_diskread();
+        static int64_t phy_diskread();
 
-        static long phy_diskwrite();
+        static int64_t phy_diskwrite();
 
         static void loadFromFile(std::string inputfile,
-                std::vector<long> &values);
+                std::vector<int64_t> &values);
 
         static void loadPairFromFile(std::string inputfile,
-                std::vector<std::pair<long,long>> &values, char sep);
+                std::vector<std::pair<int64_t,int64_t>> &values, char sep);
 
         static uint64_t spaceLeft(std::string location);
 

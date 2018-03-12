@@ -19,10 +19,10 @@
  * under the License.
 **/
 
-
 #include <trident/files/filedescriptor.h>
 #include <trident/files/filemanager.h>
 #include <trident/kb/consts.h>
+#include <trident/utils/memoryfile.h>
 
 #include <kognac/utils.h>
 
@@ -32,7 +32,8 @@
 #include <fstream>
 #include <cmath>
 
-#include <unistd.h>
+
+//#include <unistd.h>
 
 using namespace std;
 
@@ -77,10 +78,6 @@ FileDescriptor::FileDescriptor(bool readOnly, int id, std::string file,
         oFile.put(0);
         newFile = true;
     }
-    //mapping = new bip::file_mapping(file.c_str(),
-    //                                readOnly ? bip::read_only : bip::read_write);
-    //mapped_rgn = NULL;
-    
     size = 0;
     mapFile(0);
 
@@ -128,7 +125,7 @@ char* FileDescriptor::getBuffer(uint64_t offset, uint64_t *length,
     return buffer + offset;
 }
 
-uint64_t FileDescriptor::appendVLong(const long v) {
+uint64_t FileDescriptor::appendVLong(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -138,7 +135,7 @@ uint64_t FileDescriptor::appendVLong(const long v) {
     return this->size;
 }
 
-uint64_t FileDescriptor::appendVLong2(const long v) {
+uint64_t FileDescriptor::appendVLong2(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -148,7 +145,7 @@ uint64_t FileDescriptor::appendVLong2(const long v) {
     return this->size;
 }
 
-void FileDescriptor::appendLong(const long v) {
+void FileDescriptor::appendLong(const int64_t v) {
     if (8 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 8, (uint64_t) sizeFile));
         mapFile(increment);
@@ -157,7 +154,7 @@ void FileDescriptor::appendLong(const long v) {
     this->size += 8;
 }
 
-void FileDescriptor::appendInt(const long v) {
+void FileDescriptor::appendInt(const int64_t v) {
     if (4 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 4, (uint64_t) sizeFile));
         mapFile(increment);
@@ -166,7 +163,7 @@ void FileDescriptor::appendInt(const long v) {
     this->size += 4;
 }
 
-void FileDescriptor::appendShort(const long v) {
+void FileDescriptor::appendShort(const int64_t v) {
     if (2 + this->size > sizeFile) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max((uint64_t) 2, (uint64_t) sizeFile));
         mapFile(increment);
@@ -198,7 +195,7 @@ void FileDescriptor::overwriteAt(uint64_t pos, char byte) {
     buffer[pos] = byte;
 }
 
-void FileDescriptor::overwriteVLong2At(uint64_t pos, long number) {
+void FileDescriptor::overwriteVLong2At(uint64_t pos, int64_t number) {
     Utils::encode_vlong2(buffer + pos, number);
 }
 
@@ -223,13 +220,6 @@ FileDescriptor::~FileDescriptor() {
         mappedFile->flushAll();
         mappedFile = NULL;
     }
-    //if (mapped_rgn != NULL) {
-    //    mapped_rgn->flush(0, size);
-    //    delete mapped_rgn;
-    //    mapped_rgn = NULL;
-    //}
-
-    //delete mapping;
 
     if (!readOnly) {
         if (size == 0) {

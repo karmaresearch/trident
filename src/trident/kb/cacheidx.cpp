@@ -66,7 +66,7 @@ void CacheIdx::storeIdx(uint64_t key, std::vector<CacheBlock> *blocks,
                 itrNewBlocks != blocks->end(); ++itrNewBlocks) {
             //Add all the pairs that are pointed by the block
             size_t newStart = itr->second.second->size();
-            for (int i = itrNewBlocks->startArray; i < itrNewBlocks->endArray; ++i) {
+            for (uint64_t i = itrNewBlocks->startArray; i < itrNewBlocks->endArray; ++i) {
                 itr->second.second->push_back(pairs->at(i));
             }
             itrNewBlocks->startArray = newStart;

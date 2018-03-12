@@ -17,7 +17,7 @@ class BitSet
 {
    public:
    /// The type of the value
-   typedef unsigned long value_t;
+   typedef uint64_t value_t;
    /// The maximum width of the bit set representation.
    static const unsigned maxWidth = sizeof(value_t)*8;
 

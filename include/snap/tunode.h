@@ -32,52 +32,52 @@ class TUNode {
         }
 
         /// Returns ID of the current node.
-        long GetId() const {
-            const long v = (*(long*)(rawblock)) & 0XFFFFFFFFFFl;
+        int64_t GetId() const {
+            const int64_t v = (*(int64_t*)(rawblock)) & 0XFFFFFFFFFFl;
             return v;
         }
 
         /// Returns degree of the current node, since the in-degree and out-degree are equal, I just pick one
-        long GetDeg() const {
-            //const long v1 = (*(long*)(rawblock + 18)) & 0XFFFFFFFFFFl;
-            const long v2 = (*(long*)(rawblock + 5)) & 0XFFFFFFFFFFl;
+        int64_t GetDeg() const {
+            //const int64_t v1 = (*(int64_t*)(rawblock + 18)) & 0XFFFFFFFFFFl;
+            const int64_t v2 = (*(int64_t*)(rawblock + 5)) & 0XFFFFFFFFFFl;
             //return v1 + v2;
             return v2;
         }
 
         /// Returns in-degree of the current node.
-        long GetInDeg() const {
+        int64_t GetInDeg() const {
             return GetDeg();
         }
 
         /// Returns out-degree of the current node.
-        long GetOutDeg() const {
+        int64_t GetOutDeg() const {
             return GetDeg();
         }
 
         /// Returns ID of NodeN-th out-node (the node the current node points to). ##TNGraph::TNodeI::GetOutNId
-        long GetOutNId(const long& NodeN) const {
+        int64_t GetOutNId(const int64_t& NodeN) const {
             const uint8_t strat = rawblock[10];
             SnapReaders::pReader reader = SnapReaders::readers[strat];
             const short file = *(short*)(rawblock + 11);
             const char *p = SnapReaders::f_sop[file];
-            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
             return reader(sop, NodeN);
         }
 
         /// Returns ID of NodeN-th in-node (the node pointing to the current node). ##TNGraph::TNodeI::GetInNId
-        long GetInNId(const long& NodeN) const {
+        int64_t GetInNId(const int64_t& NodeN) const {
             return GetOutNId(NodeN);
         }
 
         /// Returns ID of NodeN-th neighboring node. ##TNGraph::TNodeI::GetNbrNId
-        long GetNbrNId(const long& NodeN) const {
+        int64_t GetNbrNId(const int64_t& NodeN) const {
             const uint8_t strat = rawblock[10];
             SnapReaders::pReader reader = SnapReaders::readers[strat];
             const short file = *(short*)(rawblock + 11);
             const char *p = SnapReaders::f_sop[file];
-            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
             return reader(sop , NodeN);
         }
@@ -111,7 +111,7 @@ class TUNode {
         const char *GetBeginOut() const {
             const short file = *(short*)(rawblock + 11);
             const char *p = SnapReaders::f_sop[file];
-            const long pos = (*(long*)(rawblock + 13)) & 0XFFFFFFFFFFl;
+            const int64_t pos = (*(int64_t*)(rawblock + 13)) & 0XFFFFFFFFFFl;
             const char *sop = p + pos;
             return sop;
         }
@@ -121,17 +121,17 @@ class TUNode {
         }
 
         /// Tests whether node with ID NId points to the current node.
-        bool IsInNId(const long& NId) const {
+        bool IsInNId(const int64_t& NId) const {
             throw 10; //not defined for undirected graph
         }
 
         /// Tests whether the current node points to node with ID NId.
-        bool IsOutNId(const long& NId) const {
+        bool IsOutNId(const int64_t& NId) const {
             throw 10; //not defined for undirected graph
         }
 
         /// Tests whether node with ID NId is a neighbor of the current node.
-        bool IsNbrNId(const long& NId) const {
+        bool IsNbrNId(const int64_t& NId) const {
             throw 10; //not implemented -- but should be
         }
 };

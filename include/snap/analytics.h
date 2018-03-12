@@ -59,7 +59,7 @@ class Analytics {
                         std::unique_ptr<char[]> supportBuffer = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE + 2]);
 
                         for (typename V::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
-                            const long NId = NI.GetId();
+                            const int64_t NId = NI.GetId();
                             const double v1 = values1[NId];
                             out << NId << "\t" << to_string(v1);
                             if (outfields > 1) {
@@ -85,11 +85,11 @@ class Analytics {
                 std::function<void()> &f,
                 std::function<int64()> &f_int,
                 std::function<double()> &f_double,
-                std::function<std::vector<long>()> &f_vlong,
+                std::function<std::vector<int64_t>()> &f_vlong,
                 F_RetValue r,
                 int64 &retValue_int,
                 double &retValue_double,
-                std::vector<long> &retValue_vlong) {
+                std::vector<int64_t> &retValue_vlong) {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             switch (r) {
                 case NORETURN:
@@ -145,8 +145,8 @@ class Analytics {
                 K Graph = new V(&kb);
 
                 //Possible inputs
-                std::vector<long> inputv;
-                std::vector<std::pair<long,long>> inputp;
+                std::vector<int64_t> inputv;
+                std::vector<std::pair<int64_t,int64_t>> inputp;
 
                 //Possible outputs
                 std::vector<float> values1;
@@ -159,7 +159,7 @@ class Analytics {
                 std::function<void()> f;
                 std::function<int64()> f_int;
                 std::function<double()> f_double;
-                std::function<std::vector<long>()> f_vlong;
+                std::function<std::vector<int64_t>()> f_vlong;
 
                 LOG(INFOL) << "Run task " << task.tostring();
 
@@ -193,10 +193,10 @@ class Analytics {
 
                 } else if (nameTask == "avg_clustcoef") {
                     auto fp = static_cast<double (*)(const K& ,
-                            long)>(&TSnap::GetClustCf<K>);
+                            int64_t)>(&TSnap::GetClustCf<K>);
                     f_double = std::bind(fp,
                             std::ref(Graph),
-                            task.getParam("samplen").as<long>());
+                            task.getParam("samplen").as<int64_t>());
                     nargs = 0;
                     retValue = DOUBLE;
 
@@ -211,10 +211,10 @@ class Analytics {
 
                 } else if (nameTask == "triads") {
                     auto fp = static_cast<int64 (*)(const K& ,
-                            long)>(&TSnap::GetTriads<K>);
+                            int64_t)>(&TSnap::GetTriads<K>);
                     f_int = std::bind(fp,
                             std::ref(Graph),
-                            task.getParam("samplen").as<long>());
+                            task.getParam("samplen").as<int64_t>());
                     nargs = 0;
                     retValue = INT;
 
@@ -235,11 +235,11 @@ class Analytics {
                         nargs = 0;
                         retValue = V_LONG;
                     } else {
-                        auto fp = static_cast<long (*)(const K&, const long, const long)>(&NativeTasks::getShortPath);
+                        auto fp = static_cast<int64_t (*)(const K&, const int64_t, const int64_t)>(&NativeTasks::getShortPath);
                         f_int = std::bind(fp,
                                 std::ref(Graph),
-                                task.getParam("src").as<long>(),
-                                task.getParam("dst").as<long>());
+                                task.getParam("src").as<int64_t>(),
+                                task.getParam("dst").as<int64_t>());
                         nargs = 0;
                         retValue = INT;
                     }
@@ -256,8 +256,8 @@ class Analytics {
                     TridentUtils::loadFromFile(task.getParam("nodes").as<string>(),
                             inputv);
                     auto fp = static_cast<double (*)(const K&,
-                            const std::vector<long>&,
-                            long)>(&NativeTasks::GetMod<K>);
+                            const std::vector<int64_t>&,
+                            int64_t)>(&NativeTasks::GetMod<K>);
                     f_double = std::bind(fp,
                             std::ref(Graph),
                             std::ref(inputv),
@@ -284,14 +284,14 @@ class Analytics {
                         f_vlong = std::bind(TSnap::randomWalk2<K>,
                                 std::ref(Graph),
                                 std::ref(inputv),
-                                task.getParam("len").as<long>());
+                                task.getParam("len").as<int64_t>());
                         nargs = 0;
                         retValue = V_LONG;
                     } else {
                         f_vlong = std::bind(TSnap::randomWalk<K>,
                                 std::ref(Graph),
-                                task.getParam("node").as<long>(),
-                                task.getParam("len").as<long>());
+                                task.getParam("node").as<int64_t>(),
+                                task.getParam("len").as<int64_t>());
                         nargs = 0;
                         retValue = V_LONG;
                     }
@@ -304,7 +304,7 @@ class Analytics {
                 /**** RUN SNAP FUNCTIONS ****/
                 int64 retValue_int;
                 double retValue_double;
-                std::vector<long> retValue_vlong;
+                std::vector<int64_t> retValue_vlong;
                 runTask(nameTask, f, f_int, f_double, f_vlong,
                         retValue, retValue_int,
                         retValue_double,

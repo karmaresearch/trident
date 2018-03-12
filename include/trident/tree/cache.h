@@ -63,10 +63,10 @@ public:
     }
 
     void init(TreeContext *context, std::string path, int fileMaxSize,
-              int maxNFiles, long cacheMaxSize, int sizeLeavesFactory,
+              int maxNFiles, int64_t cacheMaxSize, int sizeLeavesFactory,
               int sizePreallLeavesFactory, int nodeMinBytes);
 
-    Node *getNodeFromCache(long id);
+    Node *getNodeFromCache(int64_t id);
 
     void registerNode(Node *node);
 

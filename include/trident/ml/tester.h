@@ -77,9 +77,9 @@ class Tester {
             uint64_t hit3S = 0;
             uint64_t hit3O = 0;
 
-            long counter = 0;
+            int64_t counter = 0;
             int stepperc = 10;
-            long sizeinput = end - start;
+            int64_t sizeinput = end - start;
             while (start != end)  {
                 //Get an input triple to test
                 uint64_t s = testset[start];

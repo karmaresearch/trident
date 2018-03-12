@@ -148,7 +148,7 @@ private:
 public:
     virtual TupleIterator *getIterator() = 0;
 
-    virtual long estimateCost() = 0;
+    virtual int64_t estimateCost() = 0;
 
     Scan(Pattern *pattern);
 
@@ -181,7 +181,7 @@ public:
 
     TupleIterator *getIterator();
 
-    long estimateCost();
+    int64_t estimateCost();
 
     TupleIterator *getSampleIterator();
 
@@ -199,7 +199,7 @@ public:
 
     TupleIterator *getIterator();
 
-    long estimateCost();
+    int64_t estimateCost();
 
     TupleIterator *getSampleIterator();
 
@@ -228,7 +228,7 @@ public:
     void optimize(std::vector<uint8_t> *posBindings,
                   std::vector<uint64_t> *valueBindings);
 
-    long estimateCost();
+    int64_t estimateCost();
 
     virtual TupleIterator *getIterator(std::vector<uint8_t> &positions,
                                        std::vector<uint64_t> &values);
