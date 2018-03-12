@@ -187,7 +187,7 @@ class Querier {
 
 		DDLEXPORT int64_t getCard(const int64_t s, const int64_t p, const int64_t o);
 
-        int64_t getCard(const int64_t s, const int64_t p, const int64_t o, uint8_t pos);
+        DDLEXPORT int64_t getCard(const int64_t s, const int64_t p, const int64_t o, uint8_t pos);
 
         //uint64_t getCard(const int idx, const int64_t v);
 
@@ -196,9 +196,9 @@ class Querier {
 
 		DDLEXPORT int64_t estCard(const int64_t s, const int64_t p, const int64_t o);
 
-        bool isEmpty(const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT bool isEmpty(const int64_t s, const int64_t p, const int64_t o);
 
-        bool exists(const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT bool exists(const int64_t s, const int64_t p, const int64_t o);
 
 		DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
 

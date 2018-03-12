@@ -56,7 +56,7 @@ class NestedMergeJoinItr : public TupleIterator {
         static int try_merge_join(PairItr **iterators, int idxCurrentPattern,
                 const JoinPoint *joins, const int nJoins);
 
-        void init(PairItr *firstIterator, TupleTable *outputR, int64_t limitOutputTuple);
+        DDLEXPORT void init(PairItr *firstIterator, TupleTable *outputR, int64_t limitOutputTuple);
 
         int64_t executePlan();
 
@@ -104,13 +104,13 @@ class NestedMergeJoinItr : public TupleIterator {
             init(firstIterator, outputR, limitOutputTuple);
         }
 
-        bool hasNext();
+        DDLEXPORT bool hasNext();
 
-        void next();
+        DDLEXPORT void next();
 
-        size_t getTupleSize();
+        DDLEXPORT size_t getTupleSize();
 
-        uint64_t getElementAt(const int pos);
+        DDLEXPORT uint64_t getElementAt(const int pos);
 
         virtual ~NestedMergeJoinItr() {
             if (deleteOutputResults) {

@@ -372,7 +372,7 @@ class NewColumnTable: public AbsNewTable {
             return NEWCOLUMN_ITR;
         }
 
-        void columnNotIn(uint8_t columnId, NewColumnTable *other,
+        DDLEXPORT void columnNotIn(uint8_t columnId, NewColumnTable *other,
                 uint8_t columnOther, SequenceWriter *output);
 
         void setup(const char* start, const char *end) {

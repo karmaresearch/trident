@@ -99,7 +99,7 @@ public:
     JoinPoint **joins;
     int *nJoins;
 
-    NestedJoinPlan() {
+    DDLEXPORT NestedJoinPlan() {
         patterns = NULL;
         filters = NULL;
         posVarsToCopyInIdx = NULL;
@@ -112,7 +112,7 @@ public:
         nJoins = NULL;
     }
 
-    NestedJoinPlan(Pattern &p2, Querier *q, std::vector<std::vector<int>> &posToCopy,
+	DDLEXPORT NestedJoinPlan(Pattern &p2, Querier *q, std::vector<std::vector<int>> &posToCopy,
                    std::vector<std::pair<int, int>> &joins, std::vector<int> &posToReturn);
 
     static std::vector<int> reorder(std::vector <Pattern*> patterns,

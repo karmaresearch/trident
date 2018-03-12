@@ -152,7 +152,7 @@ public:
 
     TupleTable *retain(TupleTable *t);
 
-    TupleTable *merge(TupleTable *t);
+    DDLEXPORT TupleTable *merge(TupleTable *t);
 
     const uint64_t *getRow(const size_t idx) const {
         return &(values.at(idx * sizeRow));
@@ -191,17 +191,17 @@ public:
         counter(-1), skipLast(false), hnc(false), hn(false),
         nextpos(0) {}
 
-    int64_t count();
+	DDLEXPORT int64_t count();
 
-    void skipLastColumn();
+	DDLEXPORT void skipLastColumn();
 
-    bool hasNext();
+	DDLEXPORT bool hasNext();
 
-    void next();
+	DDLEXPORT void next();
 
-    size_t getTupleSize();
+	DDLEXPORT size_t getTupleSize();
 
-    uint64_t getElementAt(const int pos);
+	DDLEXPORT uint64_t getElementAt(const int pos);
 
     ~TupleTableItr() {}
 };

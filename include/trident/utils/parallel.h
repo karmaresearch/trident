@@ -1,14 +1,15 @@
 #ifndef _PARALLEL_H
 #define _PARALLEL_H
 
+#include <trident/kb/consts.h>
+#include <kognac/logs.h>
+
 #include <queue>
 #include <mutex>
 #include <future>
 #include <algorithm>
 #include <assert.h>
 #include <condition_variable>
-
-#include <kognac/logs.h>
 
 class ParallelRange {
     private:
@@ -28,7 +29,7 @@ class ParallelRange {
 
 class ParallelTasks {
     private:
-        static int32_t nthreads;
+        LIBEXP static int32_t nthreads;
 
         template<typename It, typename Cmp>
             static void inplace_merge(It begin,

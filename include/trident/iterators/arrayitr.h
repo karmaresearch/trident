@@ -61,27 +61,27 @@ public:
         return v2;
     }
 
-    int64_t getCount();
+	LIBEXP int64_t getCount();
 
-    uint64_t getCardinality();
+	LIBEXP uint64_t getCardinality();
 
-    uint64_t estCardinality();
+	LIBEXP uint64_t estCardinality();
 
-    void ignoreSecondColumn();
+	LIBEXP void ignoreSecondColumn();
 
-    bool hasNext();
+	LIBEXP bool hasNext();
 
-    void next();
+	LIBEXP void next();
 
-    void mark();
+	LIBEXP void mark();
 
-    void reset(const char i);
+	LIBEXP void reset(const char i);
 
-    void clear();
+	LIBEXP void clear();
 
-    void moveto(const int64_t c1, const int64_t c2);
+	LIBEXP void moveto(const int64_t c1, const int64_t c2);
 
-    void init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2);
+	LIBEXP void init(std::shared_ptr<Pairs> values, int64_t v1, int64_t v2);
 };
 
 #endif /* ARRAYITR_H_ */

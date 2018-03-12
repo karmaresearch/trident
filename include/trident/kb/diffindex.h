@@ -305,7 +305,7 @@ public:
         this->strat = strat;
     }
 
-    static void createDiffIndex(DiffIndex::TypeUpdate type,
+    DDLEXPORT static void createDiffIndex(DiffIndex::TypeUpdate type,
                                 string outputdir,
                                 string diffdir,
                                 std::vector<uint64_t> &all_s,

@@ -114,6 +114,6 @@ private:
 public:
     LIBEXP void creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir, std::string updatedir);
 
-    static std::string getPathForUpdate(std::string kbdir);
+    LIBEXP static std::string getPathForUpdate(std::string kbdir);
 };
 #endif
