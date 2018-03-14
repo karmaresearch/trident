@@ -118,7 +118,7 @@ ELSE()
     include_directories(${SOURCE_DIR}/include)
     add_library(kognac STATIC IMPORTED)
     add_dependencies(kognac git-kognac)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${CMAKE_BINARY_DIR)/kognac/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/kognac/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
     LINK_DIRECTORIES("${CMAKE_BINARY_DIR}/kognac/")
 ENDIF()
 
