@@ -87,8 +87,19 @@ void Plan::print(unsigned indent) const
             break;
         case Minus:
             cout << "Minus";
+	    break;
         case ValuesScan:
             cout << "Values";
+	    break;
+	case GroupBy:
+            cout << "GroupBy";
+	    break;
+	case Having:
+            cout << "Having";
+	    break;
+	case Aggregates:
+            cout << "Aggregates";
+	    break;
     }
     cout << " cardinality=" << cardinality << " costs=" << costs << endl;
     switch (op) {
@@ -128,6 +139,10 @@ void Plan::print(unsigned indent) const
             break;
         case ValuesScan:
             break;
+	case GroupBy:
+	case Having:
+	case Aggregates:
+	    break;
     }
 }
 //---------------------------------------------------------------------------

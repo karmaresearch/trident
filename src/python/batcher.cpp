@@ -23,6 +23,7 @@
 #include <Python.h>
 #include <python/trident.h>
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 
 static PyObject *Batcher_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
