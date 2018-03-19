@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\rdf3x\src\cts\CodeGen.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\Plan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\PlanGen.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\QueryGraph.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\SemanticAnalysis.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\SPARQLLexer.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\SPARQLParser.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\cts\TurtleParser.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\infra\Event.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\infra\Mutex.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\infra\Pool.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\infra\Thread.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\main_sparql.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\AggregatedIndexScan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\AggrFunctions.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Assignment.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\CartProd.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\DomainDescription.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\DuplLimit.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\EmptyScan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Filter.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\FullyAggregatedIndexScan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\GroupBy.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\HashGroupify.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\HashJoin.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\IndexScan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\MergeJoin.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\MergeUnion.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Minus.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\NestedLoopFilter.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\NestedLoopJoin.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Operator.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\PlanPrinter.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\ResultsPrinter.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Runtime.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Scheduler.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Selection.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\SingletonScan.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Sort.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\TableFunction.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\TemporaryDictionary.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\Union.cpp" />
+    <ClCompile Include="..\..\rdf3x\src\rts\ValuesScan.cpp" />
+    <ClCompile Include="..\..\src\layers\TridentLayer.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\aggrhandler.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\hashjoinitr.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\joinplan.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\nesmeritr.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\sparqloperators.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\tplan.cpp" />
+    <ClCompile Include="..\..\src\trident\sparql\tupleiterator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\rdf3x\src\rts\LocalMakefile" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{CD73F65E-E76F-4F4E-A2EF-EDABD71A4DE0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>tridentsparql</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps_kognac\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps_kognac\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;NDEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\..\win64\x64\Release\trident-core.lib;..\..\..\kognac\win64\x64\Release\kognac-core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;_DEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\..\win64\x64\Debug\trident-core.lib;..\..\..\kognac\win64\x64\Debug\kognac-core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

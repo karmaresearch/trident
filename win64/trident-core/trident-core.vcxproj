@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\trident\binarytables\binarytableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\binarytablereaders.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\clustertableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\columntableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\factorytables.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\fileindex.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newclustertable.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newclustertableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newcolumntable.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newcolumntableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newrowtable.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newrowtableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\newtable.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\rowtableinserter.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\storagestrat.h" />
+    <ClInclude Include="..\..\include\trident\binarytables\tableshandler.h" />
+    <ClInclude Include="..\..\include\trident\files\comprfiledescriptor.h" />
+    <ClInclude Include="..\..\include\trident\files\filedescriptor.h" />
+    <ClInclude Include="..\..\include\trident\files\filemanager.h" />
+    <ClInclude Include="..\..\include\trident\iterators\aggritr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\arrayitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\cacheitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\compositeitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\compositescanitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\compositetermitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\diff1itr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\diffscanitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\difftermitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\emptyitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\pairitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\rmcompositetermitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\rmitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\scanitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\termitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\tupleiterators.h" />
+    <ClInclude Include="..\..\include\trident\kb\cacheidx.h" />
+    <ClInclude Include="..\..\include\trident\kb\consts.h" />
+    <ClInclude Include="..\..\include\trident\kb\dictmgmt.h" />
+    <ClInclude Include="..\..\include\trident\kb\diffindex.h" />
+    <ClInclude Include="..\..\include\trident\kb\inserter.h" />
+    <ClInclude Include="..\..\include\trident\kb\kb.h" />
+    <ClInclude Include="..\..\include\trident\kb\kbconfig.h" />
+    <ClInclude Include="..\..\include\trident\kb\memoryopt.h" />
+    <ClInclude Include="..\..\include\trident\kb\permsorter.h" />
+    <ClInclude Include="..\..\include\trident\kb\querier.h" />
+    <ClInclude Include="..\..\include\trident\kb\schema.h" />
+    <ClInclude Include="..\..\include\trident\kb\statistics.h" />
+    <ClInclude Include="..\..\include\trident\kb\updater.h" />
+    <ClInclude Include="..\..\include\trident\kb\updatestats.h" />
+    <ClInclude Include="..\..\include\trident\loader.h" />
+    <ClInclude Include="..\..\include\trident\model\model.h" />
+    <ClInclude Include="..\..\include\trident\model\table.h" />
+    <ClInclude Include="..\..\include\trident\model\term.h" />
+    <ClInclude Include="..\..\include\trident\model\tuple.h" />
+    <ClInclude Include="..\..\include\trident\server\server.h" />
+    <ClInclude Include="..\..\include\trident\tests\common.h" />
+    <ClInclude Include="..\..\include\trident\tests\timings.h" />
+    <ClInclude Include="..\..\include\trident\tree\cache.h" />
+    <ClInclude Include="..\..\include\trident\tree\coordinates.h" />
+    <ClInclude Include="..\..\include\trident\tree\flatroot.h" />
+    <ClInclude Include="..\..\include\trident\tree\intermediatenode.h" />
+    <ClInclude Include="..\..\include\trident\tree\leaf.h" />
+    <ClInclude Include="..\..\include\trident\tree\leaffactory.h" />
+    <ClInclude Include="..\..\include\trident\tree\node.h" />
+    <ClInclude Include="..\..\include\trident\tree\nodemanager.h" />
+    <ClInclude Include="..\..\include\trident\tree\root.h" />
+    <ClInclude Include="..\..\include\trident\tree\stringbuffer.h" />
+    <ClInclude Include="..\..\include\trident\tree\treecontext.h" />
+    <ClInclude Include="..\..\include\trident\tree\treeitr.h" />
+    <ClInclude Include="..\..\include\trident\utils\httpclient.h" />
+    <ClInclude Include="..\..\include\trident\utils\httpserver.h" />
+    <ClInclude Include="..\..\include\trident\utils\json.h" />
+    <ClInclude Include="..\..\include\trident\utils\memoryfile.h" />
+    <ClInclude Include="..\..\include\trident\utils\memorymgr.h" />
+    <ClInclude Include="..\..\include\trident\utils\parallel.h" />
+    <ClInclude Include="..\..\include\trident\utils\propertymap.h" />
+    <ClInclude Include="..\..\include\trident\utils\tridentutils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\trident\binarytables\binarytableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\clustertableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\columntableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\fileindex.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\newclustertableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\newcolumntable.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\newcolumntableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\newrowtableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\rowtableinserter.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\storagestrat.cpp" />
+    <ClCompile Include="..\..\src\trident\binarytables\tableshandler.cpp" />
+    <ClCompile Include="..\..\src\trident\files\filedescriptor.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\aggritr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\arrayitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\cacheitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\compositeitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\compositescanitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\diffscanitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\difftermitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\rmitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\scanitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\termitr.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\cacheidx.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\dictmgmt.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\diffindex1.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\diffindex3.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\inserter.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\kb.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\kbconfig.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\loader.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\memoryopt.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\permsorter.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\querier.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\updater.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\updatestats.cpp" />
+    <ClCompile Include="..\..\src\trident\model\table.cpp" />
+    <ClCompile Include="..\..\src\trident\tests\createqueries.cpp" />
+    <ClCompile Include="..\..\src\trident\tests\testkb.cpp" />
+    <ClCompile Include="..\..\src\trident\tests\timings.cpp" />
+    <ClCompile Include="..\..\src\trident\tests\tridenttimings.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\cache.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\flatroot.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\intermediatenode.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\leaf.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\node.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\nodemanager.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\root.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\stringbuffer.cpp" />
+    <ClCompile Include="..\..\src\trident\tree\treeitr.cpp" />
+    <ClCompile Include="..\..\src\trident\utils\httpclient.cpp" />
+    <ClCompile Include="..\..\src\trident\utils\httpserver.cpp" />
+    <ClCompile Include="..\..\src\trident\utils\json.cpp" />
+    <ClCompile Include="..\..\src\trident\utils\parallel.cpp" />
+    <ClCompile Include="..\..\src\trident\utils\tridentutils.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{349BC42A-BA0F-4646-9E46-FEB8C85351A9}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>tridentcore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>..\..\..\deps_kognac\include;..\..\rdf3x\include;..\..\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>..\..\..\deps_kognac\include;..\..\rdf3x\include;..\..\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>MT=1;TRIDENT_SHARED_LIB;SPARQL=1;WIN32;_DEBUG;TRIDENTCORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>..\..\..\kognac\win64\x64\Debug\kognac-core.lib;..\..\..\deps_kognac\lib\zlib.lib;..\..\..\deps_kognac\lib\liblz4_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;MSVCRT</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;TRIDENTCORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;TRIDENTCORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>MT=1;TRIDENT_SHARED_LIB;SPARQL=1;WIN32;NDEBUG;TRIDENTCORE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <UseFullPaths>false</UseFullPaths>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>..\..\..\kognac\win64\x64\Release\kognac-core.lib;..\..\..\deps_kognac\lib\zlib.lib;..\..\..\deps_kognac\lib\liblz4_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -52,7 +52,7 @@ public:
             int64_t &c,
             int64_t &junk) = 0;
 
-    LIBEXP void launchTests();
+	LIBEXP void launchTests();
 };
 
 #endif
