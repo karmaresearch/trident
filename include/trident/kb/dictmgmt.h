@@ -174,9 +174,11 @@ class DictMgmt {
 
         LIBEXP bool getText(nTerm key, char *value);
 
+        LIBEXP bool getText(nTerm key, std::string &value);
+
         bool getTextRel(nTerm key, char *value, int &size);
 
-		DDLEXPORT bool getText(nTerm key, char *value, int &size);
+        LIBEXP bool getText(nTerm key, char *value, int &size);
 
         void getTextFromCoordinates(int64_t coordinates, char *output,
                 int &sizeOutput);

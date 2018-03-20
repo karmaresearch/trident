@@ -160,6 +160,29 @@ bool DictMgmt::getText(nTerm key, char *value) {
     return false;
 }
 
+bool DictMgmt::getText(nTerm key, std::string &value) {
+    int64_t coordinates;
+    int idx = 0;
+    while (idx < beginrange.size() - 1 && key >= beginrange[idx + 1]) {
+        idx++;
+    }
+    if (dictionaries[idx].invdict->get(key, coordinates)) {
+        int size = 0;
+        char *rawvalue = dictionaries[idx].sb->get(coordinates, size);
+        value = std::string(rawvalue, size);
+        return true;
+    }
+    if (!gud_idtext.empty()) {
+        auto it = gud_idtext.find(key);
+        if (it != gud_idtext.end()) {
+            value = it->second;
+            return true;
+        }
+    }
+    return false;
+
+}
+
 bool DictMgmt::getText(nTerm key, char *value, int &size) {
     int64_t coordinates;
     int idx = 0;
