@@ -750,7 +750,7 @@ SPARQLParser::Filter* SPARQLParser::parseBuiltInCall(std::map<std::string, unsig
                 } else {
                     if (lexer.getNext() != SPARQLLexer::Comma)
                         throw ParserException("',' expected");
-                    auto_ptr<Filter> args(new Filter);
+                    unique_ptr<Filter> args(new Filter);
                     Filter* tail = args.get();
                     tail->type = Filter::ArgumentList;
                     tail->arg1 = parseExpression(localVars);

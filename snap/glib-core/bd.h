@@ -1,5 +1,6 @@
 #ifndef bd_h
 #define bd_h
+#include <inttypes.h>
 
 /////////////////////////////////////////////////
 // Basic-Macro-Definitions

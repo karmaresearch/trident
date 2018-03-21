@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 #include <iostream>
 #include <fstream>
@@ -69,7 +70,7 @@ double TridentUtils::getCPUUsage() {
     FILE* file;
     uint64_t totalUser, totalUserLow, totalSys, totalIdle, total;
     file = fopen("/proc/stat", "r");
-    fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow, &totalSys, &totalIdle);
+    fscanf(file, "cpu %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64, &totalUser, &totalUserLow, &totalSys, &totalIdle);
     fclose(file);
     if (totalUser < lastTotalUser || totalUserLow < lastTotalUserLow || totalSys < lastTotalSys || totalIdle < lastTotalIdle) {
         percent = -1.0;

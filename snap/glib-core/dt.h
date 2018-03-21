@@ -1113,13 +1113,8 @@ public:
 
   //J: So that TInt can convert any kind of integer to a string
   static TStr GetStr(const uint& Val){ return TStr::Fmt("%u", Val); }
-  #ifdef GLib_WIN
-  static TStr GetStr(const int64& Val) {return TStr::Fmt("%I64d", Val);}
-  static TStr GetStr(const uint64& Val) {return TStr::Fmt("%I64u", Val);}
-  #else
-  static TStr GetStr(const int64& Val) {return TStr::Fmt("%lld", Val);}
-  static TStr GetStr(const uint64& Val) {return TStr::Fmt("%llu", Val);}
-  #endif
+  static TStr GetStr(const int64& Val) {return TStr::Fmt("%" PRId64, Val);}
+  static TStr GetStr(const uint64& Val) {return TStr::Fmt("%" PRIu64, Val);}
 
   static TStr GetHexStr(const int& Val){
     char Bf[255]; sprintf(Bf, "%X", Val); return TStr(Bf);}

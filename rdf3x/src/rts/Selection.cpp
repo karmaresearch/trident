@@ -372,7 +372,8 @@ void Selection::Less::eval(Result& result)
         } else {
             t2 = DICTMGMT_FLOAT;
             float v2_tmp1 = _getDouble(r.value);
-            uint32_t v2_tmp = *((uint32_t*)&v2_tmp1);
+            uint32_t v2_tmp;
+	    memcpy(&v2_tmp, &v2_tmp1, sizeof(float));
             v2 += v2_tmp;
         }
         int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
@@ -388,7 +389,8 @@ void Selection::Less::eval(Result& result)
         } else {
             t1 = DICTMGMT_FLOAT;
             float v1_tmp1 = _getDouble(l.value);
-            uint32_t v1_tmp = *((uint32_t*)&v1_tmp1);
+            uint32_t v1_tmp;
+	    memcpy(&v1_tmp, &v1_tmp1, sizeof(float));
             v1 += v1_tmp;
         }
         int res = DictMgmt::compare(t1, v1, DictMgmt::getType(r.id), r.id);
@@ -450,7 +452,8 @@ void Selection::LessOrEqual::eval(Result& result)
         } else {
             t2 = DICTMGMT_FLOAT;
             float v2_tmp1 = _getDouble(r.value);
-            uint32_t v2_tmp = *((uint32_t*)&v2_tmp1);
+            uint32_t v2_tmp;
+	    memcpy(&v2_tmp, &v2_tmp1, sizeof(float));
             v2 += v2_tmp;
         }
         int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
@@ -466,7 +469,8 @@ void Selection::LessOrEqual::eval(Result& result)
         } else {
             t1 = DICTMGMT_FLOAT;
             float v1_tmp1 = _getDouble(l.value);
-            uint32_t v1_tmp = *((uint32_t*)&v1_tmp1);
+            uint32_t v1_tmp;
+	    memcpy(&v1_tmp, &v1_tmp1, sizeof(float));
             v1 += v1_tmp;
         }
         int res = DictMgmt::compare(t1, v1, DictMgmt::getType(r.id), r.id);

@@ -602,7 +602,7 @@ void TBigNet<TNodeData, IsDir>::InvertFromSources(uint ExpectNodes) {
       InDegH.AddDat(NI.GetOutNId(e)) += 1; }
     if (c%100000==0) printf("\r%s h:%d [%g]    ", TInt::GetMegaStr(c).CStr(), InDegH.Len(), ExeTm.GetSecs());
   }
-  printf("\n Resizing NodePool: %lld -> %lld\n", uint64(Pool.Reserved()), uint64(GetEdges()));
+  printf("\n Resizing NodePool: %" PRIu64 " -> %" PRIu64 "\n", uint64(Pool.Reserved()), uint64(GetEdges()));
   if (2*GetEdges() > Pool.Reserved()) {
     Pool.Reserve(2*GetEdges()); }
   // add nodes
@@ -619,8 +619,8 @@ void TBigNet<TNodeData, IsDir>::InvertFromSources(uint ExpectNodes) {
       Node.InVId = Pool.AddEmptyV(InDeg); }
   }
   InDegH.Clr(true);
-  printf("Added: %lld destination nodes\n", uint64(NDest));
-  printf("Graph nodes: %lld nodes\n", uint64(GetNodes()));
+  printf("Added: %zu destination nodes\n", NDest);
+  printf("Graph nodes: %d nodes\n", GetNodes());
   // pointer to in-links vector
   THash<TInt, int*> NIdToPtH(GetNodes());
   for (TNodeI NI = BegNI(); NI < EndNI(); NI++, c++)
