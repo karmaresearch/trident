@@ -70,7 +70,10 @@ double TridentUtils::getCPUUsage() {
     FILE* file;
     uint64_t totalUser, totalUserLow, totalSys, totalIdle, total;
     file = fopen("/proc/stat", "r");
-    fscanf(file, "cpu %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64, &totalUser, &totalUserLow, &totalSys, &totalIdle);
+    if (fscanf(file, "cpu %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64, &totalUser, &totalUserLow, &totalSys, &totalIdle) != 4) {
+	fclose(file);
+	return -1.0;
+    }
     fclose(file);
     if (totalUser < lastTotalUser || totalUserLow < lastTotalUserLow || totalSys < lastTotalSys || totalIdle < lastTotalIdle) {
         percent = -1.0;
