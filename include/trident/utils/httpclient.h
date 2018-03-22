@@ -21,13 +21,22 @@ class HttpClient {
         int sockfd;
         uint32_t port;
         std::string address;
-        //struct sockaddr_in server;
 
         bool getResponse(const std::string &request,
                 std::string &headers,
                 std::string &response);
 
     public:
+        class URL {
+            public:
+                std::string protocol;
+                std::string host;
+                int port;
+                std::string path;
+                std::string query;
+                URL() : protocol(""), host(""), port(80), path(""), query("") {}
+        };
+
         HttpClient(std::string address, uint32_t port) :
             sockfd(-1), port(port), address(address) {
             };
@@ -38,7 +47,15 @@ class HttpClient {
 
         bool get(const std::string &path,
                 std::string &headers,
-                std::string &response);
+                std::string &response,
+                std::string &formatOutput);
+
+        bool get(const std::string &path,
+                std::string &headers,
+                std::string &response) {
+            std::string format = "";
+            return get(path, headers, response, format);
+        }
 
         bool post(const std::string &path,
                 std::map<std::string, std::string> &params,
@@ -47,6 +64,12 @@ class HttpClient {
                 std::string contenttype = "application/x-www-form-urlencoded");
 
         ~HttpClient();
+
+        static URL parse(std::string url);
+
+        static std::string unescape(const std::string &s);
+
+        static std::string escape(const std::string &s);
 };
 
 #endif

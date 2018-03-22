@@ -239,36 +239,4 @@ void HttpServer::stop() {
     }
 }
 
-//Inspired from https://stackoverflow.com/questions/2673207/c-c-url-decode-library#14530993
-std::string HttpServer::unescape(std::string s) {
-    const char *src = s.c_str();
-    std::vector<char> dst;
-    char a, b;
-    while (*src) {
-        if ((*src == '%') &&
-                ((a = src[1]) && (b = src[2])) &&
-                (isxdigit(a) && isxdigit(b))) {
-            if (a >= 'a')
-                a -= 'a'-'A';
-            if (a >= 'A')
-                a -= ('A' - 10);
-            else
-                a -= '0';
-            if (b >= 'a')
-                b -= 'a'-'A';
-            if (b >= 'A')
-                b -= ('A' - 10);
-            else
-                b -= '0';
-            dst.push_back(16*a+b);
-            src+=3;
-        } else if (*src == '+') {
-            dst.push_back(' ');
-            src++;
-        } else {
-            dst.push_back(*src++);
-        }
-    }
-    return std::string(dst.data(), dst.size());
-}
 #endif

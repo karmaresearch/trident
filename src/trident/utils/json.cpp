@@ -62,3 +62,7 @@ void JSON::write(std::ostream &out, JSON &value) {
         out << "}";
     }
 }
+
+void JSON::read(std::string &in, JSON &value) {
+    //TODO
+}

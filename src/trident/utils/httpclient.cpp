@@ -6,6 +6,9 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <functional>
+#include <vector>
+#include <iomanip>
 
 #if defined(_WIN32)
 //The Http Client and Server are only supported under Linux/Mac
@@ -43,6 +46,113 @@ bool HttpClient::connect() {
     }
     freeaddrinfo(res0);
     return true;
+}
+
+HttpClient::URL HttpClient::parse(std::string url) {
+    HttpClient::URL output;
+
+    //Parse protocol
+    const std::string protEnd("://");
+    std::string::const_iterator protI = search(url.begin(), url.end(),
+            protEnd.begin(), protEnd.end());
+    output.protocol.reserve(distance(url.cbegin(), protI));
+    transform(url.cbegin(), protI,
+            back_inserter(output.protocol),
+            std::ptr_fun<int,int>(tolower));
+    if( protI == url.end() )
+        return output;
+
+    //Hostname
+    advance(protI, protEnd.length());
+    std::string::const_iterator portI = find(protI, url.cend(), ':');
+    std::string::const_iterator pathI;
+    if (portI != url.end()) {
+        output.host.reserve(distance(protI, portI));
+        transform(protI, portI,
+                back_inserter(output.host),
+                std::ptr_fun<int,int>(tolower)); // host is icase
+        //Parse the port number
+        pathI  = find(protI, url.cend(), '/');
+        std::string sport;
+        sport.reserve(distance(portI, pathI));
+        transform(portI, pathI,
+                back_inserter(sport),
+                std::ptr_fun<int,int>(tolower));
+        output.port = std::stoi(sport);
+
+    } else {
+        pathI  = find(protI, url.cend(), '/');
+        output.host.reserve(distance(protI, pathI));
+        transform(protI, pathI,
+                back_inserter(output.host),
+                std::ptr_fun<int,int>(tolower)); // host is icase
+    }
+
+    //path
+    auto queryI = find(pathI, url.cend(), '?');
+    output.path.assign(pathI, queryI);
+
+    //query
+    if( queryI != url.end())
+        ++queryI;
+    output.query.assign(queryI, url.cend());
+    return output;
+}
+
+//Inspired from https://stackoverflow.com/questions/2673207/c-c-url-decode-library#14530993
+std::string HttpClient::unescape(const std::string &s) {
+    const char *src = s.c_str();
+    std::vector<char> dst;
+    char a, b;
+    while (*src) {
+        if ((*src == '%') &&
+                ((a = src[1]) && (b = src[2])) &&
+                (isxdigit(a) && isxdigit(b))) {
+            if (a >= 'a')
+                a -= 'a'-'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a'-'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
+            dst.push_back(16*a+b);
+            src+=3;
+        } else if (*src == '+') {
+            dst.push_back(' ');
+            src++;
+        } else {
+            dst.push_back(*src++);
+        }
+    }
+    return std::string(dst.data(), dst.size());
+}
+
+//Inspired by https://stackoverflow.com/questions/154536/encode-decode-urls-in-c#17708801
+std::string HttpClient::escape(const std::string &s) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    std::string::const_iterator n;
+    for (std::string::const_iterator i = s.cbegin(),
+            n = s.cend(); i != n; ++i) {
+        std::string::value_type c = (*i);
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+        // Any other characters are percent-encoded
+        escaped << std::uppercase;
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
+        escaped << std::nouppercase;
+    }
+
+    return escaped.str();
 }
 
 bool HttpClient::getResponse(const std::string &request,
@@ -181,9 +291,14 @@ bool HttpClient::getResponse(const std::string &request,
 
 bool HttpClient::get(const std::string &path,
         std::string &headers,
-        std::string &response) {
+        std::string &response,
+        std::string &formatOutput) {
     std::string request = "GET "  + path + " HTTP/1.1\r\nHost: " +
-        address + ":" + std::to_string(port) + "\r\n\r\n";
+        address + ":" + std::to_string(port);
+    if (formatOutput != "") {
+        request += "\r\nAccept: " + formatOutput;
+    }
+    request += "\r\n\r\n";
     return getResponse(request, headers, response);
 }
 
