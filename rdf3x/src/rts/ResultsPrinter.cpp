@@ -313,7 +313,7 @@ uint64_t ResultsPrinter::first()
     uint64_t entryCount = 0;
     do {
         if (count < minCount) continue;
-        //results.push_back(count);
+        results.push_back(count);
         for (vector<Register*>::const_iterator iter = output.begin(), limit = output.end(); iter != limit; ++iter) {
             uint64_t id = (*iter)->value;
             results.push_back(id);
