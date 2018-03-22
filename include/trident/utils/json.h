@@ -90,5 +90,7 @@ class JSON {
         }
 
         static void write(std::ostream &out, JSON &value);
+
+        static void read(std::string &in, JSON &value);
 };
 #endif

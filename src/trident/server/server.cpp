@@ -1,4 +1,5 @@
 #include <trident/server/server.h>
+#include <trident/utils/httpclient.h>
 
 #include <cts/parser/SPARQLLexer.hpp>
 #include <cts/semana/SemanticAnalysis.hpp>
@@ -218,7 +219,7 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             string form = req.substr(req.find("application/x-www-form-urlencoded"));
             string printresults = _getValueParam(form, "print");
             string sparqlquery = _getValueParam(form, "query");
-            sparqlquery = HttpServer::unescape(sparqlquery);
+            sparqlquery = HttpClient::unescape(sparqlquery);
             std::regex e1("\\+");
             std::string replacedString;
             std::regex_replace(std::back_inserter(replacedString),
