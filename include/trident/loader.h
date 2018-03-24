@@ -632,7 +632,7 @@ class Loader {
         void loadKB_handleGraphTransformations(KB &kb,
                 string graphTransformation,
                 string *permDirs,
-                int nindices,
+                int &nindices,
                 Inserter *ins,
                 bool relsOwnIDs,
                 string kbDir,

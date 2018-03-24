@@ -30,12 +30,20 @@
 
 typedef struct {
     PyObject_HEAD
+        KB *kb = NULL;
+    Querier *q = NULL;
+    bool rmKbOnDelete = false;
+} trident_Db;
+
+typedef struct {
+    PyObject_HEAD
     Querier *q;
     PairItr *itr;
     char pos;
 } trident_Itr;
 
 extern PyTypeObject trident_ItrType;
+extern PyTypeObject trident_DbType;
 
 typedef struct {
     PyObject_HEAD
@@ -47,5 +55,7 @@ typedef struct {
 } trident_Batcher;
 
 extern PyTypeObject trident_BatcherType;
+
+PyMODINIT_FUNC PyInit_analytics(void);
 
 #endif

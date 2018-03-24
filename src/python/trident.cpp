@@ -44,14 +44,6 @@ static PyObject *glob_set_logging_level(PyObject *self, PyObject *args) {
     return Py_None;
 }
 
-
-typedef struct {
-    PyObject_HEAD
-        KB *kb = NULL;
-    Querier *q = NULL;
-    bool rmKbOnDelete = false;
-} trident_Db;
-
 static PyObject * db_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     trident_Db *self;
     self = (trident_Db*)type->tp_alloc(type, 0);
@@ -801,7 +793,7 @@ static PyMethodDef globalFunctions[] = {
 };
 
 
-static PyTypeObject trident_DbType = {
+PyTypeObject trident_DbType = {
     PyVarObject_HEAD_INIT(NULL, 0)
         "trident.Db",             /* tp_name */
     sizeof(trident_Db),             /* tp_basicsize */
@@ -873,6 +865,10 @@ PyMODINIT_FUNC PyInit_trident(void) {
     PyModule_AddObject(m, "Itr", (PyObject *)&trident_ItrType);
     PyModule_AddObject(m, "Batcher", (PyObject *)&trident_BatcherType);
     PyModule_AddFunctions(m, globalFunctions);
+
+    PyObject* ana = PyInit_analytics();
+    Py_INCREF(ana);
+    PyModule_AddObject(m, "analytics", ana);
 
     //Default logging level to warn
     Logger::setMinLevel(4);
