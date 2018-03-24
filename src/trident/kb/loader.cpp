@@ -1893,6 +1893,15 @@ void Loader::loadKB(KB &kb,
 
     if (storeDicts) {
         loadKB_storeDicts(kb, dictionaries, dictMethod, fileNameDictionaries);
+    } else {
+        if (fileNameDictionaries && Utils::exists(fileNameDictionaries[0])) {
+            std::vector<string> alldictfiles =
+                Compressor::getAllDictFiles(fileNameDictionaries[0]);
+            for(auto s : alldictfiles) {
+                Utils::remove(s);
+            }
+            Utils::remove(fileNameDictionaries[0]);
+        }
     }
 
     LOG(DEBUGL) << "Insert the triples in the indices...";
