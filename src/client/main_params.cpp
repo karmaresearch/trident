@@ -1,4 +1,5 @@
 #include <trident/kb/kbconfig.h>
+#include <trident/loader.h>
 #include <trident/binarytables/storagestrat.h>
 
 #include <kognac/progargs.h>
@@ -254,6 +255,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "Disable bifocal sampling (accurate but expensive). Default is false", false);
 
     /***** LOAD *****/
+    ParamsLoad p;
     ProgramArgs::GroupArgs& load_options = *vm.newGroup("Options for <load>");
     load_options.add<string>("","inputformat", "rdf", "Input format. Can be either 'rdf' or 'snap'. Default is 'rdf'.", false);
     load_options.add<string>("","comprinput", "", "Path to a file that contains a list of compressed triples.", false);
@@ -262,34 +264,34 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
     load_options.add<string>("f","tripleFiles", "", "Path to the files that contain the compressed triples. This parameter is REQUIRED.", false);
     load_options.add<string>("","tmpdir", "", "Path to store the temporary files used during loading. Default is the output directory.", false);
-    load_options.add<string>("d","dictMethod", DICT_HEURISTICS, "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.", false);
+    load_options.add<string>("d","dictMethod", p.dictMethod, "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.", false);
     load_options.add<string>("","popMethod", "hash", "Method to use to identify the popular terms. Can be either 'sample' or 'hash'. Default is 'hash'", false);
-    load_options.add<int>("","maxThreads", 8, "Sets the maximum number of threads to use during the compression. Default is '8'", false);
-    load_options.add<int>("","readThreads", 2, "Sets the number of concurrent threads that reads the raw input. Default is '2'", false);
-    load_options.add<int>("","ndicts", 1, "Sets the number dictionary partitions. Default is '1'", false);
-    load_options.add<bool>("","skipTables", false, "Skip storage of some tables. Default is 'false'", false);
-    load_options.add<int>("","thresholdSkipTable", 20, "If dynamic strategy is enabled, this param. defines the size above which a table is not stored. Default is '10'", false);
-    load_options.add<int>("","timeoutStats", -1, "If set greater than 0, it starts a new thread to log some resource statistics every n seconds. Works only under Linux. Default is '-1' (disabled)", false);
-    load_options.add<bool>("","onlyCompress", false, "Only compresses the data. Works only with RDF inputs. Default is DISABLED", false);
-    load_options.add<bool>("","sample", true, "Store a little sample of the data, to improve query optimization. Default is ENABLED", false);
-    load_options.add<double>("","sampleRate", 0.01, "If the sampling is enabled, this parameter sets the sample rate. Default is 0.01 (i.e 1%)", false);
-    load_options.add<bool>("","storeplainlist", false, "Next to the indices, stores also a dump of all the input in a single file. This improves scan queries. Default is DISABLED", false);
-    load_options.add<bool>("","storedicts", true, "Should I also store the dictionaries? (Maybe I don't need it, since I only want to do graph analytics. Default is ENABLED", false);
-    load_options.add<int>("","nindices", 6, "Set the number of indices to use. Can be 1,3,4,6. Default is '6'", false);
-    load_options.add<bool>("","incrindices", false, "Create the indices a few at the time (saves space). Default is 'false'", false);
-    load_options.add<bool>("","aggrIndices", false, "Use aggredated indices. Default is 'false'", false);
-    load_options.add<bool>("","enableFixedStrat", false, "Should we store the tables with a fixed layout?. Default is 'false'", false);
+    load_options.add<int>("","maxThreads", p.parallelThreads, "Sets the maximum number of threads to use during the compression. Default is '8'", false);
+    load_options.add<int>("","readThreads", p.maxReadingThreads, "Sets the number of concurrent threads that reads the raw input. Default is '2'", false);
+    load_options.add<int>("","ndicts", p.dictionaries, "Sets the number dictionary partitions. Default is '1'", false);
+    load_options.add<bool>("","skipTables", p.canSkipTables, "Skip storage of some tables. Default is 'false'", false);
+    load_options.add<int>("","thresholdSkipTable", p.thresholdSkipTable, "If dynamic strategy is enabled, this param. defines the size above which a table is not stored. Default is '10'", false);
+    load_options.add<int>("","timeoutStats", p.timeoutStats, "If set greater than 0, it starts a new thread to log some resource statistics every n seconds. Works only under Linux. Default is '-1' (disabled)", false);
+    load_options.add<bool>("","onlyCompress", p.onlyCompress, "Only compresses the data. Works only with RDF inputs. Default is DISABLED", false);
+    load_options.add<bool>("","sample", p.sample, "Store a little sample of the data, to improve query optimization. Default is ENABLED", false);
+    load_options.add<double>("","sampleRate", p.sampleRate, "If the sampling is enabled, this parameter sets the sample rate. Default is 0.01 (i.e 1%)", false);
+    load_options.add<bool>("","storeplainlist", p.storePlainList, "Next to the indices, stores also a dump of all the input in a single file. This improves scan queries. Default is DISABLED", false);
+    load_options.add<bool>("","storedicts", p.storeDicts, "Should I also store the dictionaries? (Maybe I don't need it, since I only want to do graph analytics. Default is ENABLED", false);
+    load_options.add<int>("","nindices", p.nindices, "Set the number of indices to use. Can be 1,3,4,6. Default is '6'", false);
+    load_options.add<bool>("","incrindices", p.createIndicesInBlocks, "Create the indices a few at the time (saves space). Default is 'false'", false);
+    load_options.add<bool>("","aggrIndices", p.aggrIndices, "Use aggredated indices. Default is 'false'", false);
+    load_options.add<bool>("","enableFixedStrat", p.enableFixedStrat, "Should we store the tables with a fixed layout?. Default is 'false'", false);
     string textStrat = "Fixed strategy to use. Only for advanced users. For for a column-layout " + to_string(FIXEDSTRAT5) + " for row-layout " + to_string(FIXEDSTRAT6) + " for a cluster-layout " + to_string(FIXEDSTRAT7);
-    load_options.add<int>("","fixedStrat", FIXEDSTRAT5, textStrat.c_str(), false);
-    load_options.add<int>("","popArg", 128,
+    load_options.add<int>("","fixedStrat", p.fixedStrat, textStrat.c_str(), false);
+    load_options.add<int>("","popArg", p.sampleArg,
             "Argument for the method to identify the popular terms. If the method is sample, then it represents the sample percentage (x/10000)."
             "If it it hash, then it indicates the number of popular terms."
             "Default value is 128.", false);
-    load_options.add<string>("","remoteLoc", "", "", false);
-    load_options.add<int64_t>("","limitSpace", 0, "", false);
-    load_options.add<string>("","gf", "", "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels", false);
-    load_options.add<bool>("","relsOwnIDs", false, "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED", false);
-    load_options.add<bool>("","flatTree", false, "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED", false);
+    load_options.add<string>("","remoteLoc", p.remoteLocation, "", false);
+    load_options.add<int64_t>("","limitSpace", p.limitSpace, "", false);
+    load_options.add<string>("","gf", p.graphTransformation, "Possible graph transformations. 'unlabeled' removes the edge labels (but keeps it directed), 'undirected' makes the graph undirected and without edge labels", false);
+    load_options.add<bool>("","relsOwnIDs", p.relsOwnIDs, "Should I give independent IDs to the terms that appear as predicates? (Useful for ML learning models). Default is DISABLED", false);
+    load_options.add<bool>("","flatTree", p.flatTree, "Create a flat representation of the nodes' tree. This parameter is forced to tree if the graph is unlabeled. Default is DISABLED", false);
 
     /***** LOOKUP *****/
     ProgramArgs::GroupArgs& lookup_options = *vm.newGroup("Options for <lookup>");

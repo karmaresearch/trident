@@ -1388,6 +1388,7 @@ void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictM
 }
 
 void Loader::load(ParamsLoad p) {
+    LOG(DEBUGL) << "Params: " << p.tostring();
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG(DEBUGL) << "Start loading ...";
 

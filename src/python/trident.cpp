@@ -28,35 +28,149 @@
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 #include <trident/tree/stringbuffer.h>
+#include <trident/loader.h>
 
 #include <kognac/logs.h>
+#include <kognac/utils.h>
 
 using namespace std;
 
+static PyObject *glob_set_logging_level(PyObject *self, PyObject *args) {
+    int level;
+    if (!PyArg_ParseTuple(args, "i", &level))
+        return NULL;
+    Logger::setMinLevel(level);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
 typedef struct {
     PyObject_HEAD
-        KB *kb;
-    Querier *q;
+        KB *kb = NULL;
+    Querier *q = NULL;
+    bool rmKbOnDelete = false;
 } trident_Db;
 
-static PyObject * Db_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+static PyObject * db_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     trident_Db *self;
     self = (trident_Db*)type->tp_alloc(type, 0);
     self->kb = NULL;
     return (PyObject *)self;
 }
 
-static int Db_init(trident_Db *self, PyObject *args, PyObject *kwds) {
-    const char *path;
-    if (!PyArg_ParseTuple(args, "s", &path))
+static int db_init(trident_Db *self, PyObject *args, PyObject *kwds) {
+    const char *path = NULL;
+    if (!PyArg_ParseTuple(args, "|s", &path))
         return -1;
 
     // Create a new trident database and return and ID to it
-    KBConfig config;
-    std::vector<string> locUpdates;
-    self->kb = new KB(path, true, false, true, config, locUpdates);
-    self->q = self->kb->query();
+    if (path != NULL) {
+        KBConfig config;
+        std::vector<string> locUpdates;
+        self->kb = new KB(path, true, false, true, config, locUpdates);
+        self->q = self->kb->query();
+    }
     return 0;
+}
+
+static PyObject *db_loadFromFiles(PyObject *self, PyObject *args, PyObject *kwds) {
+    //If the KB is already loaded, return an error
+    if (((trident_Db*)self)->kb) {
+        PyErr_SetString(PyExc_BaseException, "This object has already loaded a KB. "
+                "This function will be terminated without any effect.");
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    const char *dest = "_tmpkb";
+    const char *path = NULL;
+
+    const char* inputformat = NULL;
+    const char* graphTransformation = NULL;
+    char storeDicts = true;
+    char relsOwnIDs = false;
+    char flatTree = false;
+    int parallelThreads = 8;
+    char storePlainList = false;
+    char enableFixedStrat = false;
+    int fixedStrat = FIXEDSTRAT5;
+
+    static char *kwlist[] = {
+        (char *)"input",
+        (char *)"output",
+        (char *)"inputformat",
+        (char *)"graphType",
+        (char *)"storeDicts",
+        (char *)"relsOwnIDs",
+        (char *)"flatTree",
+        (char *)"parallelThreads",
+        (char *)"storePlainList",
+        (char *)"enableFixedStrat",
+        (char *)"fixedStrat",
+        NULL
+    };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|sssbbibbi",
+                kwlist, &path, &dest, &inputformat, &graphTransformation,
+                &storeDicts, &relsOwnIDs, &flatTree, &parallelThreads,
+                &storePlainList, &enableFixedStrat, &fixedStrat)) {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    if (Utils::exists(dest)) {
+        std::string err = "The destination " + std::string(dest) +
+            " already exists. Aborting this command.";
+        PyErr_SetString(PyExc_BaseException, err.c_str());
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    if (string(dest) == "_tmpkb") {
+        std::cerr << "Warning: The KB at " << dest << " will be deleted when the object is deallocated" << std::endl;
+        ((trident_Db*)self)->rmKbOnDelete = true;
+    }
+
+    //Default value
+    if (inputformat == NULL) {
+        inputformat = "rdf";
+    }
+    if (graphTransformation == NULL) {
+        graphTransformation = "";
+    }
+
+    //Load the KB
+    ParamsLoad p;
+    p.inputformat = inputformat;
+    p.triplesInputDir = path;
+    p.kbDir = dest;
+    p.tmpDir = p.kbDir;
+    p.inputCompressed = false;
+    p.graphTransformation = graphTransformation;
+    p.storeDicts = storeDicts;
+    p.relsOwnIDs = relsOwnIDs;
+    p.flatTree = flatTree;
+    p.parallelThreads = parallelThreads;
+    p.enableFixedStrat = enableFixedStrat;
+    p.fixedStrat = fixedStrat;
+    p.storePlainList = storePlainList;
+
+    Loader loader;
+    try {
+        loader.load(p);
+        // Create a new trident database and return an ID to it
+        KBConfig config;
+        std::vector<string> locUpdates;
+        ((trident_Db*)self)->kb = new KB(dest, true, false, true, config, locUpdates);
+        ((trident_Db*)self)->q = ((trident_Db*)self)->kb->query();
+    } catch (int &err) {
+        PyErr_SetString(PyExc_BaseException, "The loading procedure raised an exception.");
+        ((trident_Db*)self)->kb = NULL;
+        ((trident_Db*)self)->q = NULL;
+        ((trident_Db*)self)->rmKbOnDelete = false;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyObject *db_exists(PyObject *self, PyObject *args) {
@@ -559,7 +673,7 @@ static PyObject *db_allos(PyObject *self, PyObject *args) {
     return obj;
 }
 
-static PyObject * trident_lookup_id(PyObject *self, PyObject *args) {
+static PyObject * db_lookup_id(PyObject *self, PyObject *args) {
     const char *term;
     if (!PyArg_ParseTuple(args, "s", &term))
         return NULL;
@@ -574,7 +688,7 @@ static PyObject * trident_lookup_id(PyObject *self, PyObject *args) {
     }
 }
 
-static PyObject * trident_lookup_str(PyObject *self, PyObject *args) {
+static PyObject * db_lookup_str(PyObject *self, PyObject *args) {
     int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
@@ -590,7 +704,7 @@ static PyObject * trident_lookup_str(PyObject *self, PyObject *args) {
     }
 }
 
-static PyObject * trident_lookup_relstr(PyObject *self, PyObject *args) {
+static PyObject * db_lookup_relstr(PyObject *self, PyObject *args) {
     int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
@@ -606,7 +720,7 @@ static PyObject * trident_lookup_relstr(PyObject *self, PyObject *args) {
     }
 }
 
-static PyObject * trident_search_id(PyObject *self, PyObject *args) {
+static PyObject * db_search_id(PyObject *self, PyObject *args) {
     const char *term;
     if (!PyArg_ParseTuple(args, "s", &term))
         return NULL;
@@ -634,11 +748,16 @@ static PyObject * trident_search_id(PyObject *self, PyObject *args) {
     return obj;
 }
 
-static void Db_dealloc(trident_Db* self) {
+static void db_dealloc(trident_Db* self) {
     if (self->q)
         delete self->q;
-    if (self->kb)
+    if (self->kb) {
+        std::string path = self->kb->getPath();
         delete self->kb;
+        if (self->rmKbOnDelete) {
+            Utils::remove_all(path);
+        }
+    }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -668,19 +787,26 @@ static PyMethodDef Db_methods[] = {
     {"degree", db_degree, METH_VARARGS, "Get the list of all nodes with their degrees" },
     {"indegree", db_indegree, METH_VARARGS, "Get the list of all nodes with their indegrees" },
     {"outdegree", db_outdegree, METH_VARARGS, "Get the list of all nodes with their outdegrees" },
-    {"lookup_id", trident_lookup_id, METH_VARARGS, "Lookup for the ID of an input term" },
-    {"lookup_str", trident_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
-    {"lookup_relstr", trident_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
-    {"search_id", trident_search_id, METH_VARARGS, "Search for the IDs of terms" },
+    {"lookup_id", db_lookup_id, METH_VARARGS, "Lookup for the ID of an input term" },
+    {"lookup_str", db_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
+    {"lookup_relstr", db_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
+    {"search_id", db_search_id, METH_VARARGS, "Search for the IDs of terms" },
+    {"load", (PyCFunction) db_loadFromFiles, METH_VARARGS | METH_KEYWORDS, "Load a graph from a set of files." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
+static PyMethodDef globalFunctions[] = {
+    {"setLoggingLevel", glob_set_logging_level, METH_VARARGS, "Set the logging level. From 0 (trace) to 5 (error)." },
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
 
 static PyTypeObject trident_DbType = {
     PyVarObject_HEAD_INIT(NULL, 0)
         "trident.Db",             /* tp_name */
     sizeof(trident_Db),             /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)Db_dealloc, /* tp_dealloc */
+    (destructor)db_dealloc, /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -712,9 +838,9 @@ static PyTypeObject trident_DbType = {
     0,                         /* tp_descr_get */
     0,                         /* tp_descr_set */
     0,                         /* tp_dictoffset */
-    (initproc)Db_init,      /* tp_init */
+    (initproc)db_init,      /* tp_init */
     0,                         /* tp_alloc */
-    Db_new,                 /* tp_new */
+    db_new,                 /* tp_new */
 };
 
 static struct PyModuleDef tridentmodule = {
@@ -746,7 +872,10 @@ PyMODINIT_FUNC PyInit_trident(void) {
     PyModule_AddObject(m, "Db", (PyObject *)&trident_DbType);
     PyModule_AddObject(m, "Itr", (PyObject *)&trident_ItrType);
     PyModule_AddObject(m, "Batcher", (PyObject *)&trident_BatcherType);
+    PyModule_AddFunctions(m, globalFunctions);
 
+    //Default logging level to warn
+    Logger::setMinLevel(4);
 
     return m;
 }
