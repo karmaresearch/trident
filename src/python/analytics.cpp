@@ -1,26 +1,55 @@
-#include <Python.h>
+#include <python/trident.h>
 
 #include <trident/kb/kb.h>
-#include <python/trident.h>
 
 #include <snap/directed.h>
 #include <snap-core/Snap.h>
+
+#include <Python.h>
+#include <numpy/ndarrayobject.h>
 #include <vector>
 
 static PyObject *ana_ppr(PyObject *self, PyObject *args) {
     double C = 0.85;
     double eps = 0;
     int maxiter = 100;
-    trident_Db *pkb;
+    trident_Db *pkb = NULL;
     KB *kb = NULL;
-    std::vector<float> importanceNodes;
+    PyArrayObject *npNodesWeights = NULL;
 
-    if (!PyArg_ParseTuple(args, "O!|ddi", &trident_DbType, &pkb, &C, &eps, &maxiter))
+    if (!PyArg_ParseTuple(args, "O!O!|ddi", &trident_DbType, &pkb,
+                &PyArray_Type,
+                &npNodesWeights,
+                &C, &eps, &maxiter
+                )) {
+        std::cerr << "Errors in parsing the arguments" << std::endl;
         return NULL;
-
+    }
     kb = pkb->kb;
+
+    //Check the type of elements in the array
+    int typ=PyArray_TYPE(npNodesWeights);
+    if (!PyTypeNum_ISFLOAT(typ)) {
+        PyErr_SetString(PyExc_BaseException, "The array should contain"
+                " 4bytes float numbers.");
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    //Check that the array is large enough
+    auto nels = PyArray_SIZE(npNodesWeights);
+    if (nels < kb->getNTerms()) {
+        std::string err = "The array contains only " +
+            to_string(nels) +
+            ". Should contain " + to_string(kb->getNTerms());
+        PyErr_SetString(PyExc_BaseException, err.c_str());
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    float *importanceNodes = (float*)(npNodesWeights->data);
     PTrident_TNGraph graph = new Trident_TNGraph(kb);
-    TSnap::GetPageRank_stl<PTrident_TNGraph>(graph,
+    TSnap::GetPageRank_stl_raw<PTrident_TNGraph>(graph,
             importanceNodes,
             false, //if true then init values1
             C,
@@ -47,5 +76,8 @@ static struct PyModuleDef TridentAnaModule = {
 };
 
 PyMODINIT_FUNC PyInit_analytics(void) {
+    if(PyArray_API == NULL) {
+        import_array();
+    }
     return PyModule_Create(&TridentAnaModule);
 }

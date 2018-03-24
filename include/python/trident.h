@@ -23,6 +23,8 @@
 #ifndef _PYTHON_H
 #define _PYTHON_H
 
+//#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+
 #include <Python.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>

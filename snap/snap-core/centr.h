@@ -105,6 +105,7 @@ namespace TSnap {
     /// PageRank
     /// For more info see: http://en.wikipedia.org/wiki/PageRank
     template<class PGraph> void GetPageRank(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
+    template<class PGraph> void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
     template<class PGraph> void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
     template<class PGraph> void GetPageRank_v1(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
 #ifdef USE_OPENMP
@@ -308,12 +309,17 @@ namespace TSnap {
             }
         }
 
-    //Version with stl containers
     template<class PGraph>
         void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C, const double& Eps, const int& MaxIter) {
-            //std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
             const  int64_t NNodes = Graph->GetNodes();
             PRankH.resize(NNodes);
+            GetPageRank_stl_raw<PGraph>(Graph,PRankH.data(), initPRankH, C, Eps, MaxIter);
+        }
+
+    //Version with stl containers
+    template<class PGraph>
+        void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH, const bool initPRankH, const double& C, const double& Eps, const int& MaxIter) {
+            const  int64_t NNodes = Graph->GetNodes();
             std::vector<int64_t> OutDegV(NNodes);
             int64_t Id = 0;
             for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {

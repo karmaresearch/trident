@@ -119,7 +119,7 @@ static PyObject *db_loadFromFiles(PyObject *self, PyObject *args, PyObject *kwds
     }
 
     if (string(dest) == "_tmpkb") {
-        std::cerr << "Warning: The KB at " << dest << " will be deleted when the object is deallocated" << std::endl;
+        std::cerr << "Warning: Creating a temporary KB at" << dest << std::endl;
         ((trident_Db*)self)->rmKbOnDelete = true;
     }
 
@@ -791,7 +791,6 @@ static PyMethodDef globalFunctions[] = {
     {"setLoggingLevel", glob_set_logging_level, METH_VARARGS, "Set the logging level. From 0 (trace) to 5 (error)." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
-
 
 PyTypeObject trident_DbType = {
     PyVarObject_HEAD_INIT(NULL, 0)
