@@ -83,34 +83,11 @@ ENDIF()
 #ZLIB
 find_package(ZLIB REQUIRED)
 
-#SPARSEHASH
-find_path (sparsehash sparsehash/sparse_hash_map)
-IF (${sparsehash} STREQUAL "sparsehash-NOTFOUND")
-    message("Could not find sparsehash. I'm going to use the version from kognac ...")
-    include_directories(${CMAKE_BINARY_DIR}/kognac/external/sparsehash/src/)
-ENDIF()
-
-#LZ4
-find_library(lz4 lz4)
-find_path (lz4h lz4.h)
-IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
-    message("Could not find LZ4. I'm going to use the version from kognac")
-    include_directories(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib/)
-    LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib)
-    add_library(lz4 STATIC IMPORTED)
-    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION kognac/external/lz4/lib/liblz4.a)
-ELSE()
-    include_directories(lz4h)
-    message("-- Found LZ4")
-ENDIF()
-
 #KOGNAC
 IF(KOGNAC_LIB)
     message("Using KOGNAC provided installation: ${KOGNAC_LIB} ${KOGNAC_INC}")
     include_directories(${KOGNAC_INC})
     add_library(kognac SHARED IMPORTED)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${KOGNAC_LIB}/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    LINK_DIRECTORIES("${KOGNAC_LIB}/")
 ELSE()
     ExternalProject_Add(git-kognac
         DOWNLOAD_COMMAND git clone https://github.com/karmaresearch/kognac.git
@@ -121,10 +98,33 @@ ELSE()
         )
     ExternalProject_Get_Property(git-kognac SOURCE_DIR)
     include_directories(${SOURCE_DIR}/include)
-    add_library(kognac STATIC IMPORTED)
+    add_library(kognac SHARED IMPORTED)
     add_dependencies(kognac git-kognac)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/kognac/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    LINK_DIRECTORIES("${CMAKE_BINARY_DIR}/kognac/")
+    set(KOGNAC_LIB "${CMAKE_BINARY_DIR}/kognac")
+ENDIF()
+set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${KOGNAC_LIB}/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
+LINK_DIRECTORIES("${KOGNAC_LIB}")
+
+#SPARSEHASH
+find_path (sparsehash sparsehash/sparse_hash_map)
+IF (${sparsehash} STREQUAL "sparsehash-NOTFOUND")
+    message("Could not find sparsehash. I'm going to use the version from kognac ...")
+    include_directories(${KOGNAC_LIB}/external/sparsehash/src/)
+ENDIF()
+
+#LZ4
+find_library(lz4 lz4)
+find_path (lz4h lz4.h)
+IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
+    message("Could not find LZ4. I'm going to use the version from kognac")
+    set(LZ4_LIB "${KOGNAC_LIB}/external/lz4/lib")
+    include_directories(${LZ4_LIB})
+    LINK_DIRECTORIES(${LZ4_LIB})
+    add_library(lz4 STATIC IMPORTED)
+    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION "${LZ4_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}")
+ELSE()
+    include_directories(lz4h)
+    message("-- Found LZ4")
 ENDIF()
 
 #Create the core library
