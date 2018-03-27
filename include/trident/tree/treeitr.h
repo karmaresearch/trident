@@ -38,13 +38,17 @@ private:
     //Cache *cache;
 
 public:
+    TreeItr() {}
+
     TreeItr(Node *root, Leaf *firstLeaf);
 
-    bool hasNext();
+    virtual bool hasNext();
 
-    int64_t next(TermCoordinates *value);
+    virtual int64_t next(TermCoordinates *value);
 
     int64_t next(int64_t &value);
+
+    virtual ~TreeItr() {}
 };
 
 #endif /* TREEITR_H_ */

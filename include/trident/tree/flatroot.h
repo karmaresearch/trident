@@ -15,10 +15,10 @@ class FlatRoot : public Root {
             public:
                 FlatTreeWriter(string f, bool unlabeled, bool undirected) :
                     unlabeled(unlabeled), undirected(undirected) {
-                    ofs.open(f, ios_base::binary);
-                    zeros = std::unique_ptr<char>(new char[83]);
-                    memset(zeros.get(), 0, 83);
-                }
+                        ofs.open(f, ios_base::binary);
+                        zeros = std::unique_ptr<char>(new char[83]);
+                        memset(zeros.get(), 0, 83);
+                    }
 
                 void write(const int64_t key,
                         int64_t n_sop,
@@ -84,11 +84,14 @@ class FlatRoot : public Root {
         std::unique_ptr<MemoryMappedFile> file;
         char *raw;
         int sizeblock;
+        size_t len;
 
     public:
         FlatRoot(string path, bool unlabeled, bool undirected);
 
         bool get(nTerm key, TermCoordinates *value);
+
+        TreeItr *itr();
 
         static void loadFlatTree(string sop, string osp,
                 string spo, string ops,
@@ -97,6 +100,8 @@ class FlatRoot : public Root {
                 Root *tree,
                 bool unlabeled,
                 bool undirected);
+
+        static void __set(int permid, char *block, TermCoordinates *value);
 
         ~FlatRoot();
 };
