@@ -405,6 +405,73 @@ struct ParamsLoad {
     bool storeDicts;
     bool relsOwnIDs;
     bool flatTree;
+
+    ParamsLoad() {
+        /**** DEFAULT VALUES ****/
+        inputformat = "rdf";
+        onlyCompress = false;
+        inputCompressed = false;
+        dictDir = "";
+        dictDir_rel = "";
+        tmpDir = "";
+        dictMethod = DICT_HEURISTICS;
+        sampleMethod = PARSE_COUNTMIN;
+        sampleArg = 128;
+        parallelThreads = 8;
+        maxReadingThreads = 2;
+        dictionaries = 1;
+        nindices = 6;
+        createIndicesInBlocks = false;
+        aggrIndices = false;
+        canSkipTables = false;
+        enableFixedStrat = false;
+        fixedStrat = FIXEDSTRAT5;
+        storePlainList = false;
+        sample = true;
+        sampleRate = 0.01;
+        thresholdSkipTable = 20;
+        remoteLocation = "";
+        limitSpace = 0;
+        graphTransformation = "";
+        timeoutStats = -1;
+        storeDicts = true;
+        relsOwnIDs = false;
+        flatTree = false;
+    }
+
+    std::string tostring() {
+        std::string output = "";
+        output += "inputformat=" + inputformat;
+        output += ";onlyCompress=" + to_string(onlyCompress);
+        output += ";inputCompressed=" + to_string(inputCompressed);
+        output += ";dictDir=" + dictDir;
+        output += ";dictDir_rel=" + dictDir_rel;
+        output += ";tmpDir=" + tmpDir;
+        output += ";kbDir=" + kbDir;
+        output += ";dictMethod=" + dictMethod;
+        output += ";sampleMethod=" + to_string(sampleMethod);
+        output += ";sampleArg=" + to_string(sampleArg);
+        output += ";parallelThreads=" + to_string(parallelThreads);
+        output += ";maxReadingThreads=" + to_string(maxReadingThreads);
+        output += ";dictionaries=" + to_string(dictionaries);
+        output += ";createIndicesInBlocks=" + to_string(createIndicesInBlocks);
+        output += ";aggrIndices=" + to_string(aggrIndices);
+        output += ";canSkipTables=" + to_string(canSkipTables);
+        output += ";enableFixedStrat=" + to_string(enableFixedStrat);
+        output += ";fixedStrat=" + to_string(fixedStrat);
+        output += ";storePlainList=" + to_string(storePlainList);
+        output += ";sample=" + to_string(sample);
+        output += ";sampleRate=" + to_string(sampleRate);
+        output += ";thresholdSkipTable=" + to_string(thresholdSkipTable);
+        output += ";remoteLocation=" + remoteLocation;
+        output += ";limitSpace=" + to_string(limitSpace);
+        output += ";graphTransformation=" + graphTransformation;
+        output += ";timeoutStats=" + to_string(timeoutStats);
+        output += ";storeDicts=" + to_string(storeDicts);
+        output += ";relsOwnIDs=" + to_string(relsOwnIDs);
+        output += ";flatTree=" + to_string(flatTree);
+        return output;
+    }
 };
 
 class Loader {
@@ -565,7 +632,7 @@ class Loader {
         void loadKB_handleGraphTransformations(KB &kb,
                 string graphTransformation,
                 string *permDirs,
-                int nindices,
+                int &nindices,
                 Inserter *ins,
                 bool relsOwnIDs,
                 string kbDir,

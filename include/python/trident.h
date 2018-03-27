@@ -23,10 +23,19 @@
 #ifndef _PYTHON_H
 #define _PYTHON_H
 
+//#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+
 #include <Python.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
 #include <trident/ml/batch.h>
+
+typedef struct {
+    PyObject_HEAD
+        KB *kb = NULL;
+    Querier *q = NULL;
+    bool rmKbOnDelete = false;
+} trident_Db;
 
 typedef struct {
     PyObject_HEAD
@@ -36,6 +45,7 @@ typedef struct {
 } trident_Itr;
 
 extern PyTypeObject trident_ItrType;
+extern PyTypeObject trident_DbType;
 
 typedef struct {
     PyObject_HEAD
@@ -47,5 +57,7 @@ typedef struct {
 } trident_Batcher;
 
 extern PyTypeObject trident_BatcherType;
+
+PyMODINIT_FUNC PyInit_analytics(void);
 
 #endif

@@ -95,7 +95,7 @@ class Root {
 
         void append(nTerm key, int64_t coordinates);
 
-        TreeItr *itr();
+        virtual TreeItr *itr();
 
         virtual ~Root();
 

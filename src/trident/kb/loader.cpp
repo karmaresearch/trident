@@ -1388,6 +1388,7 @@ void Loader::addSchemaTerms(const int dictPartitions, nTerm highestNumber, DictM
 }
 
 void Loader::load(ParamsLoad p) {
+    LOG(DEBUGL) << "Params: " << p.tostring();
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG(DEBUGL) << "Start loading ...";
 
@@ -1667,7 +1668,7 @@ void Loader::loadKB_storeDicts(KB &kb,
 void Loader::loadKB_handleGraphTransformations(KB &kb,
         string graphTransformation,
         string *permDirs,
-        int nindices,
+        int &nindices,
         Inserter *ins,
         bool relsOwnIDs,
         string kbDir,
@@ -1892,6 +1893,15 @@ void Loader::loadKB(KB &kb,
 
     if (storeDicts) {
         loadKB_storeDicts(kb, dictionaries, dictMethod, fileNameDictionaries);
+    } else {
+        if (fileNameDictionaries && Utils::exists(fileNameDictionaries[0])) {
+            std::vector<string> alldictfiles =
+                Compressor::getAllDictFiles(fileNameDictionaries[0]);
+            for(auto s : alldictfiles) {
+                Utils::remove(s);
+            }
+            Utils::remove(fileNameDictionaries[0]);
+        }
     }
 
     LOG(DEBUGL) << "Insert the triples in the indices...";

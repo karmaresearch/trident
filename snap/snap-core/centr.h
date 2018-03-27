@@ -105,7 +105,8 @@ namespace TSnap {
     /// PageRank
     /// For more info see: http://en.wikipedia.org/wiki/PageRank
     template<class PGraph> void GetPageRank(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
-    template<class PGraph> void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
+    template<class PGraph> void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH, uint64_t *OutDegV, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
+    template<class PGraph> void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
     template<class PGraph> void GetPageRank_v1(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
 #ifdef USE_OPENMP
     template<class PGraph> void GetPageRankMP(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
@@ -257,9 +258,9 @@ namespace TSnap {
                 NV.Add(NI);
                 PRankH.AddDat(NI.GetId(), 1.0/NNodes);
                 int Id = NI.GetId();
-                  if (Id > MxId) {
-                  MxId = Id;
-                  }
+                if (Id > MxId) {
+                    MxId = Id;
+                }
             }
 
             TFltV PRankV(MxId+1);
@@ -308,27 +309,35 @@ namespace TSnap {
             }
         }
 
+    template<class PGraph>
+        void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C, const double& Eps, const int& MaxIter) {
+            const int64_t NNodes = Graph->GetNodes();
+            PRankH.resize(NNodes);
+            std::vector<uint64_t> OutDegV;
+            OutDegV.resize(NNodes);
+            GetPageRank_stl_raw<PGraph>(Graph, PRankH.data(), OutDegV.data(),
+                    initPRankH, C, Eps, MaxIter);
+        }
+
     //Version with stl containers
     template<class PGraph>
-        void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const double& C, const double& Eps, const int& MaxIter) {
-            //std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-            const  int64_t NNodes = Graph->GetNodes();
-            PRankH.resize(NNodes);
-            std::vector< int64_t> OutDegV(NNodes);
-             int64_t Id = 0;
-            for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
-                PRankH[Id] = 1.0/NNodes;
-                OutDegV[Id] = NI.GetOutDeg();
-                Id++;
+        void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH,
+                uint64_t *OutDegV,
+                const bool initPRankHAndWeights,
+                const double& C, const double& Eps,
+                const int& MaxIter) {
+            const int64_t NNodes = Graph->GetNodes();
+            if (initPRankHAndWeights) {
+                int64_t Id = 0;
+                for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
+                    PRankH[Id] = 1.0/NNodes;
+                    OutDegV[Id] = NI.GetOutDeg();
+                    Id++;
+                }
             }
             std::vector<float> TmpV(NNodes);
 
-            //std::chrono::seconds durinit = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
-            //std::cout << "Finished initializing the data structures " << durinit.count() << "s" << std::endl;
-
             for (int iter = 0; iter < MaxIter; iter++) {
-                //std::chrono::seconds dur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
-                //std::cout << "Iteration " << iter << " " << dur.count() << "s" << std::endl;
                 for ( int64_t j = 0; j < NNodes; j++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(j);
                     TFlt Tmp = 0;
@@ -342,21 +351,15 @@ namespace TSnap {
                     TmpV[j] =  C*Tmp; // Berkhin (the correct way of doing it)
                 }
 
-                //dur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
-                //std::cout << "Finished adding to Tmp " << iter << " " << dur.count() << "s" << std::endl;
-
                 double sum = 0;
                 for ( int64_t i = 0; i < TmpV.size(); i++) { sum += TmpV[i]; }
                 const double Leaked = (1.0-sum) / double(NNodes);
-
-                //dur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start);
-                //std::cout << "Finished summing to Tmp " << iter << " " << dur.count() << "s" << std::endl;
 
                 double diff = 0;
                 for ( int64_t i = 0; i < NNodes; i++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(i);
                     double NewVal = TmpV[i] + Leaked; // Berkhin
-                     int64_t Id = NI.GetId();
+                    int64_t Id = NI.GetId();
                     diff += fabs(NewVal-PRankH[Id]);
                     PRankH[Id] = NewVal;
                 }
@@ -625,7 +628,7 @@ namespace TSnap {
                 std::uniform_int_distribution< int64_t> dis(0, NIdV.size());
 
                 for( int64_t i = 0; i < nodesToConsider; ++i) {
-                     int64_t idxRandomNode = dis(gen);
+                    int64_t idxRandomNode = dis(gen);
                     while (selectedids.count(idxRandomNode)) {
                         idxRandomNode = dis(gen);
                     }
@@ -633,7 +636,7 @@ namespace TSnap {
                     randomsample.push_back(idxRandomNode);
                 }
                 std::sort(randomsample.begin(), randomsample.end());
-                 int64_t j = 0;
+                int64_t j = 0;
                 for( int64_t i = 0; i < randomsample.size(); ++i) {
                     if (randomsample[i] == j) {
                         //do nothing
@@ -721,7 +724,7 @@ namespace TSnap {
             const  int64_t NNodes = Graph->GetNodes();
             NIdHubH.resize(NNodes);
             NIdAuthH.resize(NNodes);
-             int64_t j = 0;
+            int64_t j = 0;
             for (typename PGraph::TObj::TNodeI NI = Graph->BegNI(); NI < Graph->EndNI(); NI++) {
                 NIdHubH[j] = 1.0;
                 NIdAuthH[j] = 1.0;

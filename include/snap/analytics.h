@@ -167,6 +167,7 @@ class Analytics {
                     f = std::bind(TSnap::GetPageRank_stl<K>,
                             std::ref(Graph),
                             std::ref(values1),
+                            true, //if true then init values1
                             task.getParam("C").as<double>(),
                             task.getParam("eps").as<double>(),
                             task.getParam("maxiter").as<int>());

@@ -1,10 +1,12 @@
 #include <trident/tree/flatroot.h>
+#include <trident/tree/flattreeitr.h>
 #include <trident/binarytables/storagestrat.h>
 
 FlatRoot::FlatRoot(string path, bool unlabeled, bool undirected) :
     unlabeled(unlabeled), undirected(undirected) {
         file = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(path, true));
         raw = file->getData();
+        len = file->getLength();
         if (unlabeled) {
             if (undirected)
                 sizeblock = 18;
@@ -15,7 +17,7 @@ FlatRoot::FlatRoot(string path, bool unlabeled, bool undirected) :
         }
     }
 
-void __set(int permid, char *block, TermCoordinates *value) {
+void FlatRoot::__set(int permid, char *block, TermCoordinates *value) {
     const int64_t nels = *((int64_t*)(block)) & INT64_C(0XFFFFFFFFFF);
     if (nels > 0) {
         const short file = *((short*)(block + 6));
@@ -40,6 +42,11 @@ bool FlatRoot::get(nTerm key, TermCoordinates *value) {
     }
     return true;
 }
+
+TreeItr *FlatRoot::itr() {
+    return new FlatTreeItr(raw, raw + len, sizeblock, unlabeled, undirected);
+}
+
 
 char FlatRoot::rewriteNewColumnStrategy(const char *table) {
     const uint8_t header1 = (uint8_t) table[0];
