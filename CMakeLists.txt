@@ -7,6 +7,10 @@
 #-DML=1 enable machine learning algorithms
 
 cmake_minimum_required (VERSION 2.8)
+
+set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_C_COMPILER "gcc")
+
 project (Trident)
 include(ExternalProject)
 set(CMAKE_MACOSX_RPATH 1)
