@@ -10,6 +10,8 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <vector>
 #include <string>
 #include <set>
@@ -166,9 +168,9 @@ class QueryGraph {
 
     public:
         /// Constructor
-        QueryGraph(unsigned varcount);
+        SLIBEXP QueryGraph(unsigned varcount);
         /// Destructor
-        ~QueryGraph();
+        SLIBEXP ~QueryGraph();
 
         /// Clear the graph
         void clear();

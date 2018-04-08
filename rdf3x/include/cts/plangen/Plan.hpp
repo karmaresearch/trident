@@ -10,6 +10,8 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <cts/infra/QueryGraph.hpp>
 #include <infra/util/Pool.hpp>
 //---------------------------------------------------------------------------
@@ -47,7 +49,7 @@ struct Plan
     Plan* next;
 
     /// Print the plan
-    void print(unsigned indent) const;
+    SLIBEXP void print(unsigned indent) const;
 
     void init() {
         optional = false;

@@ -10,6 +10,8 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <string>
 //---------------------------------------------------------------------------
 /// A lexer for SPARQL input
@@ -35,9 +37,9 @@ class SPARQLLexer
 
    public:
    /// Constructor
-   SPARQLLexer(const std::string& input);
+   SLIBEXP SPARQLLexer(const std::string& input);
    /// Destructor
-   ~SPARQLLexer();
+   SLIBEXP ~SPARQLLexer();
 
    /// Get the next token
    Token getNext();

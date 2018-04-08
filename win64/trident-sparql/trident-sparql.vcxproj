@@ -74,6 +74,18 @@
   <ItemGroup>
     <None Include="..\..\rdf3x\src\rts\LocalMakefile" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\rdf3x\include\cts\codegen\CodeGen.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\infra\QueryGraph.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\parser\SPARQLLexer.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\parser\SPARQLParser.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\parser\TurtleParser.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\plangen\Plan.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\plangen\PlanGen.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\cts\semana\SemanticAnalysis.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\rts\operator\PlanPrinter.hpp" />
+    <ClInclude Include="..\..\rdf3x\include\rts\runtime\Runtime.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{CD73F65E-E76F-4F4E-A2EF-EDABD71A4DE0}</ProjectGuid>
@@ -148,7 +160,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;NDEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;TRIDENT_SPARQL_SHARED_LIB=1;NDEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
@@ -182,7 +194,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;_DEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MT=1;WIN32;SPARQL=1;TRIDENT_SPARQL_SHARED_LIB=1;_DEBUG;TRIDENTSPARQL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>4244;4018;4267;4996</DisableSpecificWarnings>
