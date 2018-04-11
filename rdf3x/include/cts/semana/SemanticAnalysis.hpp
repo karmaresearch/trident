@@ -50,12 +50,12 @@ private:
 
 public:
     /// Constructor
-    explicit SemanticAnalysis(DBLayer& db, QueryDict &tempDict);
+    SLIBEXP explicit SemanticAnalysis(DBLayer& db, QueryDict &tempDict);
     /// Constructor
     //explicit SemanticAnalysis(DifferentialIndex& diffIndex, QueryDict &tempDict);
 
     /// Perform the transformation
-    void transform(const SPARQLParser& input, QueryGraph& output);
+    SLIBEXP void transform(const SPARQLParser& input, QueryGraph& output);
 };
 //---------------------------------------------------------------------------
 #endif

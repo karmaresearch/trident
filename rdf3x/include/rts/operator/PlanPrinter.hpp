@@ -1,6 +1,8 @@
 #ifndef H_rts_operator_PlanPrinter
 #define H_rts_operator_PlanPrinter
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <string>
 #include <vector>
 //---------------------------------------------------------------------------
@@ -21,7 +23,7 @@ class PlanPrinter
 {
    public:
    /// Destructor
-   virtual ~PlanPrinter();
+   SLIBEXP virtual ~PlanPrinter();
 
    /// Begin a new operator
    virtual void beginOperator(const std::string& name,double expectedOutputCardinality,unsigned observedOutputCardinality) = 0;
@@ -62,9 +64,9 @@ class DebugPlanPrinter : public PlanPrinter
 
    public:
    /// Constructor
-   DebugPlanPrinter(Runtime& runtime,bool showObserved);
+   SLIBEXP DebugPlanPrinter(Runtime& runtime,bool showObserved);
    /// Constructor
-   DebugPlanPrinter(std::ostream& out,Runtime& runtime,bool showObserved);
+   SLIBEXP DebugPlanPrinter(std::ostream& out,Runtime& runtime,bool showObserved);
 
    /// Begin a new operator
    void beginOperator(const std::string& name,double expectedOutputCardinality,unsigned observedOutputCardinality);

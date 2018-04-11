@@ -10,6 +10,8 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <set>
 #include <vector>
 #include <map>
@@ -34,7 +36,7 @@ class CodeGen
         /// Translate an execution plan into an operator tree without output generation
         static Operator* translateIntern(Runtime& runtime, const QueryGraph& query, Plan* plan, std::vector<Register*>& output, const std::map<const QueryGraph::Node*, unsigned> &registers);
         /// Translate an execution plan into an operator tree
-        static Operator* translate(Runtime& runtime,const QueryGraph& query,Plan* plan, bool silent=false);
+        SLIBEXP static Operator* translate(Runtime& runtime,const QueryGraph& query,Plan* plan, bool silent=false);
 };
 //---------------------------------------------------------------------------
 #endif

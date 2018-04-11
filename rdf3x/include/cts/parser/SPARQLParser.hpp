@@ -10,6 +10,8 @@
 // or send a letter to Creative Commons, 171 Second Street, Suite 300,
 // San Francisco, California, 94105, USA.
 //---------------------------------------------------------------------------
+#include <dblayer.hpp>
+
 #include <map>
 #include <string>
 #include <vector>
@@ -252,18 +254,18 @@ class SPARQLParser {
 
     public:
         /// Constructor
-        explicit SPARQLParser(SPARQLLexer& lexer);
+        SLIBEXP explicit SPARQLParser(SPARQLLexer& lexer);
 
-        explicit SPARQLParser(SPARQLLexer& lexer,
+        SLIBEXP explicit SPARQLParser(SPARQLLexer& lexer,
                 std::map<std::string, std::string> prefixes);
 
-        explicit SPARQLParser(SPARQLLexer& lexer,
+        SLIBEXP explicit SPARQLParser(SPARQLLexer& lexer,
                 std::map<std::string, std::string> prefixes, std::map<std::string, unsigned> *pv, unsigned vc);
         /// Destructor
-        ~SPARQLParser();
+        SLIBEXP ~SPARQLParser();
 
         /// Parse the input. Throws an exception in the case of an error
-        void parse(bool multiQuery = false, bool silentOutputVars = false);
+        SLIBEXP void parse(bool multiQuery = false, bool silentOutputVars = false);
 
         const std::vector<SPARQLParser::Assignment> &getGlobalAssignments() const {
             return assignments;
@@ -274,7 +276,7 @@ class SPARQLParser {
             return patterns;
         }
         /// Get the name of a variable
-        std::string getVariableName(unsigned id) const;
+        SLIBEXP std::string getVariableName(unsigned id) const;
 
         /// Iterator over the projection clause
         typedef std::vector<unsigned>::const_iterator projection_iterator;
@@ -315,7 +317,7 @@ class SPARQLParser {
             return limit;
         }
 
-        unsigned getVarCount() const;
+        SLIBEXP unsigned getVarCount() const;
 };
 //---------------------------------------------------------------------------
 #endif
