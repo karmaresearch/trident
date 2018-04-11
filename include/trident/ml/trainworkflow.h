@@ -21,7 +21,7 @@ class TrainWorkflow {
             std::shared_ptr<BatchIO> pio;
             uint16_t nbatches = 0;
             while (true) {
-                inputQueue->pop(pio);
+                inputQueue->pop_wait(pio);
                 if (pio == NULL) {
                     break;
                 }
@@ -91,7 +91,7 @@ class TrainWorkflow {
                 //Process all batches
                 while (true) {
                     std::shared_ptr<BatchIO> pio;
-                    doneQueue.pop(pio);
+                    doneQueue.pop_wait(pio);
                     if (batcher.getBatch(pio->field1, pio->field2, pio->field3)) {
                         pio->epoch = epoch;
                         pio->violations = 0;
@@ -193,7 +193,11 @@ class TrainWorkflow {
                 }
             }
             std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-            LOG(INFOL) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
+            if (Utils::exists(pathvalid)) {
+                LOG(INFOL) << "Best epoch: " << bestepoch << " Accuracy: " << bestresult << " Time(s):" << duration.count();
+            } else {
+                LOG(INFOL) << "Time(s):" << duration.count();
+            }
         }
 
     public:

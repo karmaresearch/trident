@@ -102,7 +102,7 @@ class ParallelTasks {
                     sort_int<It,Cmp>(mid, end, cmp, nthreads / 2);
                     fn.wait();
                     // ParallelTasks::merge(begin, mid, end, cmp);
-		    std::inplace_merge(begin, mid, end, cmp);
+                    std::inplace_merge(begin, mid, end, cmp);
                 }
             }
 
@@ -152,15 +152,15 @@ class ParallelTasks {
                 for (size_t i = 0; i < nthreads && currentend < end; ++i) {
                     currentbegin = currentend;
                     currentend = currentbegin + delta;
-		    if (currentend >= end) {
-			// Leave the last chunk for "our" thread.
-			break;
-		    }
+                    if (currentend >= end) {
+                        // Leave the last chunk for "our" thread.
+                        break;
+                    }
                     ParallelRange range(currentbegin, currentend);
                     threads.push_back(std::async(&Container::operator(), c, range));
                 }
-		ParallelRange range(currentbegin, end);
-		c(range);
+                ParallelRange range(currentbegin, end);
+                c(range);
                 for(auto &t : threads) {
                     t.wait();
                 }
