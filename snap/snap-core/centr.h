@@ -5,6 +5,7 @@
 #include <random>
 #include <set>
 #include <algorithm>
+#include <assert.h>
 
 namespace TSnap {
 
@@ -105,8 +106,8 @@ namespace TSnap {
     /// PageRank
     /// For more info see: http://en.wikipedia.org/wiki/PageRank
     template<class PGraph> void GetPageRank(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
-    template<class PGraph> void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH, uint64_t *OutDegV, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
-    template<class PGraph> void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
+    template<class PGraph> void GetPageRank_stl_raw(const PGraph& Graph, double *PRankH, uint64_t *OutDegV, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
+    template<class PGraph> void GetPageRank_stl(const PGraph& Graph, std::vector<double>& PRankH, const bool initPRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
     template<class PGraph> void GetPageRank_v1(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
 #ifdef USE_OPENMP
     template<class PGraph> void GetPageRankMP(const PGraph& Graph, TIntFltH& PRankH, const double& C=0.85, const double& Eps=1e-4, const int& MaxIter=100);
@@ -310,7 +311,7 @@ namespace TSnap {
         }
 
     template<class PGraph>
-        void GetPageRank_stl(const PGraph& Graph, std::vector<float>& PRankH, const bool initPRankH, const double& C, const double& Eps, const int& MaxIter) {
+        void GetPageRank_stl(const PGraph& Graph, std::vector<double>& PRankH, const bool initPRankH, const double& C, const double& Eps, const int& MaxIter) {
             const int64_t NNodes = Graph->GetNodes();
             PRankH.resize(NNodes);
             std::vector<uint64_t> OutDegV;
@@ -321,7 +322,7 @@ namespace TSnap {
 
     //Version with stl containers
     template<class PGraph>
-        void GetPageRank_stl_raw(const PGraph& Graph, float *PRankH,
+        void GetPageRank_stl_raw(const PGraph& Graph, double *PRankH,
                 uint64_t *OutDegV,
                 const bool initPRankHAndWeights,
                 const double& C, const double& Eps,
@@ -335,28 +336,31 @@ namespace TSnap {
                     Id++;
                 }
             }
-            std::vector<float> TmpV(NNodes);
+            std::vector<double> TmpV(NNodes);
 
             for (int iter = 0; iter < MaxIter; iter++) {
-                for ( int64_t j = 0; j < NNodes; j++) {
+                for (int64_t j = 0; j < NNodes; j++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(j);
-                    TFlt Tmp = 0;
+                    double Tmp = 0;
                     for (int e = 0; e < NI.GetInDeg(); e++) {
-                        const  int64_t InNId = NI.GetInNId(e);
-                        const int OutDeg = OutDegV[InNId];
+                        const uint64_t InNId = NI.GetInNId(e);
+                        const uint64_t OutDeg = OutDegV[InNId];
                         if (OutDeg > 0) {
                             Tmp += PRankH[InNId] / OutDeg;
-                        }
+                        } else {
+				std::cout << "How can it be zero or negative?" << OutDeg << std::endl;
+			}
                     }
+		    assert(Tmp >= 0);
                     TmpV[j] =  C*Tmp; // Berkhin (the correct way of doing it)
                 }
 
                 double sum = 0;
-                for ( int64_t i = 0; i < TmpV.size(); i++) { sum += TmpV[i]; }
+                for (int64_t i = 0; i < TmpV.size(); i++) { sum += TmpV[i]; }
                 const double Leaked = (1.0-sum) / double(NNodes);
 
                 double diff = 0;
-                for ( int64_t i = 0; i < NNodes; i++) {
+                for (int64_t i = 0; i < NNodes; i++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(i);
                     double NewVal = TmpV[i] + Leaked; // Berkhin
                     int64_t Id = NI.GetId();

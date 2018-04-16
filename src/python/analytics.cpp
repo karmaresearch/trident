@@ -38,6 +38,12 @@ static PyObject *ana_ppr(PyObject *self, PyObject *args) {
         Py_INCREF(Py_None);
         return Py_None;
     }
+    if (typ != NPY_DOUBLE) {
+        PyErr_SetString(PyExc_BaseException, "The array with the weights should contain"
+                " 64bytes float numbers.");
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     //Check that the array is large enough
     auto nels = PyArray_SIZE(npNodesWeights);
@@ -60,12 +66,8 @@ static PyObject *ana_ppr(PyObject *self, PyObject *args) {
         return Py_None;
     }
 
-    float *importanceNodes = (float*)(npNodesWeights->data);
+    double *importanceNodes = (double*)(npNodesWeights->data);
     uint64_t *weights = (uint64_t*)(npOutDegrees->data);
-
-    for(int i = 0; i < 100; ++i) {
-        std::cout << i << " " << weights[i] << std::endl;
-    }
 
     PTrident_TNGraph graph = new Trident_TNGraph(kb);
     TSnap::GetPageRank_stl_raw<PTrident_TNGraph>(graph,
