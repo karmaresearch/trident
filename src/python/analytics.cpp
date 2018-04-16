@@ -38,6 +38,12 @@ static PyObject *ana_ppr(PyObject *self, PyObject *args) {
         Py_INCREF(Py_None);
         return Py_None;
     }
+    if (typ != NPY_DOUBLE) {
+        PyErr_SetString(PyExc_BaseException, "The array with the weights should contain"
+                " 64bytes float numbers.");
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     //Check that the array is large enough
     auto nels = PyArray_SIZE(npNodesWeights);

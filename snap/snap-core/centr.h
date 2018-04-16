@@ -5,6 +5,7 @@
 #include <random>
 #include <set>
 #include <algorithm>
+#include <assert.h>
 
 namespace TSnap {
 
@@ -338,7 +339,7 @@ namespace TSnap {
             std::vector<double> TmpV(NNodes);
 
             for (int iter = 0; iter < MaxIter; iter++) {
-                for ( int64_t j = 0; j < NNodes; j++) {
+                for (int64_t j = 0; j < NNodes; j++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(j);
                     double Tmp = 0;
                     for (int e = 0; e < NI.GetInDeg(); e++) {
@@ -346,8 +347,11 @@ namespace TSnap {
                         const uint64_t OutDeg = OutDegV[InNId];
                         if (OutDeg > 0) {
                             Tmp += PRankH[InNId] / OutDeg;
-                        }
+                        } else {
+				std::cout << "How can it be zero or negative?" << OutDeg << std::endl;
+			}
                     }
+		    assert(Tmp >= 0);
                     TmpV[j] =  C*Tmp; // Berkhin (the correct way of doing it)
                 }
 
@@ -356,7 +360,7 @@ namespace TSnap {
                 const double Leaked = (1.0-sum) / double(NNodes);
 
                 double diff = 0;
-                for ( int64_t i = 0; i < NNodes; i++) {
+                for (int64_t i = 0; i < NNodes; i++) {
                     typename PGraph::TObj::TNodeI NI = Graph->GetNI(i);
                     double NewVal = TmpV[i] + Leaked; // Berkhin
                     int64_t Id = NI.GetId();
