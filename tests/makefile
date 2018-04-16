@@ -1,8 +1,11 @@
 KOGNAC_BUILDIR=../../kognac/build_debug
 TRIDENT_BUILDIR=../build_debug
-CINCLUDES= -I../include -I../../kognac/include -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
+CINCLUDES= -I../include -I../../kognac/include -I../snap -I../snap/snap-core -I../snap/glib-core -I../build/kognac/external/lz4/lib -I../build/kognac/external/sparsehash/src
 CLIBS=-L$(KOGNAC_BUILDIR) -L$(TRIDENT_BUILDIR) -L../snap/snap-core -L../build/kognac/external/lz4/lib -L../build/kognac/external/sparsehash/src
 CPLUS=g++
+
+test_ppr:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testPPR -std=c++0x -O0 -g test_ppr.cpp -ltrident-core -ltrident-ana -lkognac
 
 test_httpclient:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testHttpClient -std=c++0x -O0 -g test_httpclient.cpp ../src/trident/utils/httpclient.cpp ../../kognac/src/kognac/log/logs.cpp ../src/trident/utils/json.cpp -lkognac

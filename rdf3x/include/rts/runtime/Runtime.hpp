@@ -50,9 +50,9 @@ private:
 
 public:
     /// Constructor
-    Runtime(DBLayer& db,/*DifferentialIndex* diff=0,*/TemporaryDictionary* temporaryDictionary = 0, QueryDict *queryDict = 0);
+    SLIBEXP Runtime(DBLayer& db,/*DifferentialIndex* diff=0,*/TemporaryDictionary* temporaryDictionary = 0, QueryDict *queryDict = 0);
     /// Destructor
-    ~Runtime();
+    SLIBEXP ~Runtime();
 
     /// Get the database
     //Database& getDatabase() const { return db; }

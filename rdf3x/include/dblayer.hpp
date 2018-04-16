@@ -12,6 +12,20 @@
 //#define AGGR_SKIP_LAST 1
 //#define AGGR_SKIP_2LAST 2
 
+#if defined(_WIN32)
+#define DDLIMPORT __declspec(dllimport)
+#define DDLEXPORT __declspec(dllexport)
+#if TRIDENT_SPARQL_SHARED_LIB
+#define SLIBEXP DDLEXPORT
+#else
+#define SLIBEXP DDLIMPORT
+#endif
+#else
+#define SLIBEXP
+#define DDLIMPORT
+#define DDLEXPORT
+#endif
+
 class DBLayer {
     public:
 

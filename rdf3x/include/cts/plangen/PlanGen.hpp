@@ -38,7 +38,7 @@ class PlanGen {
         /// The current query
         const QueryGraph* fullQuery;
 
-        PlanGen(const PlanGen&);
+        SLIBEXP PlanGen(const PlanGen&);
         void operator=(const PlanGen&);
 
         /// Add a plan to a subproblem
@@ -77,14 +77,14 @@ class PlanGen {
 
     public:
         /// Constructor
-        PlanGen();
-        PlanGen(std::shared_ptr<PlanContainer> plans);
+        SLIBEXP PlanGen();
+        SLIBEXP PlanGen(std::shared_ptr<PlanContainer> plans);
         /// Destructor
-        ~PlanGen();
+        SLIBEXP ~PlanGen();
 
         void init(DBLayer* db, const QueryGraph& query);
         /// Translate a query into an operator tree
-        Plan* translate(DBLayer& db, const QueryGraph& query, bool completeEstimate = true);
+        SLIBEXP Plan* translate(DBLayer& db, const QueryGraph& query, bool completeEstimate = true);
         /// Translate a query into an operator tree
         Plan* translate_int(const QueryGraph::SubQuery& query,
                 const QueryGraph &entirePlan,

@@ -176,7 +176,7 @@ bool HttpClient::getResponse(const std::string &request,
 
         //Pointers to the buffer
         size_t sizebuffer = 0;
-        const char *remaining;
+        const char *remaining = buffer;
 
         while (true) {
             if (sizebuffer <= 0) {

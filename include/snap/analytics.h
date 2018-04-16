@@ -150,7 +150,7 @@ class Analytics {
 
                 //Possible outputs
                 std::vector<float> values1;
-                std::vector<double> values1d;
+                std::vector<double> values1_d;
                 std::vector<float> values1_i;
                 std::vector<float> values2;
                 int nargs = 1;
@@ -167,7 +167,7 @@ class Analytics {
                 if (nameTask == "pagerank") {
                     f = std::bind(TSnap::GetPageRank_stl<K>,
                             std::ref(Graph),
-                            std::ref(values1d),
+                            std::ref(values1_d),
                             true, //if true then init values1
                             task.getParam("C").as<double>(),
                             task.getParam("eps").as<double>(),

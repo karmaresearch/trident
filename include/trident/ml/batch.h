@@ -87,6 +87,12 @@ class BatchCreator {
                     std::shared_ptr<Feedback>()) {
             }
 
+        BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads,
+                const float valid, const float test) :
+            BatchCreator(kbdir, batchsize, nthreads, valid, test, false, true,
+                    std::shared_ptr<Feedback>()) {
+            }
+
         void start();
 
         bool getBatch(std::vector<uint64_t> &output);

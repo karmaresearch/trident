@@ -7,6 +7,10 @@
 #-DML=1 enable machine learning algorithms
 
 cmake_minimum_required (VERSION 2.8)
+
+# set(CMAKE_CXX_COMPILER "g++")
+# set(CMAKE_C_COMPILER "gcc")
+
 project (Trident)
 include(ExternalProject)
 set(CMAKE_MACOSX_RPATH 1)
@@ -79,34 +83,11 @@ ENDIF()
 #ZLIB
 find_package(ZLIB REQUIRED)
 
-#SPARSEHASH
-find_path (sparsehash sparsehash/sparse_hash_map)
-IF (${sparsehash} STREQUAL "sparsehash-NOTFOUND")
-    message("Could not find sparsehash. I'm going to use the version from kognac ...")
-    include_directories(${CMAKE_BINARY_DIR}/kognac/external/sparsehash/src/)
-ENDIF()
-
-#LZ4
-find_library(lz4 lz4)
-find_path (lz4h lz4.h)
-IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
-    message("Could not find LZ4. I'm going to use the version from kognac")
-    include_directories(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib/)
-    LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/kognac/external/lz4/lib)
-    add_library(lz4 STATIC IMPORTED)
-    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION kognac/external/lz4/lib/liblz4.a)
-ELSE()
-    include_directories(lz4h)
-    message("-- Found LZ4")
-ENDIF()
-
 #KOGNAC
 IF(KOGNAC_LIB)
     message("Using KOGNAC provided installation: ${KOGNAC_LIB} ${KOGNAC_INC}")
     include_directories(${KOGNAC_INC})
-    add_library(kognac SHARED IMPORTED)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${KOGNAC_LIB}/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    LINK_DIRECTORIES("${KOGNAC_LIB}/")
+    add_library(kognac-core SHARED IMPORTED)
 ELSE()
     ExternalProject_Add(git-kognac
         DOWNLOAD_COMMAND git clone https://github.com/karmaresearch/kognac.git
@@ -117,11 +98,35 @@ ELSE()
         )
     ExternalProject_Get_Property(git-kognac SOURCE_DIR)
     include_directories(${SOURCE_DIR}/include)
-    add_library(kognac STATIC IMPORTED)
-    add_dependencies(kognac git-kognac)
-    set_property(TARGET kognac PROPERTY IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/kognac/${CMAKE_SHARED_LIBRARY_PREFIX}kognac${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    LINK_DIRECTORIES("${CMAKE_BINARY_DIR}/kognac/")
+    add_library(kognac-core SHARED IMPORTED)
+    add_dependencies(kognac-core git-kognac)
+    set(KOGNAC_LIB "${CMAKE_BINARY_DIR}/kognac")
 ENDIF()
+set_property(TARGET kognac-core PROPERTY IMPORTED_LOCATION "${KOGNAC_LIB}/${CMAKE_SHARED_LIBRARY_PREFIX}kognac-core${CMAKE_SHARED_LIBRARY_SUFFIX}")
+LINK_DIRECTORIES("${KOGNAC_LIB}")
+
+#SPARSEHASH
+find_path (sparsehash sparsehash/sparse_hash_map)
+IF (${sparsehash} STREQUAL "sparsehash-NOTFOUND")
+    message("Could not find sparsehash. I'm going to use the version from kognac ...")
+    include_directories(${KOGNAC_LIB}/external/sparsehash/src/)
+ENDIF()
+
+#LZ4
+# find_library(lz4 lz4)
+# find_path (lz4h lz4.h)
+# IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
+#     message("Could not find LZ4. I'm going to use the version from kognac")
+    message("using the lz4 version from kognac")
+    set(LZ4_LIB "${KOGNAC_LIB}/external/lz4/lib")
+    include_directories(${LZ4_LIB})
+    LINK_DIRECTORIES(${LZ4_LIB})
+    add_library(lz4 STATIC IMPORTED)
+    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION "${LZ4_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}")
+# ELSE()
+# include_directories(lz4h)
+# message("-- Found LZ4")
+# ENDIF()
 
 #Create the core library
 include_directories(include/ rdf3x/include)
@@ -142,7 +147,7 @@ find_package(Threads REQUIRED)
 if (THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC trident-core "-pthread")
 endif()
-TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac lz4)
+TARGET_LINK_LIBRARIES(trident-core ${ZLIB_LIBRARIES} kognac-core lz4)
 if (CMAKE_THREAD_LIBS_INIT)
     target_link_libraries(trident-core "${CMAKE_THREAD_LIBS_INIT}")
 endif()
@@ -161,7 +166,7 @@ IF(SPARQL)
         "rdf3x/src/*.cpp")
     add_library(trident-sparql SHARED ${sparql_SRC})
     set_target_properties(trident-sparql PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-sparql kognac trident-core)
+    TARGET_LINK_LIBRARIES(trident-sparql kognac-core trident-core)
     TARGET_LINK_LIBRARIES(trident trident-sparql)
 ENDIF()
 
@@ -173,7 +178,7 @@ IF(ML)
         src/trident/mining/miner.cpp)
     add_library(trident-ml SHARED ${ml_SRC})
     set_target_properties(trident-ml PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-ml kognac trident-core)
+    TARGET_LINK_LIBRARIES(trident-ml kognac-core trident-core)
     TARGET_LINK_LIBRARIES(trident trident-ml)
 ENDIF()
 
@@ -211,7 +216,7 @@ if (ANALYTICS)
 
     add_library(trident-ana SHARED ${analytics_SRC})
     set_target_properties(trident-ana PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-ana kognac trident-core snap ${rt})
+    TARGET_LINK_LIBRARIES(trident-ana kognac-core trident-core snap ${rt})
     TARGET_LINK_LIBRARIES(trident trident-ana)
 ENDIF()
 
@@ -224,7 +229,7 @@ IF (SERVER)
 
     add_library(trident-web SHARED ${webserver_SRC})
     set_target_properties(trident-web PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-web kognac trident-core trident-sparql)
+    TARGET_LINK_LIBRARIES(trident-web kognac-core trident-core trident-sparql)
     TARGET_LINK_LIBRARIES(trident trident-web)
 ENDIF()
 
