@@ -15,9 +15,6 @@
 
 #include "../src/utils/stringscol.h"
 
-#include <boost/chrono.hpp>
-#include <boost/filesystem.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -26,17 +23,12 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
-namespace fs = boost::filesystem;
 
 void newCompressTriples(ParamsNewCompressProcedure params) {
 
 //Read the file in input
 	string in = params.inNames[params.part];
-	fs::path pFile(in);
-	fs::path pNewFile = pFile;
-	pNewFile.replace_extension(to_string(params.itrN));
-	string newFile = pNewFile.string();
+	string newFile = Utils.removeLastExtension(in) + "." + to_string(params.itrN);
 	int64_t compressedTriples = 0;
 	int64_t compressedTerms = 0;
 	int64_t uncompressedTerms = 0;
@@ -46,27 +38,27 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 	int nextPos = -1;
 	int64_t nextTerm = -1;
 	if (params.uncommonTermsFile != NULL) {
-		BOOST_LOG_TRIVIAL(debug)<< "I'm going to use " << *(params.uncommonTermsFile) << " to process the unfrequent terms";
+		LOG(DEBUGL)<< "I'm going to use " << *(params.uncommonTermsFile) << " to process the unfrequent terms";
 		uncommonTermsReader = new LZ4Reader(*(params.uncommonTermsFile));
 		if (!uncommonTermsReader->isEof()) {
 			int64_t tripleId = uncommonTermsReader->parseLong();
 			nextTripleId = tripleId >> 2;
 			nextPos = tripleId & 0x3;
 			nextTerm = uncommonTermsReader->parseLong();
-			BOOST_LOG_TRIVIAL(debug) << "First triple is " << nextTripleId << " " << nextPos;
+			LOG(DEBUGL) << "First triple is " << nextTripleId << " " << nextPos;
 		} else {
-			BOOST_LOG_TRIVIAL(warning)<< "The file " << *(params.uncommonTermsFile) << " is empty";
+			LOG(WARNINGL)<< "The file " << *(params.uncommonTermsFile) << " is empty";
 		}
 	} else {
-		BOOST_LOG_TRIVIAL(debug) << "No uncommon file is provided";
+		LOG(DEBUGL) << "No uncommon file is provided";
 	}
 
 	int64_t currentTripleId = params.part;
 	int increment = params.parallelProcesses;
-	BOOST_LOG_TRIVIAL(debug)<<"My partition " << currentTripleId << " increment " << increment;
+	LOG(DEBUGL)<<"My partition " << currentTripleId << " increment " << increment;
 
-	if (fs::exists(pFile) && fs::file_size(pFile) > 0) {
-		LZ4Reader r(pFile.string());
+	if (Utils::exists(in) && Utils::fileSize(in) > 0) {
+		LZ4Reader r(in);
 		LZ4Writer w(newFile);
 
 		int64_t triple[3];
@@ -112,7 +104,7 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 							nextPos = tripleId & 0x3;
 							nextTerm = uncommonTermsReader->parseLong();
 						} else {
-							BOOST_LOG_TRIVIAL(debug)<< "nexTripleId=" << nextTripleId << " pos " << nextPos << " was the last element of uncommon file";
+							LOG(DEBUGL)<< "nexTripleId=" << nextTripleId << " pos " << nextPos << " was the last element of uncommon file";
 						}
 						compressedTerms++;
 					} else {
@@ -182,19 +174,19 @@ void newCompressTriples(ParamsNewCompressProcedure params) {
 
 		if (uncommonTermsReader != NULL) {
 			if (!(uncommonTermsReader->isEof())) {
-				BOOST_LOG_TRIVIAL(error)<< "There are still elements to read in the uncommon file";
+				LOG(ERRORL)<< "There are still elements to read in the uncommon file";
 			}
 			delete uncommonTermsReader;
 		}
 		delete[] tTriple;
 	} else {
-		BOOST_LOG_TRIVIAL(warning)<< "The file " << in << " does not exist or is empty";
+		LOG(WARNINGL)<< "The file " << in << " does not exist or is empty";
 	}
 
-	BOOST_LOG_TRIVIAL(debug)<< "Compressed triples " << compressedTriples << " compressed terms " << compressedTerms << " uncompressed terms " << uncompressedTerms;
+	LOG(DEBUGL)<< "Compressed triples " << compressedTriples << " compressed terms " << compressedTerms << " uncompressed terms " << uncompressedTerms;
 
 	//Delete the input file and replace it with a new one
-//	fs::remove(pFile);
+//	Utils::remove(in);
 	params.inNames[params.part] = newFile;
 }
 
@@ -253,5 +245,5 @@ int main(int argc, const char** argv) {
 	loadMap(uncommonMap, files, len, col);
 
 	newCompressTriples(params);
-	BOOST_LOG_TRIVIAL(debug)<< "finished";
+	LOG(DEBUGL)<< "finished";
 }

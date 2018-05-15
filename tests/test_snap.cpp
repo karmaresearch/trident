@@ -1,5 +1,3 @@
-#include <boost/chrono.hpp>
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -8,9 +6,7 @@
 
 
 #include <Snap.h>
-#include <boost/lexical_cast.hpp>
 
-namespace timens = boost::chrono;
 using namespace std;
 
 int main(int argc, const char** argv) {
@@ -77,7 +73,7 @@ int main(int argc, const char** argv) {
     std::ifstream ifs(string(argsMod.CStr()));
     std::string line;
     while (std::getline(ifs, line)) {
-        int v = boost::lexical_cast<int>(line);
+        int v = std::stoi(line);
         Values.Add(v);
         InputNodes.push_back(v);
     }
@@ -92,8 +88,8 @@ int main(int argc, const char** argv) {
     std::vector<std::pair<int64_t, int64_t>> pairs;
     while (std::getline(ifs2, line)) {
         auto pos = line.find('\t');
-        int64_t v1 = boost::lexical_cast<int64_t>(line.substr(0, pos));
-        int64_t v2 = boost::lexical_cast<int64_t>(line.substr(pos+1, line.size()));
+        int64_t v1 = (uint64_t) std::stoll(line.substr(0, pos));
+        int64_t v2 = (uint64_t) std::stoll(line.substr(pos+1, line.size()));
         pairs.push_back(std::make_pair(v1, v2));
     }
     ifs2.close();

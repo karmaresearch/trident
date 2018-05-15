@@ -5,7 +5,7 @@
  *      Author: jacopo
  */
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 #include "../src/sparql/plan.h"
 #include "../src/sparql/executor.h"
@@ -14,7 +14,7 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 int test1(int argc, const char** argv) {
 
@@ -39,7 +39,7 @@ int test1(int argc, const char** argv) {
 
 	timens::system_clock::time_point start = timens::system_clock::now();
 	exec->executeJoin(&plan, true, true);
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 			- start;
 	cout << "Cold runtime = " << sec.count() * 1000 << " milliseconds\n";
 
@@ -48,7 +48,7 @@ int test1(int argc, const char** argv) {
 	for (int i = 0; i < times; ++i) {
 		exec->executeJoin(&plan, false, true);
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	std::cout << "Warm runtime = " << (sec.count() / times) * 1000
 			<< " milliseconds\n";
 
@@ -70,8 +70,8 @@ int test1(int argc, const char** argv) {
 //		printf("Pair %ld %ld\n", v1, v2);
 //	}
 
-//	boost::chrono::system_clock::time_point start =
-//			boost::chrono::system_clock::now();
+//	std::chrono::system_clock::time_point start =
+//			std::chrono::system_clock::now();
 //	for (int i = 0; i < 100; ++i) {
 //		itr.init(s, 0, 135, handler, 26620, -1);
 //		while (itr.has_next()) {
@@ -79,7 +79,7 @@ int test1(int argc, const char** argv) {
 //		}
 //	}
 //
-//	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+//	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 //			- start;
 //	std::cout << "took " << sec.count() << " seconds\n";
 //	delete s;

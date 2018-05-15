@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 
 #include <trident/tree/root.h>
@@ -8,7 +8,6 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
 
@@ -43,8 +42,8 @@ int main(int argc, const char** argv) {
 	Root *root = new Root("/Users/jacopo/Desktop/tree", NULL, false, config);
 
 	//Populate the tree
-	boost::chrono::system_clock::time_point start =
-				boost::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start =
+				std::chrono::system_clock::now();
 	cout << "Start inserting" << endl;
 	for (int i = 0; i < n; i++) {
 		if (i % 1000000 == 0) {
@@ -59,7 +58,7 @@ int main(int argc, const char** argv) {
         root->put((int64_t)i, (int64_t)0);
     }
 
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 				- start;
 		cout << "Duration insertion " << sec.count() * 1000 << endl;
 

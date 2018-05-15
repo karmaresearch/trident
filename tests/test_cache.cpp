@@ -1,12 +1,11 @@
-#include <boost/chrono.hpp>
-
+#include <chrono>
 #include <sstream>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <cstdlib>
 
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 using namespace std;
 
 int main(int argc, const char** argv) {
@@ -38,7 +37,7 @@ int main(int argc, const char** argv) {
             fakeSum += values[idx];
             //fakeSum += values2[idx];
         }
-        boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
 
         std::vector<size_t> idsToSearch;
         for (int j = 0; j < 1000; ++j) {
@@ -58,7 +57,7 @@ int main(int argc, const char** argv) {
             }
             found += (itrP != vector1.end() && *itrP == vector1[*itr]) ? 1 : 0;
         }
-        boost::chrono::duration<double> linearSec = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> linearSec = std::chrono::system_clock::now() - start;
 
         //Search with binary search
         start = timens::system_clock::now();
@@ -66,7 +65,7 @@ int main(int argc, const char** argv) {
                 itr != idsToSearch.end(); ++itr) {
             found += (std::binary_search(vector1.begin(), vector1.end(), vector1[*itr])) ? 1 : 0;
         }
-        boost::chrono::duration<double> binarySec = boost::chrono::system_clock::now() - start;
+        std::chrono::duration<double> binarySec = std::chrono::system_clock::now() - start;
 
         cout << i << "\t" << sec.count() * 1000 << "\t" << linearSec.count() * 1000 << "\t" << binarySec.count() * 1000 << endl;
     }

@@ -1,5 +1,3 @@
-#include <boost/chrono.hpp>
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -9,7 +7,6 @@
 #include <trident/ml/transe.h>
 #include <trident/ml/embeddings.h>
 
-namespace timens = boost::chrono;
 using namespace std;
 
 #define DIMS 50

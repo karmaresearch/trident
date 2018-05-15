@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 #include "../src/tree/root.h"
 #include "../src/tree/stringbuffer.h"
@@ -8,7 +8,7 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 void fillArray(char **array, int *size, int sizeArray, int sizeString) {
 	const char *URIs[] = { "<http://very_long_domain1.com/",

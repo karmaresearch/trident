@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 #include "../src/kb/kb.h"
 #include "../src/kb/inserter.h"
@@ -9,7 +9,7 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 class MyTreeInserter: public TreeInserter {
 private:
@@ -60,8 +60,8 @@ int main(int argc, const char** argv) {
 	Inserter *ins = kb->insert();
 
 	//Populate the tree
-	boost::chrono::system_clock::time_point start =
-			boost::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start =
+			std::chrono::system_clock::now();
 	cout << "Start inserting" << endl;
 	MyTreeInserter tins(ins);
 	for (int i = 0; i < n; i += 3) {
@@ -72,7 +72,7 @@ int main(int argc, const char** argv) {
 	}
 
 	ins->flush(0, NULL, tins);
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 			- start;
 	cout << "Duration insertion " << sec.count() / 1000 << endl;
 

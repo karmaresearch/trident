@@ -1,6 +1,3 @@
-#include <boost/chrono.hpp>
-
-
 #include <trident/kb/querier.h>
 #include <trident/kb/kb.h>
 
@@ -10,9 +7,7 @@
 #include <vector>
 #include <cstdlib>
 #include <thread>
-#include <boost/log/trivial.hpp>
 
-namespace timens = boost::chrono;
 using namespace std;
 
 

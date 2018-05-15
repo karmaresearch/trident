@@ -1,15 +1,12 @@
 #include "../src/utils/lz4io.h"
 #include "../src/compression/compressor.h"
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
 

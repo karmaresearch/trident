@@ -2,10 +2,6 @@
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
-#include <boost/chrono.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include <kognac/diskreader.h>
 #include <kognac/disklz4writer.h>
@@ -28,12 +24,11 @@
 #include <kognac/sorter.h>
 #include <kognac/filemerger.h>
 #include <kognac/filemerger2.h>
+#include <kognac/logs.h>
 
 #include <trident/loader.h>
 
 using namespace std;
-namespace timens = boost::chrono;
-namespace fs = boost::filesystem;
 
 void generateNewPerm_seq(MultiDiskLZ4Reader *reader,
         MultiDiskLZ4Writer *writer,
@@ -51,9 +46,9 @@ void generateNewPerm_seq(MultiDiskLZ4Reader *reader,
         	triple[2] = t.o;
 		count++;
 		if (count >= 126626764)
-			BOOST_LOG_TRIVIAL(debug) << "Read " << count << " " << idx;
+			LOG(DEBUGL) << "Read " << count << " " << idx;
     	}
-BOOST_LOG_TRIVIAL(debug) << "End thread";
+LOG(DEBUGL) << "End thread";
 }
 
 void generateNewPerm(string outputdir,
@@ -64,10 +59,9 @@ void generateNewPerm(string outputdir,
         int parallelProcesses,
         int maxReadingThreads) {
     //Read all files in the the directory.
-    BOOST_LOG_TRIVIAL(debug) << "Start process generating new permutation";
-    fs::path pInput(inputdir);
-    if (fs::is_directory(pInput)) {
-        auto files = Utils::getFiles(pInput.string());
+    LOG(DEBUGL) << "Start process generating new permutation";
+    if (Utils::isDirectory(inputDir)) {
+        auto files = Utils::getFiles(inputDir);
         std::vector<std::vector<string>> chunks(parallelProcesses);
         int idx = 0;
         for (auto f : files) {
@@ -97,14 +91,14 @@ void generateNewPerm(string outputdir,
             writers[i] = new MultiDiskLZ4Writer(outputchunk, 3, 4);
         }
         //Start threads
-        boost::thread *threads = new boost::thread[parallelProcesses];
+        std::thread *threads = new std::thread[parallelProcesses];
         for(int i = 0; i < 8; i+=2) {
             int idx1 = i % maxReadingThreads;
             int idx2 = i / maxReadingThreads;
             MultiDiskLZ4Reader *reader = readers[idx1];
             MultiDiskLZ4Writer *writer = writers[idx1];
 	if (i == 6)
-            threads[i] = boost::thread(generateNewPerm_seq,
+            threads[i] = std::thread(generateNewPerm_seq,
                     reader,
                     writer,
                     idx2,
@@ -116,7 +110,7 @@ void generateNewPerm(string outputdir,
             threads[i].join();
         }
 
-	BOOST_LOG_TRIVIAL(debug) << "Going to delete the readers";
+	LOG(DEBUGL) << "Going to delete the readers";
         for(int i = 0; i < maxReadingThreads; ++i) {
             delete readers[i];
             delete writers[i];
@@ -125,7 +119,7 @@ void generateNewPerm(string outputdir,
         delete[] writers;
         delete[] threads;
     }
-    BOOST_LOG_TRIVIAL(debug) << "Finished";
+    LOG(DEBUGL) << "Finished";
 }
 
 int main(int argc, const char** argv) {

@@ -12,7 +12,6 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
         //Initialize the tree

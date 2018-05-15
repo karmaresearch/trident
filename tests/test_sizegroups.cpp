@@ -1,37 +1,11 @@
-#include "../src/storage/pairstorage.h"
-#include "../src/tree/root.h"
-#include "../src/kb/consts.h"
-#include "../src/kb/kbconfig.h"
-#include "../src/kb/memoryopt.h"
-#include "../src/kb/querier.h"
-#include "../src/storage/storagestrat.h"
-
-#include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-
-namespace logging = boost::log;
+#include <trident/tree/root.h>
+#include <trident/kb/consts.h>
+#include <trident/kb/kbconfig.h>
+#include <trident/kb/memoryopt.h>
+#include <trident/kb/querier.h>
+#include <trident/binarytables/storagestrat.h>
 
 int main(int argc, char **argv) {
-
-    logging::add_common_attributes();
-    logging::add_console_log(std::cerr,
-                             logging::keywords::format =
-                                 (logging::expressions::stream << "["
-                                  << logging::expressions::attr <
-                                  boost::log::attributes::current_thread_id::value_type > (
-                                      "ThreadID") << " "
-                                  << logging::expressions::format_date_time <
-                                  boost::posix_time::ptime > ("TimeStamp",
-                                          "%H:%M:%S") << " - "
-                                  << logging::trivial::severity << "] "
-                                  << logging::expressions::smessage));
-    boost::shared_ptr<logging::core> core = logging::core::get();
-
-
 
     //Init
     KBConfig config;
