@@ -87,6 +87,10 @@ class TUNode {
             return SnapReaders::readers[strat];
         }
 
+        SnapReaders::pReader GetInReader() const {
+	    return GetOutReader();
+	}
+
         int GetOutLenField() const {
             const uint8_t strat = rawblock[10];
             const char nbytes1 = (strat >> 3) & 3;
