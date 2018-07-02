@@ -1,5 +1,3 @@
-#include <boost/chrono.hpp>
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -13,7 +11,6 @@
 
 #define DIMS 50
 
-namespace timens = boost::chrono;
 using namespace std;
 
 int main(int argc, const char** argv) {

@@ -2,10 +2,6 @@
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
-#include <boost/chrono.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include <kognac/diskreader.h>
 #include <kognac/disklz4writer.h>
@@ -28,11 +24,10 @@
 #include <kognac/sorter.h>
 #include <kognac/filemerger.h>
 #include <kognac/filemerger2.h>
+#include <kognac/logs.h>
 
 
 using namespace std;
-namespace timens = boost::chrono;
-namespace fs = boost::filesystem;
 
 void sortPart(ParamsSortPartition params) {
     string prefixInputFiles = params.prefixInputFiles;
@@ -45,19 +40,18 @@ void sortPart(ParamsSortPartition params) {
 
     std::vector<string> filesToSort;
 
-    fs::path parentDir = fs::path(prefixInputFiles).parent_path();
-    fs::directory_iterator ei;
-    for (fs::directory_iterator diter(parentDir); diter != ei; ++diter) {
-        if (fs::is_regular_file(diter->status())) {
-            auto pfile = diter->path();
-            if (boost::algorithm::contains(pfile.string(), "range")) {
-                if (pfile.has_extension()) {
-                    string ext = pfile.extension().string();
+    string parentDir = Utils::parentDir(prefixInputFiles);
+    std::vector<string> children = Utils::getFiles(parentDir);
+    for (auto pfile : children) {
+        if (Utils::isFile(pfile)) {
+            if (Utils::contains(pfile, "range")) {
+                if (Utils::hasExtension(pfile)) {
+                    string ext = Utils.extension(pfile);
                     if (ext == string(".") + to_string(part)) {
-                        if (fs::file_size(pfile.string()) > 0) {
-                            filesToSort.push_back(pfile.string());
+                        if (UtilsSfile_size() > 0) {
+                            filesToSort.push_back(pfile);
                         } else {
-                            fs::remove(pfile.string());
+                            Utils::remove(pfile);
                         }
                     }
                 }
@@ -89,7 +83,7 @@ void sortPart(ParamsSortPartition params) {
         if ((bytesAllocated +
                     (sizeof(SimplifiedAnnotatedTerm) * tuples.size()))
                 >= maxMem) {
-            BOOST_LOG_TRIVIAL(debug) << "Dumping file " << idx << " with " << tuples.size() << " tuples ...";
+            LOG(DEBUGL) << "Dumping file " << idx << " with " << tuples.size() << " tuples ...";
 
             string ofile = outputFile + string(".") + to_string(idx);
             idx++;
@@ -141,7 +135,7 @@ void sortPart(ParamsSortPartition params) {
                 sortedFiles.push_back(ofile);
             }
 
-        BOOST_LOG_TRIVIAL(debug) << "Number of prefixes " << prefixset.size();
+        LOG(DEBUGL) << "Number of prefixes " << prefixset.size();
 }
 
 void mergePart(ParamsSortPartition params) {
@@ -159,19 +153,18 @@ void mergePart(ParamsSortPartition params) {
     	std::vector<string> sortedFiles;
 	int partId = params.part;
 	string outputFile = params.prefixIntFiles + "tmp";
-    fs::path parentDir = fs::path(prefixInputFiles).parent_path();
-    fs::directory_iterator ei;
-    for (fs::directory_iterator diter(parentDir); diter != ei; ++diter) {
-        if (fs::is_regular_file(diter->status())) {
-            auto pfile = diter->path();
-            if (boost::algorithm::contains(pfile.string(), outputFile)) {
-                            sortedFiles.push_back(pfile.string());
+	string parentDir = Utils::parentDir(prefixInputFiles);
+	std::vector<string> children = Utils::getFiles(parentDir);
+	for (auto pfile : children) {
+	    if (Utils::isFile(pfile)) {
+            if (Utils::contains(pfile, outputFile)) {
+                            sortedFiles.push_back(pfile);
             }
         }
     }
 	
 
-        BOOST_LOG_TRIVIAL(debug) << "Merge " << sortedFiles.size()
+        LOG(DEBUGL) << "Merge " << sortedFiles.size()
                 << " files in order to sort the partition";
 
             while (sortedFiles.size() >= 4) {
@@ -210,11 +203,11 @@ void mergePart(ParamsSortPartition params) {
                 //Remove them
                 sortedFiles.push_back(ofile);
                 for (auto f : batchFiles) {
-                    fs::remove(fs::path(f));
+                    Utils::remove(f);
                     sortedFiles.erase(sortedFiles.begin());
                 }
             }
-            BOOST_LOG_TRIVIAL(debug) << "Final merge";
+            LOG(DEBUGL) << "Final merge";
 
             const char *prevPrefix = NULL;
             char *previousTerm = new char[MAX_TERM_SIZE];
@@ -271,7 +264,7 @@ int main(int argc, const char** argv) {
 	int64_t maxMem = (int64_t)10521374418;
 
         std::vector<uint64_t> counters(partitions);
-        std::vector<boost::thread> threads(partitions);
+        std::vector<std::thread> threads(partitions);
         std::vector<string> outputfiles;
 	DiskLZ4Writer **writers = new DiskLZ4Writer*[maxReadingThreads];
         MultiDiskLZ4Writer **dictwriters = new MultiDiskLZ4Writer*[maxReadingThreads];
@@ -311,7 +304,7 @@ int main(int argc, const char** argv) {
             params.counter = &counters[i];
             params.maxMem = maxMem;
 
-            threads[i] = boost::thread(boost::bind(mergePart, params));
+            threads[i] = std::thread(std::bind(mergePart, params));
         }
         for (int i = 0; i < partitions; ++i) {
             threads[i].join();

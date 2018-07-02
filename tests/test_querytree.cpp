@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 #include "../src/tree/root.h"
 #include "../src/tree/coordinates.h"
@@ -10,7 +10,7 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 int main(int argc, const char** argv) {
 
@@ -47,8 +47,8 @@ int main(int argc, const char** argv) {
 	string path(argv[1]);
 	Root *root = new Root(path, NULL, true, map);
 
-	boost::chrono::system_clock::time_point start =
-				boost::chrono::system_clock::now();	
+	std::chrono::system_clock::time_point start =
+				std::chrono::system_clock::now();	
 	int64_t nElements = 0;
 	TermCoordinates currentValue;
 	for(int i = 0; i < 1000000; ++i) {
@@ -56,7 +56,7 @@ int main(int argc, const char** argv) {
 			nElements += currentValue.getNElements(0);	
 		}
 	}
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 				- start;
 	cout << "Duration " << sec.count() * 1000 << " " << nElements << endl;
 	delete root;

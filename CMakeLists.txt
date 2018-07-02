@@ -8,8 +8,8 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-# set(CMAKE_CXX_COMPILER "g++")
-# set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_C_COMPILER "gcc")
 
 project (Trident)
 include(ExternalProject)
@@ -236,6 +236,7 @@ ENDIF()
 #Create Python library
 IF(PYTHON)
     include(FindPkgConfig)
+    set(Python_ADDITIONAL_VERSIONS 3.5)
     pkg_check_modules(PY3 REQUIRED QUIET python3)
     IF(PY3_FOUND)
         INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <list>
+#include <chrono>
 #include <sparsehash/dense_hash_map>
-#include <boost/chrono.hpp>
 
 struct eqint {
 	bool operator()(int i1, int i2) const {
@@ -13,7 +13,7 @@ typedef std::list<int> mylist;
 typedef google::dense_hash_map<int, mylist::iterator, std::hash<int> , eqint> map;
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 int main(int argc, const char** args) {
 	//Testing
@@ -26,7 +26,7 @@ int main(int argc, const char** args) {
 		unsigned int key = random() % 10;
 		m.insert(make_pair(key, l.insert(l.end(), i)));
 	}
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 			- start;
 	cout << "Time insert " << m.size() << ": " << (sec.count() * 1000) << " ms"
 			<< endl;
@@ -57,6 +57,6 @@ int main(int argc, const char** args) {
 		}
 		cout << endl;
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Time querying: " << (sec.count() * 1000) << " ms " << endl;
 }

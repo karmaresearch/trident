@@ -11,7 +11,6 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 class MyTreeInserter: public TreeInserter {
 private:

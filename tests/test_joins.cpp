@@ -8,15 +8,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <boost/filesystem.hpp>
-
-#include <boost/log/trivial.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
 
 #include "../src/kb/kb.h"
 #include "../src/main/loader.h"
@@ -27,8 +18,6 @@
 #include "../src/kb/kbconfig.h"
 
 using namespace std;
-namespace fs = boost::filesystem;
-namespace logging = boost::log;
 
 void loadDB(string file, string kbDir) {
 	Loader loader;
@@ -269,8 +258,8 @@ int testTwoJoinsQueryAndTest(int pos1, int pos2, int pos3, int pos4, std::vector
     
 	cout << "*** OK" << endl;
     
-	fs::remove(queryFile);
-	fs::remove(queryFile + string(".results"));
+	Utils::remove(queryFile);
+	Utils::remove(queryFile + string(".results"));
 	delete q;
 	return 0;
 }
@@ -365,8 +354,8 @@ int testOneJoinQueryAndTest(int pos1, int pos2, int posConstA1, int posConstA2,
     
 	cout << "*** OK" << endl;
     
-	fs::remove(queryFile);
-	fs::remove(queryFile + string(".results"));
+	Utils::remove(queryFile);
+	Utils::remove(queryFile + string(".results"));
 	delete q;
 	return 0;
 }
@@ -377,14 +366,13 @@ int testOneJoin(string dir, int pos1, int pos2, int size1, int size2,
 	string filePath = dir + string("/inputOneJoin-") + to_string(pos1)
     + string("-") + to_string(pos2) + string(".nt");
 	string kbDir = dir + string("/kb");
-	fs::create_directories(fs::path(kbDir));
+	Utils::create_directories(kbDir);
     
 	std::vector<string> results = createOneJoinInput(filePath, pos1, pos2,
                                                      size1, size2, posConstA1, posConstA2, posConstB1, posConstB2);
     
 	//Load the input in the database
-	boost::shared_ptr<logging::core> core = logging::core::get();
-	core->set_filter(logging::trivial::severity >= logging::trivial::warning);
+	Logger::setMinLevel(WARNINGL);
 	loadDB(filePath, kbDir);
     
 	//Query it and check the results
@@ -395,8 +383,8 @@ int testOneJoin(string dir, int pos1, int pos2, int size1, int size2,
 	}
     
 	//Delete everything
-	fs::remove(fs::path(filePath));
-	fs::remove_all(fs::path(kbDir));
+	Utils::remove(filePath);
+	Utils::remove_all(kbDir);
 	return 0;
 }
 
@@ -471,13 +459,12 @@ int testTwoJoins(string dir, int size1, int size2, int pos1, int pos2, int pos3,
 	string filePath = dir + string("/inputTwoJoins-") + to_string(pos1)
     + string("-") + to_string(pos2) + string(".nt");
 	string kbDir = dir + string("/kb");
-	fs::create_directories(fs::path(kbDir));
+	Utils::create_directories(kbDir);
     
 	std::vector<string> results = createTwoJoinsInput(filePath, size1, size2, pos1, pos2, pos3, pos4);
     
 	//Load the input in the database
-	boost::shared_ptr<logging::core> core = logging::core::get();
-	core->set_filter(logging::trivial::severity >= logging::trivial::warning);
+	Logger::setMinLevel(WARNINGL);
 	loadDB(filePath, kbDir);
     
 	//Query it and check the results
@@ -487,8 +474,8 @@ int testTwoJoins(string dir, int size1, int size2, int pos1, int pos2, int pos3,
 	}
     
 	//Delete everything
-	fs::remove(fs::path(filePath));
-	fs::remove_all(fs::path(kbDir));
+	Utils::remove(filePath);
+	Utils::remove_all(kbDir);
 	return 0;
 }
 

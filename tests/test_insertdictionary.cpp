@@ -1,7 +1,5 @@
 #include <kognac/lz4io.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -18,7 +16,6 @@
 #include <trident/tree/stringbuffer.h>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
     {

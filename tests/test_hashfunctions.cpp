@@ -1,5 +1,5 @@
 #include <iostream>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <cstdlib>
 #include "../src/tree/root.h"
 #include "../src/tree/stringbuffer.h"
@@ -8,7 +8,7 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 void fillArray(char **array, int *size, int sizeArray, int sizeString) {
 	const char *URIs[] = { "<http://very_long_domain1.com/",
@@ -74,35 +74,35 @@ int main(int argc, const char** argv) {
 	cout << "Testing speed of the dbj2 hash function" << endl;
 	int64_t counters[16];
 	init(counters);
-	boost::chrono::system_clock::time_point start =
-			boost::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start =
+			std::chrono::system_clock::now();
 	int64_t sum = 0;
 	for (int i = 0; i < n; ++i) {
 		counters[abs(Hashes::dbj2(array[i])) % 16]++;
 	}
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 			- start;
 	cout << "Time: " << sec.count() * 1000 << "ms sum=" << sum << endl;
 	print(counters);
 
 	cout << "Testing speed of the fnv1a hash function" << endl;
 	init(counters);
-	start = boost::chrono::system_clock::now();
+	start = std::chrono::system_clock::now();
 	for (int i = 0; i < n; ++i) {
 		counters[abs(Hashes::fnv1a(array[i])) % 16]++;
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Time: " << sec.count() * 1000 << "ms sum=" << sum << endl;
 	print(counters);
 
 	cout << "Testing speed of the murmum3 hash function" << endl;
 	init(counters);
-	start = boost::chrono::system_clock::now();
+	start = std::chrono::system_clock::now();
 	for (int i = 0; i < n; ++i) {
 		int hashCode = Hashes::murmur3(array[i], sizeArray[i]);
 		counters[abs(hashCode) % 16]++;
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Time: " << sec.count() * 1000 << "ms sum=" << sum << endl;
 	print(counters);
 

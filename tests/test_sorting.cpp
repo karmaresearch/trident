@@ -2,16 +2,12 @@
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
-#include <boost/chrono.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <kognac/triplewriters.h>
+#include <kognac/logs.h>
 #include <trident/loader.h>
 
 using namespace std;
-namespace timens = boost::chrono;
-namespace fs = boost::filesystem;
 
 void generateTriples(string input, int64_t n) {
    LZ4Writer writer(input);
@@ -27,7 +23,7 @@ void generateTriples(string input, int64_t n) {
                 seed = random() * 10000000000l;
             }
             if (j % 100000000 == 0)
-                BOOST_LOG_TRIVIAL(debug) << "Dumped " << j << " triples";
+                LOG(DEBUGL) << "Dumped " << j << " triples";
    }
 }
 
@@ -38,15 +34,15 @@ int main(int argc, const char** argv) {
     if (false) {
     //Generate random input
     cout << "Storing the input at " << argv[1] << endl;
-    if (fs::exists(fs::path(argv[1]))) {
-        fs::remove_all(fs::path(argv[1]));
+    if (Utils::exists(argv[1])) {
+        Utils::remove_all(argv[1]);
     }
-    fs::create_directories(fs::path(argv[1]));
+    Utils::create_directories(argv[1]);
 
-    boost::thread threads[72];
+    std::thread threads[72];
     for(int i = 0; i < 72; ++i) {
         string out = string(argv[1]) + "/input" + to_string(i);
-        threads[i] = boost::thread(generateTriples, out, n / 72);
+        threads[i] = std::thread(generateTriples, out, n / 72);
     }
     for(int i = 0; i < 72; ++i) {
         threads[i].join();
@@ -55,9 +51,9 @@ int main(int argc, const char** argv) {
     }
 
     //Sort
-    BOOST_LOG_TRIVIAL(debug) << "Start sorting";
+    LOG(DEBUGL) << "Start sorting";
     Loader::sortPermutation(string(argv[1]), 8, 72, true, 100000000000l, 30000000000l , 16);
-    BOOST_LOG_TRIVIAL(debug) << "Stop sorting";
+    LOG(DEBUGL) << "Stop sorting";
 
     return 0;
 }

@@ -11,7 +11,6 @@
 #include <fstream>
 
 using namespace std;
-namespace timens = std::chrono;
 
 int main(int argc, const char** argv) {
 

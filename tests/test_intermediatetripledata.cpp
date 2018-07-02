@@ -11,8 +11,6 @@
 #include "../src/utils/lz4io.h"
 #include "../src/utils/utils.h"
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -21,7 +19,6 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
 	LZ4Reader *reader = new LZ4Reader(argv[1]);

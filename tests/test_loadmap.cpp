@@ -2,14 +2,14 @@
 #include <list>
 #include <sparsehash/dense_hash_map>
 #include <string>
-#include <boost/chrono.hpp>
+#include <chrono>
 
-#include "../src/utils/lz4io.h"
-#include "../src/utils/stringscol.h"
-#include "../src/utils/hashmap.h"
+#include <kognac/lz4io.h>
+#include <kognac/stringscol.h>
+#include <kognac/hashmap.h>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 int main(int argc, const char** args) {
 
@@ -38,15 +38,15 @@ int main(int argc, const char** args) {
                     /*uncommonMap.insert(
                         std::make_pair(newTerm, compressedTerm));
                 } else {
-                    BOOST_LOG_TRIVIAL(error) << "This should not happen! Term " << term
+                    LOG(ERRORL) << "This should not happen! Term " << term
                                              << " was already being inserted";
                 }*/
                 countEntries++;
                 if (countEntries % 1000000 == 0) {
 		cout << "Pool size " << poolForMap.allocatedBytes() << endl;
-boost::chrono::duration<double> sec = boost::chrono::system_clock::now() - prevstart;
-boost::chrono::duration<double> totalsec = boost::chrono::system_clock::now() - start;
-prevstart = boost::chrono::system_clock::now();
+std::chrono::duration<double> sec = std::chrono::system_clock::now() - prevstart;
+std::chrono::duration<double> totalsec = std::chrono::system_clock::now() - start;
+prevstart = std::chrono::system_clock::now();
                     cout << "Loaded " << countEntries << " total time " << totalsec.count()  << " time from prev. " << sec.count() << " Load factor map " << uncommonMap.load_factor() << " n. buckets " << uncommonMap.bucket_count() << endl;
                 }
             }

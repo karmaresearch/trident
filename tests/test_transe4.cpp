@@ -1,5 +1,3 @@
-#include <boost/chrono.hpp>
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -10,16 +8,14 @@
 #include <trident/ml/embeddings.h>
 
 #include <kognac/utils.h>
-
-#include <boost/filesystem.hpp>
+#include <kognac/logs.h>
 
 #define DIMS 50
 
-namespace timens = boost::chrono;
 using namespace std;
 
 int main(int argc, const char** argv) {
-    std::unique_ptr<Transe> tr;
+    std::unique_ptr<TranseLearner> tr;
     auto files = Utils::getFiles(argv[1]);
     string parentpath = string(argv[1]);
     int64_t it = 0;
@@ -27,8 +23,8 @@ int main(int argc, const char** argv) {
         //Find the file in the array...
         bool found = false;
         string f = parentpath + "batch." + to_string(idxfile);
-        if (!boost::filesystem::exists(f)) {
-            BOOST_LOG_TRIVIAL(debug) << "File " << f << " exists";
+        if (!Utils::exists(f)) {
+            LOG(DEBUGL) << "File " << f << " exists";
             continue;
         }
         it += 1;
@@ -139,7 +135,7 @@ int main(int argc, const char** argv) {
             test = !test;
         }
         if (it == 1) {
-            tr = std::unique_ptr<Transe>(new Transe(150, nents, nrels, DIMS, 2.0, 0.1, triples.size()/3, true));
+            tr = std::unique_ptr<TranseLearner>(new TranseLearner(150, nents, nrels, DIMS, 2.0, 0.1, triples.size()/3, true));
             tr->setup(1, E_old, R_old, std::move(pe2), std::move(pr2));
         }
         tr->process_batch(io, oneg, sneg);

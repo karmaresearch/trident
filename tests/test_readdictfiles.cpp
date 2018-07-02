@@ -15,8 +15,7 @@
 
 #include "../src/utils/stringscol.h"
 
-#include <boost/chrono.hpp>
-#include <boost/filesystem.hpp>
+#include "kognac/logs.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -26,8 +25,6 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
-namespace fs = boost::filesystem;
 
 int main(int argc, const char** argv) {
 
@@ -42,5 +39,5 @@ int main(int argc, const char** argv) {
 
 
 	delete r;
-	BOOST_LOG_TRIVIAL(debug)<< "finished";
+	LOG(DEBUGL) << "finished";
 }

@@ -11,9 +11,6 @@
 #include <trident/kb/memoryopt.h>
 #include <trident/loader.h>
 
-#include <boost/chrono.hpp>
-#include <boost/log/trivial.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -22,8 +19,7 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
-
+e
 int main(int argc, const char** argv) {
     string inputP2 = argv[1];
     string inputP5 = argv[2];

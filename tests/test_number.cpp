@@ -1,6 +1,6 @@
 #include <tridentcompr/utils/utils.h>
 #include <cstdio>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <stdlib.h>
 
 #include <iostream>
@@ -22,8 +22,8 @@ int main(int argc, const char** args) {
 
     char test[9];
 
-    boost::chrono::system_clock::time_point start =
-        boost::chrono::system_clock::now();
+    std::chrono::system_clock::time_point start =
+        std::chrono::system_clock::now();
     for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
@@ -37,13 +37,13 @@ int main(int argc, const char** args) {
             break;
         }
     }
-    boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+    std::chrono::duration<double> sec = std::chrono::system_clock::now()
                                           - start;
     cout << "Duration encode long " << sec.count() * 1000 << " ms" << endl;
 
     int offset = 0;
     char test1[9];
-    start = boost::chrono::system_clock::now();
+    start = std::chrono::system_clock::now();
     for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
@@ -59,11 +59,11 @@ int main(int argc, const char** args) {
             throw 10;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     cout << "Duration encode vlong2 " << sec.count() * 1000 << " ms" << endl;
 
     offset = 0;
-    start = boost::chrono::system_clock::now();
+    start = std::chrono::system_clock::now();
     for (int64_t i = 0; i < n; ++i) {
         uint64_t key = numbers[i];
         if (i % 10000000 == 0) {
@@ -79,7 +79,7 @@ int main(int argc, const char** args) {
             throw 10;
         }
     }
-    sec = boost::chrono::system_clock::now() - start;
+    sec = std::chrono::system_clock::now() - start;
     cout << "Duration encode vlong " << sec.count() * 1000 << " ms" << endl;
 
 

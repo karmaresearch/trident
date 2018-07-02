@@ -6,8 +6,6 @@
 #include <trident/kb/memoryopt.h>
 #include <trident/loader.h>
 
-#include <boost/chrono.hpp>
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -16,13 +14,12 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 /*void sortAndInsert(int permutation, bool inputSorted, string inputDir,
                    string POSoutputDir, TreeWriter *treeWriter, Inserter *ins) {
     SimpleTripleWriter *posWriter = NULL;
 
-    BOOST_LOG_TRIVIAL(debug) << "Start inserting...";
+    LOG(DEBUGL) << "Start inserting...";
     int64_t ps, pp, po; //Previous values. Used to remove duplicates.
     ps = pp = po = -1;
     int64_t count = 0;
@@ -32,7 +29,7 @@ namespace timens = boost::chrono;
         Triple t = merger.get();
         countInput++;
         if (count % 10000000 == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "... unique " << count << " total " << countInput;
+            LOG(DEBUGL) << "... unique " << count << " total " << countInput;
         }
 
         if (t.o != po || t.p != pp || t.s != ps) {
@@ -49,7 +46,7 @@ namespace timens = boost::chrono;
         delete posWriter;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "...completed. Added " << count << " triples out of " << countInput;
+    LOG(DEBUGL) << "...completed. Added " << count << " triples out of " << countInput;
 }*/
 
 int main(int argc, const char** argv) {

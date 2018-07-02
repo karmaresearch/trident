@@ -4,6 +4,7 @@
 #include <kognac/multidisklz4reader.h>
 #include <kognac/multidisklz4writer.h>
 #include <kognac/triple.h>
+#include <kognac/logs.h>
 
 #include <trident/kb/dictmgmt.h>
 #include <trident/kb/kbconfig.h>
@@ -11,9 +12,7 @@
 #include <trident/kb/memoryopt.h>
 #include <trident/loader.h>
 
-#include <boost/chrono.hpp>
-#include <boost/log/trivial.hpp>
-
+#include <chrono>
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -22,7 +21,7 @@
 #include <string>
 
 using namespace std;
-namespace timens = boost::chrono;
+namespace timens = std::chrono;
 
 void spread(MultiDiskLZ4Reader *reader,
         int idReader,
@@ -37,7 +36,7 @@ void spread(MultiDiskLZ4Reader *reader,
         currentP = (currentP + 1) % nparts;
         count++;
         if (count % 100000000 == 0) {
-            BOOST_LOG_TRIVIAL(debug) << "Processed " << count;
+            LOG(DEBUGL) << "Processed " << count;
         }
     }
     for(int i = 0; i < nparts; ++i) {
@@ -67,9 +66,9 @@ void split(string input, int parallelProcesses, int maxReadingThreads) {
         writers[i] = new MultiDiskLZ4Writer(outputfiles, 3, 4);
     }
 
-    boost::thread *threads = new boost::thread[inputfiles.size()];
+    std::thread *threads = new std::thread[inputfiles.size()];
     for(int i = 0; i < inputfiles.size(); ++i) {
-        threads[i] = boost::thread(spread, readers[i], 0, writers[i], partsPerWriter);
+        threads[i] = std::thread(spread, readers[i], 0, writers[i], partsPerWriter);
     }
     for(int i = 0; i < inputfiles.size(); ++i) {
         threads[i].join();

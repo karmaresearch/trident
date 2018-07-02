@@ -1,6 +1,6 @@
 #include "../src/utils/utils.h"
 #include <cstdio>
-#include <boost/chrono.hpp>
+#include <chrono>
 
 int main(int argc, const char** args) {
 
@@ -9,8 +9,8 @@ int main(int argc, const char** args) {
 	int incr = 10;
 	char test[8];
 
-	boost::chrono::system_clock::time_point start =
-			boost::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start =
+			std::chrono::system_clock::now();
 	for (int64_t i = 0; i < n; i += incr) {
 		int64_t key = (int64_t) (i) + startOffset;
 		Utils::encode_vlongWithHeader1(test, key);
@@ -21,11 +21,11 @@ int main(int argc, const char** args) {
 			break;
 		}
 	}
-	boost::chrono::duration<double> sec = boost::chrono::system_clock::now()
+	std::chrono::duration<double> sec = std::chrono::system_clock::now()
 			- start;
 	cout << "Duration encode vlong1 " << sec.count() << endl;
 
-	start = boost::chrono::system_clock::now();
+	start = std::chrono::system_clock::now();
 	for (int64_t i = 0; i < n; i += incr) {
 		int64_t key = (int64_t) (i) + startOffset;
 		Utils::encode_vlongWithHeader0(test, key);
@@ -36,10 +36,10 @@ int main(int argc, const char** args) {
 			break;
 		}
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Duration encode vlong0 " << sec.count() << endl;
 
-	start = boost::chrono::system_clock::now();
+	start = std::chrono::system_clock::now();
 	for (int64_t i = 0; i < n; i += incr) {
 		int64_t key = (int64_t) (i) + startOffset;
 		Utils::encode_longWithHeader0(test, key);
@@ -49,10 +49,10 @@ int main(int argc, const char** args) {
 			break;
 		}
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Duration encode long0 " << sec.count() << endl;
 
-	start = boost::chrono::system_clock::now();
+	start = std::chrono::system_clock::now();
 	for (int64_t i = 0; i < n; i += incr) {
 		int64_t key = (int64_t) (i) + startOffset;
 		Utils::encode_longWithHeader1(test, key);
@@ -62,6 +62,6 @@ int main(int argc, const char** args) {
 			break;
 		}
 	}
-	sec = boost::chrono::system_clock::now() - start;
+	sec = std::chrono::system_clock::now() - start;
 	cout << "Duration encode long1 " << sec.count() << endl;
 }

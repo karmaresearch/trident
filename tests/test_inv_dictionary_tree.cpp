@@ -1,12 +1,10 @@
 #include <iostream>
-#include <boost/chrono.hpp>
 #include <cstdlib>
 #include "../src/tree/root.h"
 #include <sstream>
 #include <fstream>
 
 using namespace std;
-namespace timens = boost::chrono;
 
 int main(int argc, const char** argv) {
 
