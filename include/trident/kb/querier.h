@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef QUERIER_H_
@@ -133,7 +133,7 @@ class Querier {
 
         TermItr *getKBTermList(const int perm, const bool enforcePerm);
 
-		DDLEXPORT PairItr *getTermList(const int perm);
+        DDLEXPORT PairItr *getTermList(const int perm);
 
         bool existKey(int perm, int64_t key);
 
@@ -169,44 +169,44 @@ class Querier {
                 const bool constrain,
                 const bool noAggr);
 
-		DDLEXPORT PairItr *getPermuted(const int idx, const int64_t el1, const int64_t el2,
+        DDLEXPORT PairItr *getPermuted(const int idx, const int64_t el1, const int64_t el2,
                 const int64_t el3, const bool constrain);
 
-		DDLEXPORT uint64_t isAggregated(const int idx, const int64_t first, const int64_t second,
+        DDLEXPORT uint64_t isAggregated(const int idx, const int64_t first, const int64_t second,
                 const int64_t third);
 
-		DDLEXPORT uint64_t isReverse(const int idx, const int64_t first, const int64_t second,
+        DDLEXPORT uint64_t isReverse(const int idx, const int64_t first, const int64_t second,
                 const int64_t third);
 
-		DDLEXPORT uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second, const int64_t third) {
+        DDLEXPORT uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second, const int64_t third) {
             return getCardOnIndex(idx, first, second, third, false);
         }
 
-		DDLEXPORT uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second,
+        DDLEXPORT uint64_t getCardOnIndex(const int idx, const int64_t first, const int64_t second,
                 const int64_t third, bool skipLast);
 
-		DDLEXPORT int64_t getCard(const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT int64_t getCard(const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT int64_t getCard(const int64_t s, const int64_t p, const int64_t o, uint8_t pos);
 
         //uint64_t getCard(const int idx, const int64_t v);
 
-		DDLEXPORT uint64_t estCardOnIndex(const int idx, const int64_t first, const int64_t second,
+        DDLEXPORT uint64_t estCardOnIndex(const int idx, const int64_t first, const int64_t second,
                 const int64_t third);
 
-		DDLEXPORT int64_t estCard(const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT int64_t estCard(const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT bool isEmpty(const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT bool exists(const int64_t s, const int64_t p, const int64_t o);
 
-		DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
 
         char getStrategy(const int idx, const int64_t v);
 
-		DDLEXPORT int *getOrder(int idx);
+        DDLEXPORT int *getOrder(int idx);
 
-		DDLEXPORT int *getInvOrder(int idx);
+        DDLEXPORT int *getInvOrder(int idx);
 
         uint64_t getInputSize() const {
             uint64_t tot = inputSize;

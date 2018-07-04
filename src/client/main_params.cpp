@@ -29,19 +29,30 @@ void printHelp(const char *programName, string section,
     } else {
         cout << "Usage: " << programName << " <command> [options]" << endl << endl;
         cout << "Possible commands:" << endl;
-        cout << "help\t\t produce help message." << endl;
-        cout << "query\t\t query the KB using the RDF3X query optimizer and executor." << endl;
+        cout << "help\t\t\t produce help message." << endl;
+        cout << "query\t\t\t query the KB using the RDF3X query optimizer and executor." << endl;
         cout << "query_native\t\t query the KB using the experimental engine." << endl;
-        cout << "load\t\t load the KB." << endl;
-        cout << "add\t\t add triples to an existing KB." << endl;
-        cout << "rm\t\t rm triples to an existing KB." << endl;
-        cout << "lookup\t\t lookup for values in the dictionary." << endl;
+        cout << "load\t\t\t load the KB." << endl;
+        cout << "add\t\t\t add triples to an existing KB." << endl;
+        cout << "rm\t\t\t rm triples to an existing KB." << endl;
+        cout << "lookup\t\t\t lookup for values in the dictionary." << endl;
+        cout << "info\t\t\t print some information about the KB." << endl;
+        cout << "dump\t\t\t dump the graph on files." << endl;
+
+#ifdef ANALYTICS
         cout << "analytics\t\t perform analytical operations on the graph." << endl;
-        cout << "info\t\t print some information about the KB." << endl << endl;
-        cout << "dump\t\t dump the graph on files." << endl << endl;
-        cout << "learn\t\t launch an algorithm to calculate KG embeddings." << endl << endl;
-        cout << "server\t\t start a server for SPARQL queries." << endl << endl;
-        cout << vm.tostring() << endl;
+#endif
+
+#ifdef ML
+        cout << "learn\t\t\t launch an algorithm to calculate KG embeddings." << endl;
+        cout << "predict\t\t\t launch an algorithm to use KG embeddings for link prediction." << endl;
+        cout << "subcreate\t\t create embeddings of subgraphs." << endl;
+        cout << "subeval\t\t\t use embeddings of subgraphs for link prediction." << endl;
+#endif
+
+        cout << "server\t\t\t start a server for SPARQL queries." << endl << endl;
+        cout << "Type 'help command' to have an overview of the parameters for each command" << endl;
+        //cout << vm.tostring() << endl;
     }
 }
 
@@ -342,19 +353,23 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
 #ifdef ML
     /***** SUBGRAPHS *****/
-    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subeval>");
+    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval>");
     subeval_options.add<string>("", "embAlgo", "",
-            "The algorithm used to create the KG embeddings.", false);
+            "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
-            "The algorithm to use for creating the embeddings. Default is 'avg'", false);
+            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'.", false);
     subeval_options.add<string>("", "embDir", "",
-            "The directory that contains the embeddings", false);
+            "The directory that contains the embeddings of entities and relations.", false);
+    subeval_options.add<string>("", "logFile", "",
+            "The path of the file to write logs of the test.", false);
     subeval_options.add<string>("", "subFile", "",
-            "The path of the file that contains embeddings of the subgraphs", false);
+            "The path of the file that contains embeddings of the subgraphs.", false);
     subeval_options.add<string>("", "nameTest", "",
-            "The path (or name) of the dataset to use to test the performance", false);
+            "The path (or name) of the dataset to use to test the performance of the subgraph embeddings.", false);
     subeval_options.add<string>("", "formatTest", "native",
-            "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test/ Otherwise, it is a path of a file.", false);
+            "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test'. Otherwise, it is a path of a file.", false);
+    subeval_options.add<long>("", "subgraphThreshold", 10,
+            "Threshold to consider subgraphs", false);
 #endif
 
     /***** GENERAL OPTIONS *****/
@@ -382,6 +397,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     sections.insert(make_pair("learn",&ml_options));
     sections.insert(make_pair("predict",&ml_options));
     sections.insert(make_pair("subeval",&subeval_options));
+    sections.insert(make_pair("subcreate",&subeval_options));
 #endif
 
     vm.parse(argc, argv);

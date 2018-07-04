@@ -137,7 +137,7 @@ class NewColumnTable: public AbsNewTable {
 
         const char *getUnderlyingArray(uint8_t pos) {
             if (limitsSet) {
-                return NULL;
+                return currentpos2;
             }
             if (pos == 1) {
                 return startpos1;

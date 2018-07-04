@@ -41,7 +41,9 @@ class SubgraphHandler {
                 string subFile,
                 string subType,
                 string nameTest,
-                string formatTest);
+                string formatTest,
+                uint64_t threshol,
+                string writeLogs);
 
         void create(KB &kb,
                 string subType,

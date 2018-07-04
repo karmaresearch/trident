@@ -144,7 +144,9 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.evaluate(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
-            vm["nameTest"].as<string>(), vm["formatTest"].as<string>());
+            vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
+            vm["subgraphThreshold"].as<long>(),
+            vm["logFile"].as<string>());
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {

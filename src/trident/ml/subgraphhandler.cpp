@@ -137,7 +137,9 @@ void SubgraphHandler::evaluate(KB &kb,
         string subFile,
         string subType,
         string nameTest,
-        string formatTest) {
+        string formatTest,
+        uint64_t threshold,
+        string writeLogs) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -193,14 +195,38 @@ void SubgraphHandler::evaluate(KB &kb,
     char buffer[MAX_TERM_SIZE];
     const uint64_t nents = E->getN();
 
+    std::unique_ptr<ofstream> logWriter;
+    if (writeLogs != "") {
+        logWriter = std::unique_ptr<ofstream>(new ofstream());
+        logWriter->open(writeLogs, std::ios_base::out);
+        *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
+    }
+
     //Select most promising subgraphs to do the search
     LOG(INFOL) << "Test the queries ...";
-    std::vector<uint64_t> relevantSubgraphs;
+    std::vector<uint64_t> relevantSubgraphsH;
+    std::vector<uint64_t> relevantSubgraphsT;
+    uint64_t offset = testTriples.size() / 100;
+    if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
+        if (i % offset == 0) {
+            LOG(INFOL) << "***Tested " << i / 3 << " of "
+                << testTriples.size() / 3 << " queries";
+            if (i > 0) {
+                LOG(INFOL) << "***Found (H): " << counth << " (T): " << countt <<
+                    " of " << i / 3;
+                LOG(INFOL) << "***Avg (H): " << (double) sumh / counth << " (T): "
+                    << (double)sumt / countt;
+                LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
+                    " instead of " << nents * counth;
+                LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
+                    " instead of " << nents * countt;
+            }
+        }
 
         dict->getText(h, buffer);
         string sh = string(buffer);
@@ -212,15 +238,15 @@ void SubgraphHandler::evaluate(KB &kb,
 
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         selectRelevantSubGraphs(L1, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphs, 10);
-        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphs, q.get());
-        int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
+                r, t, relevantSubgraphsH, threshold);
+        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
+        int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         selectRelevantSubGraphs(L1, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                r, h, relevantSubgraphs, 10);
-        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphs, q.get());
-        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphs);
+                r, h, relevantSubgraphsT, threshold);
+        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
+        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         //Now I have the list of relevant subgraphs. It the answer in one of these?
         if (foundH >= 0) {
             counth++;
@@ -232,11 +258,36 @@ void SubgraphHandler::evaluate(KB &kb,
             sumt += foundT + 1;
             cons_comparisons_t += totalSizeT;
         }
+
+        if (logWriter) {
+            string line = to_string(h) + " " + to_string(r) + " " + to_string(t) + "\t";
+            line += to_string(foundH) + "\t" + to_string(foundT) + "\t" +
+                to_string(totalSizeH) + "\t" + to_string(totalSizeT);
+            if (foundH >= 0) {
+                auto &metadata = subgraphs->getMeta(relevantSubgraphsH[foundH]);
+                line += "\t" + to_string(metadata.t) + "\t" + to_string(metadata.rel);
+                line += "\t" + to_string(metadata.ent);
+            } else {
+                line += "\tN.A.\tN.A.\tN.A.";
+            }
+            if (foundT >= 0) {
+                auto &metadata = subgraphs->getMeta(relevantSubgraphsT[foundH]);
+                line += "\t" + to_string(metadata.t) + "\t" + to_string(metadata.rel);
+                line += "\t" + to_string(metadata.ent);
+            } else {
+                line += "\tN.A.\tN.A.\tN.A.";
+            }
+            *logWriter.get() << line << endl;
+        }
     }
     LOG(INFOL) << "Found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
     LOG(INFOL) << "Avg (H): " << (double) sumh / counth << " (T): " << (double)sumt / countt;
     LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h << " instead of " << nents * counth;
     LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t << " instead of " << nents * countt;
+
+    if (logWriter) {
+        logWriter->close();
+    }
 }
 
 void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {

@@ -178,7 +178,7 @@ class TrainWorkflow {
                                 string pathmodel = storefolder + "/model-" + to_string(epoch+1);
                                 if (Utils::exists(pathmodel)) {
                                     //If the model already exist then link it
-                                    Utils::linkdir(pathmodel, pathbestmodel);
+                                    Utils::linkdir("model-" + to_string(epoch+1), pathbestmodel);
                                 } else {
                                     tr.store_model(pathbestmodel, compresstorage, nstorethreads);
                                 }
