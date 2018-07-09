@@ -7,6 +7,10 @@ template<typename K>
 class TranseTester : public Tester<K> {
     public:
         TranseTester(std::shared_ptr<Embeddings<K>> E,
+               std::shared_ptr<Embeddings<K>> R, Querier* q) : Tester<K>(E, R, q) {
+        }
+
+        TranseTester(std::shared_ptr<Embeddings<K>> E,
                std::shared_ptr<Embeddings<K>> R) : Tester<K>(E, R) {
         }
 

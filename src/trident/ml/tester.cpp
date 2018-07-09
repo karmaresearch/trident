@@ -35,7 +35,7 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     BatchCreator::loadTriples(pathtest, testset);
 
     if (algo == "transe") {
-        TranseTester<double> tester(E,R);
+        TranseTester<double> tester(E,R, kb.query());
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
     } else {
         LOG(ERRORL) << "Not yet supported";
