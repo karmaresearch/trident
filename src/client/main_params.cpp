@@ -357,7 +357,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     subeval_options.add<string>("", "embAlgo", "",
             "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
-            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'.", false);
+            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'. (can be 'var')", false);
     subeval_options.add<string>("", "embDir", "",
             "The directory that contains the embeddings of entities and relations.", false);
     subeval_options.add<string>("", "logFile", "",

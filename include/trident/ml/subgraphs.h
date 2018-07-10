@@ -129,13 +129,11 @@ class Subgraphs {
 
 template<typename K>
 class AvgSubgraphs : public Subgraphs<K> {
-    private:
+    protected:
         std::vector<K> params;
         uint16_t dim;
         uint64_t mincard;
 
-        void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
 
     public:
         AvgSubgraphs() : dim(0), mincard(0) {}
@@ -143,6 +141,9 @@ class AvgSubgraphs : public Subgraphs<K> {
         AvgSubgraphs(uint16_t dim, uint64_t mincard) : dim(dim), mincard(mincard) {}
 
         void loadFromFile(string file);
+
+        virtual void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
@@ -169,6 +170,18 @@ class GaussianSubgraphs : public Subgraphs<K> {
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
                 std::shared_ptr<Embeddings<K>> R);
+};
+
+template<typename K>
+class VarSubgraphs : public AvgSubgraphs<K> {
+
+    public:
+        VarSubgraphs() : AvgSubgraphs<K>() {}
+
+        VarSubgraphs(uint16_t dim, uint64_t mincard) : AvgSubgraphs<K>(dim, mincard) {}
+
+        void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
 };
 
 #endif

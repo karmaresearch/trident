@@ -17,6 +17,9 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
     if (subformat == "avg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
         subgraphs->loadFromFile(subgraphsFile);
+    } else if (subformat == "var") {
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
+        subgraphs->loadFromFile(subgraphsFile);
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
         throw 10;
@@ -123,6 +126,10 @@ void SubgraphHandler::create(KB &kb,
     loadEmbeddings(embdir);
     if (subgraphType == "avg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
+        subgraphs->calculateEmbeddings(q.get(), E, R);
+        subgraphs->storeToFile(subfile);
+    } else if (subgraphType == "var") {
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
         subgraphs->calculateEmbeddings(q.get(), E, R);
         subgraphs->storeToFile(subfile);
     } else {
