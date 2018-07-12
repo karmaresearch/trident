@@ -1,5 +1,7 @@
 #include <trident/ml/subgraphhandler.h>
 #include <trident/kb/querier.h>
+#include <trident/ml/tester.h>
+#include <trident/ml/transetester.h>
 #include <trident/ml/batch.h>
 
 #include <kognac/utils.h>
@@ -200,9 +202,28 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t cons_comparisons_t = 0;
 
     char buffer[MAX_TERM_SIZE];
+    std::vector<double> scores;
     const uint64_t nents = E->getN();
+    scores.resize(nents);
+
+    TranseTester<double> tester(E, R, kb.query());
+    Embeddings<double> *pE = E.get();
+    Embeddings<double> *pR = R.get();
+    const uint16_t dime = E->getDim();
+    const uint16_t dimr = R->getDim();
+    std::vector<double> testArray(dime);
+    double *test = testArray.data();
+    std::vector<std::size_t> indices(nents);
+    std::iota(indices.begin(), indices.end(), 0u);
+    std::vector<std::size_t> indices2(nents);
+    std::iota(indices2.begin(), indices2.end(), 0u);
+    uint64_t sumDisplacementOPos = 0;
+    uint64_t sumDisplacementONeg = 0;
+    uint64_t sumDisplacementSPos = 0;
+    uint64_t sumDisplacementSNeg = 0;
 
     std::unique_ptr<ofstream> logWriter;
+
     if (writeLogs != "") {
         logWriter = std::unique_ptr<ofstream>(new ofstream());
         logWriter->open(writeLogs, std::ios_base::out);
@@ -234,6 +255,51 @@ void SubgraphHandler::evaluate(KB &kb,
                     " instead of " << nents * countt;
             }
         }
+        //===============================================================================================
+        // Code to compute displacement begins
+        // +
+
+        // Test objects
+        uint64_t displacementO = 0;
+        tester.predictO(pE->get(h), dime, pR->get(r), dimr, test);
+        for(uint64_t idx = 0; idx < nents; ++idx) {
+            scores[idx] = tester.closeness(test, pE->get(idx), dime);
+        }
+        const uint64_t posO = tester.getPos(nents, scores, indices, indices2, t) + 1;
+
+        auto itr = q->getPermuted(IDX_SPO, h, r, -1, true);
+        uint64_t countResultsO = 0;
+        while(itr->hasNext()) {
+            itr->next();
+            countResultsO++;
+        }
+        LOG(DEBUGL) << "object results = " << countResultsO;
+        if (posO > countResultsO){
+            displacementO = (posO - countResultsO);
+        }
+
+        // Test subjects
+        uint64_t displacementS = 0;
+        tester.predictS(test, pR->get(r), dimr, pE->get(t), dime);
+        for(uint64_t idx = 0; idx < nents; ++idx) {
+            scores[idx] = tester.closeness(test, pE->get(idx), dime);
+        }
+        const uint64_t posS = tester.getPos(nents, scores, indices, indices2, h) + 1;
+
+        // Order POS in IDX_POS also determines order of parameters we pass to getPermuted()
+        itr = q->getPermuted(IDX_POS, r, t, -1, true);
+        uint64_t countResultsS = 0;
+        while (itr->hasNext()) {
+            itr->next();
+            countResultsS++;
+        }
+        LOG(DEBUGL) << "subject results = " << countResultsS;
+        if (posS > countResultsS){
+            displacementS = (posS - countResultsS);
+        }
+        // -
+        // Code to compute displacement ends
+        //===============================================================================================
 
         dict->getText(h, buffer);
         string sh = string(buffer);
@@ -254,16 +320,23 @@ void SubgraphHandler::evaluate(KB &kb,
                 r, h, relevantSubgraphsT, threshold);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
-        //Now I have the list of relevant subgraphs. It the answer in one of these?
+        //Now I have the list of relevant subgraphs. Is the answer in one of these?
         if (foundH >= 0) {
             counth++;
             sumh += foundH + 1;
             cons_comparisons_h += totalSizeH;
+            sumDisplacementSPos += displacementS;
+        } else {
+            sumDisplacementSNeg += displacementS;
         }
+
         if (foundT >= 0) {
             countt++;
             sumt += foundT + 1;
             cons_comparisons_t += totalSizeT;
+            sumDisplacementOPos += displacementO;
+        } else {
+            sumDisplacementONeg += displacementO;
         }
 
         if (logWriter) {
@@ -291,6 +364,10 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Avg (H): " << (double) sumh / counth << " (T): " << (double)sumt / countt;
     LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h << " instead of " << nents * counth;
     LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t << " instead of " << nents * countt;
+    LOG(INFOL) << "Disp(O+): " << sumDisplacementOPos / testTriples.size();
+    LOG(INFOL) << "Disp(O-): " << sumDisplacementONeg / testTriples.size();
+    LOG(INFOL) << "Disp(S+): " << sumDisplacementSPos / testTriples.size();
+    LOG(INFOL) << "Disp(S-): " << sumDisplacementSNeg / testTriples.size();
 
     if (logWriter) {
         logWriter->close();
