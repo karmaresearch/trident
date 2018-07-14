@@ -123,11 +123,11 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
                 return;
             }
         }
-        if (mapparams.count("modele")) {
-            p.path_modele = mapparams["modele"];
+        if (mapparams.count("path_modele")) {
+            p.path_modele = mapparams["path_modele"];
         }
-        if (mapparams.count("modelr")) {
-            p.path_modelr = mapparams["modelr"];
+        if (mapparams.count("path_modelr")) {
+            p.path_modelr = mapparams["path_modelr"];
         }
         if (mapparams.count("nametestset")) {
             p.nametestset = mapparams["nametestset"];
