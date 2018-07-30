@@ -20,7 +20,7 @@ using namespace std;
 
 template<typename K>
 class Tester {
-    private:
+    protected:
         std::shared_ptr<Embeddings<K>> E;
         std::shared_ptr<Embeddings<K>> R;
         Querier* q;
@@ -49,8 +49,6 @@ class Tester {
             std::vector<double> scores;
             const uint64_t ne = E->getN();
             scores.resize(ne);
-            Embeddings<K> *pE = E.get();
-            Embeddings<K> *pR = R.get();
             const uint16_t dime = E->getDim();
             const uint16_t dimr = R->getDim();
             std::vector<K> testArray(dime);
@@ -80,9 +78,9 @@ class Tester {
                 start += 3;
 
                 //Test objects
-                predictO(pE->get(s), dime, pR->get(p), dimr, test);
+                predictO(s, dime, p, dimr, test);
                 for(uint64_t idx = 0; idx < ne; ++idx) {
-                    scores[idx] = closeness(test, pE->get(idx), dime);
+                    scores[idx] = closeness(test, idx, dime);
                 }
                 const uint64_t posO = getPos(ne, scores, indices, indices2, o) + 1;
                 positionsO += posO;
@@ -91,9 +89,9 @@ class Tester {
 
 
                 //Test subjects
-                predictS(test, pR->get(p), dimr, pE->get(o), dime);
+                predictS(test, p, dimr, o, dime);
                 for(uint64_t idx = 0; idx < ne; ++idx) {
-                    scores[idx] = closeness(test, pE->get(idx), dime);
+                    scores[idx] = closeness(test, idx, dime);
                 }
                 const uint64_t posS = getPos(ne, scores, indices, indices2, s) + 1;
                 positionsS += posS;
@@ -160,11 +158,11 @@ class Tester {
             return indices2[pos];
         }
 
-        virtual double closeness(K *v1, K *v2, uint16_t dim) = 0;
+        virtual double closeness(K *v1, uint64_t entity, uint16_t dim) = 0;
 
-        virtual void predictO(K *s, uint16_t dims, K *p, uint16_t dimp, K* o) = 0;
+        virtual void predictO(uint64_t sub, uint16_t dims, uint64_t pred, uint16_t dimp, K* o) = 0;
 
-        virtual void predictS(K *s, K *p, uint16_t dimp, K* o, uint16_t dimo) = 0;
+        virtual void predictS(K *s, uint64_t pred, uint16_t dimp, uint64_t obj, uint16_t dimo) = 0;
 
         std::shared_ptr<OutputTest> test(string nameTestset,
                 std::vector<uint64_t> &testset,

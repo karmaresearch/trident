@@ -1,7 +1,9 @@
 #include <trident/kb/kb.h>
 #include <trident/ml/trainworkflow.h>
 #include <trident/ml/transe.h>
+#include <trident/ml/hole.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/holetester.h>
 #include <trident/ml/distmul.h>
 #include <trident/ml/distmultester.h>
 #include <trident/ml/subgraphhandler.h>
@@ -106,6 +108,8 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
 
         if (algo == "transe") {
             TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
+        } else if (algo == "hole") {
+            TrainWorkflow<HoleLearner,HoleTester<double>>::launchLearning(kb, p);
         } else if (algo == "distmul") {
             TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p);
         } else {

@@ -2,6 +2,7 @@
 #include <trident/kb/querier.h>
 #include <trident/ml/tester.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/holetester.h>
 #include <trident/ml/batch.h>
 
 #include <kognac/utils.h>
@@ -44,6 +45,16 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     uint16_t dim = 0;
     std::unique_ptr<double> emb = NULL;
     if (embeddingAlgo == "transe") {
+        dim = dime;
+        emb = std::unique_ptr<double>(new double[dim]);
+        if (t == Subgraphs<double>::TYPE::PO) {
+            sub(emb.get(), embe, embr, dim);
+        } else {
+            add(emb.get(), embe, embr, dim);
+        }
+    } else if (embeddingAlgo == "hole") {
+        // TODO: Combine based on ccorr
+        // temporary code same as transe
         dim = dime;
         emb = std::unique_ptr<double>(new double[dim]);
         if (t == Subgraphs<double>::TYPE::PO) {
@@ -207,8 +218,6 @@ void SubgraphHandler::evaluate(KB &kb,
     scores.resize(nents);
 
     TranseTester<double> tester(E, R, kb.query());
-    Embeddings<double> *pE = E.get();
-    Embeddings<double> *pR = R.get();
     const uint16_t dime = E->getDim();
     const uint16_t dimr = R->getDim();
     std::vector<double> testArray(dime);
@@ -261,9 +270,9 @@ void SubgraphHandler::evaluate(KB &kb,
 
         // Test objects
         uint64_t displacementO = 0;
-        tester.predictO(pE->get(h), dime, pR->get(r), dimr, test);
+        tester.predictO(h, dime, r, dimr, test);
         for(uint64_t idx = 0; idx < nents; ++idx) {
-            scores[idx] = tester.closeness(test, pE->get(idx), dime);
+            scores[idx] = tester.closeness(test, idx, dime);
         }
         const uint64_t posO = tester.getPos(nents, scores, indices, indices2, t) + 1;
 
@@ -280,9 +289,9 @@ void SubgraphHandler::evaluate(KB &kb,
 
         // Test subjects
         uint64_t displacementS = 0;
-        tester.predictS(test, pR->get(r), dimr, pE->get(t), dime);
+        tester.predictS(test, r, dimr, t, dime);
         for(uint64_t idx = 0; idx < nents; ++idx) {
-            scores[idx] = tester.closeness(test, pE->get(idx), dime);
+            scores[idx] = tester.closeness(test, idx, dime);
         }
         const uint64_t posS = tester.getPos(nents, scores, indices, indices2, h) + 1;
 
