@@ -150,6 +150,7 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
+            vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>());
 }
 

@@ -27,6 +27,7 @@ class TrainWorkflow {
                 }
                 pio->q = q;
                 tr.process_batch(*pio.get(), epoch, nbatches);
+                LOG(INFOL) << "UNM$$ process batch returned !! ";
                 output->violations += pio->violations;
                 output->conflicts += pio->conflicts;
                 output->loss += pio->loss;
@@ -80,6 +81,7 @@ class TrainWorkflow {
                 }
 
                 //Start nthreads
+                LOG(INFOL) << "starting " << nthreads << " threads";
                 std::vector<std::thread> threads;
                 for(uint16_t i = 0; i < nthreads; ++i) {
                     Querier *q = queriers[i].get();
@@ -136,6 +138,8 @@ class TrainWorkflow {
                     LOG(INFOL) << "Epoch " << epoch << ". Time=" <<
                         elapsed_seconds.count() << "sec." << sviol;
                 }
+
+                // TODO: print gradients here.
 
                 if (shouldStoreModel && (epoch + 1) % storeits == 0) {
                     string pathmodel = storefolder + "/model-" + to_string(epoch+1);

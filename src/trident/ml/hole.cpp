@@ -80,6 +80,8 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     std::vector<uint32_t> violatedPositions;
     std::vector<uint64_t> allterms;
     std::vector<uint64_t> allrels;
+
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     for(uint32_t i = 0; i < sizebatch; ++i) {
         allterms.push_back(output1[i]);
         allterms.push_back(output3[i]);
@@ -99,9 +101,12 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     for(uint16_t i = 0; i < allrels.size(); ++i) {
         gradientsR.push_back(EntityGradient(allrels[i], dim));
     }
+    std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to initialize gradients = " << duration.count() * 1000 << "ms";
 
     //LOG(DEBUGL) << "UNM$$ starting the batch...";
     for(uint32_t i = 0; i < sizebatch; ++i) {
+        start = std::chrono::system_clock::now();
         uint64_t subject = output1[i];
         uint64_t predicate = output2[i];
         uint64_t object = output3[i];
@@ -144,7 +149,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
                 grn.dimensions[d] *= violatedScoreNegObj[i];
             }
 
+            std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsR, grp, grn, predicate);
+            std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
 
             // Object gradients
             EntityGradient gejp(object, dim);
@@ -159,7 +167,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
                 gejn.dimensions[d] *= violatedScoreNegObj[i];
             }
 
+            start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsE, gejp, gejn, object);
+            duration_grad = std::chrono::system_clock::now() - start_grad;
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
 
         }
         if (scorePosAll - scoreNegSub + margin > 0) {
@@ -174,7 +185,11 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
 
             // Predicate/Relation gradients
             EntityGradient grp(predicate, dim);
+            std::chrono::system_clock::time_point start_corr = std::chrono::system_clock::now();
             ccorr(sp, op, dim, grp.dimensions);
+            std::chrono::duration<double> duration_corr = std::chrono::system_clock::now() - start_corr;
+            LOG(DEBUGL) << "Time to compute CCORR = " << duration_corr.count() * 1000 << "ms";
+
             for (int d = 0; d < dim; ++d) {
                 grp.dimensions[d] *= violatedScorePosAll[i];
             }
@@ -183,7 +198,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             for (int d = 0; d < dim; ++d) {
                 grn.dimensions[d] *= violatedScoreNegObj[i];
             }
+            std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsR, grp, grn, predicate);
+            std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
 
             // Subject gradients
             EntityGradient geip(subject, dim);
@@ -197,8 +215,14 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             for (int d = 0; d < dim; ++d) {
                 gein.dimensions[d] *= violatedScoreNegSub[i];
             }
+            start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsE, geip, gein, subject);
+            duration_grad = std::chrono::system_clock::now() - start_grad;
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
         }
+
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to process sample (" << i <<")  = " << duration.count() * 1000 << "ms";
     }
 
     //Update the gradients

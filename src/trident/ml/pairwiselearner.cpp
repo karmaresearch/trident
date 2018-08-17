@@ -46,5 +46,6 @@ void PairwiseLearner::process_batch(BatchIO &io, const uint32_t epoch,
     sneg.resize(sizebatch);
     gen_random(io.q, io, sneg, true, 10);
     gen_random(io.q, io, oneg, false, 10);
+    LOG(INFOL) << "Calling proces batch with neg with epoch : " << epoch;
     process_batch_withnegs(io, oneg, sneg);
 }
