@@ -51,7 +51,8 @@ class SubgraphHandler {
         void create(KB &kb,
                 string subType,
                 string embDir,
-                string subFile);
+                string subFile,
+                uint64_t minSubgraphSize);
 
         void getAllSubgraphs(Querier *q);
 };

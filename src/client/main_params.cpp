@@ -370,6 +370,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test'. Otherwise, it is a path of a file.", false);
     subeval_options.add<long>("", "subgraphThreshold", 10,
             "Threshold to consider subgraphs", false);
+    subeval_options.add<long>("", "minSubgraphSize", 10,
+            "Threshold to consider subgraphs", false);
     subeval_options.add<double>("", "varThreshold", 0.25,
             "Threshold to consider difference between variances", false);
 #endif
