@@ -21,7 +21,7 @@ void HoleLearner::update_gradient_matrix(
             break;
         }
     }
-    assert(found == true);
+    //assert(found == true);
 }
 
 float HoleLearner::score(double* head, double* rel, double* tail) {

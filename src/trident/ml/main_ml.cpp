@@ -55,6 +55,9 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         if (mapparams.count("nthreads")) {
             p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
         }
+        if (mapparams.count("nevalthreads")) {
+            p.nevalthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nevalthreads"]);
+        }
         if (mapparams.count("nstorethreads")) {
             p.nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
         }
