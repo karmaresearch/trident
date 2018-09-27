@@ -79,6 +79,7 @@ struct LearnParams {
     uint16_t batchsize;
     bool adagrad;
     uint16_t nthreads;
+    uint16_t nevalthreads;
     uint16_t nstorethreads;
     uint32_t evalits;
     uint32_t storeits;

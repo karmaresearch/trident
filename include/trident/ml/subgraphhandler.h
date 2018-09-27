@@ -12,7 +12,26 @@ class SubgraphHandler {
 
         void loadEmbeddings(string embdir);
 
-        void loadSubgraphs(string subgraphsFile, string subFormat, double varThreshold);
+        void loadSubgraphs(string subgraphsFile,
+                string subFormat, double varThreshold);
+
+        template<typename K>
+            void getDisplacement(K &tester,
+                    double *test,
+                    uint64_t h,
+                    uint64_t t,
+                    uint64_t r,
+                    uint64_t nents,
+                    uint16_t dime,
+                    uint16_t dimr,
+                    Querier *q,
+                    //OUTPUT
+                    uint64_t &displacementO,
+                    uint64_t &displacementS,
+                    std::vector<double> &scores,
+                    std::vector<std::size_t> &indices,
+                    std::vector<std::size_t> &indices2
+                    );
 
         int64_t isAnswerInSubGraphs(uint64_t a,
                 const std::vector<uint64_t> &subgraphs, Querier *q);

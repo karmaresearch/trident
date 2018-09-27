@@ -32,7 +32,6 @@ void VarSubgraphs<double>::loadFromFile(string file) {
     dim = Utils::decode_short(buffer);
     mincard = Utils::decode_long(buffer + 2);
     long nParams = Utils::decode_long(buffer + 10);
-    LOG(INFOL) << "<<<<<< loading from file nParams = " << nParams;
     for (uint32_t i = 0; i < nParams; ++i ) {
         double param;
         ifs.read((char*)&param, sizeof(double));
@@ -56,7 +55,6 @@ void VarSubgraphs<double>::loadFromFile(string file) {
 
 template<>
 void AvgSubgraphs<double>::storeToFile(string file) {
-    LOG(INFOL) << "Avg storeTofile " << file;
     ofstream ofs(file);
     Subgraphs::storeToFile(ofs);
     char buffer[10];
@@ -72,12 +70,9 @@ void AvgSubgraphs<double>::storeToFile(string file) {
 
 template<>
 void VarSubgraphs<double>::storeToFile(string file) {
-    LOG(INFOL) << "VAR storeTofil " << file;
     ofstream ofs(file);
     Subgraphs::storeToFile(ofs);
-    LOG(INFOL) << "######  params = " << (uint64_t)params.size();
     long nParams = params.size();
-    LOG(INFOL) << "######  long nparams = " << nParams;
     char buffer[18];
     Utils::encode_short(buffer, dim);
     Utils::encode_long(buffer + 2, mincard);
@@ -162,7 +157,6 @@ template<>
 void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
         std::shared_ptr<Embeddings<double>> E,
         std::shared_ptr<Embeddings<double>> R) {
-    LOG(INFOL) << "Creating subgraph embeddings using AVG";
     const uint16_t dim = E->getDim();
     this->dim = dim;
 
@@ -177,7 +171,6 @@ void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
     q->releaseItr(itr);
     LOG(INFOL) << "Done. Added subgraphs=" << getNSubgraphs();
 }
-
 
 template<>
 void VarSubgraphs<double>::processItr(Querier *q,

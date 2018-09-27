@@ -122,8 +122,6 @@ class Subgraphs {
                 uint64_t excludeRel,
                 uint64_t excludeEnt) {
             for(size_t i = 0; i < subgraphs.size(); ++i) {
-                //LOG(INFOL) << "UNM subgraph size = " << subgraphs[i].size;
-
                 if (subgraphs[i].t == excludeType &&
                     subgraphs[i].rel == excludeRel &&
                     subgraphs[i].ent == excludeEnt) {
@@ -142,6 +140,12 @@ class Subgraphs {
                     case L5:
                         distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
                         break;
+                       // {
+                       //     double A = l1(q, i, emb, dim);
+                       //     double V = l3(q, i, emb, dim);
+                       //     distances.push_back(make_pair(A * alpha + V * (1 - alpha), i));
+                       //     break;
+                       // }
                     default:
                         LOG(ERRORL) << "Not implemented";
                         throw 10;
@@ -180,18 +184,6 @@ class AvgSubgraphs : public Subgraphs<K> {
 
         virtual void storeToFile(string file);
 
-        void calculateEmbeddings(Querier *q,
-                std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R);
-};
-
-template<typename K>
-class GaussianSubgraphs : public Subgraphs<K> {
-    private:
-        std::vector<double> mu;
-        std::vector<double> sigma;
-
-    public:
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
                 std::shared_ptr<Embeddings<K>> R);

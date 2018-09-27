@@ -18,16 +18,17 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, doub
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
         throw 10;
     }
-    /*if (subformat == "avg") {
+    if (subformat == "avg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
-        subgraphs->loadFromFile(subgraphsFile);
-    } else*/ if (subformat == "avg" || subformat == "var" || subformat == "avgvar" || subformat == "avg+var") {
+    } else if (subformat == "var" ||
+            subformat == "avgvar" ||
+            subformat == "avg+var") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>(varThreshold));
-        subgraphs->loadFromFile(subgraphsFile);
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
         throw 10;
     }
+    subgraphs->loadFromFile(subgraphsFile);
 }
 
 void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
@@ -70,7 +71,6 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         throw 10;
     }
 
-    //LOG(INFOL) << "# Subgraphs = " << subgraphs->getNSubgraphs();
     //Get all the distances. Notice that the same graph as the query is excluded
     std::vector<std::pair<double, uint64_t>> distances;
     subgraphs->getDistanceToAllSubgraphs(dist, q, distances, emb.get(), dim,
@@ -84,7 +84,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
             });
     output.clear();
 
-    assert(distances.size() == subgraphs->getNSubgraphs() - 1);
+    assert(distances.size() <= subgraphs->getNSubgraphs());
 
     std::vector<std::pair<double, uint64_t>> variances;
     unordered_map <uint64_t, double> varmap;
@@ -101,26 +101,21 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
 
         std::sort(varOutput.begin(), varOutput.end(), [] (const std::pair<double, uint64_t> &a,
                     const std::pair<double, uint64_t> &b) -> bool
-                    {
-                        return a.first > b.first;
-                    });
+                {
+                return a.first > b.first;
+                });
     }
 
     //Return the top k
-    //LOG(INFOL) << "UNM *****************";
     if (subgraphType == "var") {
         for(uint32_t i = 0; i < varOutput.size(); ++i) {
-            //LOG(INFOL) << distances[i].second << " ( " << distances[i].first  << " ) -- [ " << varOutput[i].second \
-            //<< " ( " << varOutput[i].first << " ) ]";
             output.push_back(varOutput[i].second);
         }
     } else {
         for(uint32_t i = 0; i < distances.size() && i < topk; ++i) {
-            //LOG(INFOL) << distances[i].second << " : " << distances[i].first << " , " << varmap[distances[i].second];
             output.push_back(distances[i].second);
         }
     }
-    //LOG(INFOL) << "JOS *****************";
 }
 
 int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
@@ -139,15 +134,11 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
         string srel = string(buffer, size);
 
         if (meta.t == Subgraphs<double>::TYPE::PO) {
-            LOG(DEBUGL) << " GroupPO " << out << ": " << srel << " " << sent;
             if (q->exists(a, meta.rel, meta.ent)) {
-                LOG(DEBUGL) << " ***FOUND***";
                 return out;
             }
         } else {
-            LOG(DEBUGL) << " GroupSP " << out << ": " << srel << " " << sent;
             if (q->exists(meta.ent, meta.rel, a)) {
-                LOG(DEBUGL) << " ***FOUND***";
                 return out;
             }
         }
@@ -175,17 +166,74 @@ void SubgraphHandler::create(KB &kb,
     std::unique_ptr<Querier> q(kb.query());
     //Load the embeddings
     loadEmbeddings(embdir);
+    LOG(INFOL) << "Creating subgraph embeddings using " << subgraphType << " minSize=" << minSubgraphSize;
     if (subgraphType == "avg") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>(0, minSubgraphSize));
-        subgraphs->calculateEmbeddings(q.get(), E, R);
-        subgraphs->storeToFile(subfile);
+        subgraphs = std::shared_ptr<Subgraphs<double>>(
+                new AvgSubgraphs<double>(0, minSubgraphSize));
     } else if (subgraphType == "var") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>(0, minSubgraphSize));
-        subgraphs->calculateEmbeddings(q.get(), E, R);
-        subgraphs->storeToFile(subfile);
+        subgraphs = std::shared_ptr<Subgraphs<double>>(
+                new VarSubgraphs<double>(0, minSubgraphSize));
     } else {
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
+    }
+    subgraphs->calculateEmbeddings(q.get(), E, R);
+    subgraphs->storeToFile(subfile);
+}
+
+template<>
+void SubgraphHandler::getDisplacement<TranseTester<double>>(
+        TranseTester<double> &tester,
+        double *test,
+        uint64_t h,
+        uint64_t t,
+        uint64_t r,
+        uint64_t nents,
+        uint16_t dime,
+        uint16_t dimr,
+        Querier *q,
+        //OUTPUT
+        uint64_t &displacementO,
+        uint64_t &displacementS,
+        std::vector<double> &scores,
+        std::vector<std::size_t> &indices,
+        std::vector<std::size_t> &indices2
+        ) {
+    // Test objects
+    tester.predictO(h, dime, r, dimr, test);
+    for(uint64_t idx = 0; idx < nents; ++idx) {
+        scores[idx] = tester.closeness(test, idx, dime);
+    }
+    const uint64_t posO = tester.getPos(nents, scores, indices, indices2, t) + 1;
+
+    auto itr = q->getPermuted(IDX_SPO, h, r, -1, true);
+    uint64_t countResultsO = 0;
+    while(itr->hasNext()) {
+        itr->next();
+        countResultsO++;
+    }
+    LOG(DEBUGL) << "object results = " << countResultsO;
+    if (posO > countResultsO){
+        displacementO = (posO - countResultsO);
+    }
+
+    // Test subjects
+    tester.predictS(test, r, dimr, t, dime);
+    for(uint64_t idx = 0; idx < nents; ++idx) {
+        scores[idx] = tester.closeness(test, idx, dime);
+    }
+    const uint64_t posS = tester.getPos(nents, scores, indices, indices2, h) + 1;
+
+    // Order POS in IDX_POS also determines order of parameters we pass to getPermuted()
+    itr = q->getPermuted(IDX_POS, r, t, -1, true);
+    uint64_t countResultsS = 0;
+    while (itr->hasNext()) {
+        itr->next();
+        countResultsS++;
+    }
+    LOG(DEBUGL) << "subject results = " << countResultsS;
+    if (posS > countResultsS){
+        displacementS = (posS - countResultsS);
     }
 }
 
@@ -304,51 +352,13 @@ void SubgraphHandler::evaluate(KB &kb,
                     " instead of " << nents * countt;
             }
         }
-        //===============================================================================================
-        // Code to compute displacement begins
-        // +
 
-        // Test objects
+        //Calculate the displacements
         uint64_t displacementO = 0;
-        tester.predictO(h, dime, r, dimr, test);
-        for(uint64_t idx = 0; idx < nents; ++idx) {
-            scores[idx] = tester.closeness(test, idx, dime);
-        }
-        const uint64_t posO = tester.getPos(nents, scores, indices, indices2, t) + 1;
-
-        auto itr = q->getPermuted(IDX_SPO, h, r, -1, true);
-        uint64_t countResultsO = 0;
-        while(itr->hasNext()) {
-            itr->next();
-            countResultsO++;
-        }
-        LOG(DEBUGL) << "object results = " << countResultsO;
-        if (posO > countResultsO){
-            displacementO = (posO - countResultsO);
-        }
-
-        // Test subjects
         uint64_t displacementS = 0;
-        tester.predictS(test, r, dimr, t, dime);
-        for(uint64_t idx = 0; idx < nents; ++idx) {
-            scores[idx] = tester.closeness(test, idx, dime);
-        }
-        const uint64_t posS = tester.getPos(nents, scores, indices, indices2, h) + 1;
-
-        // Order POS in IDX_POS also determines order of parameters we pass to getPermuted()
-        itr = q->getPermuted(IDX_POS, r, t, -1, true);
-        uint64_t countResultsS = 0;
-        while (itr->hasNext()) {
-            itr->next();
-            countResultsS++;
-        }
-        LOG(DEBUGL) << "subject results = " << countResultsS;
-        if (posS > countResultsS){
-            displacementS = (posS - countResultsS);
-        }
-        // -
-        // Code to compute displacement ends
-        //===============================================================================================
+        getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
+                dime, dimr, q.get(), displacementO, displacementS, scores,
+                indices, indices2);
 
         dict->getText(h, buffer);
         string sh = string(buffer);
@@ -402,7 +412,7 @@ void SubgraphHandler::evaluate(KB &kb,
                 line += "\tN.A.\tN.A.\tN.A.";
             }
             if (foundT >= 0) {
-                auto &metadata = subgraphs->getMeta(relevantSubgraphsT[foundH]);
+                auto &metadata = subgraphs->getMeta(relevantSubgraphsT[foundT]);
                 line += "\t" + to_string(metadata.t) + "\t" + to_string(metadata.rel);
                 line += "\t" + to_string(metadata.ent);
             } else {
@@ -434,13 +444,13 @@ void SubgraphHandler::evaluate(KB &kb,
     float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
     LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
     std::cout << threshold <<"," << counth << ","<<countt << "," << std::fixed << std::setprecision(2)<< (double)sumh/counth <<"," \
-                << (double)sumt/countt <<"," << percentReductionH <<"," << percentReductionT << "," \
-                << sumDisplacementOPos / testTriples.size() << "," \
-                << sumDisplacementONeg / testTriples.size() << "," \
-                << sumDisplacementSPos / testTriples.size() << "," \
-                << sumDisplacementSNeg / testTriples.size() << "," \
-                << f1H << "," << f1T << \
-                std::endl;
+        << (double)sumt/countt <<"," << percentReductionH <<"," << percentReductionT << "," \
+        << sumDisplacementOPos / testTriples.size() << "," \
+        << sumDisplacementONeg / testTriples.size() << "," \
+        << sumDisplacementSPos / testTriples.size() << "," \
+        << sumDisplacementSNeg / testTriples.size() << "," \
+        << f1H << "," << f1T << \
+        std::endl;
 
     if (logWriter) {
         logWriter->close();
