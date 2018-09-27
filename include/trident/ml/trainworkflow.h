@@ -81,7 +81,6 @@ class TrainWorkflow {
                 }
 
                 //Start nthreads
-                LOG(INFOL) << "starting " << nthreads << " threads";
                 std::vector<std::thread> threads;
                 for(uint16_t i = 0; i < nthreads; ++i) {
                     Querier *q = queriers[i].get();
