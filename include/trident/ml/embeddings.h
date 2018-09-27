@@ -17,9 +17,8 @@
 #include <fstream>
 #include <algorithm>
 
-// L3 is a custom Variance based distance
-// L4 is a combination of L1 and L3
-typedef enum { L1, L2, COSINE, KG, L3, L4 } DIST;
+// L3, L4, L5 are custom Variance based distances
+typedef enum { L1 = 1, L2, L3, L4, L5, COSINE, KG} DIST;
 
 template<typename K>
 class Embeddings {

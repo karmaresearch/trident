@@ -95,6 +95,16 @@ class Subgraphs {
             throw 10;
         }
 
+        virtual double l3Div(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
+
+        virtual double l3NoSquare(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
+
         Metadata &getMeta(uint64_t subgraphid) {
             return subgraphs[subgraphid];
         }
@@ -127,16 +137,11 @@ class Subgraphs {
                         distances.push_back(make_pair(l3(q, i, emb, dim), i));
                         break;
                     case L4:
-                        {
-                            double A = l1(q, i, emb, dim);
-                            double V = l3(q, i, emb, dim);
-                            //LOG(INFOL) << " A = " << A ;
-                            //LOG(INFOL) << " V = " << V ;
-                            //LOG(INFOL) << "alpha = " << alpha;
-                            //LOG(INFOL) << "distance = " << A*alpha + V * (1-alpha);
-                            distances.push_back(make_pair(A * alpha + V * (1 - alpha), i));
-                            break;
-                        }
+                        distances.push_back(make_pair(l3NoSquare(q, i, emb, dim),i));
+                        break;
+                    case L5:
+                        distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
+                        break;
                     default:
                         LOG(ERRORL) << "Not implemented";
                         throw 10;
@@ -210,12 +215,31 @@ class VarSubgraphs : public AvgSubgraphs<K> {
             double distance = 0.0;
             for(uint16_t i = 0; i < dim; ++i) {
                 double diff = abs(emb[i] - this->params[dim * subgraphid + i]) * abs(emb[i] - this->params[dim * subgraphid + i]);
+                double varDiff = variances[dim * subgraphid + i] - diff;
+                distance += varDiff;
+            }
+            return distance;
+        }
+
+        double l3NoSquare(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            double distance = 0.0;
+            for(uint16_t i = 0; i < dim; ++i) {
+                double diff = abs(emb[i] - this->params[dim * subgraphid + i]);
+                double varDiff = variances[dim * subgraphid + i] - diff;
+                distance += varDiff;
+            }
+            return distance;
+        }
+
+        double l3Div(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            double distance = 0.0;
+            for(uint16_t i = 0; i < dim; ++i) {
+                double diff = abs(emb[i] - this->params[dim * subgraphid + i]) * abs(emb[i] - this->params[dim * subgraphid + i]);
                 double div = diff;
-                //if (variances[dim * subgraphid + i] != 0.0) {
-                    //div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
-                    //div = diff / variances[dim * subgraphid + i];
-                    div = variances[dim * subgraphid + i] - diff;
-                //}
+                if (variances[dim * subgraphid + i] != 0.0) {
+                    div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
+                    div = diff / variances[dim * subgraphid + i];
+                }
                 distance += div;
             }
             return distance;

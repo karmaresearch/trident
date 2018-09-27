@@ -23,7 +23,8 @@ class SubgraphHandler {
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
                 uint32_t topk,
-                string &subgraphType
+                string &subgraphType,
+                DIST secondDist
                 );
 
         int64_t numberInstancesInSubgraphs(
@@ -46,7 +47,8 @@ class SubgraphHandler {
                 string formatTest,
                 uint64_t threshold,
                 double varThreshold,
-                string writeLogs);
+                string writeLogs,
+                DIST secondDist);
 
         void create(KB &kb,
                 string subType,

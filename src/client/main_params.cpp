@@ -374,6 +374,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "Threshold to consider subgraphs", false);
     subeval_options.add<double>("", "varThreshold", 0.25,
             "Threshold to consider difference between variances", false);
+    subeval_options.add<int>("", "secondDist", 3,
+            "Type of distance for second level of ranking", false);
 #endif
 
     /***** GENERAL OPTIONS *****/

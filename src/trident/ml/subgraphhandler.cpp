@@ -36,7 +36,8 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         Subgraphs<double>::TYPE t, uint64_t rel, uint64_t ent,
         std::vector<uint64_t> &output,
         uint32_t topk,
-        string &subgraphType) {
+        string &subgraphType,
+        DIST secondDist) {
     //Get embedding for ent
     double *embe = E->get(ent);
     uint16_t dime = E->getDim();
@@ -89,7 +90,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     unordered_map <uint64_t, double> varmap;
     vector<std::pair<double, uint64_t>> varOutput;
     if (subgraphType == "var") {
-        subgraphs->getDistanceToAllSubgraphs(L3, q, variances, emb.get(), dim, t, rel, ent);
+        subgraphs->getDistanceToAllSubgraphs(secondDist, q, variances, emb.get(), dim, t, rel, ent);
         for (auto v : variances) {
             varmap[v.second] = v.first;
         }
@@ -197,7 +198,8 @@ void SubgraphHandler::evaluate(KB &kb,
         string formatTest,
         uint64_t threshold,
         double varThreshold,
-        string writeLogs) {
+        string writeLogs,
+        DIST secondDist) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -359,14 +361,14 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, threshold, subType);
+                r, t, relevantSubgraphsH, threshold, subType, secondDist);
 
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                r, h, relevantSubgraphsT, threshold, subType);
+                r, h, relevantSubgraphsT, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         //Now I have the list of relevant subgraphs. Is the answer in one of these?
@@ -411,16 +413,18 @@ void SubgraphHandler::evaluate(KB &kb,
     }
     LOG(INFOL) << "Found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
     LOG(INFOL) << "Avg (H): " << (double) sumh / counth << " (T): " << (double)sumt / countt;
-    LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h << " instead of " << nents * counth;
-    LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t << " instead of " << nents * countt;
+    LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h;
+    LOG(INFOL) << "instead          of " << nents * counth;
+    LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t;
+    LOG(INFOL) << "instead          of " << nents * countt;
     LOG(INFOL) << "Disp(O+): " << sumDisplacementOPos / testTriples.size();
     LOG(INFOL) << "Disp(O-): " << sumDisplacementONeg / testTriples.size();
     LOG(INFOL) << "Disp(S+): " << sumDisplacementSPos / testTriples.size();
     LOG(INFOL) << "Disp(S-): " << sumDisplacementSNeg / testTriples.size();
     LOG(INFOL) << "# entities : " << nents;
 
-    float percentReductionH = ((float)((nents*counth) - cons_comparisons_h)/ (float)(nents * counth)) * 100;
-    float percentReductionT = ((float)((nents*countt) - cons_comparisons_t)/ (float)(nents * countt)) * 100;
+    double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
+    double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
 
     float reductionInverseH = (float)1 / (float)percentReductionH;
     float reductionInverseT = (float)1 /  (float)percentReductionT;
