@@ -18,7 +18,7 @@ cmake
 Then, clone Trident (if you have not already done so):
 
 ```
-git clone https://github.com/jrbn/trident.git
+git clone git@github.com:karmaresearch/trident.git
 ```
 
 This will create a `trident` directory. Next, create a build directory in the main source directory
