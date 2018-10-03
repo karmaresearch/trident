@@ -15,6 +15,7 @@ LearnParams::LearnParams() {
     batchsize = 1000;
     adagrad = false;
     nthreads = 1;
+    nevalthreads = 1;
     nstorethreads = 1;
     evalits = 10;
     storeits = 10;
@@ -43,6 +44,7 @@ std::string LearnParams::changeable_tostring() {
     out += ";batchsize=" + to_string(batchsize);
     out += ";adagrad=" + to_string(adagrad);
     out += ";nthreads=" + to_string(nthreads);
+    out += ";nstorethreads=" + to_string(nevalthreads);
     out += ";nstorethreads=" + to_string(nstorethreads);
     out += ";evalits=" + to_string(evalits);
     out += ";storeits=" + to_string(storeits);

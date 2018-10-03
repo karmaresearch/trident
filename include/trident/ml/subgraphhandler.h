@@ -12,7 +12,26 @@ class SubgraphHandler {
 
         void loadEmbeddings(string embdir);
 
-        void loadSubgraphs(string subgraphsFile, string subFormat);
+        void loadSubgraphs(string subgraphsFile,
+                string subFormat, double varThreshold);
+
+        template<typename K>
+            void getDisplacement(K &tester,
+                    double *test,
+                    uint64_t h,
+                    uint64_t t,
+                    uint64_t r,
+                    uint64_t nents,
+                    uint16_t dime,
+                    uint16_t dimr,
+                    Querier *q,
+                    //OUTPUT
+                    uint64_t &displacementO,
+                    uint64_t &displacementS,
+                    std::vector<double> &scores,
+                    std::vector<std::size_t> &indices,
+                    std::vector<std::size_t> &indices2
+                    );
 
         int64_t isAnswerInSubGraphs(uint64_t a,
                 const std::vector<uint64_t> &subgraphs, Querier *q);
@@ -22,7 +41,9 @@ class SubgraphHandler {
                 string algo,
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
-                uint32_t topk);
+                uint32_t topk,
+                string &subgraphType
+                );
 
         int64_t numberInstancesInSubgraphs(
                 Querier *q,
@@ -42,13 +63,15 @@ class SubgraphHandler {
                 string subType,
                 string nameTest,
                 string formatTest,
-                uint64_t threshol,
+                uint64_t threshold,
+                double varThreshold,
                 string writeLogs);
 
         void create(KB &kb,
                 string subType,
                 string embDir,
-                string subFile);
+                string subFile,
+                uint64_t minSubgraphSize);
 
         void getAllSubgraphs(Querier *q);
 };

@@ -21,10 +21,9 @@ class Subgraphs {
             uint64_t size;
         };
 
-    private:
-        std::vector<Metadata> subgraphs;
-
     protected:
+        double alpha = 0.75;
+        std::vector<Metadata> subgraphs;
         void loadFromFile(std::ifstream &ifile) {
             const uint16_t sizeline = 25;
             std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
@@ -91,6 +90,11 @@ class Subgraphs {
             throw 10;
         }
 
+        virtual double l3(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
+
         Metadata &getMeta(uint64_t subgraphid) {
             return subgraphs[subgraphid];
         }
@@ -117,6 +121,16 @@ class Subgraphs {
                     case L1:
                         distances.push_back(make_pair(l1(q, i, emb, dim), i));
                         break;
+                    case L3:
+                        distances.push_back(make_pair(l3(q, i, emb, dim), i));
+                        break;
+                    case L4:
+                        {
+                            double A = l1(q, i, emb, dim);
+                            double V = l3(q, i, emb, dim);
+                            distances.push_back(make_pair(A * alpha + V * (1 - alpha), i));
+                            break;
+                        }
                     default:
                         LOG(ERRORL) << "Not implemented";
                         throw 10;
@@ -129,20 +143,21 @@ class Subgraphs {
 
 template<typename K>
 class AvgSubgraphs : public Subgraphs<K> {
-    private:
+    protected:
         std::vector<K> params;
         uint16_t dim;
         uint64_t mincard;
 
-        void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
 
     public:
         AvgSubgraphs() : dim(0), mincard(0) {}
 
         AvgSubgraphs(uint16_t dim, uint64_t mincard) : dim(dim), mincard(mincard) {}
 
-        void loadFromFile(string file);
+        virtual void loadFromFile(string file);
+
+        virtual void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
@@ -152,7 +167,7 @@ class AvgSubgraphs : public Subgraphs<K> {
             return out;
         }
 
-        void storeToFile(string file);
+        virtual void storeToFile(string file);
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
@@ -160,15 +175,36 @@ class AvgSubgraphs : public Subgraphs<K> {
 };
 
 template<typename K>
-class GaussianSubgraphs : public Subgraphs<K> {
+class VarSubgraphs : public AvgSubgraphs<K> {
     private:
-        std::vector<double> mu;
-        std::vector<double> sigma;
-
+        std::vector<K> variances;
     public:
-        void calculateEmbeddings(Querier *q,
-                std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R);
+        VarSubgraphs(double alpha = 0.75) : AvgSubgraphs<K>() {
+            this->alpha = alpha;
+        }
+
+        VarSubgraphs(uint16_t dim, uint64_t mincard) : AvgSubgraphs<K>(dim, mincard) {}
+
+        void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
+                std::shared_ptr<Embeddings<double>> E);
+
+        double l3(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
+            double distance = 0.0;
+            for(uint16_t i = 0; i < dim; ++i) {
+                double diff = abs(emb[i] - this->params[dim * subgraphid + i]) * abs(emb[i] - this->params[dim * subgraphid + i]);
+                double div = diff;
+                //if (variances[dim * subgraphid + i] != 0.0) {
+                    //div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
+                    //div = diff / variances[dim * subgraphid + i];
+                    div = variances[dim * subgraphid + i] - diff;
+                //}
+                distance += div;
+            }
+            return distance;
+        }
+
+        void loadFromFile(string file);
+        void storeToFile(string file);
 };
 
 #endif

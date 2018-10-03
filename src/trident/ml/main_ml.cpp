@@ -1,7 +1,9 @@
 #include <trident/kb/kb.h>
 #include <trident/ml/trainworkflow.h>
 #include <trident/ml/transe.h>
+#include <trident/ml/hole.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/holetester.h>
 #include <trident/ml/distmul.h>
 #include <trident/ml/distmultester.h>
 #include <trident/ml/subgraphhandler.h>
@@ -52,6 +54,9 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         }
         if (mapparams.count("nthreads")) {
             p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+        if (mapparams.count("nevalthreads")) {
+            p.nevalthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nevalthreads"]);
         }
         if (mapparams.count("nstorethreads")) {
             p.nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
@@ -106,6 +111,8 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
 
         if (algo == "transe") {
             TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
+        } else if (algo == "hole") {
+            TrainWorkflow<HoleLearner,HoleTester<double>>::launchLearning(kb, p);
         } else if (algo == "distmul") {
             TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p);
         } else {
@@ -146,11 +153,12 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
+            vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>());
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.create(kb, vm["subAlgo"].as<string>(), vm["embDir"].as<string>(),
-            vm["subFile"].as<string>());
+            vm["subFile"].as<string>(), vm["minSubgraphSize"].as<long>());
 }

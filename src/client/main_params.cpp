@@ -357,7 +357,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     subeval_options.add<string>("", "embAlgo", "",
             "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
-            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'.", false);
+            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'. (can be 'var')", false);
     subeval_options.add<string>("", "embDir", "",
             "The directory that contains the embeddings of entities and relations.", false);
     subeval_options.add<string>("", "logFile", "",
@@ -370,6 +370,10 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test'. Otherwise, it is a path of a file.", false);
     subeval_options.add<long>("", "subgraphThreshold", 10,
             "Threshold to consider subgraphs", false);
+    subeval_options.add<long>("", "minSubgraphSize", 10,
+            "Threshold to consider subgraphs", false);
+    subeval_options.add<double>("", "varThreshold", 0.25,
+            "Threshold to consider difference between variances", false);
 #endif
 
     /***** GENERAL OPTIONS *****/

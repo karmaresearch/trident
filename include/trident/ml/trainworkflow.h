@@ -37,6 +37,7 @@ class TrainWorkflow {
         }
 
         void train(const uint16_t nthreads,
+                const uint16_t nevalthreads,
                 const uint16_t nstorethreads,
                 const uint32_t evalits,
                 const uint32_t storeits,
@@ -137,6 +138,8 @@ class TrainWorkflow {
                         elapsed_seconds.count() << "sec." << sviol;
                 }
 
+                // TODO: print gradients here.
+
                 if (shouldStoreModel && (epoch + 1) % storeits == 0) {
                     string pathmodel = storefolder + "/model-" + to_string(epoch+1);
                     LOG(INFOL) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
@@ -151,7 +154,7 @@ class TrainWorkflow {
                         //Do the test
                         Tester tester(E, R);
                         LOG(DEBUGL) << "Testing on the valid dataset ...";
-                        auto result = tester.test("valid", testset, nthreads, epoch);
+                        auto result = tester.test("valid", testset, nevalthreads, epoch);
                         //Store the results of the detailed queries
                         if (shouldStoreModel) {
                             string pathresults = storefolder + "/results-" + to_string(epoch+1);
@@ -232,6 +235,7 @@ class TrainWorkflow {
             LOG(INFOL) << "Launching the training of " << tr.getName() << " ...";
             TrainWorkflow<Learner, Tester> w(kb, batcher, tr, p.epochs);
             w.train(p.nthreads,
+                    p.nevalthreads,
                     p.nstorethreads,
                     p.evalits, p.storeits,
                     batcher.getValidPath(),
