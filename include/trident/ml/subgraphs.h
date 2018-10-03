@@ -207,7 +207,8 @@ class VarSubgraphs : public AvgSubgraphs<K> {
             double distance = 0.0;
             for(uint16_t i = 0; i < dim; ++i) {
                 double diff = abs(emb[i] - this->params[dim * subgraphid + i]) * abs(emb[i] - this->params[dim * subgraphid + i]);
-                double varDiff = variances[dim * subgraphid + i] - diff;
+                //double varDiff = variances[dim * subgraphid + i] - diff;
+                double varDiff = abs(variances[dim * subgraphid + i] - diff);
                 distance += varDiff;
             }
             return distance;
@@ -226,10 +227,10 @@ class VarSubgraphs : public AvgSubgraphs<K> {
         double l3Div(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double distance = 0.0;
             for(uint16_t i = 0; i < dim; ++i) {
-                double diff = abs(emb[i] - this->params[dim * subgraphid + i]) * abs(emb[i] - this->params[dim * subgraphid + i]);
+                double diff = abs(emb[i] - this->params[dim * subgraphid + i]);// * abs(emb[i] - this->params[dim * subgraphid + i]);
                 double div = diff;
                 if (variances[dim * subgraphid + i] != 0.0) {
-                    div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
+                    //div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
                     div = diff / variances[dim * subgraphid + i];
                 }
                 distance += div;

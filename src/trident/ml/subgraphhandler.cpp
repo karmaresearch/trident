@@ -102,7 +102,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         std::sort(varOutput.begin(), varOutput.end(), [] (const std::pair<double, uint64_t> &a,
                     const std::pair<double, uint64_t> &b) -> bool
                 {
-                return a.first > b.first;
+                return a.first < b.first;
                 });
     }
 
