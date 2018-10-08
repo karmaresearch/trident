@@ -22,7 +22,8 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, doub
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
     } else if (subformat == "var" ||
             subformat == "avgvar" ||
-            subformat == "avg+var") {
+            subformat == "avg+var" ||
+            subformat == "kl") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>(varThreshold));
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
@@ -74,7 +75,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     //Get all the distances. Notice that the same graph as the query is excluded
     std::vector<std::pair<double, uint64_t>> distances;
     subgraphs->getDistanceToAllSubgraphs(dist, q, distances, emb.get(), dim,
-            t, rel, ent);
+            t, rel, ent, E);
 
     //Sort them by distance
     std::sort(distances.begin(), distances.end(), [](const std::pair<double, uint64_t> &a,
@@ -86,11 +87,12 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
 
     assert(distances.size() <= subgraphs->getNSubgraphs());
 
-    std::vector<std::pair<double, uint64_t>> variances;
+    vector<std::pair<double, uint64_t>> variances;
     unordered_map <uint64_t, double> varmap;
     vector<std::pair<double, uint64_t>> varOutput;
+    vector<std::pair<double, uint64_t>> divergences;
     if (subgraphType == "var") {
-        subgraphs->getDistanceToAllSubgraphs(secondDist, q, variances, emb.get(), dim, t, rel, ent);
+        subgraphs->getDistanceToAllSubgraphs(secondDist, q, variances, emb.get(), dim, t, rel, ent, E);
         for (auto v : variances) {
             varmap[v.second] = v.first;
         }
@@ -104,12 +106,24 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
                 {
                 return a.first < b.first;
                 });
+    } else if (subgraphType == "kl") {
+        subgraphs->getDistanceToAllSubgraphs(KL, q, divergences, emb.get(), dim, t, rel, ent, E);
+        //Sort them by distance
+        std::sort(divergences.begin(), divergences.end(), [](const std::pair<double, uint64_t> &a,
+                    const std::pair<double, uint64_t> &b) -> bool
+                {
+                return a.first < b.first;
+                });
     }
 
     //Return the top k
     if (subgraphType == "var") {
         for(uint32_t i = 0; i < varOutput.size(); ++i) {
             output.push_back(varOutput[i].second);
+        }
+    } else if (subgraphType == "kl") {
+        for (uint32_t i = 0; i < divergences.size() && i < topk; ++i) {
+            output.push_back(divergences[i].second);
         }
     } else {
         for(uint32_t i = 0; i < distances.size() && i < topk; ++i) {

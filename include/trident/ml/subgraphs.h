@@ -8,6 +8,7 @@
 
 #include <inttypes.h>
 #include <vector>
+#include <cmath>
 
 template<typename K>
 class Subgraphs {
@@ -105,12 +106,47 @@ class Subgraphs {
             throw 10;
         }
 
+        virtual double kl(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim, vector<double>& trueAverages, vector<double>& trueVar) {
+            LOG(ERRORL) << "Not implemented";
+            throw 10;
+        }
+
         Metadata &getMeta(uint64_t subgraphid) {
             return subgraphs[subgraphid];
         }
 
         uint64_t getNSubgraphs() const {
             return subgraphs.size();
+        }
+
+        void computeAV(vector<double*>& te, vector<double>& avg, vector<double>& var, uint16_t dim) {
+            avg.resize(dim);
+            var.resize(dim);
+            for (uint16_t i = 0; i < dim; ++i) {
+                avg[i] = 0;
+                var[i] = 0;
+            }
+            uint32_t cntTrueEmb = te.size();
+            // Calculate average
+            for (auto e: te) {
+                for (uint32_t i = 0; i < dim; ++i) {
+                    avg[i] += e[i];
+                }
+            }
+            for (uint32_t i = 0; i < dim; ++i) {
+                avg[i] /= cntTrueEmb;
+            }
+            // Calculate variance
+            for (auto e: te) {
+                for (uint32_t i = 0; i < dim; ++i) {
+                    var[i] += ((e[i] - avg[i]) * (e[i] - avg[i]));
+                }
+            }
+            for (uint32_t i = 0; i < dim; ++i) {
+                if (cntTrueEmb > 2) {
+                    var[i] /= (cntTrueEmb-1);
+                }
+            }
         }
 
         void getDistanceToAllSubgraphs(DIST dist,
@@ -120,7 +156,55 @@ class Subgraphs {
                 uint16_t dim,
                 Subgraphs::TYPE excludeType,
                 uint64_t excludeRel,
-                uint64_t excludeEnt) {
+                uint64_t excludeEnt,
+                std::shared_ptr<Embeddings<double>> E) {
+                vector<double> trueAverages;
+                vector<double> trueVariances;
+                if (dist == KL) {
+                    if (excludeType == Subgraphs<double>::TYPE::SP) {
+                        auto itr = q->getPermuted(IDX_SPO, excludeEnt, excludeRel, -1, true);
+                        uint64_t countResultsO = 0;
+                        vector<double*> trueEmbeddings;
+                        while(itr->hasNext()) {
+                            int64_t key = itr->getKey();
+                            int64_t entity1 = itr->getValue1();
+                            int64_t entity2 = itr->getValue2();
+                            LOG(DEBUGL) << excludeEnt << " , " << excludeRel;
+                            LOG(DEBUGL) << countResultsO << ")" << key << ": " << entity1 << " , " << entity2;
+                            itr->next();
+                            if (entity2 != -1){
+                                trueEmbeddings.push_back(E->get(entity2));
+                            }
+                            countResultsO++;
+                            if (countResultsO == 10) {
+                                break;
+                            }
+                        }
+                        computeAV(trueEmbeddings, trueAverages, trueVariances, dim);
+                        LOG(DEBUGL) << "########## of true embeddings : " << trueEmbeddings.size();
+                    } else {
+                        auto itr = q->getPermuted(IDX_POS, excludeRel, excludeEnt, -1, true);
+                        uint64_t countResultsS = 0;
+                        vector<double*> trueEmbeddings;
+                        while (itr->hasNext()) {
+                            int64_t entity1 = itr->getValue1();
+                            int64_t entity2 = itr->getValue2();
+                            int64_t key = itr->getKey();
+                            LOG(DEBUGL) << excludeEnt << " , " << excludeRel;
+                            LOG(DEBUGL) << countResultsS << ")" << key << ": " << entity1 << " , " << entity2;
+                            itr->next();
+                            if (entity2 != -1) {
+                                trueEmbeddings.push_back(E->get(entity2));
+                            }
+                            countResultsS++;
+                            if (countResultsS == 10) {
+                                break;
+                            }
+                        }
+                        computeAV(trueEmbeddings, trueAverages, trueVariances, dim);
+                        LOG(DEBUGL) << "########## of true embeddings : " << trueEmbeddings.size();
+                    }
+                }
             for(size_t i = 0; i < subgraphs.size(); ++i) {
                 if (subgraphs[i].t == excludeType &&
                     subgraphs[i].rel == excludeRel &&
@@ -140,12 +224,9 @@ class Subgraphs {
                     case L5:
                         distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
                         break;
-                       // {
-                       //     double A = l1(q, i, emb, dim);
-                       //     double V = l3(q, i, emb, dim);
-                       //     distances.push_back(make_pair(A * alpha + V * (1 - alpha), i));
-                       //     break;
-                       // }
+                    case KL:
+                        distances.push_back(make_pair(kl(q, i, emb, dim, trueAverages, trueVariances), i));
+                        break;
                     default:
                         LOG(ERRORL) << "Not implemented";
                         throw 10;
@@ -230,10 +311,23 @@ class VarSubgraphs : public AvgSubgraphs<K> {
                 double diff = abs(emb[i] - this->params[dim * subgraphid + i]);// * abs(emb[i] - this->params[dim * subgraphid + i]);
                 double div = diff;
                 if (variances[dim * subgraphid + i] != 0.0) {
-                    //div = (variances[dim * subgraphid + i] * this->subgraphs[subgraphid].size - 1) - diff;
                     div = diff / variances[dim * subgraphid + i];
                 }
                 distance += div;
+            }
+            return distance;
+        }
+
+        double kl(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim, vector<double> &trueAverages, vector<double>& trueVariances) {
+            double distance = 0.0;
+            for (uint16_t i = 0; i < dim; ++i) {
+                double avg = this->params[dim * subgraphid + i];
+                double var = this->variances[dim * subgraphid + i];
+                double avgT = trueAverages[i];
+                double varT = trueVariances[i];
+                //https://stats.stackexchange.com/questions/7440/kl-divergence-between-two-univariate-gaussians
+                double klDiv = (((avgT - avg) * (avgT - avg) + (varT * varT) ) / (2 * var * var)) + (log(sqrt(var)/sqrt(varT))) - 0.5;
+                distance += klDiv;
             }
             return distance;
         }
