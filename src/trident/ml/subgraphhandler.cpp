@@ -273,6 +273,7 @@ void SubgraphHandler::evaluate(KB &kb,
     loadSubgraphs(subFile, subType, varThreshold);
     //Load the test file
     std::vector<uint64_t> testTriples;
+    std::vector<uint64_t> testTopKs;
     LOG(INFOL) << "Loading the queries ...";
     if (formatTest == "python") {
         //The file is a uncompressed file with all the test triples serialized after
@@ -294,6 +295,34 @@ void SubgraphHandler::evaluate(KB &kb,
             testTriples.push_back(*(uint64_t*)(buffer.get()+8));
             testTriples.push_back(*(uint64_t*)(buffer.get()+16));
         }
+    } else if (formatTest == "dynamicK") {
+        // The file is uncompressed text file with each test triple has the following format
+        // h <space> r <space> t <space> K_h <space> K_t
+        if (!Utils::exists(nameTest)) {
+            LOG(ERRORL) << "Test file " << nameTest << " not found";
+            throw 10;
+        }
+        std::ifstream ifs(nameTest);
+        string line;
+        while (std::getline(ifs, line)) {
+            istringstream is(line);
+            string token;
+            vector<uint64_t> tokens;
+            while(getline(is, token, ' ')) {
+                uint64_t temp = std::stoull(token);
+                tokens.push_back(temp);
+            }
+            LOG(DEBUGL) << tokens[0] << "  , " << tokens[1] << " , " << tokens[2];
+            testTriples.push_back(tokens[0]);
+            testTriples.push_back(tokens[1]);
+            testTriples.push_back(tokens[2]);
+            testTopKs.push_back(tokens[3]);
+            testTopKs.push_back(tokens[4]);
+            // push the dummy value so that the for loop
+            // variable incrementation works well later
+            testTopKs.push_back(-1);
+        }
+        return;
     } else {
         //The test set can be extracted from the database
         string pathtest;
@@ -384,6 +413,10 @@ void SubgraphHandler::evaluate(KB &kb,
 
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
+
+        if (formatTest == "dynamicK") {
+            threshold = testTopKs[i];
+        }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphsH, threshold, subType, secondDist);
 
@@ -391,6 +424,9 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
+        if (formatTest == "dynamicK") {
+            threshold = testTopKs[i + 1];
+        }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
                 r, h, relevantSubgraphsT, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
