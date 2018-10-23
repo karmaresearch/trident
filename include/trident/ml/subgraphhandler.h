@@ -46,6 +46,12 @@ class SubgraphHandler {
                 DIST secondDist
                 );
 
+        void getAllPossibleAnswers(Querier *q,
+                vector<uint64_t> &relevantSubgraphs,
+                Subgraphs<double>::TYPE t,
+                vector<int64_t> &output
+                );
+
         int64_t numberInstancesInSubgraphs(
                 Querier *q,
                 const std::vector<uint64_t> &subgs);
@@ -58,6 +64,18 @@ class SubgraphHandler {
         SubgraphHandler() {}
 
         void evaluate(KB &kb,
+                string embAlgo,
+                string embDir,
+                string subFile,
+                string subType,
+                string nameTest,
+                string formatTest,
+                uint64_t threshold,
+                double varThreshold,
+                string writeLogs,
+                DIST secondDist);
+
+        void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,

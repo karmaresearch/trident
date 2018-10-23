@@ -181,7 +181,7 @@ class Subgraphs {
                             }
                         }
                         computeAV(trueEmbeddings, trueAverages, trueVariances, dim);
-                        LOG(DEBUGL) << "########## of true embeddings : " << trueEmbeddings.size();
+                        LOG(DEBUGL) << "# of true embeddings : " << trueEmbeddings.size();
                     } else {
                         auto itr = q->getPermuted(IDX_POS, excludeRel, excludeEnt, -1, true);
                         uint64_t countResultsS = 0;
