@@ -10,6 +10,7 @@ class FlatRoot : public Root {
                 ofstream ofs;
                 const bool unlabeled;
                 const bool undirected;
+		bool closeDone = false;
                 std::unique_ptr<char> zeros;
 
             public:
@@ -63,9 +64,17 @@ class FlatRoot : public Root {
                         short file_pso,
                         int64_t pos_pso);
 
-                ~FlatTreeWriter() {
+		void done() {
                     ofs.flush();
                     ofs.close();
+		    closeDone = true;
+		}
+
+                ~FlatTreeWriter() {
+		    if (! closeDone) {
+			ofs.flush();
+			ofs.close();
+		    }
                 }
         };
 

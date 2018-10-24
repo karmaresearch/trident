@@ -214,7 +214,7 @@ void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
         uint64_t diskwrite = TridentUtils::diskwrite();
         uint64_t phy_diskread = TridentUtils::phy_diskread();
         uint64_t phy_diskwrite = TridentUtils::phy_diskwrite();
-        LOG(DEBUGL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu
+        LOG(INFOL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu
             << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes="
             << diskwrite << "\tphydiskread_bytes=" << phy_diskread
             << "\tphydiskwrite_bytes=" << phy_diskwrite;

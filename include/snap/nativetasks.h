@@ -153,12 +153,11 @@ class NativeTasks {
                 int64 FullDiam = -1;
                 TIntFltH DistToCntH;
                 TBreathFS<PGraph> BFS(Graph);
+		std::vector<int64_t> NodeIdV;
+		Graph->GetNIdV(NodeIdV); std::random_shuffle(NodeIdV.begin(), NodeIdV.end());
                 int64_t minnodes = min((int64_t)NTestNodes, Graph->GetNodes());
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<int64_t> dis(0, Graph->GetNodes());
                 for (int tries = 0; tries < minnodes; tries++) {
-                    const int64_t NId = dis(gen);
+                    const int NId = (int) NodeIdV[tries];
                     BFS.DoBfs(NId, true, ! IsDir, -1, TInt::Mx);
                     for (int64_t i = 0; i < BFS.NIdDistH.Len(); i++) {
                         DistToCntH.AddDat(BFS.NIdDistH[i]) += 1; }
