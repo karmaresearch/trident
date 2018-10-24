@@ -52,6 +52,16 @@ class SubgraphHandler {
                 vector<int64_t> &output
                 );
 
+        void getAnswerAccuracy(vector<uint64_t> & actualEntities,
+            vector<int64_t>& expectedEntities,
+            double& accuracy);
+
+        void getActualAnswersFromTest(vector<uint64_t>& testTriples,
+            Subgraphs<double>::TYPE type,
+            uint64_t rel,
+            uint64_t ent,
+            vector<uint64_t> &output);
+
         int64_t numberInstancesInSubgraphs(
                 Querier *q,
                 const std::vector<uint64_t> &subgs);

@@ -31,6 +31,46 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, doub
     }
     subgraphs->loadFromFile(subgraphsFile);
 }
+
+void SubgraphHandler::getAnswerAccuracy(vector<uint64_t>& expectedEntities,
+    vector<int64_t>& actualEntities,
+    double& accuracy) {
+    uint64_t hits = 0;
+    for (auto ee : expectedEntities) {
+        for (auto ae : actualEntities) {
+            if (ae == ee) {
+                hits += 1;
+            }
+        }
+    }
+    uint64_t total = expectedEntities.size();
+    if (total != 0) {
+        accuracy = double(hits /double(total))*100;
+    }
+}
+
+void SubgraphHandler::getActualAnswersFromTest(vector<uint64_t>& testTriples,
+    Subgraphs<double>::TYPE type,
+    uint64_t rel,
+    uint64_t ent,
+    vector<uint64_t> &output){
+    for(uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        if (type == Subgraphs<double>::TYPE::PO) {
+            if (r == rel && t == ent) {
+                output.push_back(h);
+            }
+        } else {
+            if (r == rel && h == ent) {
+                output.push_back(t);
+            }
+        }
+    }
+}
+
 void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         vector<uint64_t> &relevantSubgraphs,
         Subgraphs<double>::TYPE t,
@@ -645,9 +685,7 @@ void SubgraphHandler::findAnswers(KB &kb,
 
     TranseTester<double> tester(E, R, kb.query());
     const uint16_t dime = E->getDim();
-    const uint16_t dimr = R->getDim();
     std::vector<double> testArray(dime);
-    double *test = testArray.data();
     std::vector<std::size_t> indices(nents);
     std::iota(indices.begin(), indices.end(), 0u);
     std::vector<std::size_t> indices2(nents);
@@ -720,6 +758,24 @@ void SubgraphHandler::findAnswers(KB &kb,
 
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+        uint64_t cntActualAnswersH = 0;
+        // Return all answers from the subgraphs
+        vector<int64_t> actualAnswersH;
+        getAllPossibleAnswers(q.get(), relevantSubgraphsH, Subgraphs<double>::TYPE::PO, actualAnswersH);
+        cntActualAnswersH = actualAnswersH.size();
+
+        vector<uint64_t> expectedAnswersH;
+        getActualAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
+
+        double answerAccuracyH = 0.0;
+
+        getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerAccuracyH);
+        //Now I have the list of relevant subgraphs. Is the answer in one of these?
+        if (foundH >= 0) {
+            counth++;
+            sumh += foundH + 1;
+            cons_comparisons_h += totalSizeH;
+        }
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (formatTest == "dynamicK") {
@@ -735,24 +791,28 @@ void SubgraphHandler::findAnswers(KB &kb,
                 r, h, relevantSubgraphsT, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
-        //Now I have the list of relevant subgraphs. Is the answer in one of these?
-        if (foundH >= 0) {
-            counth++;
-            sumh += foundH + 1;
-            cons_comparisons_h += totalSizeH;
-            // Return all triples from the subgraphs
-            vector<int64_t> headAnswers;
-            getAllPossibleAnswers(q.get(), relevantSubgraphsH, Subgraphs<double>::TYPE::PO, headAnswers);
-        }
+        // Return all answers from subgraphs
+        uint64_t cntActualAnswersT = 0;
+        vector<int64_t> actualAnswersT;
+        getAllPossibleAnswers(q.get(), relevantSubgraphsT, Subgraphs<double>::TYPE::SP, actualAnswersT);
+        cntActualAnswersT = actualAnswersT.size();
+
+        vector<uint64_t> expectedAnswersT;
+        //TODO: both expected answers H and T can be collected with a single call to this function
+        getActualAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
+
+        double answerAccuracyT = 0.0;
+        getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerAccuracyT);
 
         if (foundT >= 0) {
             countt++;
             sumt += foundT + 1;
             cons_comparisons_t += totalSizeT;
-            // Return all answers from subgraphs
-            vector<int64_t> tailAnswers;
-            getAllPossibleAnswers(q.get(), relevantSubgraphsT, Subgraphs<double>::TYPE::SP, tailAnswers);
         }
+
+        LOG(INFOL) << "total answers found in subgraphs, Expected answers in test, Accuracy : ";
+        LOG(INFOL) << cntActualAnswersH  << " , " << expectedAnswersH.size() << " => " << answerAccuracyH \
+        << " - " << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerAccuracyT;
 
         if (logWriter) {
             string line = to_string(h) + " " + to_string(r) + " " + to_string(t) + "\t";
