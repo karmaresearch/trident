@@ -1712,7 +1712,10 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
                 order.push_back(o);
             } else {
                 lexer.unget(token);
-                return;
+		Order o;
+		o.descending = false;
+		o.expr = parseConstraint(localVars);
+		order.push_back(o);
             }
         } else if (token == SPARQLLexer::Variable) {
             Order o;
