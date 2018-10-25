@@ -21,6 +21,7 @@ private:
     DuplicateHandling duplicateHandling;
     /// Maximum number of output tuples
     uint64_t limit;
+    uint64_t offset;
     uint64_t entryCount, currentCount;
 
 public:
@@ -28,7 +29,7 @@ public:
     DuplLimit(Operator* input,
               const std::vector<Register*>& outputArgs,
               DuplicateHandling duplicateHandling,
-              uint64_t limit = UINT64_MAX);
+              uint64_t limit = UINT64_MAX, uint64_t offset = 0);
 
     /// Destructor
     ~DuplLimit() {

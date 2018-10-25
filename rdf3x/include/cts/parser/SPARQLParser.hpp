@@ -182,6 +182,8 @@ class SPARQLParser {
         std::vector<Assignment> assignments;
         /// The result limit
         unsigned limit;
+        /// The result offset
+        unsigned offset;
         // Silent output variables
         bool silentOutputVars;
 
@@ -249,8 +251,8 @@ class SPARQLParser {
         void parseHaving(std::map<std::string, unsigned>& localVars);
         /// Parse the order by part if any
         void parseOrderBy(std::map<std::string, unsigned>& localVars);
-        /// Parse the limit part if any
-        void parseLimit();
+        /// Parse the limit/offset part if any
+        void parseLimitOffset();
 
     public:
         /// Constructor
@@ -315,6 +317,11 @@ class SPARQLParser {
         /// The size limit
         unsigned getLimit() const {
             return limit;
+        }
+
+        /// The offset
+        unsigned getOffset() const {
+            return offset;
         }
 
         SLIBEXP unsigned getVarCount() const;

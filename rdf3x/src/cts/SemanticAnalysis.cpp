@@ -698,5 +698,6 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
 
     // Set the limit
     output.setLimit(input.getLimit());
+    output.setOffset(input.getOffset());
 }
 //---------------------------------------------------------------------------

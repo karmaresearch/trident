@@ -802,7 +802,7 @@ static Operator* translateSubselect(Runtime& runtime, /*const map<unsigned, Regi
     }
 
     tree = new DuplLimit(tree, outputFromTheSubquery, duplicateHandling,
-            query->getLimit());
+            query->getLimit(), query->getOffset());
     return tree;
 
 }
@@ -1263,7 +1263,7 @@ Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* pl
             duplicateHandling = ResultsPrinter::ShowDuplicates;
             break;
     }
-    tree = new ResultsPrinter(runtime, tree, output, duplicateHandling, query.getLimit(), silent);
+    tree = new ResultsPrinter(runtime, tree, output, duplicateHandling, query.getLimit(), query.getOffset(), silent);
 
     return tree;
 }
