@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cassert>
 #include <cstdlib>
+#include <cstdio>
 #ifdef __GNUC__
 #if (__GNUC__>4)||((__GNUC__==4)&&(__GNUC_MINOR__>=9))
 #define CONFIG_TR1
@@ -45,6 +46,34 @@ double _getDouble(const std::string &s) {
     return std::stod(number);
 }
 
+void _getTime(const std::string &s, struct tm &tm_time) {
+    std::string time = s.substr(1, s.find_first_of('"',1)-1);
+    tm_time.tm_isdst = 0;
+    int retval = sscanf(s.c_str(), "%d-%d-%dT%d:%d:%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min, &tm_time.tm_sec);
+    if (retval != 6) {
+	throw 10;
+    }
+}
+
+int _compareTime(struct tm &t1, struct tm &t2) {
+    if (t1.tm_year != t2.tm_year) {
+	return t1.tm_year - t2.tm_year;
+    }
+    if (t1.tm_mon != t2.tm_mon) {
+	return t1.tm_mon - t2.tm_mon;
+    }
+    if (t1.tm_mday != t2.tm_mday) {
+	return t1.tm_mday - t2.tm_mday;
+    }
+    if (t1.tm_hour != t2.tm_hour) {
+	return t1.tm_hour - t2.tm_hour;
+    }
+    if (t1.tm_min != t2.tm_min) {
+	return t1.tm_min - t2.tm_min;
+    }
+    return t1.tm_sec - t2.tm_sec;
+}
+
 bool _endsWith(const std::string &s, const std::string &suffix) {
     if (s.length() >= suffix.length()) {
         return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
@@ -53,13 +82,16 @@ bool _endsWith(const std::string &s, const std::string &suffix) {
 }
 
 Selection::NumType Selection::getNumType(std::string s) {
-    std::string d = "^^<http://www.w3.org/2001/XMLSchema#double>";
-    std::string f = "^^<http://www.w3.org/2001/XMLSchema#float>";
-    std::string i = "^^<http://www.w3.org/2001/XMLSchema#integer>";
-    if (_endsWith(s,d) || _endsWith(s,f)) {
+    std::string dbl = "^^<http://www.w3.org/2001/XMLSchema#double>";
+    std::string flt = "^^<http://www.w3.org/2001/XMLSchema#float>";
+    std::string integer = "^^<http://www.w3.org/2001/XMLSchema#integer>";
+    std::string datetime = "^^<http://www.w3.org/2001/XMLSchema#dateTime>";
+    if (_endsWith(s,dbl) || _endsWith(s,flt)) {
         return NumType::DECIMAL;
-    } else if (_endsWith(s,i)) {
+    } else if (_endsWith(s,integer)) {
         return NumType::INT;
+    } else if (_endsWith(s,datetime)) {
+	return NumType::DATETIME;
     }
     return NumType::UNKNOWN;
 }
@@ -78,7 +110,13 @@ bool Selection::isNumericComparison(const Result &l, const Result &r) {
 bool Selection::numLess(const Result &l, const Result &r) {
     auto tl = getNumType(l.value);
     auto tr = getNumType(r.value);
-    if (tl == NumType::INT && tr == NumType::INT) {
+    if (tl == NumType::DATETIME && tr == NumType::DATETIME) {
+	struct tm t1;
+	struct tm t2;
+	_getTime(l.value, t1);
+	_getTime(r.value, t2);
+	return _compareTime(t1, t2) < 0;
+    } else if (tl == NumType::INT && tr == NumType::INT) {
         int64_t v1 = _getLong(l.value);
         int64_t v2 = _getLong(r.value);
         return v1 < v2;
@@ -90,12 +128,13 @@ bool Selection::numLess(const Result &l, const Result &r) {
         int64_t v1 = _getLong(l.value);
         double v2 = _getDouble(r.value);
         return v1 < v2;
-    } else {
+    } else if (tl == NumType::DECIMAL && tr == NumType::DECIMAL) {
         double v1 = _getDouble(l.value);
         double v2 = _getDouble(r.value);
         return v1 < v2;
     }
-    return false;
+    throw 10;
+    // return false;
 }
 
 //---------------------------------------------------------------------------
