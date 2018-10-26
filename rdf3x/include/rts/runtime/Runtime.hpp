@@ -12,7 +12,9 @@
 //---------------------------------------------------------------------------
 #include <dblayer.hpp>
 #include <rts/runtime/DomainDescription.hpp>
+#include <rts/operator/Selection.hpp>
 #include <vector>
+#include <unordered_map>
 //---------------------------------------------------------------------------
 //class Database;
 //class DifferentialIndex;
@@ -32,6 +34,14 @@ public:
 
 };
 //---------------------------------------------------------------------------
+typedef struct value {
+    union {
+	int64_t iv;
+	double  dv;
+    } val;
+    Selection::NumType tp;
+} Value;
+
 /// The runtime system
 class Runtime {
 private:
@@ -47,8 +57,10 @@ private:
     std::vector<Register> registers;
     /// The domain descriptions
     std::vector<PotentialDomainDescription> domainDescriptions;
-
 public:
+
+    std::unordered_map<uint64_t, Value> valueMap;
+
     /// Constructor
     SLIBEXP Runtime(DBLayer& db,/*DifferentialIndex* diff=0,*/TemporaryDictionary* temporaryDictionary = 0, QueryDict *queryDict = 0);
     /// Destructor

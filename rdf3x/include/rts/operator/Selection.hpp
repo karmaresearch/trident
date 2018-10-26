@@ -78,8 +78,6 @@ class Selection : public Operator {
         };
 
         enum NumType { DECIMAL, INT, DATETIME, DATE, UNKNOWN };
-        static bool isNumericComparison(const Result &l, const Result &r);
-        static bool numLess(const Result &l, const Result &r);
         static NumType getNumType(std::string s);
 
         /// Base for predicate evaluation
@@ -616,6 +614,9 @@ class Selection : public Operator {
         /// The predicate
         Predicate* predicate;
 
+        bool numeric(const Result &v);
+        bool numLess(const Result &l, const Result &r);
+        bool isNumericComparison(const Result &l, const Result &r);
 
     public:
         /// Constructor

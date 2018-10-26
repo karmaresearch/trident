@@ -46,42 +46,27 @@ double _getDouble(const std::string &s) {
     return std::stod(number);
 }
 
-void _getTime(const std::string &s, struct tm &tm_time, Selection::NumType tp) {
+int64_t _getTime(const std::string &s, Selection::NumType tp) {
     std::string time = s.substr(1, s.find_first_of('"',1)-1);
-    tm_time.tm_isdst = 0;
+    int year;
+    int month;
+    int day;
+    int hour = 0;
+    int min = 0;
+    int sec = 0;
     if (tp == Selection::NumType::DATE) {
-	tm_time.tm_hour = 0;
-	tm_time.tm_min = 0;
-	tm_time.tm_sec = 0;
-	int retval = sscanf(time.c_str(), "%d-%d-%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday);
+	int retval = sscanf(time.c_str(), "%d-%d-%d", &year, &month, &day);
 	if (retval != 3) {
 	    throw 10;
 	}
     } else {
-	int retval = sscanf(time.c_str(), "%d-%d-%dT%d:%d:%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min, &tm_time.tm_sec);
+	int retval = sscanf(time.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &min, &sec);
 	if (retval != 6) {
 	    throw 10;
 	}
     }
-}
-
-int _compareTime(struct tm &t1, struct tm &t2) {
-    if (t1.tm_year != t2.tm_year) {
-	return t1.tm_year - t2.tm_year;
-    }
-    if (t1.tm_mon != t2.tm_mon) {
-	return t1.tm_mon - t2.tm_mon;
-    }
-    if (t1.tm_mday != t2.tm_mday) {
-	return t1.tm_mday - t2.tm_mday;
-    }
-    if (t1.tm_hour != t2.tm_hour) {
-	return t1.tm_hour - t2.tm_hour;
-    }
-    if (t1.tm_min != t2.tm_min) {
-	return t1.tm_min - t2.tm_min;
-    }
-    return t1.tm_sec - t2.tm_sec;
+    return ((int64_t) year << 48) + ((int64_t) month << 40) + ((int64_t) day << 32) + (hour << 24)
+	+ (min << 16) + sec;
 }
 
 bool _endsWith(const std::string &s, const std::string &suffix) {
@@ -109,45 +94,46 @@ Selection::NumType Selection::getNumType(std::string s) {
     return NumType::UNKNOWN;
 }
 
-bool Selection::isNumericComparison(const Result &l, const Result &r) {
-    if (l.type == Type::Literal && r.type == Type::Literal) {
-        //Get numerical type
-        if (getNumType(l.value) != NumType::UNKNOWN &&
-                getNumType(r.value) != NumType::UNKNOWN) {
-            return true;
-        }
+bool Selection::numeric(const Result &v) {
+    auto r = runtime.valueMap.find(v.id);
+    if (r == runtime.valueMap.end()) {
+	Value val;
+	val.tp = getNumType(v.value);
+	if (val.tp == NumType::DECIMAL) {
+	    val.val.dv = _getDouble(v.value);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	} else if (val.tp == NumType::INT) {
+	    val.val.iv = _getLong(v.value);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	} else if (val.tp == NumType::DATE || val.tp == NumType::DATETIME) {
+	    val.val.iv = _getTime(v.value, val.tp);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	}
+	return false;
     }
-    return false;
+    return true;
+}
+
+bool Selection::isNumericComparison(const Result &l, const Result &r) {
+    return numeric(l) && numeric(r);
 }
 
 bool Selection::numLess(const Result &l, const Result &r) {
-    auto tl = getNumType(l.value);
-    auto tr = getNumType(r.value);
-    if ((tl == NumType::DATETIME || tl == NumType::DATE) && (tr == NumType::DATETIME || tr == NumType::DATE)) {
-	struct tm t1;
-	struct tm t2;
-	_getTime(l.value, t1, tl);
-	_getTime(r.value, t2, tr);
-	return _compareTime(t1, t2) < 0;
-    } else if (tl == NumType::INT && tr == NumType::INT) {
-        int64_t v1 = _getLong(l.value);
-        int64_t v2 = _getLong(r.value);
-        return v1 < v2;
-    } else if (tl == NumType::DECIMAL && tr == NumType::INT) {
-        double v1 = _getDouble(l.value);
-        int64_t v2 = _getLong(r.value);
-        return v1 < v2;
-    } else if (tl == NumType::INT && tr == NumType::DECIMAL) {
-        int64_t v1 = _getLong(l.value);
-        double v2 = _getDouble(r.value);
-        return v1 < v2;
-    } else if (tl == NumType::DECIMAL && tr == NumType::DECIMAL) {
-        double v1 = _getDouble(l.value);
-        double v2 = _getDouble(r.value);
-        return v1 < v2;
+    Value v1 = runtime.valueMap[l.id];
+    Value v2 = runtime.valueMap[r.id];
+    if (v1.tp != NumType::DECIMAL) {
+	if (v2.tp != NumType::DECIMAL) {
+	    return v1.val.iv < v2.val.iv;
+	}
+	return v1.val.iv < v2.val.dv;
     }
-    throw 10;
-    // return false;
+    if (v2.tp != NumType::DECIMAL) {
+	return v1.val.dv < v2.val.iv;
+    }
+    return v1.val.dv < v2.val.dv;
 }
 
 //---------------------------------------------------------------------------
@@ -408,8 +394,8 @@ void Selection::Less::eval(Result& result)
     }
 
     if (!num1 && !num2) {
-        if (isNumericComparison(l,r)) {
-            result.setBoolean(numLess(l,r));
+        if (selection->isNumericComparison(l,r)) {
+            result.setBoolean(selection->numLess(l,r));
         } else {
             result.setBoolean(l.value < r.value);
         }
@@ -488,8 +474,8 @@ void Selection::LessOrEqual::eval(Result& result)
     }
 
     if (!num1 && !num2) {
-        if (isNumericComparison(l,r)) {
-            result.setBoolean(!numLess(r,l));
+        if (selection->isNumericComparison(l,r)) {
+            result.setBoolean(!selection->numLess(r,l));
         } else {
             result.setBoolean(l.value <= r.value);
         }
