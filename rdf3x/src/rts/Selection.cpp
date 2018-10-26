@@ -46,12 +46,22 @@ double _getDouble(const std::string &s) {
     return std::stod(number);
 }
 
-void _getTime(const std::string &s, struct tm &tm_time) {
+void _getTime(const std::string &s, struct tm &tm_time, Selection::NumType tp) {
     std::string time = s.substr(1, s.find_first_of('"',1)-1);
     tm_time.tm_isdst = 0;
-    int retval = sscanf(s.c_str(), "%d-%d-%dT%d:%d:%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min, &tm_time.tm_sec);
-    if (retval != 6) {
-	throw 10;
+    if (tp == Selection::NumType::DATE) {
+	tm_time.tm_hour = 0;
+	tm_time.tm_min = 0;
+	tm_time.tm_sec = 0;
+	int retval = sscanf(time.c_str(), "%d-%d-%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday);
+	if (retval != 3) {
+	    throw 10;
+	}
+    } else {
+	int retval = sscanf(time.c_str(), "%d-%d-%dT%d:%d:%d", &tm_time.tm_year, &tm_time.tm_mon, &tm_time.tm_mday, &tm_time.tm_hour, &tm_time.tm_min, &tm_time.tm_sec);
+	if (retval != 6) {
+	    throw 10;
+	}
     }
 }
 
@@ -86,12 +96,15 @@ Selection::NumType Selection::getNumType(std::string s) {
     std::string flt = "^^<http://www.w3.org/2001/XMLSchema#float>";
     std::string integer = "^^<http://www.w3.org/2001/XMLSchema#integer>";
     std::string datetime = "^^<http://www.w3.org/2001/XMLSchema#dateTime>";
+    std::string date = "^^<http://www.w3.org/2001/XMLSchema#date>";
     if (_endsWith(s,dbl) || _endsWith(s,flt)) {
         return NumType::DECIMAL;
     } else if (_endsWith(s,integer)) {
         return NumType::INT;
     } else if (_endsWith(s,datetime)) {
 	return NumType::DATETIME;
+    } else if (_endsWith(s,date)) {
+	return NumType::DATE;
     }
     return NumType::UNKNOWN;
 }
@@ -110,11 +123,11 @@ bool Selection::isNumericComparison(const Result &l, const Result &r) {
 bool Selection::numLess(const Result &l, const Result &r) {
     auto tl = getNumType(l.value);
     auto tr = getNumType(r.value);
-    if (tl == NumType::DATETIME && tr == NumType::DATETIME) {
+    if ((tl == NumType::DATETIME || tl == NumType::DATE) && (tr == NumType::DATETIME || tr == NumType::DATE)) {
 	struct tm t1;
 	struct tm t2;
-	_getTime(l.value, t1);
-	_getTime(r.value, t2);
+	_getTime(l.value, t1, tl);
+	_getTime(r.value, t2, tr);
 	return _compareTime(t1, t2) < 0;
     } else if (tl == NumType::INT && tr == NumType::INT) {
         int64_t v1 = _getLong(l.value);
