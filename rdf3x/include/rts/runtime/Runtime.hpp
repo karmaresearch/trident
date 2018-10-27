@@ -40,7 +40,7 @@ typedef struct value {
 	double  dv;
     } val;
     Selection::NumType tp;
-} Value;
+} IdValue;
 
 /// The runtime system
 class Runtime {
@@ -59,7 +59,7 @@ private:
     std::vector<PotentialDomainDescription> domainDescriptions;
 public:
 
-    std::unordered_map<uint64_t, Value> valueMap;
+    std::unordered_map<uint64_t, IdValue> valueMap;
 
     /// Constructor
     SLIBEXP Runtime(DBLayer& db,/*DifferentialIndex* diff=0,*/TemporaryDictionary* temporaryDictionary = 0, QueryDict *queryDict = 0);

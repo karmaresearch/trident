@@ -97,7 +97,7 @@ Selection::NumType Selection::getNumType(std::string s) {
 bool Selection::numeric(const Result &v) {
     auto r = runtime.valueMap.find(v.id);
     if (r == runtime.valueMap.end()) {
-	Value val;
+	IdValue val;
 	val.tp = getNumType(v.value);
 	if (val.tp == NumType::DECIMAL) {
 	    val.val.dv = _getDouble(v.value);
@@ -122,8 +122,8 @@ bool Selection::isNumericComparison(const Result &l, const Result &r) {
 }
 
 bool Selection::numLess(const Result &l, const Result &r) {
-    Value v1 = runtime.valueMap[l.id];
-    Value v2 = runtime.valueMap[r.id];
+    IdValue v1 = runtime.valueMap[l.id];
+    IdValue v2 = runtime.valueMap[r.id];
     if (v1.tp != NumType::DECIMAL) {
 	if (v2.tp != NumType::DECIMAL) {
 	    return v1.val.iv < v2.val.iv;
