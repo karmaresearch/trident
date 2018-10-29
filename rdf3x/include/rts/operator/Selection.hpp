@@ -594,10 +594,12 @@ class Selection : public Operator {
                 std::unique_ptr<Operator> tree;
                 std::vector<Register *> regsToLoad;
                 std::vector<Register *> regsToCheck;
+		Runtime& runtime;
                 bool loaded;
             public:
                 /// Constructor
                 BuiltinNotExists(Operator *tree,
+			Runtime &runtime,
                         std::vector<Register *> regsToLoad,
                         std::vector<Register *> regsToCheck);
                 /// Evaluate the predicate

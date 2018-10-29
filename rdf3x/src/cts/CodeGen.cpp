@@ -612,7 +612,7 @@ static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned
                                                             }
                                                         }
 
-                                                        return new Selection::BuiltinNotExists(tree, regsToLoad, regsToCheck);
+                                                        return new Selection::BuiltinNotExists(tree, runtime, regsToLoad, regsToCheck);
                                                     }
         case QueryGraph::Filter::Builtin_aggr:
                                                     if (bindings.count(filter.id))

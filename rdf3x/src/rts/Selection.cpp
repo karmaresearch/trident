@@ -1152,9 +1152,10 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 Selection::BuiltinNotExists::BuiltinNotExists(Operator *tree,
+	Runtime &runtime,
         std::vector<Register *> regsToLoad,
         std::vector<Register *> regsToCheck) :
-    regsToLoad(regsToLoad), regsToCheck(regsToCheck), loaded(false)
+    regsToLoad(regsToLoad), regsToCheck(regsToCheck), runtime(runtime), loaded(false)
 {
     this->tree = std::unique_ptr<Operator>(tree);
     probe = std::unique_ptr<Predicate>(new Selection::Variable(regsToCheck[0]));
@@ -1187,8 +1188,10 @@ void Selection::BuiltinNotExists::eval(Result& result)
 string Selection::BuiltinNotExists::print(PlanPrinter& out)
     // Print the predicate (debugging only)
 {
-    string result = "not_exists(<subquery>)";
-    return result;
+    std::ostringstream oss;
+    DebugPlanPrinter pp(oss, runtime, true);
+    tree->print(pp);
+    return "not_exists(" + probe->print(out) + " in " + oss.str() + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::AggrFunction::eval(Result& result)
