@@ -47,6 +47,9 @@ class AggregateHandler {
         //Concrete implementations of the various functions
         bool execCount(FunctCall &call);
         bool execSum(FunctCall &call);
+        bool execAvg(FunctCall &call);
+        bool execMax(FunctCall &call);
+        bool execMin(FunctCall &call);
 
     public:
         AggregateHandler(unsigned varcount) : varcount(varcount) {
