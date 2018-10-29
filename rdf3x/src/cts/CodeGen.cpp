@@ -1101,13 +1101,15 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin();
             itr != query.subqueries.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        // id = allocateRegisters(registers, registerClasses, *subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.minuses.begin();
             itr != query.minuses.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        // id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (auto itr = query.valueNodes.begin();

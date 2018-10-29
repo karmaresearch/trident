@@ -94,10 +94,11 @@ Selection::NumType Selection::getNumType(std::string s) {
     return NumType::UNKNOWN;
 }
 
-bool Selection::numeric(const Result &v) {
+bool Selection::numeric(Result &v) {
     auto r = runtime.valueMap.find(v.id);
     if (r == runtime.valueMap.end()) {
 	IdValue val;
+	v.ensureString(this);
 	val.tp = getNumType(v.value);
 	if (val.tp == NumType::DECIMAL) {
 	    val.val.dv = _getDouble(v.value);
@@ -117,7 +118,7 @@ bool Selection::numeric(const Result &v) {
     return true;
 }
 
-bool Selection::isNumericComparison(const Result &l, const Result &r) {
+bool Selection::isNumericComparison(Result &l, Result &r) {
     return numeric(l) && numeric(r);
 }
 
@@ -142,7 +143,7 @@ Selection::Result::~Result()
 {
 }
 //---------------------------------------------------------------------------
-void Selection::Result::ensureString(Selection* selection)
+void Selection::Result::ensureString(const Selection* selection)
     // Ensure that a string is available
 {
     if (!(flags & stringAvailable)) {
@@ -386,20 +387,17 @@ void Selection::Less::eval(Result& result)
 
     bool num1 =  DictMgmt::isnumeric(l.id);
     bool num2 =  DictMgmt::isnumeric(r.id);
-    if (!num1) {
-        l.ensureString(selection);
-    }
-    if (!num2) {
-        r.ensureString(selection);
-    }
 
     if (!num1 && !num2) {
         if (selection->isNumericComparison(l,r)) {
             result.setBoolean(selection->numLess(l,r));
         } else {
+	    r.ensureString(selection);
+	    r.ensureString(selection);
             result.setBoolean(l.value < r.value);
         }
     } else if (num1 && !num2) {
+        r.ensureString(selection);
         //The comparison is numeric
         auto tr = getNumType(r.value);
         uint64_t t2;
@@ -418,6 +416,7 @@ void Selection::Less::eval(Result& result)
         result.setBoolean(res < 0);
     } else if (!num1 && num2) {
         //The comparison is numeric
+        l.ensureString(selection);
         auto tl = getNumType(l.value);
         uint64_t t1;
         uint64_t v1 = 0;
@@ -466,21 +465,18 @@ void Selection::LessOrEqual::eval(Result& result)
 
     bool num1 =  DictMgmt::isnumeric(l.id);
     bool num2 =  DictMgmt::isnumeric(r.id);
-    if (!num1) {
-        l.ensureString(selection);
-    }
-    if (!num2) {
-        r.ensureString(selection);
-    }
-
+    
     if (!num1 && !num2) {
         if (selection->isNumericComparison(l,r)) {
             result.setBoolean(!selection->numLess(r,l));
         } else {
+	    l.ensureString(selection);
+	    r.ensureString(selection);
             result.setBoolean(l.value <= r.value);
         }
     } else if (num1 && !num2) {
         //The comparison is numeric
+        r.ensureString(selection);
         auto tr = getNumType(r.value);
         uint64_t t2;
         uint64_t v2 = 0;
@@ -497,6 +493,7 @@ void Selection::LessOrEqual::eval(Result& result)
         int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
         result.setBoolean(res <= 0);
     } else if (!num1 && num2) {
+        l.ensureString(selection);
         //The comparison is numeric
         auto tl = getNumType(l.value);
         uint64_t t1;

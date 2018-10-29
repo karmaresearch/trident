@@ -59,7 +59,7 @@ class Selection : public Operator {
             }
 
             /// Ensure that a string is available
-            void ensureString(Selection* selection);
+            void ensureString(const Selection* selection);
             /// Ensure that the type is available
             void ensureType(Selection* selection);
             /// Ensuzre tthat the subtype is available
@@ -616,9 +616,9 @@ class Selection : public Operator {
         /// The predicate
         Predicate* predicate;
 
-        bool numeric(const Result &v);
+        bool numeric(Result &v);
         bool numLess(const Result &l, const Result &r);
-        bool isNumericComparison(const Result &l, const Result &r);
+        bool isNumericComparison(Result &l, Result &r);
 
     public:
         /// Constructor
