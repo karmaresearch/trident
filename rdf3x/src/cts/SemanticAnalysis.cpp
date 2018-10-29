@@ -207,6 +207,66 @@ static void getVars(const SPARQLParser::Filter& input,
         case SPARQLParser::Filter::Variable:
             vars.push_back(input.valueArg);
             break;
+        case SPARQLParser::Filter::Builtin_replace:
+	    if (input.arg4) {
+		getVars(*input.arg4, vars);
+	    }
+	    // fall through
+        case SPARQLParser::Filter::Builtin_regex:
+	    if (input.arg3) {
+		getVars(*input.arg3, vars);
+	    }
+	    // Fall through
+        case SPARQLParser::Filter::Or:
+        case SPARQLParser::Filter::And:
+        case SPARQLParser::Filter::Equal:
+        case SPARQLParser::Filter::NotEqual:
+        case SPARQLParser::Filter::Less:
+        case SPARQLParser::Filter::LessOrEqual:
+        case SPARQLParser::Filter::Greater:
+        case SPARQLParser::Filter::GreaterOrEqual:
+        case SPARQLParser::Filter::Plus:
+        case SPARQLParser::Filter::Minus:
+        case SPARQLParser::Filter::Mul:
+        case SPARQLParser::Filter::Div:
+        case SPARQLParser::Filter::Not:
+        case SPARQLParser::Filter::Function:
+        case SPARQLParser::Filter::ArgumentList:
+        case SPARQLParser::Filter::Builtin_langmatches:
+        case SPARQLParser::Filter::Builtin_sameterm:
+        case SPARQLParser::Filter::Builtin_notin:
+        case SPARQLParser::Filter::Builtin_contains:
+	    if (input.arg2) {
+		getVars(*input.arg2, vars);
+	    }
+	    // Fall through
+        case SPARQLParser::Filter::UnaryPlus:
+        case SPARQLParser::Filter::UnaryMinus:
+        case SPARQLParser::Filter::Builtin_str:
+        case SPARQLParser::Filter::Builtin_lang:
+        case SPARQLParser::Filter::Builtin_datatype:
+        case SPARQLParser::Filter::Builtin_bound:
+        case SPARQLParser::Filter::Builtin_isiri:
+        case SPARQLParser::Filter::Builtin_isblank:
+        case SPARQLParser::Filter::Builtin_isliteral:
+        case SPARQLParser::Filter::Builtin_xsddecimal:
+        case SPARQLParser::Filter::Builtin_xsdstring:
+        case SPARQLParser::Filter::Aggregate_min:
+        case SPARQLParser::Filter::Aggregate_max:
+        case SPARQLParser::Filter::Aggregate_sum:
+        case SPARQLParser::Filter::Aggregate_avg:
+        case SPARQLParser::Filter::Aggregate_sample:
+        case SPARQLParser::Filter::Aggregate_count:
+        case SPARQLParser::Filter::Aggregate_group_concat:
+	    if (input.arg1) {
+		getVars(*input.arg1, vars);
+	    }
+	    break;
+
+        case SPARQLParser::Filter::Literal:
+        case SPARQLParser::Filter::IRI:
+	    break;
+
         default:
             LOG(ERRORL) << "Argument does not contain any variable. Exiting...";
             throw 10;
@@ -662,6 +722,12 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
 
     // Add GroupBy variables
     for(auto &gv : input.getGroupBys()) {
+	if (gv.expr != NULL) {
+	    // Apparently not implemented ...
+	    LOG(ERRORL) << "Not implemented Groupby";
+	    throw 10;
+	}
+	LOG(INFOL) << "Group by variable";
         output.addGroupBy(gv.id);
     }
     for(auto hv: input.getHavings()) { //Having constraints are the same
