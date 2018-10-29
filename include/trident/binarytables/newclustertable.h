@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _NEW_CLUSTERTABLE_H
@@ -159,7 +159,7 @@ class NewClusterTable: public AbsNewTable {
         }
 
         void setup(const char* start, const char *end) {
-	    initializeConstraints();
+            initializeConstraints();
             this->start = start;
             current = start;
             this->end = end;
