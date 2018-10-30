@@ -19,7 +19,7 @@ AggrFunctions::AggrFunctions(DBLayer& db, Operator* child,
 		this->groupKeys.push_back(bindings.find(v)->second);
 	    }
         }
-        currentGroupKeys.resize(groupKeys.size());
+        currentGroupKeys.resize(this->groupKeys.size());
         this->hdl.prepare();
         auto iovars = this->hdl.getInputOutputVars();
         for(auto v : iovars.first) {
