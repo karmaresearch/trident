@@ -322,7 +322,7 @@ uint64_t ResultsPrinter::first()
             nrows++;
 			if (nrows >= limit)
 				break;
-        } while ((count == input->next()) != 0);
+        } while ((count = input->next()) != 0);
         return 1;
     }
 
