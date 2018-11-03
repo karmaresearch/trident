@@ -271,6 +271,7 @@ uint64_t ResultsPrinter::first()
 		    continue;
 		} else {
 		    count -= o;
+		    o = 0;
 		}
 	    }
             nrows += count;
@@ -291,14 +292,19 @@ uint64_t ResultsPrinter::first()
     if (!silent && !jsonoutput && duplicateHandling == ExpandDuplicates) {
         do {
 	    if (o > 0)  {
-		o--;
-		continue;
+		if (o >= count) {
+		    o -= count;
+		    continue;
+		}
+		count -= o;
+		o = 0;
 	    }
+	    stringstream ss;
             for (vector<Register*>::const_iterator iter = output.begin(),
                     limit = output.end(); iter != limit; ++iter) {
                 uint64_t id = (*iter)->value;
                 if (DictMgmt::isnumeric(id)) {
-                    cout << DictMgmt::tostr(id);
+                    ss << DictMgmt::tostr(id);
                 } else {
                     CacheEntry c;
                     if (dictQuery && dictQuery->hasID(id)) {
@@ -314,14 +320,22 @@ uint64_t ResultsPrinter::first()
                             dictionary.lookupById(id, c.start, c.stop, c.type, c.subType);
                     }
                     //print cache entry
-                    c.print(cout, false);
-                    cout << " ";
+                    c.print(ss, false);
                 }
+		ss << ' ';
             }
-            cout << '\n';
-            nrows++;
-			if (nrows >= limit)
-				break;
+            ss << '\n';
+	    std::string s = ss.str();
+	    while (count > 0) {
+		cout << s;
+		nrows++;
+		if (nrows >= limit)
+		    break;
+		count--;
+	    }
+	    if (nrows >= limit) {
+		break;
+	    }
         } while ((count = input->next()) != 0);
         return 1;
     }
@@ -333,9 +347,13 @@ uint64_t ResultsPrinter::first()
     uint64_t entryCount = 0;
     do {
         if (count < minCount) continue;
-	if (o > 0) {
-	    o--;
-	    continue;
+	if (o > 0)  {
+	    if (o >= count) {
+		o -= count;
+		continue;
+	    }
+	    count -= o;
+	    o = 0;
 	}
         results.push_back(count);
         for (vector<Register*>::const_iterator iter = output.begin(), limit = output.end(); iter != limit; ++iter) {
