@@ -901,7 +901,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         //Little tweak: if there is a limit, then this limits the cardinality
         plan->cardinality = childPlan->cardinality;
         if (plan->cardinality > (*itr)->getLimit()) {
-            plan->cardinality = (*itr)->getLimit();
+	    plan->cardinality = (*itr)->getLimit();
         }
         subqueryPlans.push_back(plan);
     }

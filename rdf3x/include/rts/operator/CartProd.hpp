@@ -16,6 +16,7 @@ class CartProd: public Operator {
         /// The non-join attributes
         std::vector<Register*> leftTail, rightTail;
         bool leftOptional, rightOptional;
+	bool leftExhausted;	// To prevent calling next when first already delivers nothing, but leftOptional = true.
 
         uint64_t leftCount, rightCount;
         std::vector<uint64_t> buffer;

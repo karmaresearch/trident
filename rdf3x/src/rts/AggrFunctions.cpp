@@ -14,10 +14,12 @@ AggrFunctions::AggrFunctions(DBLayer& db, Operator* child,
         double expectedOutputCardinality) : Operator(expectedOutputCardinality),
     dict(db), child(child), hdl(hdl) {
         for(unsigned v : groupKeys) {
-            assert(bindings.count(v));
-            this->groupKeys.push_back(bindings.find(v)->second);
+            // assert(bindings.count(v));
+	    if (bindings.count(v)) {
+		this->groupKeys.push_back(bindings.find(v)->second);
+	    }
         }
-        currentGroupKeys.resize(groupKeys.size());
+        currentGroupKeys.resize(this->groupKeys.size());
         this->hdl.prepare();
         auto iovars = this->hdl.getInputOutputVars();
         for(auto v : iovars.first) {

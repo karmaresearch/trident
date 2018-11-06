@@ -24,8 +24,8 @@
 //---------------------------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------------------------
-ResultsPrinter::ResultsPrinter(Runtime& runtime, Operator* input, const vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit, bool silent)
-    : Operator(1), output(output), input(input), runtime(runtime), dictionary(runtime.getDatabase()), duplicateHandling(duplicateHandling), outputMode(DefaultOutput), limit(limit), silent(silent), nrows(0), jsonoutput(NULL), outputset(NULL)
+ResultsPrinter::ResultsPrinter(Runtime& runtime, Operator* input, const vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit, uint64_t offset, bool silent)
+    : Operator(1), output(output), input(input), runtime(runtime), dictionary(runtime.getDatabase()), duplicateHandling(duplicateHandling), outputMode(DefaultOutput), limit(limit), offset(offset), silent(silent), nrows(0), jsonoutput(NULL), outputset(NULL)
       // Constructor
 {
 }
@@ -235,6 +235,7 @@ uint64_t ResultsPrinter::first()
     // Produce the first tuple
 {
     observedOutputCardinality = 1;
+    uint64_t o = offset;
 
     // Empty input?
     uint64_t count;
@@ -250,6 +251,10 @@ uint64_t ResultsPrinter::first()
         uint64_t entryCount = 0;
         do {
             if (count < minCount) continue;
+	    if (o > 0) {
+		o--;
+		continue;
+	    }
             uint64_t id = output[prjId]->value;
             outputset->insert(id);
             if ((++entryCount) >= this->limit) break;
@@ -260,7 +265,19 @@ uint64_t ResultsPrinter::first()
     if (silent && !jsonoutput) {
         //Count the rows and output a single line
         do {
+	    if (o > 0) {
+		if (o >= count) {
+		    o -= count;
+		    continue;
+		} else {
+		    count -= o;
+		    o = 0;
+		}
+	    }
             nrows += count;
+	    if (nrows > this->limit) {
+		nrows = this->limit;
+	    }
         } while ((count = input->next()) != 0 && nrows < this->limit);
         cout << "<skipped " << nrows << " rows>" << endl;
         return 1;
@@ -274,11 +291,20 @@ uint64_t ResultsPrinter::first()
     if (dictQuery && dictQuery->isEmpty()) dictQuery = NULL;
     if (!silent && !jsonoutput && duplicateHandling == ExpandDuplicates) {
         do {
+	    if (o > 0)  {
+		if (o >= count) {
+		    o -= count;
+		    continue;
+		}
+		count -= o;
+		o = 0;
+	    }
+	    stringstream ss;
             for (vector<Register*>::const_iterator iter = output.begin(),
                     limit = output.end(); iter != limit; ++iter) {
                 uint64_t id = (*iter)->value;
                 if (DictMgmt::isnumeric(id)) {
-                    cout << DictMgmt::tostr(id);
+                    ss << DictMgmt::tostr(id);
                 } else {
                     CacheEntry c;
                     if (dictQuery && dictQuery->hasID(id)) {
@@ -294,15 +320,23 @@ uint64_t ResultsPrinter::first()
                             dictionary.lookupById(id, c.start, c.stop, c.type, c.subType);
                     }
                     //print cache entry
-                    c.print(cout, false);
-                    cout << " ";
+                    c.print(ss, false);
                 }
+		ss << ' ';
             }
-            cout << '\n';
-            nrows++;
-			if (nrows >= limit)
-				break;
-        } while ((count == input->next()) != 0);
+            ss << '\n';
+	    std::string s = ss.str();
+	    while (count > 0) {
+		cout << s;
+		nrows++;
+		if (nrows >= limit)
+		    break;
+		count--;
+	    }
+	    if (nrows >= limit) {
+		break;
+	    }
+        } while ((count = input->next()) != 0);
         return 1;
     }
 
@@ -313,6 +347,14 @@ uint64_t ResultsPrinter::first()
     uint64_t entryCount = 0;
     do {
         if (count < minCount) continue;
+	if (o > 0)  {
+	    if (o >= count) {
+		o -= count;
+		continue;
+	    }
+	    count -= o;
+	    o = 0;
+	}
         results.push_back(count);
         for (vector<Register*>::const_iterator iter = output.begin(), limit = output.end(); iter != limit; ++iter) {
             uint64_t id = (*iter)->value;

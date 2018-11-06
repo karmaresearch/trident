@@ -16,7 +16,7 @@ CartProd::CartProd(Operator* left,
         int bitset)
     : Operator(expectedOutputCardinality), left(left), right(right),
     leftTail(leftTail), rightTail(rightTail),
-    leftOptional(leftOptional), rightOptional(rightOptional)
+    leftOptional(leftOptional), rightOptional(rightOptional), leftExhausted(false)
       // Constructor
 {
 }
@@ -38,35 +38,36 @@ uint64_t CartProd::first()
                 leftTail[i]->value = UINT64_MAX;
             }
             leftCount = 1;
+	    leftExhausted = true;
         } else {
             return 0;
         }
+    }
+    if ((rightCount = right->first()) == 0) {
+	if (rightOptional) {
+	    rightCount = 1;
+	    buffer.push_back(rightCount);
+	    for(int i = 0; i < rightTail.size(); ++i) {
+		buffer.push_back(UINT64_MAX);
+	    }
+	    idxbuffer = 1 + rightTail.size();
+	} else {
+	    return 0;
+	}
     } else {
-        if ((rightCount = right->first()) == 0) {
-            if (rightOptional) {
-                rightCount = 1;
-                buffer.push_back(rightCount);
-                for(int i = 0; i < rightTail.size(); ++i) {
-                    buffer.push_back(UINT64_MAX);
-                }
-            } else {
-                return 0;
-            }
-        } else {
-            //Read all the tuples on the right side
-            do {
-                buffer.push_back(rightCount);
-                for(int i = 0; i < rightTail.size(); ++i) {
-                    buffer.push_back(rightTail[i]->value);
-                }
-            } while ((rightCount = right->next()) != 0);
+	//Read all the tuples on the right side
+	do {
+	    buffer.push_back(rightCount);
+	    for(int i = 0; i < rightTail.size(); ++i) {
+		buffer.push_back(rightTail[i]->value);
+	    }
+	} while ((rightCount = right->next()) != 0);
 
-            //Restore the first line
-            for(int i = 0; i < rightTail.size(); ++i) {
-                rightTail[i]->value = buffer[1 + i];
-            }
-            idxbuffer = 1 + rightTail.size();
-        }
+	//Restore the first line
+	for(int i = 0; i < rightTail.size(); ++i) {
+	    rightTail[i]->value = buffer[1 + i];
+	}
+	idxbuffer = 1 + rightTail.size();
     }
 
     observedOutputCardinality = leftCount * buffer[0];
@@ -101,7 +102,7 @@ uint64_t CartProd::next()
 {
     if (idxbuffer == buffer.size()) {
         //Move to the next left entry
-        if ((leftCount = left->next()) == 0) {
+        if (leftExhausted || (leftCount = left->next()) == 0) {
             return 0;
         }
         idxbuffer = 0;

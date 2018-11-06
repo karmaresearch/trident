@@ -59,7 +59,7 @@ class Selection : public Operator {
             }
 
             /// Ensure that a string is available
-            void ensureString(Selection* selection);
+            void ensureString(const Selection* selection);
             /// Ensure that the type is available
             void ensureType(Selection* selection);
             /// Ensuzre tthat the subtype is available
@@ -77,9 +77,7 @@ class Selection : public Operator {
             void setIRI(const std::string& c);
         };
 
-        enum NumType { DECIMAL, INT, UNKNOWN };
-        static bool isNumericComparison(const Result &l, const Result &r);
-        static bool numLess(const Result &l, const Result &r);
+        enum NumType { DECIMAL, INT, DATETIME, DATE, UNKNOWN };
         static NumType getNumType(std::string s);
 
         /// Base for predicate evaluation
@@ -596,10 +594,12 @@ class Selection : public Operator {
                 std::unique_ptr<Operator> tree;
                 std::vector<Register *> regsToLoad;
                 std::vector<Register *> regsToCheck;
+		Runtime& runtime;
                 bool loaded;
             public:
                 /// Constructor
                 BuiltinNotExists(Operator *tree,
+			Runtime &runtime,
                         std::vector<Register *> regsToLoad,
                         std::vector<Register *> regsToCheck);
                 /// Evaluate the predicate
@@ -616,6 +616,9 @@ class Selection : public Operator {
         /// The predicate
         Predicate* predicate;
 
+        bool numeric(Result &v);
+        bool numLess(const Result &l, const Result &r);
+        bool isNumericComparison(Result &l, Result &r);
 
     public:
         /// Constructor

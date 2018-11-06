@@ -72,6 +72,8 @@ class ResultsPrinter : public Operator {
         OutputMode outputMode;
         /// Maximum number of output tuples
         uint64_t limit;
+        /// offset
+        uint64_t offset;
         /// Skip the printing, resolve only?
         bool silent;
         /// Count the printed rows
@@ -91,7 +93,7 @@ class ResultsPrinter : public Operator {
 
     public:
         /// Constructor
-        ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = UINT64_MAX, bool silent = false);
+        ResultsPrinter(Runtime& runtime, Operator* input, const std::vector<Register*>& output, DuplicateHandling duplicateHandling, uint64_t limit = UINT64_MAX, uint64_t offset = 0, bool silent = false);
         /// Destructor
         ~ResultsPrinter();
 

@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cassert>
 #include <cstdlib>
+#include <cstdio>
 #ifdef __GNUC__
 #if (__GNUC__>4)||((__GNUC__==4)&&(__GNUC_MINOR__>=9))
 #define CONFIG_TR1
@@ -45,6 +46,29 @@ double _getDouble(const std::string &s) {
     return std::stod(number);
 }
 
+int64_t _getTime(const std::string &s, Selection::NumType tp) {
+    std::string time = s.substr(1, s.find_first_of('"',1)-1);
+    int year;
+    int month;
+    int day;
+    int hour = 0;
+    int min = 0;
+    int sec = 0;
+    if (tp == Selection::NumType::DATE) {
+	int retval = sscanf(time.c_str(), "%d-%d-%d", &year, &month, &day);
+	if (retval != 3) {
+	    throw 10;
+	}
+    } else {
+	int retval = sscanf(time.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month, &day, &hour, &min, &sec);
+	if (retval != 6) {
+	    throw 10;
+	}
+    }
+    return ((int64_t) year << 48) + ((int64_t) month << 40) + ((int64_t) day << 32) + (hour << 24)
+	+ (min << 16) + sec;
+}
+
 bool _endsWith(const std::string &s, const std::string &suffix) {
     if (s.length() >= suffix.length()) {
         return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
@@ -53,49 +77,67 @@ bool _endsWith(const std::string &s, const std::string &suffix) {
 }
 
 Selection::NumType Selection::getNumType(std::string s) {
-    std::string d = "^^<http://www.w3.org/2001/XMLSchema#double>";
-    std::string f = "^^<http://www.w3.org/2001/XMLSchema#float>";
-    std::string i = "^^<http://www.w3.org/2001/XMLSchema#integer>";
-    if (_endsWith(s,d) || _endsWith(s,f)) {
+    std::string dbl = "^^<http://www.w3.org/2001/XMLSchema#double>";
+    std::string flt = "^^<http://www.w3.org/2001/XMLSchema#float>";
+    std::string integer = "^^<http://www.w3.org/2001/XMLSchema#integer>";
+    std::string datetime = "^^<http://www.w3.org/2001/XMLSchema#dateTime>";
+    std::string date = "^^<http://www.w3.org/2001/XMLSchema#date>";
+    if (_endsWith(s,dbl) || _endsWith(s,flt)) {
         return NumType::DECIMAL;
-    } else if (_endsWith(s,i)) {
+    } else if (_endsWith(s,integer)) {
         return NumType::INT;
+    } else if (_endsWith(s,datetime)) {
+	return NumType::DATETIME;
+    } else if (_endsWith(s,date)) {
+	return NumType::DATE;
     }
     return NumType::UNKNOWN;
 }
 
-bool Selection::isNumericComparison(const Result &l, const Result &r) {
-    if (l.type == Type::Literal && r.type == Type::Literal) {
-        //Get numerical type
-        if (getNumType(l.value) != NumType::UNKNOWN &&
-                getNumType(r.value) != NumType::UNKNOWN) {
-            return true;
-        }
+bool Selection::numeric(Result &v) {
+    if (! (v.flags & Result::idAvailable)) {
+	return false;
     }
-    return false;
+    auto r = runtime.valueMap.find(v.id);
+    if (r == runtime.valueMap.end()) {
+	IdValue val;
+	v.ensureString(this);
+	val.tp = getNumType(v.value);
+	if (val.tp == NumType::DECIMAL) {
+	    val.val.dv = _getDouble(v.value);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	} else if (val.tp == NumType::INT) {
+	    val.val.iv = _getLong(v.value);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	} else if (val.tp == NumType::DATE || val.tp == NumType::DATETIME) {
+	    val.val.iv = _getTime(v.value, val.tp);
+	    runtime.valueMap[v.id] = val;
+	    return true;
+	}
+	return false;
+    }
+    return true;
+}
+
+bool Selection::isNumericComparison(Result &l, Result &r) {
+    return numeric(l) && numeric(r);
 }
 
 bool Selection::numLess(const Result &l, const Result &r) {
-    auto tl = getNumType(l.value);
-    auto tr = getNumType(r.value);
-    if (tl == NumType::INT && tr == NumType::INT) {
-        int64_t v1 = _getLong(l.value);
-        int64_t v2 = _getLong(r.value);
-        return v1 < v2;
-    } else if (tl == NumType::DECIMAL && tr == NumType::INT) {
-        double v1 = _getDouble(l.value);
-        int64_t v2 = _getLong(r.value);
-        return v1 < v2;
-    } else if (tl == NumType::INT && tr == NumType::DECIMAL) {
-        int64_t v1 = _getLong(l.value);
-        double v2 = _getDouble(r.value);
-        return v1 < v2;
-    } else {
-        double v1 = _getDouble(l.value);
-        double v2 = _getDouble(r.value);
-        return v1 < v2;
+    IdValue v1 = runtime.valueMap[l.id];
+    IdValue v2 = runtime.valueMap[r.id];
+    if (v1.tp != NumType::DECIMAL) {
+	if (v2.tp != NumType::DECIMAL) {
+	    return v1.val.iv < v2.val.iv;
+	}
+	return v1.val.iv < v2.val.dv;
     }
-    return false;
+    if (v2.tp != NumType::DECIMAL) {
+	return v1.val.dv < v2.val.iv;
+    }
+    return v1.val.dv < v2.val.dv;
 }
 
 //---------------------------------------------------------------------------
@@ -104,7 +146,7 @@ Selection::Result::~Result()
 {
 }
 //---------------------------------------------------------------------------
-void Selection::Result::ensureString(Selection* selection)
+void Selection::Result::ensureString(const Selection* selection)
     // Ensure that a string is available
 {
     if (!(flags & stringAvailable)) {
@@ -348,20 +390,17 @@ void Selection::Less::eval(Result& result)
 
     bool num1 =  DictMgmt::isnumeric(l.id);
     bool num2 =  DictMgmt::isnumeric(r.id);
-    if (!num1) {
-        l.ensureString(selection);
-    }
-    if (!num2) {
-        r.ensureString(selection);
-    }
 
     if (!num1 && !num2) {
-        if (isNumericComparison(l,r)) {
-            result.setBoolean(numLess(l,r));
+        if (selection->isNumericComparison(l,r)) {
+            result.setBoolean(selection->numLess(l,r));
         } else {
+	    r.ensureString(selection);
+	    r.ensureString(selection);
             result.setBoolean(l.value < r.value);
         }
     } else if (num1 && !num2) {
+        r.ensureString(selection);
         //The comparison is numeric
         auto tr = getNumType(r.value);
         uint64_t t2;
@@ -380,6 +419,7 @@ void Selection::Less::eval(Result& result)
         result.setBoolean(res < 0);
     } else if (!num1 && num2) {
         //The comparison is numeric
+        l.ensureString(selection);
         auto tl = getNumType(l.value);
         uint64_t t1;
         uint64_t v1 = 0;
@@ -428,21 +468,18 @@ void Selection::LessOrEqual::eval(Result& result)
 
     bool num1 =  DictMgmt::isnumeric(l.id);
     bool num2 =  DictMgmt::isnumeric(r.id);
-    if (!num1) {
-        l.ensureString(selection);
-    }
-    if (!num2) {
-        r.ensureString(selection);
-    }
-
+    
     if (!num1 && !num2) {
-        if (isNumericComparison(l,r)) {
-            result.setBoolean(!numLess(r,l));
+        if (selection->isNumericComparison(l,r)) {
+            result.setBoolean(!selection->numLess(r,l));
         } else {
+	    l.ensureString(selection);
+	    r.ensureString(selection);
             result.setBoolean(l.value <= r.value);
         }
     } else if (num1 && !num2) {
         //The comparison is numeric
+        r.ensureString(selection);
         auto tr = getNumType(r.value);
         uint64_t t2;
         uint64_t v2 = 0;
@@ -459,6 +496,7 @@ void Selection::LessOrEqual::eval(Result& result)
         int res = DictMgmt::compare(DictMgmt::getType(l.id), l.id, t2, v2);
         result.setBoolean(res <= 0);
     } else if (!num1 && num2) {
+        l.ensureString(selection);
         //The comparison is numeric
         auto tl = getNumType(l.value);
         uint64_t t1;
@@ -1114,9 +1152,10 @@ string Selection::BuiltinIn::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 Selection::BuiltinNotExists::BuiltinNotExists(Operator *tree,
+	Runtime &runtime,
         std::vector<Register *> regsToLoad,
         std::vector<Register *> regsToCheck) :
-    regsToLoad(regsToLoad), regsToCheck(regsToCheck), loaded(false)
+    regsToLoad(regsToLoad), regsToCheck(regsToCheck), runtime(runtime), loaded(false)
 {
     this->tree = std::unique_ptr<Operator>(tree);
     probe = std::unique_ptr<Predicate>(new Selection::Variable(regsToCheck[0]));
@@ -1149,8 +1188,10 @@ void Selection::BuiltinNotExists::eval(Result& result)
 string Selection::BuiltinNotExists::print(PlanPrinter& out)
     // Print the predicate (debugging only)
 {
-    string result = "not_exists(<subquery>)";
-    return result;
+    std::ostringstream oss;
+    DebugPlanPrinter pp(oss, runtime, true);
+    tree->print(pp);
+    return "not_exists(" + probe->print(out) + " in " + oss.str() + ")";
 }
 //---------------------------------------------------------------------------
 void Selection::AggrFunction::eval(Result& result)
