@@ -83,7 +83,8 @@ class SubgraphHandler {
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);
+                DIST secondDist,
+                string kFile);
 
         void findAnswers(KB &kb,
                 string embAlgo,

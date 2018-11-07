@@ -327,10 +327,11 @@ void SubgraphHandler::evaluate(KB &kb,
         string subType,
         string nameTest,
         string formatTest,
-        uint64_t threshold,
+        uint64_t subgraphThreshold,
         double varThreshold,
         string writeLogs,
-        DIST secondDist) {
+        DIST secondDist,
+        string kFile) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -343,6 +344,8 @@ void SubgraphHandler::evaluate(KB &kb,
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
+    uint64_t threshold = subgraphThreshold;
+    unordered_map<uint64_t, pair<int, int>> relKMap;
     LOG(INFOL) << "Loading the queries ...";
     if (formatTest == "python") {
         //The file is a uncompressed file with all the test triples serialized after
@@ -400,6 +403,34 @@ void SubgraphHandler::evaluate(KB &kb,
             pathtest = BatchCreator::getTestPath(kb.getPath());
         }
         BatchCreator::loadTriples(pathtest, testTriples);
+    }
+
+    if (subgraphThreshold == -2) {
+        // The file is uncompressed text file with each line with following format
+        // relation <space> K_h <space> K_t
+        if (!Utils::exists(kFile)) {
+            LOG(ERRORL) << "Ks file " << kFile << " not found";
+            throw 10;
+        }
+        std::ifstream ifs(kFile);
+        string line;
+        while (std::getline(ifs, line)) {
+            istringstream is(line);
+            string token;
+            uint64_t rel;
+            int hK, tK;
+            if (getline(is, token, ' ')) {
+                rel = std::stoull(token);
+            }
+            if (getline(is, token, ' ')) {
+                hK = std::stoi(token);
+            }
+            if (getline(is, token, ' ')) {
+                tK = std::stoi(token);
+            }
+            LOG(INFOL) << rel << "  , " << hK << " , " << tK;
+            relKMap.insert(make_pair(rel, make_pair(hK, tK)));
+        }
     }
 
     /*** TEST ***/
@@ -482,7 +513,7 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
 
-        if (formatTest == "dynamicK") {
+        if (subgraphThreshold == -1) {
             switch(testTopKs[i]) {
                 case 0 : threshold = 1; break;
                 case 1 : threshold = 3; break;
@@ -490,7 +521,15 @@ void SubgraphHandler::evaluate(KB &kb,
                 case 3 : threshold = 10; break;
                 default: threshold = 50; break;
             }
+        } else if (subgraphThreshold == -2){
+            if (relKMap[r].first == -1) {
+                threshold = 50;
+                LOG(INFOL) << r << " relation had no head answers during training";
+            } else {
+                threshold = relKMap[r].first;
+            }
         }
+
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphsH, threshold, subType, secondDist);
 
@@ -498,7 +537,7 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
 
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
-        if (formatTest == "dynamicK") {
+        if (subgraphThreshold == -1) {
             switch(testTopKs[i+1]) {
                 case 0 : threshold = 1; break;
                 case 1 : threshold = 3; break;
@@ -506,7 +545,15 @@ void SubgraphHandler::evaluate(KB &kb,
                 case 3 : threshold = 10; break;
                 default: threshold = 50; break;
             }
+        } else if (subgraphThreshold == -2) {
+            if (relKMap[r].second == -1) {
+                threshold = 50;
+                LOG(INFOL) << r << " relation had no tail answers during training";
+            } else {
+                threshold = relKMap[r].second;
+            }
         }
+
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
                 r, h, relevantSubgraphsT, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
