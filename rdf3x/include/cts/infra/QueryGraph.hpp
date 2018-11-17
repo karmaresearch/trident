@@ -153,6 +153,8 @@ class QueryGraph {
         std::vector<Order> order;
         /// Maximum result size
         unsigned limit;
+        /// offset
+        unsigned offset;
         /// Is the query known to produce an empty result?
         bool knownEmptyResult;
         /// The table functions (that occur outside the where clause)
@@ -192,6 +194,14 @@ class QueryGraph {
         /// Get the result limit
         unsigned getLimit() const {
             return limit;
+        }
+        /// Set the result offset
+        void setOffset(unsigned l) {
+            offset = l;
+        }
+        /// Get the result offset
+        unsigned getOffset() const {
+            return offset;
         }
         /// Known empty result
         void markAsKnownEmpty() {

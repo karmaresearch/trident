@@ -77,7 +77,7 @@ public:
         keys.push_back(k);
     }
 
-    ~UpdateStats();
+    virtual ~UpdateStats();
 
     int64_t getCount1() {
         return c1;
