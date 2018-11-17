@@ -81,9 +81,13 @@ uint64_t DomainDescription::nextCandidate(uint64_t value) const
          if (value>max) return UINT64_MAX;
          return value;
       }
-   value+=filterEntryBits*(filterSize-slot);
+   // value+=filterEntryBits*(filterSize-slot);
+   // Not correct, I think.
+   // We should only compensate here for filter entries that are actually skipped
+   // in the loop above. --Ceriel
+   value+=filterEntryBits*(filterSize-slot-1);
    for (uint64_t index=0;index<=slot;index++)
-      if (filter[index]) {
+       if (filter[index]) {
          value+=filterEntryBits*(index);
          entry=filter[index]; mask=filterEntry1;
          while (!(entry&mask)) {

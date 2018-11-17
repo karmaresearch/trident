@@ -127,6 +127,14 @@ static bool encode(DBLayer& dict, DifferentialIndex* diffIndex, const SPARQLPars
 static bool binds(const SPARQLParser::PatternGroup& group, uint64_t id)
     // Check if a variable is bound in a pattern group
 {
+    // Ceriel: BUG FIX: added check for projections of subqueries.
+    for (auto itr = group.subqueries.begin(); itr != group.subqueries.end(); ++itr) {
+	for (SPARQLParser::projection_iterator iter = (*itr)->projectionBegin(), limit = (*itr)->projectionEnd(); iter != limit; ++iter) {
+	    if (id == *iter) {
+		return true;
+	    }
+	}
+    }
     for (std::vector<SPARQLParser::Pattern>::const_iterator iter = group.patterns.begin(), limit = group.patterns.end(); iter != limit; ++iter)
         if ((((*iter).subject.type == SPARQLParser::Element::Variable) && ((*iter).subject.id == id)) ||
                 (((*iter).predicate.type == SPARQLParser::Element::Variable) && ((*iter).predicate.id == id)) ||
@@ -751,10 +759,21 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
     // Order by clause
     for (SPARQLParser::order_iterator iter = input.orderBegin(), limit = input.orderEnd(); iter != limit; ++iter) {
         QueryGraph::Order o;
-        if (~(*iter).id) {
-            if (!binds(input.getPatterns(), (*iter).id))
+	SPARQLParser::Filter *expr = (*iter).expr;
+	unsigned id = (*iter).id;
+	if (expr != NULL) {
+	    // Accept expressions consisting of a single variable.
+	    if (expr->type == SPARQLParser::Filter::Variable) {
+		id = expr->valueArg;
+	    } else {
+		LOG(ERRORL) << "ORDER BY with expression not implemented yet";
+		throw 10;
+	    }
+	}
+        if (~id) {
+            if (!binds(input.getPatterns(), id))
                 continue;
-            o.id = (*iter).id;
+            o.id = id;
         } else {
             o.id = ~0u;
         }

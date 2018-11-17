@@ -1702,17 +1702,20 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
             }
             if (lexer.isKeyword("asc") || lexer.isKeyword("desc")) {
                 Order o;
+		o.id = ~0u;
                 o.descending = lexer.isKeyword("desc");
                 o.expr = parseBrackettedExpression(localVars);
                 order.push_back(o);
             } else if (lexer.isKeyword("count")) {
                 Order o;
                 o.id = ~0u;
+		o.expr = NULL;
                 o.descending = false;
                 order.push_back(o);
             } else {
                 lexer.unget(token);
 		Order o;
+                o.id = ~0u;
 		o.descending = false;
 		o.expr = parseConstraint(localVars);
 		order.push_back(o);
@@ -1720,6 +1723,7 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
         } else if (token == SPARQLLexer::Variable) {
             Order o;
             o.id = nameVariable(lexer.getTokenValue());
+	    o.expr = NULL;
             o.descending = false;
             order.push_back(o);
         } else if (token == SPARQLLexer::Eof) {

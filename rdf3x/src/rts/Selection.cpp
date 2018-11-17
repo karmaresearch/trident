@@ -95,6 +95,9 @@ Selection::NumType Selection::getNumType(std::string s) {
 }
 
 bool Selection::numeric(Result &v) {
+    if (! (v.flags & Result::idAvailable)) {
+	return false;
+    }
     auto r = runtime.valueMap.find(v.id);
     if (r == runtime.valueMap.end()) {
 	IdValue val;

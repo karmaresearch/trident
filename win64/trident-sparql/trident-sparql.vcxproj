@@ -91,7 +91,7 @@
     <ProjectGuid>{CD73F65E-E76F-4F4E-A2EF-EDABD71A4DE0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>tridentsparql</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,14 +140,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps_kognac\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps_kognac\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\rdf3x\include;..\..\include;..\..\..\deps\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

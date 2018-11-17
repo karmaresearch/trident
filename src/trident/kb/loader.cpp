@@ -279,25 +279,27 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     std::vector<char> uncompressedByteArray;
 
     int64_t processedtriples = 0;
-    const char *pivotbuffer = buffer.b;
-    while (pivotbuffer != NULL) {
+    while (buffer.b != NULL) {
         //Read the file
+	const char *pivotbuffer = buffer.b;
         const char *input = NULL;
         size_t sizeinput = 0;
         if (buffer.gzipped) {
             LOG(DEBUGL) << "Uncompressing buffer ...";
             uncompressedByteArray.clear();
             istringstream raw(string(pivotbuffer, buffer.size));
+
             zstr::istream is(raw);
             is.unsetf(std::ios_base::skipws);
             isitr itrstream(is);
             std::copy(itrstream, isitr(), std::back_inserter(uncompressedByteArray));
             input = &(uncompressedByteArray[0]);
             sizeinput = uncompressedByteArray.size();
-            LOG(DEBUGL) << "Uncompressing buffer (done)";
+            LOG(DEBUGL) << "Uncompressing buffer (done), sizeinput = " << sizeinput;
         } else {
             input = pivotbuffer;
             sizeinput = buffer.size;
+            LOG(DEBUGL) << "Not compressed buffer, sizeinput = " << sizeinput;
         }
         if (sizeinput == 0) {
             LOG(DEBUGL) << "This should not happen";
