@@ -160,6 +160,7 @@ class Subgraphs {
                 std::shared_ptr<Embeddings<double>> E) {
                 vector<double> trueAverages;
                 vector<double> trueVariances;
+
                 if (dist == KL) {
                     if (excludeType == Subgraphs<double>::TYPE::SP) {
                         auto itr = q->getPermuted(IDX_SPO, excludeEnt, excludeRel, -1, true);
@@ -205,33 +206,33 @@ class Subgraphs {
                         LOG(DEBUGL) << "########## of true embeddings : " << trueEmbeddings.size();
                     }
                 }
-            for(size_t i = 0; i < subgraphs.size(); ++i) {
-                if (subgraphs[i].t == excludeType &&
-                    subgraphs[i].rel == excludeRel &&
-                    subgraphs[i].ent == excludeEnt) {
-                    continue;
+                for(size_t i = 0; i < subgraphs.size(); ++i) {
+                    if (subgraphs[i].t == excludeType &&
+                        subgraphs[i].rel == excludeRel &&
+                        subgraphs[i].ent == excludeEnt) {
+                        continue;
+                    }
+                    switch (dist) {
+                        case L1:
+                            distances.push_back(make_pair(l1(q, i, emb, dim), i));
+                            break;
+                        case L3:
+                            distances.push_back(make_pair(l3(q, i, emb, dim), i));
+                            break;
+                        case L4:
+                            distances.push_back(make_pair(l3NoSquare(q, i, emb, dim),i));
+                            break;
+                        case L5:
+                            distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
+                            break;
+                        case KL:
+                            distances.push_back(make_pair(kl(q, i, emb, dim, trueAverages, trueVariances), i));
+                            break;
+                        default:
+                            LOG(ERRORL) << "Not implemented";
+                            throw 10;
+                    };
                 }
-                switch (dist) {
-                    case L1:
-                        distances.push_back(make_pair(l1(q, i, emb, dim), i));
-                        break;
-                    case L3:
-                        distances.push_back(make_pair(l3(q, i, emb, dim), i));
-                        break;
-                    case L4:
-                        distances.push_back(make_pair(l3NoSquare(q, i, emb, dim),i));
-                        break;
-                    case L5:
-                        distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
-                        break;
-                    case KL:
-                        distances.push_back(make_pair(kl(q, i, emb, dim, trueAverages, trueVariances), i));
-                        break;
-                    default:
-                        LOG(ERRORL) << "Not implemented";
-                        throw 10;
-                };
-            }
         }
 
         virtual ~Subgraphs() {}
@@ -258,6 +259,7 @@ class AvgSubgraphs : public Subgraphs<K> {
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
             for(uint16_t i = 0; i < dim; ++i) {
+                LOG(DEBUGL) << "calculated index = " << dim * subgraphid + i;
                 out += abs(emb[i] - params[dim * subgraphid + i]);
             }
             return out;

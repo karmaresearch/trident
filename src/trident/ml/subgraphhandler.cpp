@@ -417,8 +417,8 @@ void SubgraphHandler::evaluate(KB &kb,
         while (std::getline(ifs, line)) {
             istringstream is(line);
             string token;
-            uint64_t rel;
-            int hK, tK;
+            uint64_t rel = 0;
+            int hK = -1, tK = -1;
             if (getline(is, token, ' ')) {
                 rel = std::stoull(token);
             }
@@ -428,7 +428,6 @@ void SubgraphHandler::evaluate(KB &kb,
             if (getline(is, token, ' ')) {
                 tK = std::stoi(token);
             }
-            LOG(INFOL) << rel << "  , " << hK << " , " << tK;
             relKMap.insert(make_pair(rel, make_pair(hK, tK)));
         }
     }
@@ -522,8 +521,8 @@ void SubgraphHandler::evaluate(KB &kb,
                 default: threshold = 50; break;
             }
         } else if (subgraphThreshold == -2){
-            if (relKMap[r].first == -1) {
-                threshold = 50;
+            if (relKMap[r].first == -1 || relKMap[r].first > 10) {
+                threshold = 10;
                 LOG(INFOL) << r << " relation had no head answers during training";
             } else {
                 threshold = relKMap[r].first;
@@ -546,8 +545,8 @@ void SubgraphHandler::evaluate(KB &kb,
                 default: threshold = 50; break;
             }
         } else if (subgraphThreshold == -2) {
-            if (relKMap[r].second == -1) {
-                threshold = 50;
+            if (relKMap[r].second == -1 || relKMap[r].second > 10) {
+                threshold = 10;
                 LOG(INFOL) << r << " relation had no tail answers during training";
             } else {
                 threshold = relKMap[r].second;
@@ -620,14 +619,6 @@ void SubgraphHandler::evaluate(KB &kb,
     float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
     float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
     LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
-    std::cout << threshold <<"," << counth << ","<<countt << "," << std::fixed << std::setprecision(2)<< (double)sumh/counth <<"," \
-        << (double)sumt/countt <<"," << percentReductionH <<"," << percentReductionT << "," \
-        << sumDisplacementOPos / testTriples.size() << "," \
-        << sumDisplacementONeg / testTriples.size() << "," \
-        << sumDisplacementSPos / testTriples.size() << "," \
-        << sumDisplacementSNeg / testTriples.size() << "," \
-        << f1H << "," << f1T << \
-        std::endl;
 
     if (logWriter) {
         logWriter->close();
