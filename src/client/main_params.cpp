@@ -380,6 +380,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "Threshold to consider difference between variances", false);
     subeval_options.add<int>("", "secondDist", 3,
             "Type of distance for second level of ranking", false);
+    subeval_options.add<string>("", "binEmbDir", "",
+            "The directory that contains the binarized embeddings of subgraphs, entities and relations.", false);
 #endif
 
     /***** GENERAL OPTIONS *****/

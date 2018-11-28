@@ -12,6 +12,10 @@ class SubgraphHandler {
 
         void loadEmbeddings(string embdir);
 
+        void loadBinarizedEmbeddings(string embfile);
+
+        void processBinarizedEmbeddingsDirectory(string embdir);
+
         void loadSubgraphs(string subgraphsFile,
                 string subFormat, double varThreshold);
 
@@ -84,7 +88,8 @@ class SubgraphHandler {
                 double varThreshold,
                 string writeLogs,
                 DIST secondDist,
-                string kFile);
+                string kFile,
+                string binEmbDir);
 
         void findAnswers(KB &kb,
                 string embAlgo,

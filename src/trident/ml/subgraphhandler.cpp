@@ -13,6 +13,87 @@ void SubgraphHandler::loadEmbeddings(string embdir) {
     this->R = Embeddings<double>::load(embdir + "/R");
 }
 
+void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir) {
+    uint32_t npos = string::npos;
+    bool flag = false;
+    if (binEmbDir[binEmbDir.length()-1] == '/') {
+        npos = binEmbDir.length() - 2;
+        flag = true;
+    }
+    uint32_t lastIndexofSlash = binEmbDir.find_last_of("/", npos);
+    string dbName = "";
+    if (string::npos != lastIndexofSlash) {
+        if (!flag) {
+            dbName += "/";
+        }
+        dbName += binEmbDir.substr(lastIndexofSlash+1, npos-lastIndexofSlash);
+    }
+    string subFile = binEmbDir + dbName + "-sub-var-comp-size-64.bin";
+    string entFile = binEmbDir + dbName + "-ent--comp-size-64.bin";
+    string relFile = binEmbDir + dbName + "-rel--comp-size-64.bin";
+
+    LOG(INFOL) << subFile;
+    LOG(INFOL) << entFile;
+    LOG(INFOL) << relFile;
+    loadBinarizedEmbeddings(subFile);
+    loadBinarizedEmbeddings(entFile);
+    loadBinarizedEmbeddings(relFile);
+}
+
+void SubgraphHandler::loadBinarizedEmbeddings(string subFile) {
+    const uint16_t sizeline = 25;
+    std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+    ifstream ifs;
+    ifs.open(subFile, std::ifstream::in);
+    ifs.read(buffer.get(), 8);
+    uint64_t nSubgraphs = *(uint64_t*)buffer.get();
+    LOG(INFOL) << "# subgraphs : " << nSubgraphs;
+
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer.get(), 25);
+        if (ifs.gcount() != 25) {
+            LOG(INFOL) << i;
+        }
+        int type = (int)buffer.get()[0];
+        uint64_t ent = *(uint64_t*) (buffer.get() + 1);
+        uint64_t rel = *(uint64_t*) (buffer.get() + 9);
+        uint64_t siz = *(uint64_t*) (buffer.get() + 17);
+        //LOG(INFOL) << type << ") " << ent << " , " << rel << " : " << siz;
+    }
+
+    memset(buffer.get(), 0, 25);
+    ifs.read(buffer.get(), 18);
+    uint16_t dims = Utils::decode_short(buffer.get());
+    uint64_t mincard = Utils::decode_long(buffer.get() , 2);
+    uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
+    LOG(INFOL) << dims << " , " << mincard << "," << nextBytes;
+
+    const uint16_t sizeOriginalEmbeddings = dims * 8;
+    std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer2.get(), dims*8);
+    }
+
+    memset(buffer.get(), 0, 25);
+    ifs.read(buffer.get(), 2);
+    uint16_t compSize = Utils::decode_short(buffer.get());
+    LOG(INFOL) << compSize;
+
+    if (compSize = 64) {
+        compSize = 1;
+    }
+    const uint16_t sizeCompressedEmbeddings = compSize * 8;
+    vector<double> rawCompressedEmbeddings;
+    std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer3.get(), compSize*8);
+        rawCompressedEmbeddings.push_back(*(uint64_t*)buffer3.get());
+    }
+
+    LOG(INFOL) << "total compressed embeddings : " << rawCompressedEmbeddings.size();
+    ifs.close();
+}
+
 void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, double varThreshold) {
     if (!Utils::exists(subgraphsFile)) {
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
@@ -331,7 +412,8 @@ void SubgraphHandler::evaluate(KB &kb,
         double varThreshold,
         string writeLogs,
         DIST secondDist,
-        string kFile) {
+        string kFile,
+        string binEmbDir) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -430,6 +512,11 @@ void SubgraphHandler::evaluate(KB &kb,
             }
             relKMap.insert(make_pair(rel, make_pair(hK, tK)));
         }
+    }
+
+    if (binEmbDir != "") {
+        processBinarizedEmbeddingsDirectory(binEmbDir);
+        return;
     }
 
     /*** TEST ***/

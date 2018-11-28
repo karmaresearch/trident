@@ -157,7 +157,8 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
             secondDist,
-            vm["kFile"].as<string>());
+            vm["kFile"].as<string>(),
+            vm["binEmbDir"].as<string>());
 }
 
 void subgraphAnswers(KB &kb, ProgramArgs &vm) {
