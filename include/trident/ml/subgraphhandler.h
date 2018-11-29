@@ -12,9 +12,9 @@ class SubgraphHandler {
 
         void loadEmbeddings(string embdir);
 
-        void loadBinarizedEmbeddings(string embfile);
+        void loadBinarizedEmbeddings(string embfile, vector<double>& embeddings);
 
-        void processBinarizedEmbeddingsDirectory(string embdir);
+        void processBinarizedEmbeddingsDirectory(string embdir, vector<double>& emb1, vector<double>& emb2, vector<double> &e3);
 
         void loadSubgraphs(string subgraphsFile,
                 string subFormat, double varThreshold);
@@ -48,6 +48,15 @@ class SubgraphHandler {
                 uint32_t topk,
                 string &subgraphType,
                 DIST secondDist
+                );
+
+        void selectRelevantBinarySubgraphs(
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
+                uint32_t topk,
+                vector<double>& subEmb,
+                vector<double>& entEmb,
+                vector<double>& relEmb,
+                std::vector<uint64_t> &output
                 );
 
         void getAllPossibleAnswers(Querier *q,

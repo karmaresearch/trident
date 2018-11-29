@@ -13,7 +13,10 @@ void SubgraphHandler::loadEmbeddings(string embdir) {
     this->R = Embeddings<double>::load(embdir + "/R");
 }
 
-void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir) {
+void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir,
+    vector<double>& subCompressedEmbeddings,
+    vector<double>& entCompressedEmbeddings,
+    vector<double>& relCompressedEmbeddings) {
     uint32_t npos = string::npos;
     bool flag = false;
     if (binEmbDir[binEmbDir.length()-1] == '/') {
@@ -35,12 +38,12 @@ void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir) {
     LOG(INFOL) << subFile;
     LOG(INFOL) << entFile;
     LOG(INFOL) << relFile;
-    loadBinarizedEmbeddings(subFile);
-    loadBinarizedEmbeddings(entFile);
-    loadBinarizedEmbeddings(relFile);
+    loadBinarizedEmbeddings(subFile, subCompressedEmbeddings);
+    loadBinarizedEmbeddings(entFile, entCompressedEmbeddings);
+    loadBinarizedEmbeddings(relFile, relCompressedEmbeddings);
 }
 
-void SubgraphHandler::loadBinarizedEmbeddings(string subFile) {
+void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& rawCompressedEmbeddings) {
     const uint16_t sizeline = 25;
     std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
     ifstream ifs;
@@ -83,7 +86,6 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile) {
         compSize = 1;
     }
     const uint16_t sizeCompressedEmbeddings = compSize * 8;
-    vector<double> rawCompressedEmbeddings;
     std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
     for (int i = 0; i < nSubgraphs; ++i) {
         ifs.read(buffer3.get(), compSize*8);
@@ -182,6 +184,42 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
     }
     LOG(DEBUGL) << "Total answers : " << totalAnswers;
 }
+
+
+void SubgraphHandler::selectRelevantBinarySubgraphs(
+        Subgraphs<double>::TYPE t,
+        uint64_t rel,
+        uint64_t ent,
+        uint32_t topK,
+        vector<double>& subCompressedEmbeddings,
+        vector<double>& entCompressedEmbeddings,
+        vector<double>& relCompressedEmbeddings,
+        vector<uint64_t>& output) {
+
+        uint64_t result;
+        double embE = entCompressedEmbeddings[ent];
+        double embR = relCompressedEmbeddings[rel];
+        if (t == Subgraphs<double>::TYPE::PO) {
+        } else {
+            result = (double)((uint64_t) embE | (uint64_t) embR);
+        }
+
+        vector<pair<uint64_t, uint64_t>> distances;
+        for (int i = 0 ; i < subCompressedEmbeddings.size(); ++i) {
+            uint64_t distance = result ^ (uint64_t)(subCompressedEmbeddings[i]);
+            distances.push_back(make_pair(distance, i));
+        }
+        std::sort(distances.begin(), distances.end(), [](const std::pair<uint64_t, uint64_t> &a,
+                    const std::pair<uint64_t, uint64_t> &b) -> bool
+                {
+                return a.first < b.first;
+                });
+        output.clear();
+        for (uint32_t i = 0; i < distances.size() && i < topK; ++i) {
+            output.push_back(distances[i].second);
+        }
+}
+
 void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         Querier *q,
         string embeddingAlgo,
@@ -514,9 +552,11 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
 
+    vector<double> subCompressedEmbeddings;
+    vector<double> entCompressedEmbeddings;
+    vector<double> relCompressedEmbeddings;
     if (binEmbDir != "") {
-        processBinarizedEmbeddingsDirectory(binEmbDir);
-        return;
+        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
     }
 
     /*** TEST ***/
@@ -559,6 +599,9 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Test the queries ...";
     std::vector<uint64_t> relevantSubgraphsH;
     std::vector<uint64_t> relevantSubgraphsT;
+    std::vector<uint64_t> relevantBinarySubgraphsH;
+    std::vector<uint64_t> relevantBinarySubgraphsT;
+    int hitBinT = 0;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
@@ -616,6 +659,7 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
 
+
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphsH, threshold, subType, secondDist);
 
@@ -644,6 +688,19 @@ void SubgraphHandler::evaluate(KB &kb,
                 r, h, relevantSubgraphsT, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
+
+        int64_t foundBinT = -3;
+        if (binEmbDir != "") {
+            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,
+                                subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantBinarySubgraphsT);
+            foundBinT = isAnswerInSubGraphs(t, relevantBinarySubgraphsT, q.get());
+        }
+        if (foundT == foundBinT) {
+            LOG(INFOL) << " HITTTT!";
+            hitBinT++;
+        } else {
+            LOG(INFOL) << "MISSSIGHH !";
+        }
         //Now I have the list of relevant subgraphs. Is the answer in one of these?
         if (foundH >= 0) {
             counth++;
@@ -695,6 +752,7 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Disp(S+): " << sumDisplacementSPos / testTriples.size();
     LOG(INFOL) << "Disp(S-): " << sumDisplacementSNeg / testTriples.size();
     LOG(INFOL) << "# entities : " << nents;
+    LOG(INFOL) << "Hits Binary T : " << hitBinT;
 
     double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
     double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
