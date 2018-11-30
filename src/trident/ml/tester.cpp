@@ -41,12 +41,13 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     } else {
         pathtest = BatchCreator::getTestPath(kb.getPath());
     }
+    LOG(INFOL) << "UNM: " << pathtest;
     BatchCreator::loadTriples(pathtest, testset);
 
     if (algo == "transe") {
         if (p.binary == "true") {
             TranseBinaryTester<double> tester(E, R, kb.query());
-            LOG(INFOL) << "here : ****** ";
+            LOG(INFOL) << "finally here : ****** ";
             auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
         } else {
             TranseTester<double> tester(E,R, kb.query());

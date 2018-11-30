@@ -139,6 +139,9 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         if (mapparams.count("nametestset")) {
             p.nametestset = mapparams["nametestset"];
         }
+        if (mapparams.count("binary")) {
+            p.binary = mapparams["binary"];
+        }
         if (mapparams.count("nthreads")) {
             p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
         }

@@ -371,27 +371,20 @@ class Embeddings {
             ifs.read(buffer.get(), 8);
             uint64_t nSubgraphs = *(uint64_t*)buffer.get();
             LOG(INFOL) << "# subgraphs : " << nSubgraphs;
-
             for (int i = 0; i < nSubgraphs; ++i) {
                 ifs.read(buffer.get(), 25);
-                if (ifs.gcount() != 25) {
-                    LOG(INFOL) << i;
-                }
                 int type = (int)buffer.get()[0];
                 uint64_t ent = *(uint64_t*) (buffer.get() + 1);
                 uint64_t rel = *(uint64_t*) (buffer.get() + 9);
                 uint64_t siz = *(uint64_t*) (buffer.get() + 17);
-                //LOG(INFOL) << type << ") " << ent << " , " << rel << " : " << siz;
             }
-
             memset(buffer.get(), 0, 25);
             ifs.read(buffer.get(), 18);
             uint32_t n = (uint32_t)nSubgraphs;
             uint16_t dim = Utils::decode_short(buffer.get());
             uint64_t mincard = Utils::decode_long(buffer.get() , 2);
             uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
-            LOG(INFOL) << dim << " , n = " << n << "nsub = " << nSubgraphs;
-
+            LOG(INFOL) << dim << " , n = " << n << " nsub = " << nSubgraphs;
 
             const uint16_t sizeOriginalEmbeddings = dim * 8;
             std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
@@ -415,7 +408,7 @@ class Embeddings {
             for (int i = 0; i < nSubgraphs; ++i) {
                 ifs.read(buffer3.get(), compSize*8);
                 memcpy((char*)raw, buffer3.get(), compSize * 8);
-                raw += dim;
+                raw += compSize;
             }
 
             ifs.close();

@@ -54,9 +54,6 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
 
     for (int i = 0; i < nSubgraphs; ++i) {
         ifs.read(buffer.get(), 25);
-        if (ifs.gcount() != 25) {
-            LOG(INFOL) << i;
-        }
         int type = (int)buffer.get()[0];
         uint64_t ent = *(uint64_t*) (buffer.get() + 1);
         uint64_t rel = *(uint64_t*) (buffer.get() + 9);
