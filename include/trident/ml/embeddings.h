@@ -362,6 +362,65 @@ class Embeddings {
                 return emb;
             }
         }
+
+        static std::shared_ptr<Embeddings<K>> loadBinary(std::string path) {
+            const uint16_t sizeline = 25;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            ifstream ifs;
+            ifs.open(path, std::ifstream::in);
+            ifs.read(buffer.get(), 8);
+            uint64_t nSubgraphs = *(uint64_t*)buffer.get();
+            LOG(INFOL) << "# subgraphs : " << nSubgraphs;
+
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer.get(), 25);
+                if (ifs.gcount() != 25) {
+                    LOG(INFOL) << i;
+                }
+                int type = (int)buffer.get()[0];
+                uint64_t ent = *(uint64_t*) (buffer.get() + 1);
+                uint64_t rel = *(uint64_t*) (buffer.get() + 9);
+                uint64_t siz = *(uint64_t*) (buffer.get() + 17);
+                //LOG(INFOL) << type << ") " << ent << " , " << rel << " : " << siz;
+            }
+
+            memset(buffer.get(), 0, 25);
+            ifs.read(buffer.get(), 18);
+            uint32_t n = (uint32_t)nSubgraphs;
+            uint16_t dim = Utils::decode_short(buffer.get());
+            uint64_t mincard = Utils::decode_long(buffer.get() , 2);
+            uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
+            LOG(INFOL) << dim << " , n = " << n << "nsub = " << nSubgraphs;
+
+
+            const uint16_t sizeOriginalEmbeddings = dim * 8;
+            std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer2.get(), dim*8);
+            }
+
+            memset(buffer.get(), 0, 25);
+            ifs.read(buffer.get(), 2);
+            uint16_t compSize = Utils::decode_short(buffer.get());
+            LOG(INFOL) << compSize;
+
+            if (64 == compSize) {
+                compSize = 1;
+            }
+            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
+            //Fields
+            double *raw = emb->raw.data();
+            const uint16_t sizeCompressedEmbeddings = compSize * 8;
+            std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer3.get(), compSize*8);
+                memcpy((char*)raw, buffer3.get(), compSize * 8);
+                raw += dim;
+            }
+
+            ifs.close();
+            return emb;
+        }
 };
 
 #endif
