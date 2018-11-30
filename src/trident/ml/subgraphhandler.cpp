@@ -200,8 +200,9 @@ void SubgraphHandler::selectRelevantBinarySubgraphs(
         double embE = entCompressedEmbeddings[ent];
         double embR = relCompressedEmbeddings[rel];
         if (t == Subgraphs<double>::TYPE::PO) {
+            result = ~((uint64_t) embE | (uint64_t) embR);
         } else {
-            result = (double)((uint64_t) embE | (uint64_t) embR);
+            result = (uint64_t) embE | (uint64_t) embR;
         }
 
         vector<pair<uint64_t, uint64_t>> distances;
@@ -337,10 +338,12 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
 
         if (meta.t == Subgraphs<double>::TYPE::PO) {
             if (q->exists(a, meta.rel, meta.ent)) {
+                //LOG(INFOL) << sent << " :<-->: " << srel;
                 return out;
             }
         } else {
             if (q->exists(meta.ent, meta.rel, a)) {
+                //LOG(INFOL) << sent << " :<-->: " << srel;
                 return out;
             }
         }
@@ -455,12 +458,18 @@ void SubgraphHandler::evaluate(KB &kb,
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
+    vector<double> subCompressedEmbeddings;
+    vector<double> entCompressedEmbeddings;
+    vector<double> relCompressedEmbeddings;
     //Load the embeddings
     LOG(INFOL) << "Loading the embeddings ...";
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
     loadSubgraphs(subFile, subType, varThreshold);
+    if (binEmbDir != "") {
+        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
+    }
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
@@ -552,12 +561,6 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
 
-    vector<double> subCompressedEmbeddings;
-    vector<double> entCompressedEmbeddings;
-    vector<double> relCompressedEmbeddings;
-    if (binEmbDir != "") {
-        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
-    }
 
     /*** TEST ***/
     //Stats
@@ -599,9 +602,6 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Test the queries ...";
     std::vector<uint64_t> relevantSubgraphsH;
     std::vector<uint64_t> relevantSubgraphsT;
-    std::vector<uint64_t> relevantBinarySubgraphsH;
-    std::vector<uint64_t> relevantBinarySubgraphsT;
-    int hitBinT = 0;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
@@ -659,13 +659,27 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
 
-
-        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, threshold, subType, secondDist);
-
+        if (binEmbDir != "") {
+            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::PO, r, t, threshold,
+                                subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsH);
+            vector<uint64_t> relevantSubgraphsHNormal;
+            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                    r, t, relevantSubgraphsHNormal, threshold, subType, secondDist);
+            /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
+            LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
+            for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
+                LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
+                << " ---> " << relevantSubgraphsH[z];
+            }*/
+            int64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+            int64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
+            //LOG(INFOL) << binSize  << " , " << norSize;
+        } else {
+            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                    r, t, relevantSubgraphsH, threshold, subType, secondDist);
+        }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (subgraphThreshold == -1) {
             switch(testTopKs[i+1]) {
@@ -684,23 +698,15 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
 
-        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                r, h, relevantSubgraphsT, threshold, subType, secondDist);
-        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
-        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
-
-        int64_t foundBinT = -3;
         if (binEmbDir != "") {
             selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,
-                                subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantBinarySubgraphsT);
-            foundBinT = isAnswerInSubGraphs(t, relevantBinarySubgraphsT, q.get());
-        }
-        if (foundT == foundBinT) {
-            LOG(INFOL) << " HITTTT!";
-            hitBinT++;
+                                subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
         } else {
-            LOG(INFOL) << "MISSSIGHH !";
+            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
+                r, h, relevantSubgraphsT, threshold, subType, secondDist);
         }
+        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
+        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         //Now I have the list of relevant subgraphs. Is the answer in one of these?
         if (foundH >= 0) {
             counth++;
@@ -752,7 +758,6 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Disp(S+): " << sumDisplacementSPos / testTriples.size();
     LOG(INFOL) << "Disp(S-): " << sumDisplacementSNeg / testTriples.size();
     LOG(INFOL) << "# entities : " << nents;
-    LOG(INFOL) << "Hits Binary T : " << hitBinT;
 
     double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
     double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
