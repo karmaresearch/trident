@@ -15,15 +15,14 @@ class TranseBinaryTester : public Tester<K> {
         }
 
         double closeness(K *v1, uint64_t entity, uint16_t dim) {
-            double res = 0;
             Embeddings<K> *pE = (this->E).get();
             K* v2 = pE->get(entity);
-            double ret;
+            uint64_t count = 0;
             for (uint16_t i = 0; i < dim; ++i) {
                 uint64_t result = (((uint64_t)v1[i]) ^ ((uint64_t)v2[i]));
-                ret += (64 - __builtin_popcount(result));
+                count += __builtin_popcount(~result);
             }
-            return ret;
+            return (double)count / (double)(dim * sizeof(uint64_t) * 8);
         }
 
         void predictO(uint64_t sub, uint16_t dims, uint64_t pred, uint16_t dimp, K* o) {
@@ -42,7 +41,7 @@ class TranseBinaryTester : public Tester<K> {
             K* o = pE->get(obj);
             K* p = pR->get(pred);
             for (uint16_t i = 0; i < dimp; ++i) {
-                s[i] = (double)(~(((uint64_t)o[i]) | ((uint64_t)p[i])));
+                s[i] = (double)(~(((uint64_t)o[i]) & ((uint64_t)p[i])));
             }
         }
 };
