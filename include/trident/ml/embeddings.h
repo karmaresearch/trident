@@ -397,8 +397,8 @@ class Embeddings {
             uint16_t compSize = Utils::decode_short(buffer.get());
             LOG(INFOL) << compSize;
 
-            if (64 == compSize) {
-                compSize = 1;
+            if (compSize % 64 == 0) {
+                compSize /= 64;
             }
             std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
             //Fields
