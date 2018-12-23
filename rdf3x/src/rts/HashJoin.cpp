@@ -24,10 +24,12 @@ static inline uint64_t hash2(uint64_t key, uint64_t hashTableSize) {
     return hashTableSize + ((key ^ (key >> 3)) & (hashTableSize - 1));
 }
 //---------------------------------------------------------------------------
+//
 void HashJoin::BuildHashTable::run()
     // Build the hash table
 {
     if (done) return; // XXX support repeated executions under nested loop joins etc!
+    // To restart, we only need to restart the "right" iterator. --Ceriel
 
     // Prepare relevant domain informations
     Register* leftValue = join.leftValue;
@@ -125,7 +127,8 @@ void HashJoin::BuildHashTable::run()
 void HashJoin::ProbePeek::run()
     // Produce the first tuple from the probe side
 {
-    if (done) return; // XXX support repeated executions under nested loop joins etc!
+    // if (done) return; // XXX support repeated executions under nested loop joins etc!
+    // Commented out to allow restart --Ceriel
 
     count = join.right->first();
     done = true;
@@ -257,7 +260,12 @@ uint64_t HashJoin::next()
         }
 
         // Read the next tuple from the right
-        if ((rightCount = right->next()) == 0) {
+	// But only if rightCount != 0
+	if (rightCount == 0) {
+	    return false;
+	}
+	rightCount = right->next();
+        if (rightCount == 0) {
             if (!rightOptional) {
                 return false;
             } else {

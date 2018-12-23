@@ -8,9 +8,9 @@ DuplLimit::DuplLimit(
     Operator* input,
     const vector<Register*>& outputArgs,
     DuplicateHandling duplicateHandling,
-    uint64_t limit)
+    uint64_t limit, uint64_t offset)
     : Operator(1), output(outputArgs), input(input),
-      duplicateHandling(duplicateHandling), limit(limit) {
+      duplicateHandling(duplicateHandling), limit(limit), offset(offset) {
     // Constructor
     currentCount = 0;
 }
@@ -22,7 +22,16 @@ uint64_t DuplLimit::first()
 {
     if (observedOutputCardinality < limit) {
         if ((entryCount = input->first()) != 0) {
+	    // If there is an offset, skip those.
+	    uint64_t o = offset;
             currentCount++;
+	    while (o > 0) {
+		if (next() == 0) {
+		    return 0;
+		}
+		observedOutputCardinality--;
+		o--;
+	    }
             observedOutputCardinality++;
             return 1;
         } else {

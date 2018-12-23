@@ -2,6 +2,7 @@
 #include "infra/util/Type.hpp"
 #include "rts/operator/PlanPrinter.hpp"
 #include "rts/runtime/Runtime.hpp"
+#include "trident/kb/dictmgmt.h"
 
 #include <kognac/consts.h>
 #include <algorithm>
@@ -58,6 +59,11 @@ bool Sort::Sorter::operator()(const Tuple* a, const Tuple* b)
             // Null values
             if (!~v1) return true;
             if (!~v2) return false;
+
+	    if (DictMgmt::isnumeric(v1) && DictMgmt::isnumeric(v2)) {
+		int cmp = DictMgmt::compare(DictMgmt::getType(v1), v1, DictMgmt::getType(v2), v2);
+		return (*iter).descending ? (cmp < 0) : (cmp >= 0);
+	    }
 
             // Load the strings
             const char* start1, *stop1, *start2, *stop2;
