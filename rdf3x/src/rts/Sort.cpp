@@ -20,25 +20,25 @@ using namespace std;
 //---------------------------------------------------------------------------
 /// Comparator
 class Sort::Sorter {
-private:
-    /// The dictionary
-    DBLayer& dict;
-    /// The sort order
-    const vector<Order>& order;
-    std::shared_ptr<char> buffer1;
-    std::shared_ptr<char> buffer2;
+    private:
+        /// The dictionary
+        DBLayer& dict;
+        /// The sort order
+        const vector<Order>& order;
+        std::shared_ptr<char> buffer1;
+        std::shared_ptr<char> buffer2;
 
-public:
-    /// Constructor
-    Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order),
-    buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
+    public:
+        /// Constructor
+        Sorter(DBLayer& dict, const vector<Order>& order) : dict(dict), order(order),
+        buffer1(new char[MAX_TERM_SIZE]), buffer2(new char[MAX_TERM_SIZE]) {}
 
-    /// Compare
-    bool operator()(const Tuple* a, const Tuple* b);
+        /// Compare
+        bool operator()(const Tuple* a, const Tuple* b);
 };
 //---------------------------------------------------------------------------
 bool Sort::Sorter::operator()(const Tuple* a, const Tuple* b)
-// Compare
+    // Compare
 {
     for (vector<Order>::const_iterator iter = order.begin(), limit = order.end(); iter != limit; ++iter) {
         uint64_t slot = (*iter).slot;
@@ -60,10 +60,10 @@ bool Sort::Sorter::operator()(const Tuple* a, const Tuple* b)
             if (!~v1) return true;
             if (!~v2) return false;
 
-	    if (DictMgmt::isnumeric(v1) && DictMgmt::isnumeric(v2)) {
-		int cmp = DictMgmt::compare(DictMgmt::getType(v1), v1, DictMgmt::getType(v2), v2);
-		return (*iter).descending ? (cmp < 0) : (cmp >= 0);
-	    }
+            if (DictMgmt::isnumeric(v1) && DictMgmt::isnumeric(v2)) {
+                int cmp = DictMgmt::compare(DictMgmt::getType(v1), v1, DictMgmt::getType(v2), v2);
+                return cmp < 0;
+            }
 
             // Load the strings
             const char* start1, *stop1, *start2, *stop2;
@@ -135,13 +135,13 @@ Sort::Sort(DBLayer& db, Operator* input, const vector<Register*>& values, const 
 }
 //---------------------------------------------------------------------------
 Sort::~Sort()
-// Destructor
+    // Destructor
 {
     delete input;
 }
 //---------------------------------------------------------------------------
 uint64_t Sort::first()
-// Produce the first tuple
+    // Produce the first tuple
 {
     observedOutputCardinality = 0;
 
@@ -166,7 +166,7 @@ uint64_t Sort::first()
 }
 //---------------------------------------------------------------------------
 uint64_t Sort::next()
-// Produce the next tuple
+    // Produce the next tuple
 {
     // End of input
     if (tuplesIter == tuples.end())
@@ -184,7 +184,7 @@ uint64_t Sort::next()
 }
 //---------------------------------------------------------------------------
 void Sort::print(PlanPrinter& out)
-// Print the operator tree. Debugging only.
+    // Print the operator tree. Debugging only.
 {
     out.beginOperator("Sort", expectedOutputCardinality, observedOutputCardinality);
     string o = "[";
@@ -205,13 +205,13 @@ void Sort::print(PlanPrinter& out)
 }
 //---------------------------------------------------------------------------
 void Sort::addMergeHint(Register* /*reg1*/, Register* /*reg2*/)
-// Add a merge join hint
+    // Add a merge join hint
 {
     // Do not propagate as we break the pipeline
 }
 //---------------------------------------------------------------------------
 void Sort::getAsyncInputCandidates(Scheduler& scheduler)
-// Register parts of the tree that can be executed asynchronous
+    // Register parts of the tree that can be executed asynchronous
 {
     input->getAsyncInputCandidates(scheduler);
 }
