@@ -196,6 +196,7 @@ void Learner::update_gradients(BatchIO &io,
                 for(uint16_t j = 0; j < dim; ++j) {
                     emb[j] = emb[j] / sum;
                 }
+                E->incrUpdates(i.id);
             }
         }
         for (auto &i : gr) {
@@ -205,6 +206,7 @@ void Learner::update_gradients(BatchIO &io,
                 for(uint16_t j = 0; j < dim; ++j) {
                     emb[j] -= learningrate * i.dimensions[j] / n;
                 }
+                R->incrUpdates(i.id);
             }
         }
     }

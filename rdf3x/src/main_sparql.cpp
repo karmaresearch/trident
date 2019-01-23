@@ -24,7 +24,7 @@ using namespace std;
 
 DDLEXPORT void execNativeQuery(ProgramArgs &vm, Querier *q, KB &kb, bool silent);
 DDLEXPORT void callRDF3X(TridentLayer &db, const string &queryFileName, bool explain,
-	bool disableBifocalSampling, bool resultslookup);
+        bool disableBifocalSampling, bool resultslookup);
 
 std::unique_ptr<Query> createQueryFromRF3XQueryGraph(SPARQLParser &parser,
         QueryGraph &graph) {

@@ -129,11 +129,11 @@ static bool binds(const SPARQLParser::PatternGroup& group, uint64_t id)
 {
     // Ceriel: BUG FIX: added check for projections of subqueries.
     for (auto itr = group.subqueries.begin(); itr != group.subqueries.end(); ++itr) {
-	for (SPARQLParser::projection_iterator iter = (*itr)->projectionBegin(), limit = (*itr)->projectionEnd(); iter != limit; ++iter) {
-	    if (id == *iter) {
-		return true;
-	    }
-	}
+        for (SPARQLParser::projection_iterator iter = (*itr)->projectionBegin(), limit = (*itr)->projectionEnd(); iter != limit; ++iter) {
+            if (id == *iter) {
+                return true;
+            }
+        }
     }
     for (std::vector<SPARQLParser::Pattern>::const_iterator iter = group.patterns.begin(), limit = group.patterns.end(); iter != limit; ++iter)
         if ((((*iter).subject.type == SPARQLParser::Element::Variable) && ((*iter).subject.id == id)) ||
@@ -216,15 +216,15 @@ static void getVars(const SPARQLParser::Filter& input,
             vars.push_back(input.valueArg);
             break;
         case SPARQLParser::Filter::Builtin_replace:
-	    if (input.arg4) {
-		getVars(*input.arg4, vars);
-	    }
-	    // fall through
+            if (input.arg4) {
+                getVars(*input.arg4, vars);
+            }
+            // fall through
         case SPARQLParser::Filter::Builtin_regex:
-	    if (input.arg3) {
-		getVars(*input.arg3, vars);
-	    }
-	    // Fall through
+            if (input.arg3) {
+                getVars(*input.arg3, vars);
+            }
+            // Fall through
         case SPARQLParser::Filter::Or:
         case SPARQLParser::Filter::And:
         case SPARQLParser::Filter::Equal:
@@ -244,10 +244,10 @@ static void getVars(const SPARQLParser::Filter& input,
         case SPARQLParser::Filter::Builtin_sameterm:
         case SPARQLParser::Filter::Builtin_notin:
         case SPARQLParser::Filter::Builtin_contains:
-	    if (input.arg2) {
-		getVars(*input.arg2, vars);
-	    }
-	    // Fall through
+            if (input.arg2) {
+                getVars(*input.arg2, vars);
+            }
+            // Fall through
         case SPARQLParser::Filter::UnaryPlus:
         case SPARQLParser::Filter::UnaryMinus:
         case SPARQLParser::Filter::Builtin_str:
@@ -266,14 +266,14 @@ static void getVars(const SPARQLParser::Filter& input,
         case SPARQLParser::Filter::Aggregate_sample:
         case SPARQLParser::Filter::Aggregate_count:
         case SPARQLParser::Filter::Aggregate_group_concat:
-	    if (input.arg1) {
-		getVars(*input.arg1, vars);
-	    }
-	    break;
+            if (input.arg1) {
+                getVars(*input.arg1, vars);
+            }
+            break;
 
         case SPARQLParser::Filter::Literal:
         case SPARQLParser::Filter::IRI:
-	    break;
+            break;
 
         default:
             LOG(ERRORL) << "Argument does not contain any variable. Exiting...";
@@ -730,12 +730,11 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
 
     // Add GroupBy variables
     for(auto &gv : input.getGroupBys()) {
-	if (gv.expr != NULL) {
-	    // Apparently not implemented ...
-	    LOG(ERRORL) << "Not implemented Groupby";
-	    throw 10;
-	}
-	LOG(INFOL) << "Group by variable";
+        if (gv.expr != NULL) {
+            // Apparently not implemented ...
+            LOG(ERRORL) << "Not implemented Groupby";
+            throw 10;
+        }
         output.addGroupBy(gv.id);
     }
     for(auto hv: input.getHavings()) { //Having constraints are the same
@@ -759,20 +758,30 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
     // Order by clause
     for (SPARQLParser::order_iterator iter = input.orderBegin(), limit = input.orderEnd(); iter != limit; ++iter) {
         QueryGraph::Order o;
-	SPARQLParser::Filter *expr = (*iter).expr;
-	unsigned id = (*iter).id;
-	if (expr != NULL) {
-	    // Accept expressions consisting of a single variable.
-	    if (expr->type == SPARQLParser::Filter::Variable) {
-		id = expr->valueArg;
-	    } else {
-		LOG(ERRORL) << "ORDER BY with expression not implemented yet";
-		throw 10;
-	    }
-	}
+        SPARQLParser::Filter *expr = (*iter).expr;
+        unsigned id = (*iter).id;
+        if (expr != NULL) {
+            // Accept expressions consisting of a single variable.
+            if (expr->type == SPARQLParser::Filter::Variable) {
+                id = expr->valueArg;
+            } else {
+                LOG(ERRORL) << "ORDER BY with expression not implemented yet";
+                throw 10;
+            }
+        }
         if (~id) {
-            if (!binds(input.getPatterns(), id))
-                continue;
+            if (!binds(input.getPatterns(), id)) {
+                //It could be an assignment variable...
+                bool found = false;
+                for(const auto &assignment : input.getGlobalAssignments()) {
+                    if (assignment.outputVar.id == id) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    continue;
+            }
             o.id = id;
         } else {
             o.id = ~0u;

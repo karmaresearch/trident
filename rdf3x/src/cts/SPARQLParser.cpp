@@ -1702,28 +1702,28 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
             }
             if (lexer.isKeyword("asc") || lexer.isKeyword("desc")) {
                 Order o;
-		o.id = ~0u;
+                o.id = ~0u;
                 o.descending = lexer.isKeyword("desc");
                 o.expr = parseBrackettedExpression(localVars);
                 order.push_back(o);
             } else if (lexer.isKeyword("count")) {
                 Order o;
                 o.id = ~0u;
-		o.expr = NULL;
+                o.expr = NULL;
                 o.descending = false;
                 order.push_back(o);
             } else {
                 lexer.unget(token);
-		Order o;
+                Order o;
                 o.id = ~0u;
-		o.descending = false;
-		o.expr = parseConstraint(localVars);
-		order.push_back(o);
+                o.descending = false;
+                o.expr = parseConstraint(localVars);
+                order.push_back(o);
             }
         } else if (token == SPARQLLexer::Variable) {
             Order o;
             o.id = nameVariable(lexer.getTokenValue());
-	    o.expr = NULL;
+            o.expr = NULL;
             o.descending = false;
             order.push_back(o);
         } else if (token == SPARQLLexer::Eof) {
@@ -1742,35 +1742,35 @@ void SPARQLParser::parseLimitOffset()
     bool hadOffset = false;
 
     for (;;) {
-	SPARQLLexer::Token token = lexer.getNext();
-	if ((token == SPARQLLexer::Identifier) && (lexer.isKeyword("limit") || lexer.isKeyword("offset"))) {
-	    if (lexer.isKeyword("limit")) {
-		if (hadLimit) {
-		    throw ParserException("limit specified twice");
-		}
-		hadLimit = true;
-		if (lexer.getNext() != SPARQLLexer::Integer)
-		    throw ParserException("number expected after 'limit'");
-		limit = atoi(lexer.getTokenValue().c_str());
-		if (limit <= 0)
-		    throw ParserException("invalid limit specifier");
-	    } else {
-		if (hadOffset) {
-		    throw ParserException("offset specified twice");
-		}
-		if (lexer.getNext() != SPARQLLexer::Integer)
-		    throw ParserException("number expected after 'offset'");
-		offset = atoi(lexer.getTokenValue().c_str());
-		if (offset < 0)
-		    throw ParserException("invalid offset specifier");
-	    }
-	} else {
-	    lexer.unget(token);
-	    return;
-	}
-	if (hadLimit && hadOffset) {
-	    return;
-	}
+        SPARQLLexer::Token token = lexer.getNext();
+        if ((token == SPARQLLexer::Identifier) && (lexer.isKeyword("limit") || lexer.isKeyword("offset"))) {
+            if (lexer.isKeyword("limit")) {
+                if (hadLimit) {
+                    throw ParserException("limit specified twice");
+                }
+                hadLimit = true;
+                if (lexer.getNext() != SPARQLLexer::Integer)
+                    throw ParserException("number expected after 'limit'");
+                limit = atoi(lexer.getTokenValue().c_str());
+                if (limit <= 0)
+                    throw ParserException("invalid limit specifier");
+            } else {
+                if (hadOffset) {
+                    throw ParserException("offset specified twice");
+                }
+                if (lexer.getNext() != SPARQLLexer::Integer)
+                    throw ParserException("number expected after 'offset'");
+                offset = atoi(lexer.getTokenValue().c_str());
+                if (offset < 0)
+                    throw ParserException("invalid offset specifier");
+            }
+        } else {
+            lexer.unget(token);
+            return;
+        }
+        if (hadLimit && hadOffset) {
+            return;
+        }
     }
 }
 //---------------------------------------------------------------------------
