@@ -638,7 +638,7 @@ static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register
             } else {
                 // LOG(ERRORL) << "Variable not found";
                 // throw 10;
-		// ignore, can happen!
+                // ignore, can happen!
             }
         }
     }
