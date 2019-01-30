@@ -106,7 +106,7 @@ void Updater::writeDict(DictMgmt *dictmgmt,
     //Init data structures
     Stats stats;
     std::unique_ptr<StringBuffer> sb = std::unique_ptr<StringBuffer>(
-                                           new StringBuffer(dictdir, false, 10, 100*SB_BLOCK_SIZE,
+                                           new StringBuffer(dictdir, false, 10, 4096*SB_BLOCK_SIZE,
                                                    &stats));
     PropertyMap conf;
     conf.setBool(TEXT_KEYS, true);
