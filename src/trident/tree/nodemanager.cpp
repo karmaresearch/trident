@@ -151,7 +151,8 @@ void NodeManager::put(Node *node, char *buffer, int sizeBuffer) {
     if (cn != NULL) {
         if (sizeBuffer > cn->availableSize) {
             LOG(DEBUGL) << "Node " << cn->id << " is " << (sizeBuffer - cn->availableSize) << "  bytes larger. Current size is " << cn->availableSize << " Must increase file " << cn->fileIndex;
-            int diff = sizeBuffer - cn->availableSize;
+            //int diff = sizeBuffer - cn->availableSize;
+            int diff = (sizeBuffer - cn->availableSize + 1023) & ~1023;
             //Enlarge the file
             manager->shiftRemainingFile(cn->fileIndex, cn->posIndex, diff);
             // Update positions of all the nodes stored in the same file

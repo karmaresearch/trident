@@ -39,6 +39,7 @@ using namespace std;
 
 void FileDescriptor::mapFile(uint64_t requiredIncrement) {
     if (requiredIncrement > 0) {
+	LOG(TRACEL) << "Remapping file";
         mappedFile->flushAll();
         mappedFile = NULL;
         //mapped_rgn->flush();
@@ -102,6 +103,7 @@ void FileDescriptor::shiftFile(uint64_t pos, uint64_t diff) {
         uint64_t increment = std::max(SMALLEST_INCR, std::max(diff, (uint64_t) sizeFile));
         mapFile(increment);
     }
+    LOG(TRACEL) << "shiftFile : " << (size - pos);
     memmove(buffer + pos + diff, buffer + pos, size - pos);
     size += diff;
 }
