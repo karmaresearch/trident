@@ -71,7 +71,7 @@ class Embeddings {
 
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-            raw.resize((size_t)n * dim);
+            raw.resize((int64_t)n * dim);
             locks.resize(n);
             conflicts.resize(n);
             updates.resize(n);
@@ -87,7 +87,7 @@ class Embeddings {
                 LOG(ERRORL) << n << " too high";
                 throw 10;
             }
-            return raw.data() + n * dim;
+            return raw.data() + (int64_t)n * dim;
         }
 
         void lock(uint32_t idx) {
@@ -190,7 +190,7 @@ class Embeddings {
                     threads[i].join();
                 }
             } else {
-                init_seq(raw.data(), raw.data() + n * dim, dim, min, max,
+                init_seq(raw.data(), raw.data() + ((size_t) n) * dim, dim, min, max,
                         normalization);
             }
         }
@@ -251,7 +251,7 @@ class Embeddings {
             uint32_t *c = conflicts.data();
             uint32_t *u = updates.data();
             std::vector<std::thread> threads;
-            uint64_t batchsize = ((int64_t)n * dim) / nthreads;
+            uint64_t batchsize = (int64_t)n * dim / nthreads;
 
             {
                 std::string metapath = path;
@@ -277,7 +277,7 @@ class Embeddings {
                 if (compress)
                     localpath = localpath + ".gz";
                 uint64_t end = begin + batchsize;
-                if (end > ((int64_t)n * dim) || i == nthreads - 1) {
+                if (end > (int64_t)n * dim || i == nthreads - 1) {
                     end = (int64_t)n * dim;
                 }
                 LOG(DEBUGL) << "Storing " <<

@@ -1695,10 +1695,10 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                 t.readFrom(&reader);
                 //Write both versions.
                 t.writeTo(&writer);
-		//swap them
-		int64_t box = t.first;
-		t.first = t.third;
-		t.third = box;
+                //swap them
+                int64_t box = t.first;
+                t.first = t.third;
+                t.third = box;
                 t.writeTo(&writer);
             }
         }
