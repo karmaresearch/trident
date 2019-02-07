@@ -370,7 +370,7 @@ class Embeddings {
             ifs.open(path, std::ifstream::in);
             ifs.read(buffer.get(), 8);
             uint64_t nSubgraphs = *(uint64_t*)buffer.get();
-            LOG(INFOL) << "# subgraphs : " << nSubgraphs;
+            LOG(DEBUGL) << "# subgraphs : " << nSubgraphs;
             for (int i = 0; i < nSubgraphs; ++i) {
                 ifs.read(buffer.get(), 25);
                 int type = (int)buffer.get()[0];

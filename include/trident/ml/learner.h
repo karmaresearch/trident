@@ -14,6 +14,8 @@ struct EntityGradient {
         dimensions.resize(ndims);
         n = 0;
     }
+    EntityGradient(): id(0xffffffff) {
+    }
 };
 
 struct BatchIO {
