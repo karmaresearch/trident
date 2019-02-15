@@ -2,6 +2,7 @@
 #define _EMBEDDINGS_H
 
 #include <trident/utils/tridentutils.h>
+#include <trident/utils/memoryfile.h>
 
 #include <kognac/utils.h>
 #include <kognac/logs.h>
@@ -26,7 +27,8 @@ class Embeddings {
     private:
         const uint32_t n;
         const uint16_t dim;
-        std::vector<K> raw;
+        // std::vector<K> raw;
+	std::unique_ptr<MemoryMappedFile> raw;
 
         std::vector<uint8_t> locks;
         std::vector<uint32_t> conflicts;
@@ -71,7 +73,22 @@ class Embeddings {
 
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-            raw.resize((int64_t)n * dim);
+	    char fn[] = "/local/mytemp.XXXXXX";
+	    int fd = mkstemp(fn);
+	    std::string filename = std::string(fn);
+	    if (fd == -1) {
+		LOG(ERRORL) << "Could not create temporary file " << filename;
+		throw 10;
+	    }
+	    std::vector<K> buf(dim);
+	    for (uint32_t i = 0; i < n; i++) {
+		if (write(fd, buf.data(), dim * sizeof(K)) < dim * sizeof(K)) {
+		    LOG(ERRORL) << "Could not write temporary file " << filename;
+		    throw 10;
+		}
+	    }
+	    raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, (int64_t)n * dim * sizeof(K)));
+            // raw.resize((int64_t)n * dim);
             locks.resize(n);
             conflicts.resize(n);
             updates.resize(n);
@@ -87,8 +104,12 @@ class Embeddings {
                 LOG(ERRORL) << n << " too high";
                 throw 10;
             }
-            return raw.data() + (int64_t)n * dim;
+            return ((K *) raw->getData()) + (int64_t)n * dim;
         }
+
+	K* getRaw() {
+	    return (K *) raw->getData();
+	}
 
         void lock(uint32_t idx) {
             locks[idx]++;
@@ -176,8 +197,8 @@ class Embeddings {
             if (nthreads > 1) {
                 uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
-                K* begin = raw.data();
-                K* end = raw.data() + raw.size();
+                K* begin = (K *) raw->getData();
+                K* end = (K *) (raw->getData() + raw->getLength());
                 while (begin < end) {
                     uint64_t offset = batchPerThread * dim;
                     K* tmpend = (begin + offset) < end ? begin + offset : end;
@@ -190,7 +211,7 @@ class Embeddings {
                     threads[i].join();
                 }
             } else {
-                init_seq(raw.data(), raw.data() + ((size_t) n) * dim, dim, min, max,
+                init_seq(getRaw(), getRaw() + ((size_t) n) * dim, dim, min, max,
                         normalization);
             }
         }
@@ -247,7 +268,7 @@ class Embeddings {
               }
               }
               } else {*/
-            K* data = raw.data();
+            K* data = getRaw();
             uint32_t *c = conflicts.data();
             uint32_t *u = updates.data();
             std::vector<std::thread> threads;
@@ -332,7 +353,7 @@ class Embeddings {
                 std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim));
 
                 //Fields
-                double *raw = emb->raw.data();
+                double *raw = emb->getRaw();
                 uint32_t *up = emb->updates.data();
                 uint32_t *conf = emb->conflicts.data();
 
@@ -402,7 +423,7 @@ class Embeddings {
             }
             std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
             //Fields
-            double *raw = emb->raw.data();
+            double *raw = emb->getRaw();
             const uint16_t sizeCompressedEmbeddings = compSize * 8;
             std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
             for (int i = 0; i < nSubgraphs; ++i) {
