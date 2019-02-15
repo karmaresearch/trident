@@ -3,29 +3,29 @@
 #include <unordered_map>
 
 void HoleLearner::update_gradient_matrix(
-        std::vector<EntityGradient> &gradients,
+        std::unordered_map<uint64_t, EntityGradient> &gradients,
         EntityGradient& eg1,
         EntityGradient& eg2,
         uint64_t term
         )
 {
-    for (int i = 0; i < gradients.size(); ++i) {
-        bool found = false;
-        if (gradients[i].id == term) {
-            assert(gradients[i].dimensions.size() == eg1.dimensions.size());
-            assert(gradients[i].dimensions.size() == eg2.dimensions.size());
-            found = true;
-            for (int j = 0; j < gradients[i].dimensions.size(); ++j) {
-                gradients[i].dimensions[j] += eg1.dimensions[j] + eg2.dimensions[j];
+    //for (int i = 0; i < gradients.size(); ++i) {
+        //bool found = false;
+        //if (gradients[i].id == term) {
+            //assert(gradients[i].dimensions.size() == eg1.dimensions.size());
+            //assert(gradients[i].dimensions.size() == eg2.dimensions.size());
+            //found = true;
+            for (int j = 0; j < gradients[term].dimensions.size(); ++j) {
+                gradients[term].dimensions[j] += eg1.dimensions[j] + eg2.dimensions[j];
             }
-            break;
-        }
-    }
+            //break;
+        //}
+    //}
     //assert(found == true);
 }
 
 float HoleLearner::score(double* head, double* rel, double* tail) {
-    /** Python code 
+    /** Python code
     np.sum(self.R[ps] * ccorr(self.E[ss], self.E[os]), axis=1)
     */
     vector<double> out;
@@ -44,6 +44,7 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     std::vector<uint64_t> &output2 = io.field2;
     std::vector<uint64_t> &output3 = io.field3;
 
+    LOG(INFOL) << "$$$ Processing a batch with negs";
     // TODO: purpose of support1, support2 etc
     // is to store sign matrices ?
     // can be used for something else ? like gradient values
@@ -74,8 +75,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     std::unordered_map<uint32_t, float> violatedScoreNegSub;
     std::unordered_map<uint32_t, float> violatedScoreNegObj;
 
-    std::vector<EntityGradient> gradientsE;
-    std::vector<EntityGradient> gradientsR;
+    //std::vector<EntityGradient> gradientsE;
+    //std::vector<EntityGradient> gradientsR;
+    std::unordered_map<uint64_t, EntityGradient> gradientsE;
+    std::unordered_map<uint64_t, EntityGradient> gradientsR;
 
     std::vector<uint32_t> violatedPositions;
     std::vector<uint64_t> allterms;
@@ -96,13 +99,15 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
 
     //Initialize gradient matrix
     for(uint16_t i = 0; i < allterms.size(); ++i) {
-        gradientsE.push_back(EntityGradient(allterms[i], dim));
+        EntityGradient entityTemp(allterms[i], dim);
+        gradientsE.insert(make_pair(allterms[i], entityTemp));
     }
     for(uint16_t i = 0; i < allrels.size(); ++i) {
-        gradientsR.push_back(EntityGradient(allrels[i], dim));
+        EntityGradient relationTemp(allrels[i], dim);
+        gradientsR.insert(make_pair(allrels[i], relationTemp));
     }
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
-    LOG(DEBUGL) << "Time to initialize gradients = " << duration.count() * 1000 << "ms";
+    LOG(DEBUGL) << "Time to initialize gradients = " << duration.count() * 1000 << " ms";
 
     //LOG(DEBUGL) << "UNM$$ starting the batch...";
     for(uint32_t i = 0; i < sizebatch; ++i) {
@@ -125,7 +130,7 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
         auto scoreNegObj = sigmoid(score(sp, pp, on));
         auto scoreNegSub = sigmoid(score(sn, pp, op));
 
-        // to update and 
+        // to update and
         // use update_gradient function to compute CCORR
         if (scorePosAll - scoreNegObj + margin > 0) {
             io.violations += 1;
@@ -139,12 +144,18 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
 
             // Predicate/Relation gradients
             EntityGradient grp(predicate, dim);
+            std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
             ccorr(sp, op, dim, grp.dimensions);
+            std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 grp.dimensions[d] *= violatedScorePosAll[i];
             }
             EntityGradient grn(predicate, dim);
+            start_ccorr = std::chrono::system_clock::now();
             ccorr(sn, on, dim, grn.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 grn.dimensions[d] *= violatedScoreNegObj[i];
             }
@@ -152,17 +163,23 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsR, grp, grn, predicate);
             std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
             // Object gradients
             EntityGradient gejp(object, dim);
+            start_ccorr = std::chrono::system_clock::now();
             cconv(sp, pp, dim, gejp.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 gejp.dimensions[d] *= violatedScorePosAll[i];
             }
 
             EntityGradient gejn(object, dim);
+            start_ccorr = std::chrono::system_clock::now();
             cconv(sn, pp, dim, gejn.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 gejn.dimensions[d] *= violatedScoreNegObj[i];
             }
@@ -170,7 +187,7 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsE, gejp, gejn, object);
             duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
         }
         if (scorePosAll - scoreNegSub + margin > 0) {
@@ -185,46 +202,65 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
 
             // Predicate/Relation gradients
             EntityGradient grp(predicate, dim);
-            std::chrono::system_clock::time_point start_corr = std::chrono::system_clock::now();
+            std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
             ccorr(sp, op, dim, grp.dimensions);
-            std::chrono::duration<double> duration_corr = std::chrono::system_clock::now() - start_corr;
-            LOG(DEBUGL) << "Time to compute CCORR = " << duration_corr.count() * 1000 << "ms";
+            std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
 
             for (int d = 0; d < dim; ++d) {
                 grp.dimensions[d] *= violatedScorePosAll[i];
             }
             EntityGradient grn(predicate, dim);
+            start_ccorr = std::chrono::system_clock::now();
             ccorr(sn, on, dim, grn.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 grn.dimensions[d] *= violatedScoreNegObj[i];
             }
             std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsR, grp, grn, predicate);
             std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
             // Subject gradients
             EntityGradient geip(subject, dim);
+            start_ccorr = std::chrono::system_clock::now();
             ccorr(pp, op, dim, geip.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 geip.dimensions[d] *= violatedScorePosAll[i];
             }
 
             EntityGradient gein(subject, dim);
+            start_ccorr = std::chrono::system_clock::now();
             cconv(sn, pp, dim, gein.dimensions);
+            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
                 gein.dimensions[d] *= violatedScoreNegSub[i];
             }
             start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsE, geip, gein, subject);
             duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << "ms";
+            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
         }
 
         duration = std::chrono::system_clock::now() - start;
-        LOG(DEBUGL) << "Time to process sample (" << i <<")  = " << duration.count() * 1000 << "ms";
+        LOG(DEBUGL) << "Time to process sample (" << i <<")  = " << duration.count() * 1000 << " ms";
     }
 
     //Update the gradients
-    update_gradients(io, gradientsE, gradientsR);
+    vector<EntityGradient> vecGradientsE;
+    vector<EntityGradient> vecGradientsR;
+    std::transform(gradientsE.begin(), gradientsE.end(),
+                    std::back_inserter(vecGradientsE),
+                    [] (pair<const uint64_t, EntityGradient> &kv) {return kv.second;}
+                    );
+    std::transform(gradientsR.begin(), gradientsR.end(),
+                    std::back_inserter(vecGradientsR),
+                    [] (pair<const uint64_t, EntityGradient> &kv) {return kv.second;}
+                    );
+    update_gradients(io, vecGradientsE, vecGradientsR);
 }

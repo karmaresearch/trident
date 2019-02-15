@@ -40,6 +40,8 @@ StringBuffer::StringBuffer(string dir, bool readOnly, int factorySize,
     dir(dir), factory(SB_BLOCK_SIZE, 2, factorySize), readOnly(readOnly), maxElementsInCache(
         max(5, (int) (cacheSize / SB_BLOCK_SIZE))) {
 
+    LOG(DEBUGL) << "StringBuffer: cacheSize = " << cacheSize << ", maxElementsInCache = " << maxElementsInCache << ", SB_BLOCK_SIZE = " << SB_BLOCK_SIZE;
+
     uncompressedSize = 0;
     writingCurrentBufferSize = 0;
     bufferToCompress = NULL;
@@ -94,8 +96,10 @@ void StringBuffer::addCache(int idx) {
         return;
     }
 
+    // LOG(DEBUGL) << "addCache(" << idx << "), this = " << (size_t) this << ", maxElementsInCache = " << maxElementsInCache;
     assert(maxElementsInCache > 4);
     if (elementsInCache == maxElementsInCache) {
+	// LOG(DEBUGL) << "addCache, removing " << firstBlockInCache;
         assert(firstBlockInCache != -1);
         int idxToRemove = firstBlockInCache;
         firstBlockInCache = cacheVector[idxToRemove].second;
@@ -106,6 +110,7 @@ void StringBuffer::addCache(int idx) {
         //Do not remove one of the last three blocks inserted
         while (!readOnly && idxToRemove >= blocks.size() - 3) {
             //Put back the previous vector
+	    // LOG(DEBUGL) << "addCache, re-instating " << idxToRemove;
             if (lastBlockInCache != -1)
                 cacheVector[lastBlockInCache].second = idxToRemove;
             cacheVector[idxToRemove].first = lastBlockInCache;
@@ -117,6 +122,7 @@ void StringBuffer::addCache(int idx) {
 
             //Take the new one
             idxToRemove = firstBlockInCache;
+	    // LOG(DEBUGL) << "addCache, removing " << firstBlockInCache;
             firstBlockInCache = cacheVector[idxToRemove].second;
             if (idxToRemove == lastBlockInCache)
                 lastBlockInCache = -1;
