@@ -5,7 +5,7 @@
 
 class HoleLearner : public PairwiseLearner {
     private:
-       void update_gradient_matrix(std::vector<EntityGradient> &gm,
+       void update_gradient_matrix(std::unordered_map<uint64_t, EntityGradient> &gm,
             EntityGradient& eg1,
             EntityGradient& eg2,
             uint64_t term);

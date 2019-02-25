@@ -28,7 +28,7 @@ void ifft(std::vector<Complex> &in, std::vector<Complex> & out) {
 
     /*
      * 1. Take Complex conjugate of the input array , call it x'
-     * 2. Take fft(x') 
+     * 2. Take fft(x')
      * 3. Take Complext conjugate of fft(x')
      * 4. Divide it by N
      */
