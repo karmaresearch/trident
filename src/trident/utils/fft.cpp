@@ -3,6 +3,9 @@
 #include <cmath>
 #include <cassert>
 #include <trident/utils/fft.h>
+#include <cstring>
+#include <complex.h>
+#include <fftw3.h>
 using namespace std;
 
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
@@ -151,7 +154,80 @@ void cconv(double* a, double* b, uint16_t size, std::vector<double>& out) {
 }
 
 void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
-    vector<Complex> ac;
+    // TODO: use the FFTW methods here instead of calling
+    // the overridden method of ccorr with Complex arguments.
+    uint16_t N = 2 * (size/2 + 1);
+    double* aPadded = new double[N];
+    double* bPadded = new double[N];
+    memcpy(aPadded, a, sizeof(double) * size);
+    memcpy(bPadded, b, sizeof(double) * size);
+    memset(aPadded + sizeof(double) * size, 0, (N - size) * sizeof(double));
+    memset(bPadded + sizeof(double) * size, 0, (N - size) * sizeof(double));
+
+    fftw_complex *aOut, *bOut, *aFFTWOut, *bFFTWOut;
+    fftw_plan planA, planB;
+
+    aFFTWOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size/2 + 1));
+    bFFTWOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size/2 + 1));
+
+    aOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size));
+    bOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size));
+
+    planA = fftw_plan_dft_r2c_1d(size, aPadded, aFFTWOut, FFTW_ESTIMATE);
+    planB = fftw_plan_dft_r2c_1d(size, bPadded, bFFTWOut, FFTW_ESTIMATE);
+
+    fftw_execute(planA);
+    fftw_execute(planB);
+
+    int i;
+    for (i = 0; i < size/2 +1 ; ++i) {
+        aOut[i][0] = aFFTWOut[i][0];
+        aOut[i][1] = aFFTWOut[i][1];
+        bOut[i][0] = bFFTWOut[i][0];
+        bOut[i][1] = bFFTWOut[i][1];
+    }
+
+    for (; i < size; ++i) {
+        aOut[i][0] = aFFTWOut[size-i][0];
+        aOut[i][1] = aFFTWOut[size-i][1]*-1;
+        bOut[i][0] = bFFTWOut[size-i][0];
+        bOut[i][1] = bFFTWOut[size-i][1]*-1;
+    }
+
+    fftw_complex * temp;
+    temp = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * size);
+    // Take conjugate of fft(a)
+    // and Multiply with fft(b)
+    for (i = 0; i <size; ++i) {
+        double aConjImag = aOut[i][1] * -1;
+        temp[i][0] = (aOut[i][0] * bOut[i][0]) - (aConjImag * bOut[i][1]);
+        temp[i][1] = (aOut[i][0] * bOut[i][1]) - (aConjImag * bOut[i][0]);
+    }
+
+    // Take inverse FFT of temp
+    double *inverse = new double[N];
+    fftw_plan planI;
+
+    planI = fftw_plan_dft_c2r_1d(size, temp, inverse, FFTW_ESTIMATE);
+    fftw_execute(planI);
+
+    for (i = 0; i < N; ++i) {
+         if  (i < size) {
+            out.push_back(inverse[i] / size);
+         }
+    }
+
+    delete[] inverse;
+    fftw_destroy_plan(planA);
+    fftw_destroy_plan(planB);
+    fftw_destroy_plan(planI);
+    fftw_free(temp);
+    fftw_free(aFFTWOut);
+    fftw_free(bFFTWOut);
+    fftw_free(aOut);
+    fftw_free(bOut);
+    /*
+     * vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
         Complex temp;
         temp.real = a[i];
@@ -170,7 +246,7 @@ void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
 
     for (auto d : out_d) {
         out.push_back((float) d);
-    }
+    }*/
 }
 
 void cconv(double* a, double* b, uint16_t size, std::vector<float>& out) {
