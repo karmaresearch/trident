@@ -18,40 +18,34 @@ typedef struct Complex {
         imag = i;
     }
 
-    Complex& operator +=(Complex& c) {
+    Complex& operator +=(Complex c) {
         this->real += c.real;
         this->imag += c.imag;
         return *this;
     }
 
-    Complex& operator = (Complex& c) {
+    Complex& operator = (Complex c) {
         this->real = c.real;
         this->imag = c.imag;
         return *this;
     }
 
-    Complex& operator * (Complex& c) {
-        static Complex out;
-        out.real = (this->real * c.real) - (this->imag * c.imag);
-        out.imag = (this->real * c.imag) + (this->imag * c.real);
-        return out;
+    Complex operator * (Complex c) {
+        return Complex((this->real * c.real) - (this->imag * c.imag), (this->real * c.imag) + (this->imag * c.real));
     }
 
-    Complex& operator *= (Complex& c) {
+    Complex& operator *= (Complex c) {
         this->real = (this->real * c.real) - (this->imag * c.imag);
         this->imag = (this->real * c.imag) + (this->imag * c.real);
         return *this;
     }
 
-    Complex& operator ~() {
-        this->imag = -this->imag;
-        return *this;
+    Complex operator ~() {
+	return Complex(this->real, -this->imag);
     }
 
-    Complex& operator / (double d) {
-        this->real /= d;
-        this->imag /= d;
-        return *this;
+    Complex operator / (double d) {
+	return Complex(this->real/d, -this->imag/d);
     }
 
 } Complex;
