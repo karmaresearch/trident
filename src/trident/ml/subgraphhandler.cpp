@@ -117,12 +117,13 @@ int64_t SubgraphHandler::numberInstancesInSubgraphs(
 void SubgraphHandler::create(KB &kb,
         string subgraphType,
         string embdir,
-        string subfile) {
+        string subfile,
+	uint64_t minCard) {
     std::unique_ptr<Querier> q(kb.query());
     //Load the embeddings
     loadEmbeddings(embdir);
     if (subgraphType == "avg") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>(minCard));
         subgraphs->calculateEmbeddings(q.get(), E, R);
         subgraphs->storeToFile(subfile);
     } else {

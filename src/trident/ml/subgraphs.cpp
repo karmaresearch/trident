@@ -51,10 +51,13 @@ void AvgSubgraphs<double>::processItr(Querier *q,
     //char buffer[MAX_TERM_SIZE];
     //int size = 0;
 
+    LOG(DEBUGL) << "Min card " << mincard;
+
 
     int64_t count = 0;
     int64_t prevo = -1;
     int64_t prevp = -1;
+    int64_t counter = 0;
     while (itr->hasNext()) {
         itr->next();
         uint64_t o = itr->getKey();
@@ -82,6 +85,9 @@ void AvgSubgraphs<double>::processItr(Querier *q,
         for(uint16_t i = 0; i < dim; ++i) {
             current_s[i] += e[i];
         }
+	if (counter++ % 10000000 == 0) {
+		LOG(DEBUGL) << "Processed records " << counter << " " << getNSubgraphs();
+	}
     }
     if (count > mincard) {
         //Add the averaged embedding

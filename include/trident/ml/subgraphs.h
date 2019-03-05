@@ -142,6 +142,8 @@ class AvgSubgraphs : public Subgraphs<K> {
 
         AvgSubgraphs(uint16_t dim, uint64_t mincard) : dim(dim), mincard(mincard) {}
 
+	AvgSubgraphs(uint64_t mincard) : dim(0), mincard(mincard) {}
+
         void loadFromFile(string file);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {

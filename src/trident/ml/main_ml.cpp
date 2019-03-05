@@ -152,5 +152,5 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
 void subgraphCreate(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.create(kb, vm["subAlgo"].as<string>(), vm["embDir"].as<string>(),
-            vm["subFile"].as<string>());
+            vm["subFile"].as<string>(), vm["subgraphThreshold"].as<uint64_t>());
 }
