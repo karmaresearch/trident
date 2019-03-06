@@ -19,13 +19,14 @@ class TrainWorkflow {
                 ThreadOutput *output,
                 uint32_t epoch) {
             std::shared_ptr<BatchIO> pio;
-            uint16_t nbatches = 0;
+            uint64_t nbatches = 0;
             while (true) {
                 inputQueue->pop_wait(pio);
                 if (pio == NULL) {
                     break;
                 }
                 pio->q = q;
+                LOG(INFOL) << "$$$ N batches : " << nbatches;
                 tr.process_batch(*pio.get(), epoch, nbatches);
                 output->violations += pio->violations;
                 output->conflicts += pio->conflicts;

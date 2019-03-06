@@ -30,6 +30,7 @@
 #include <kognac/hashmap.h>
 
 #include <string>
+#include <cstring>
 
 class Querier;
 class PairItr;
@@ -95,16 +96,28 @@ private:
                       Querier *q,
                       std::vector<Triple> &input);
 
+    static bool lessThan(const char *s1, int len1, const char *s2, int len2) {
+	int len = len1 < len2 ? len1 : len2;
+	int c = strncmp(s1, s2, len);
+	if (c != 0) {
+	    return c < 0;
+	}
+	return len1 < len2;
+    }
+
     static bool sortByS(const TextualTriple &t1, const TextualTriple &t2) {
-        return std::string(t1.s, t1.lens) < std::string(t2.s, t2.lens);
+        // return std::string(t1.s, t1.lens) < std::string(t2.s, t2.lens);
+	return lessThan(t1.s, t1.lens, t2.s, t2.lens);
     }
 
     static bool sortByP(const TextualTriple &t1, const TextualTriple &t2) {
-        return std::string(t1.p, t1.lenp) < std::string(t2.p, t2.lenp);
+        // return std::string(t1.p, t1.lenp) < std::string(t2.p, t2.lenp);
+	return lessThan(t1.p, t1.lenp, t2.p, t2.lenp);
     }
 
     static bool sortByO(const TextualTriple &t1, const TextualTriple &t2) {
-        return std::string(t1.o, t1.leno) < std::string(t2.o, t2.leno);
+        // return std::string(t1.o, t1.leno) < std::string(t2.o, t2.leno);
+	return lessThan(t1.o, t1.leno, t2.o, t2.leno);
     }
 
     static int cmp(PairItr *itr, const Triple &t);

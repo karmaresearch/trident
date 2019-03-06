@@ -1,5 +1,6 @@
 #include <trident/ml/tester.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/transebinarytester.h>
 #include <trident/ml/holetester.h>
 #include <trident/ml/batch.h>
 
@@ -8,6 +9,7 @@ PredictParams::PredictParams() {
     nthreads = 1;
     path_modele = "";
     path_modelr = "";
+    binary = "false";
 }
 
 string PredictParams::changeable_tostring() {
@@ -15,15 +17,21 @@ string PredictParams::changeable_tostring() {
     out += ";nthreads=" + to_string(nthreads);
     out += ";path_modele=" + path_modele;
     out += ";path_modelr=" + path_modelr;
+    out += ";binary=" + binary;
     return out;
 }
 
 void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     //Load model
     std::shared_ptr<Embeddings<double>> E;
-    E = Embeddings<double>::load(p.path_modele);
     std::shared_ptr<Embeddings<double>> R;
-    R = Embeddings<double>::load(p.path_modelr);
+    if (p.binary == "true") {
+        E = Embeddings<double>::loadBinary(p.path_modele);
+        R = Embeddings<double>::loadBinary(p.path_modelr);
+    } else {
+        E = Embeddings<double>::load(p.path_modele);
+        R = Embeddings<double>::load(p.path_modelr);
+    }
 
     //Load test files
     std::vector<uint64_t> testset;
@@ -33,11 +41,18 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     } else {
         pathtest = BatchCreator::getTestPath(kb.getPath());
     }
+    LOG(INFOL) << "UNM: " << pathtest;
     BatchCreator::loadTriples(pathtest, testset);
 
     if (algo == "transe") {
-        TranseTester<double> tester(E,R, kb.query());
-        auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
+        if (p.binary == "true") {
+            TranseBinaryTester<double> tester(E, R, kb.query());
+            LOG(INFOL) << "finally here : ****** ";
+            auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
+        } else {
+            TranseTester<double> tester(E,R, kb.query());
+            auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
+        }
     } else if (algo == "hole") {
         HoleTester<double> tester(E,R, kb.query());
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
