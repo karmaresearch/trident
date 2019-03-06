@@ -5,7 +5,7 @@
 #include <trident/utils/fft.h>
 #include <cstring>
 #include <complex.h>
-#include <fftw3.h>
+
 using namespace std;
 
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
@@ -157,7 +157,7 @@ void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
     // TODO: use the FFTW methods here instead of calling
     // the overridden method of ccorr with Complex arguments.
 
-    fftw_complex *aOut, *bOut;
+    /*fftw_complex *aOut, *bOut;
     fftw_plan planA, planB;
 
     aOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size/2 + 1));
@@ -204,7 +204,7 @@ void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
     fftw_destroy_plan(planI);
     fftw_free(temp);
     fftw_free(aOut);
-    fftw_free(bOut);
+    fftw_free(bOut);*/
     /*
      * vector<Complex> ac;
     for (int i = 0; i < size; ++i) {

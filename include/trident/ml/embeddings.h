@@ -28,7 +28,7 @@ class Embeddings {
         const uint32_t n;
         const uint16_t dim;
         // std::vector<K> raw;
-	std::unique_ptr<MemoryMappedFile> raw;
+        std::unique_ptr<MemoryMappedFile> raw;
 
         std::vector<uint8_t> locks;
         std::vector<uint32_t> conflicts;
@@ -73,22 +73,21 @@ class Embeddings {
 
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-	    char fn[] = "/local/mytemp.XXXXXX";
-	    int fd = mkstemp(fn);
-	    std::string filename = std::string(fn);
-	    if (fd == -1) {
-		LOG(ERRORL) << "Could not create temporary file " << filename;
-		throw 10;
-	    }
-	    std::vector<K> buf(dim);
-	    for (uint32_t i = 0; i < n; i++) {
-		if (write(fd, buf.data(), dim * sizeof(K)) < dim * sizeof(K)) {
-		    LOG(ERRORL) << "Could not write temporary file " << filename;
-		    throw 10;
-		}
-	    }
-	    raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, (int64_t)n * dim * sizeof(K)));
-            // raw.resize((int64_t)n * dim);
+            char fn[] = "mytemp.XXXXXX";
+            int fd = mkstemp(fn);
+            std::string filename = std::string(fn);
+            if (fd == -1) {
+                LOG(ERRORL) << "Could not create temporary file " << filename;
+                throw 10;
+            }
+            std::vector<K> buf(dim);
+            for (uint32_t i = 0; i < n; i++) {
+                if (write(fd, buf.data(), dim * sizeof(K)) < dim * sizeof(K)) {
+                    LOG(ERRORL) << "Could not write temporary file " << filename;
+                    throw 10;
+                }
+            }
+            raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, (int64_t)n * dim * sizeof(K)));
             locks.resize(n);
             conflicts.resize(n);
             updates.resize(n);
@@ -107,9 +106,9 @@ class Embeddings {
             return ((K *) raw->getData()) + (int64_t)n * dim;
         }
 
-	K* getRaw() {
-	    return (K *) raw->getData();
-	}
+        K* getRaw() {
+            return (K *) raw->getData();
+        }
 
         void lock(uint32_t idx) {
             locks[idx]++;
@@ -243,31 +242,6 @@ class Embeddings {
         }
 
         void store(std::string path, bool compress, uint16_t nthreads) {
-            /*if (nthreads == 1) {
-              if (compress) {
-              path = path + ".gz";
-              zstr::ofstream out(path, std::ofstream::out);
-              out.write((char*)&n, 4);
-              out.write((char*)&dim, 2);
-              K* start  = raw.data();
-              K* end = raw.data() + raw.size();
-              while (start != end) {
-              out.write((char*)start, 8);
-              start++;
-              }
-              } else {
-              ofstream out;
-              out.open(path, std::ofstream::out);
-              out.write((char*)&n, 4);
-              out.write((char*)&dim, 2);
-              K* start  = raw.data();
-              K* end = raw.data() + raw.size();
-              while (start != end) {
-              out.write((char*)start, 8);
-              start++;
-              }
-              }
-              } else {*/
             K* data = getRaw();
             uint32_t *c = conflicts.data();
             uint32_t *u = updates.data();
@@ -276,21 +250,14 @@ class Embeddings {
 
             {
                 std::string metapath = path;
-                /*if (compress) {
-                  metapath = metapath + "-meta.gz";
-                  zstr::ofstream ofs(metapath, std::ofstream::out);
-                  ofs.write((char*)&batchsize, 4);
-                  ofs.write((char*)&n, 4);
-                  ofs.write((char*)&dim, 2);
-                  } else {*/
                 metapath = metapath + "-meta";
                 std::ofstream ofs;
                 ofs.open(metapath, std::ofstream::out);
                 ofs.write((char*)&batchsize, 4);
                 ofs.write((char*)&n, 4);
                 ofs.write((char*)&dim, 2);
-                //}
             }
+
             uint64_t begin = 0;
             uint16_t idx = 0;
             for(uint16_t i = 0; i < nthreads; ++i) {
@@ -319,122 +286,122 @@ class Embeddings {
                 threads[i].join();
             }
             //}
+}
+
+static std::shared_ptr<Embeddings<K>> load(std::string path) {
+    std::vector<std::string> files = Utils::getFilesWithPrefix(
+            Utils::parentDir(path), Utils::filename(path));
+
+    //There should be a file that ends with -meta
+    bool metafound = false;
+    uint32_t n;
+    uint16_t dim;
+    uint32_t embperblock = 0;
+    for (auto f : files) {
+        if (Utils::ends_with(f, "-meta")) {
+            //Get the metadata
+            std::ifstream ifs;
+            ifs.open(f, std::ifstream::in);
+            char buffer[10];
+            ifs.read(buffer, 10);
+            embperblock = *(uint32_t*) buffer;
+            n = *(uint32_t*)(buffer + 4);
+            dim = *(uint16_t*)(buffer + 8);
+            metafound = true;
+            break;
         }
+    }
 
-        static std::shared_ptr<Embeddings<K>> load(std::string path) {
-            std::vector<std::string> files = Utils::getFilesWithPrefix(
-                    Utils::parentDir(path), Utils::filename(path));
+    if (!metafound) {
+        LOG(WARNL) << "Embedding file " << path << " not found";
+        return std::shared_ptr<Embeddings<double>>();
+    } else {
+        //Count the files with a number as extension
+        std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim));
 
-            //There should be a file that ends with -meta
-            bool metafound = false;
-            uint32_t n;
-            uint16_t dim;
-            uint32_t embperblock = 0;
-            for (auto f : files) {
-                if (Utils::ends_with(f, "-meta")) {
-                    //Get the metadata
-                    std::ifstream ifs;
-                    ifs.open(f, std::ifstream::in);
-                    char buffer[10];
-                    ifs.read(buffer, 10);
-                    embperblock = *(uint32_t*) buffer;
-                    n = *(uint32_t*)(buffer + 4);
-                    dim = *(uint16_t*)(buffer + 8);
-                    metafound = true;
+        //Fields
+        double *raw = emb->getRaw();
+        uint32_t *up = emb->updates.data();
+        uint32_t *conf = emb->conflicts.data();
+
+        uint32_t countfile = 0;
+        std::string filetoload = path + "." + std::to_string(countfile);
+        while (Utils::exists(filetoload)) {
+            std::ifstream ifs;
+            ifs.open(filetoload, std::ifstream::in);
+            const uint16_t sizeline = 8 + dim * 8;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
+            while(true) {
+                ifs.read(buffer.get(), sizeline);
+                if (ifs.eof()) {
                     break;
                 }
+                //Parse the line
+                *conf = *(uint32_t*)buffer.get();
+                *up = *(uint32_t*)(buffer.get()+4);
+                memcpy((char*)raw, buffer.get() + 8, dim * 8);
+                conf += 1;
+                up += 1;
+                raw += dim;
             }
-
-            if (!metafound) {
-                LOG(WARNL) << "Embedding file " << path << " not found";
-                return std::shared_ptr<Embeddings<double>>();
-            } else {
-                //Count the files with a number as extension
-                std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim));
-
-                //Fields
-                double *raw = emb->getRaw();
-                uint32_t *up = emb->updates.data();
-                uint32_t *conf = emb->conflicts.data();
-
-                uint32_t countfile = 0;
-                std::string filetoload = path + "." + std::to_string(countfile);
-                while (Utils::exists(filetoload)) {
-                    std::ifstream ifs;
-                    ifs.open(filetoload, std::ifstream::in);
-                    const uint16_t sizeline = 8 + dim * 8;
-                    std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
-                    while(true) {
-                        ifs.read(buffer.get(), sizeline);
-                        if (ifs.eof()) {
-                            break;
-                        }
-                        //Parse the line
-                        *conf = *(uint32_t*)buffer.get();
-                        *up = *(uint32_t*)(buffer.get()+4);
-                        memcpy((char*)raw, buffer.get() + 8, dim * 8);
-                        conf += 1;
-                        up += 1;
-                        raw += dim;
-                    }
-                    countfile += 1;
-                    filetoload = path + "." + std::to_string(countfile);
-                }
-                return emb;
-            }
+            countfile += 1;
+            filetoload = path + "." + std::to_string(countfile);
         }
+        return emb;
+    }
+}
 
-        static std::shared_ptr<Embeddings<K>> loadBinary(std::string path) {
-            const uint16_t sizeline = 25;
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
-            ifstream ifs;
-            ifs.open(path, std::ifstream::in);
-            ifs.read(buffer.get(), 8);
-            uint64_t nSubgraphs = *(uint64_t*)buffer.get();
-            LOG(DEBUGL) << "# subgraphs : " << nSubgraphs;
-            for (int i = 0; i < nSubgraphs; ++i) {
-                ifs.read(buffer.get(), 25);
-                int type = (int)buffer.get()[0];
-                uint64_t ent = *(uint64_t*) (buffer.get() + 1);
-                uint64_t rel = *(uint64_t*) (buffer.get() + 9);
-                uint64_t siz = *(uint64_t*) (buffer.get() + 17);
-            }
-            memset(buffer.get(), 0, 25);
-            ifs.read(buffer.get(), 18);
-            uint32_t n = (uint32_t)nSubgraphs;
-            uint16_t dim = Utils::decode_short(buffer.get());
-            uint64_t mincard = Utils::decode_long(buffer.get() , 2);
-            uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
-            LOG(INFOL) << dim << " , n = " << n << " nsub = " << nSubgraphs;
+static std::shared_ptr<Embeddings<K>> loadBinary(std::string path) {
+    const uint16_t sizeline = 25;
+    std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+    ifstream ifs;
+    ifs.open(path, std::ifstream::in);
+    ifs.read(buffer.get(), 8);
+    uint64_t nSubgraphs = *(uint64_t*)buffer.get();
+    LOG(DEBUGL) << "# subgraphs : " << nSubgraphs;
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer.get(), 25);
+        /*int type = (int)buffer.get()[0];
+        uint64_t ent = *(uint64_t*) (buffer.get() + 1);
+        uint64_t rel = *(uint64_t*) (buffer.get() + 9);
+        uint64_t siz = *(uint64_t*) (buffer.get() + 17);*/
+    }
+    memset(buffer.get(), 0, 25);
+    ifs.read(buffer.get(), 18);
+    uint32_t n = (uint32_t)nSubgraphs;
+    uint16_t dim = Utils::decode_short(buffer.get());
+    //uint64_t mincard = Utils::decode_long(buffer.get() , 2);
+    //uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
+    LOG(INFOL) << dim << " , n = " << n << " nsub = " << nSubgraphs;
 
-            const uint16_t sizeOriginalEmbeddings = dim * 8;
-            std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
-            for (int i = 0; i < nSubgraphs; ++i) {
-                ifs.read(buffer2.get(), dim*8);
-            }
+    const uint16_t sizeOriginalEmbeddings = dim * 8;
+    std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer2.get(), dim*8);
+    }
 
-            memset(buffer.get(), 0, 25);
-            ifs.read(buffer.get(), 2);
-            uint16_t compSize = Utils::decode_short(buffer.get());
-            LOG(INFOL) << compSize;
+    memset(buffer.get(), 0, 25);
+    ifs.read(buffer.get(), 2);
+    uint16_t compSize = Utils::decode_short(buffer.get());
+    LOG(INFOL) << compSize;
 
-            if (compSize % 64 == 0) {
-                compSize /= 64;
-            }
-            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
-            //Fields
-            double *raw = emb->getRaw();
-            const uint16_t sizeCompressedEmbeddings = compSize * 8;
-            std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
-            for (int i = 0; i < nSubgraphs; ++i) {
-                ifs.read(buffer3.get(), compSize*8);
-                memcpy((char*)raw, buffer3.get(), compSize * 8);
-                raw += compSize;
-            }
+    if (compSize % 64 == 0) {
+        compSize /= 64;
+    }
+    std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
+    //Fields
+    double *raw = emb->getRaw();
+    const uint16_t sizeCompressedEmbeddings = compSize * 8;
+    std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
+    for (int i = 0; i < nSubgraphs; ++i) {
+        ifs.read(buffer3.get(), compSize*8);
+        memcpy((char*)raw, buffer3.get(), compSize * 8);
+        raw += compSize;
+    }
 
-            ifs.close();
-            return emb;
-        }
+    ifs.close();
+    return emb;
+}
 };
 
 #endif
