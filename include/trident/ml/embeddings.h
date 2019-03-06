@@ -50,6 +50,7 @@ class Embeddings {
             assert(((end - begin) % dim) == 0);
             uint64_t count = 0;
             double sum = 0.0;
+	    LOG(DEBUGL) << "Must init " << (end - begin) << " params ...";
             while (begin != end) {
                 *begin = dis(gen);
 
@@ -67,6 +68,10 @@ class Embeddings {
                     count++;
                 }
 
+		if (count % 10000000 == 0) {
+			LOG(DEBUGL) << "Initialized " << count << " records";
+		}
+
                 begin++;
             }
         }
@@ -80,14 +85,12 @@ class Embeddings {
                 LOG(ERRORL) << "Could not create temporary file " << filename;
                 throw 10;
             }
-            std::vector<K> buf(dim);
-            for (uint32_t i = 0; i < n; i++) {
-                if (write(fd, buf.data(), dim * sizeof(K)) < dim * sizeof(K)) {
-                    LOG(ERRORL) << "Could not write temporary file " << filename;
-                    throw 10;
-                }
-            }
-            raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, (int64_t)n * dim * sizeof(K)));
+	    uint64_t rawsize = (int64_t)n * dim * sizeof(K);
+	    LOG(DEBUGL) << "Resizing the file to " << rawsize << " bytes ...";
+	    Utils::resizeFile(filename, rawsize);
+	    LOG(DEBUGL) << "Creating memory mapped file ...";
+            raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, rawsize));
+	    LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);
             updates.resize(n);
@@ -96,6 +99,7 @@ class Embeddings {
             updatesLastEpoch.resize(n);
             updatesThisEpoch.resize(n);
             medianLastEpoch = allUpdatesLastEpoch = updatedEntitiesLastEpoch = 0;
+	    LOG(DEBUGL) << "done";
         }
 
         K* get(const uint32_t n) {
