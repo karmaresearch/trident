@@ -9,14 +9,25 @@ using namespace std;
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
 
     int n = in.size();
+    double cos[n];
+    double sin[n];
+    for (int k = 0; k < n ; ++k){
+	double angle = 2 * M_PI * k / n;
+	cos[k] = std::cos(angle);
+	sin[k] = std::sin(angle);
+    }
+
     for (int k = 0; k < n ; ++k){
 
         double realSum = 0.0;
         double imagSum = 0.0;
         for (int t = 0; t < n; ++t) {
-            double angle = 2 * M_PI * t * k / n;
-            double real = in[t].real * std::cos(angle) + in[t].imag * std::sin(angle);
-            double imag = in[t].imag * std::cos(angle) - in[t].real * std::sin(angle);
+            // double angle = 2 * M_PI * t * k / n;
+            // double real = in[t].real * std::cos(angle) + in[t].imag * std::sin(angle);
+            // double imag = in[t].imag * std::cos(angle) - in[t].real * std::sin(angle);
+	    int angle = (t * k) % n;
+            double real = in[t].real * cos[angle] + in[t].imag * sin[angle];
+            double imag = in[t].imag * cos[angle] - in[t].real * sin[angle];
             realSum += real;
             imagSum += imag;
         }
