@@ -4,8 +4,6 @@
 #include <cassert>
 #include <trident/utils/fft.h>
 #include <cstring>
-#include <complex.h>
-#include <fftw3.h>
 using namespace std;
 
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
@@ -154,59 +152,7 @@ void cconv(double* a, double* b, uint16_t size, std::vector<double>& out) {
 }
 
 void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
-    // TODO: use the FFTW methods here instead of calling
-    // the overridden method of ccorr with Complex arguments.
-
-    fftw_complex *aOut, *bOut;
-    fftw_plan planA, planB;
-
-    aOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size/2 + 1));
-    bOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size/2 + 1));
-
-    planA = fftw_plan_dft_r2c_1d(size, a, aOut, FFTW_ESTIMATE);
-    planB = fftw_plan_dft_r2c_1d(size, b, bOut, FFTW_ESTIMATE);
-
-    fftw_execute(planA);
-    fftw_execute(planB);
-
-    fftw_complex * temp = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * size);
-    // Take conjugate of fft(a)
-    // and Multiply with fft(b)
-
-    int i;
-    for (i = 0; i < size/2 +1 ; ++i) {
-        double aConjImag = aOut[i][1] * -1;
-        temp[i][0] = (aOut[i][0] * bOut[i][0]) - (aConjImag * bOut[i][1]);
-        temp[i][1] = (aOut[i][0] * bOut[i][1]) + (aConjImag * bOut[i][0]);
-    }
-    for (;i < size; ++i) {
-        double aConjImag = aOut[size - i][1];
-	double bImag = bOut[size - i][1] * -1;
-        temp[i][0] = (aOut[size - i][0] * bOut[size - i][0]) - (aConjImag * bImag);
-        temp[i][1] = (aOut[size - i][0] * bImag) + (aConjImag * bOut[size - i][0]);
-    }
-
-    // Take inverse FFT of temp
-    uint16_t N = 2 * (size/2 + 1);
-    double *inverse = new double[N];
-    fftw_plan planI;
-
-    planI = fftw_plan_dft_c2r_1d(size, temp, inverse, FFTW_ESTIMATE);
-    fftw_execute(planI);
-
-    for (i = 0; i < size; ++i) {
-	out.push_back(inverse[i] / size);
-    }
-
-    delete[] inverse;
-    fftw_destroy_plan(planA);
-    fftw_destroy_plan(planB);
-    fftw_destroy_plan(planI);
-    fftw_free(temp);
-    fftw_free(aOut);
-    fftw_free(bOut);
-    /*
-     * vector<Complex> ac;
+    vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
         Complex temp;
         temp.real = a[i];
@@ -225,7 +171,7 @@ void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
 
     for (auto d : out_d) {
         out.push_back((float) d);
-    }*/
+    }
 }
 
 void cconv(double* a, double* b, uint16_t size, std::vector<float>& out) {
