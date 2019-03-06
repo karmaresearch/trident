@@ -229,7 +229,7 @@ class Embeddings {
                 uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
                 K* begin = raw;
-                K* end = raw + n;
+                K* end = raw + n * dim;
                 while (begin < end) {
                     uint64_t offset = batchPerThread * dim;
                     K* tmpend = (begin + offset) < end ? begin + offset : end;
