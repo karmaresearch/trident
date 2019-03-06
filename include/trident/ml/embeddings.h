@@ -27,8 +27,13 @@ class Embeddings {
     private:
         const uint32_t n;
         const uint16_t dim;
+
+        bool ismem;
         std::string rawFilename;
-        std::unique_ptr<MemoryMappedFile> raw;
+        std::unique_ptr<MemoryMappedFile> fraw;
+        std::vector<K> mraw;
+
+        K* raw;
 
         std::vector<uint8_t> locks;
         std::vector<uint32_t> conflicts;
@@ -76,20 +81,14 @@ class Embeddings {
             }
         }
 
-    public:
-        Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-            char fn[] = "mytemp.XXXXXX";
-            int fd = mkstemp(fn);
-            rawFilename = std::string(fn);
-            if (fd == -1) {
-                LOG(ERRORL) << "Could not create temporary file " << rawFilename;
-                throw 10;
-            }
-            uint64_t rawsize = (int64_t)n * dim * sizeof(K);
-            LOG(DEBUGL) << "Resizing the file to " << rawsize << " bytes ...";
-            Utils::resizeFile(rawFilename, rawsize);
-            LOG(DEBUGL) << "Creating memory mapped file ...";
-            raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+        //In this case, I force the usage of memory-mapped files
+        Embeddings(const uint32_t n, const uint16_t dim, std::string pathFile): n(n), dim(dim) {
+            ismem = false;
+            rawFilename = pathFile;
+            uint64_t rawsize = Utils::fileSize(pathFile);
+            LOG(DEBUGL) << "Loading memory mapped file with " << rawsize << " bytes ...";
+            fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+            raw = (K*)fraw->getData();
             LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);
@@ -102,11 +101,27 @@ class Embeddings {
             LOG(DEBUGL) << "done";
         }
 
-        Embeddings(const uint32_t n, const uint16_t dim, std::string pathFile): n(n), dim(dim) {
-            rawFilename = pathFile;
-            uint64_t rawsize = Utils::fileSize(pathFile);
-            LOG(DEBUGL) << "Loading memory mapped file with " << rawsize << " bytes ...";
-            raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+    public:
+        Embeddings(const uint32_t n, const uint16_t dim, bool mem = true): n(n), dim(dim) {
+            ismem = mem;
+            if (mem) {
+                mraw.resize((int64_t)n * dim);
+                raw = mraw.data();
+            } else {
+                char fn[] = "mytemp.XXXXXX";
+                int fd = mkstemp(fn);
+                rawFilename = std::string(fn);
+                if (fd == -1) {
+                    LOG(ERRORL) << "Could not create temporary file " << rawFilename;
+                    throw 10;
+                }
+                uint64_t rawsize = (int64_t)n * dim * sizeof(K);
+                LOG(DEBUGL) << "Resizing the file to " << rawsize << " bytes ...";
+                Utils::resizeFile(rawFilename, rawsize);
+                LOG(DEBUGL) << "Creating memory mapped file ...";
+                fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+                raw = (K*)fraw->getData();
+            }
             LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);
@@ -124,11 +139,11 @@ class Embeddings {
                 LOG(ERRORL) << n << " too high";
                 throw 10;
             }
-            return ((K *) raw->getData()) + (int64_t)n * dim;
+            return raw + (int64_t)n * dim;
         }
 
         K* getRaw() {
-            return (K *) raw->getData();
+            return raw;
         }
 
         void lock(uint32_t idx) {
@@ -217,8 +232,8 @@ class Embeddings {
             if (nthreads > 1) {
                 uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
-                K* begin = (K *) raw->getData();
-                K* end = (K *) (raw->getData() + raw->getLength());
+                K* begin = raw;
+                K* end = raw + n;
                 while (begin < end) {
                     uint64_t offset = batchPerThread * dim;
                     K* tmpend = (begin + offset) < end ? begin + offset : end;
@@ -328,13 +343,20 @@ class Embeddings {
                 ofs.write((char*)&dim, 2);
             }
 
-            //Flush the content to file
-            LOG(DEBUGL) << "Flushing the content to disk ...";
-            raw->flush(0, raw->getLength());
+            if (ismem) {
+                //Dump the content of the array into a file as-is
+                ofstream dest(path, ios::binary);
+                dest.write((char*)mraw.data(), n * dim * sizeof(K));
+                dest.close();
+            } else {
+                //Flush the content to file
+                LOG(DEBUGL) << "Flushing the content to disk ...";
+                fraw->flush(0, fraw->getLength());
 
-            //Copy the memory-mapped file
-            LOG(DEBUGL) << "Copying the embeddings to " << path;
-            Utils::copy(rawFilename, path);
+                //Copy the memory-mapped file
+                LOG(DEBUGL) << "Copying the embeddings to " << path;
+                Utils::copy(rawFilename, path);
+            }
 
             //TODO: Copy data about conflicts, updates
 
