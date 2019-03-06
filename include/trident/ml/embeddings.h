@@ -68,10 +68,6 @@ class Embeddings {
                     count++;
                 }
 
-		if (count % 10000000 == 0) {
-			LOG(DEBUGL) << "Initialized " << count << " records";
-		}
-
                 begin++;
             }
         }
