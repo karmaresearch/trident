@@ -86,6 +86,8 @@ class Embeddings {
             Utils::resizeFile(rawFilename, rawsize);
             LOG(DEBUGL) << "Creating memory mapped file ...";
             raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+	    
+
             LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);

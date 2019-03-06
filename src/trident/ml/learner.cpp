@@ -91,6 +91,7 @@ void Learner::setup(const uint16_t nthreads) {
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     LOG(DEBUGL) << "Init R " << nthreads;
     R->init(nthreads, false);
+    LOG(DEBUGL) << "done";
 
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;
