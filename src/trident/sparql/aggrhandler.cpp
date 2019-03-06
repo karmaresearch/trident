@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <set>
+#include <cfloat>
 
 unsigned AggregateHandler::getNewOrExistingVar(AggregateHandler::FUNC funID,
         std::vector<unsigned> &signature) {
@@ -40,6 +41,13 @@ void AggregateHandler::prepare() {
             call.outputmask = (uint64_t) 1 << assignment.second;
             call.inputvar = assignment.first;
             call.outputvar = assignment.second;
+	    if (id == FUNC::MIN) {
+		call.arg1_int = INT64_MAX;
+		call.arg1_dec = DBL_MAX;
+	    } else if (id == FUNC::MAX) {
+		call.arg1_int = INT64_MIN;
+		call.arg1_dec = -DBL_MAX;
+	    }
             //Update the variables and mentions if they need to be numberic
             if (id == COUNT)
                 varvalues[assignment.first].requiresNumber = false;
@@ -129,10 +137,13 @@ bool AggregateHandler::executeFunction(FunctCall &call) {
             return execCount(call);
         case FUNC::SUM:
             return execSum(call);
-        case FUNC::MIN:
-        case FUNC::MAX:
-        case FUNC::GROUP_CONCAT:
         case FUNC::AVG:
+	    return execAvg(call);
+        case FUNC::MIN:
+	    return execMin(call);
+        case FUNC::MAX:
+	    return execMax(call);
+        case FUNC::GROUP_CONCAT:
         case FUNC::SAMPLE:
             LOG(ERRORL) << "Not yet implemented";
             throw 10;
@@ -153,6 +164,26 @@ bool AggregateHandler::execCount(FunctCall &call) {
         call.arg1_int++;
         return false;
     }
+}
+
+bool AggregateHandler::execAvg(FunctCall &call) {
+    if (varvalues[call.inputvar].type  == VarValue::TYPE::NUL) {
+	if (call.arg1_int == 0) {
+	    varvalues[call.outputvar].v_dec = call.arg1_dec;
+	} else {
+	    varvalues[call.outputvar].v_dec = call.arg1_dec / call.arg1_int;
+	}
+	varvalues[call.outputvar].type = VarValue::TYPE::DEC;
+    } else {
+        //Need to get the numerical value of the input
+        if (varvalues[call.inputvar].type  == VarValue::TYPE::INT) {
+	    call.arg1_dec += varvalues[call.inputvar].v_int;
+        } else { //Dec
+            call.arg1_dec += varvalues[call.inputvar].v_dec;
+        }
+	call.arg1_int++;
+    }
+    return true;
 }
 
 bool AggregateHandler::execSum(FunctCall &call) {
@@ -182,6 +213,82 @@ bool AggregateHandler::execSum(FunctCall &call) {
                 call.arg1_bool = false;
             }
             call.arg1_dec += varvalues[call.inputvar].v_dec;
+        }
+    }
+    return true;
+}
+
+bool AggregateHandler::execMax(FunctCall &call) {
+    //Get value of the var in input. If ~0lu, then return true and update the
+    //output var
+    if (varvalues[call.inputvar].type  == VarValue::TYPE::NUL) {
+        if (call.arg1_bool) { //Int
+            varvalues[call.outputvar].v_int = call.arg1_int;
+            varvalues[call.outputvar].type = VarValue::TYPE::INT;
+        } else { //Dec
+            varvalues[call.outputvar].v_dec = call.arg1_dec;
+            varvalues[call.outputvar].type = VarValue::TYPE::DEC;
+        }
+    } else {
+        //Need to get the numerical value of the input
+        if (varvalues[call.inputvar].type  == VarValue::TYPE::INT) {
+            //Check the internal value
+            if (call.arg1_bool) {
+		if (call.arg1_int < varvalues[call.inputvar].v_int) {
+		    call.arg1_int = varvalues[call.inputvar].v_int;
+		}
+            } else {
+		if (call.arg1_dec < varvalues[call.inputvar].v_int) {
+		    call.arg1_dec = varvalues[call.inputvar].v_int;
+		}
+            }
+        } else { //Dec
+            if (call.arg1_bool) {
+                //Switch to decimal representation
+                call.arg1_dec = call.arg1_int;
+                call.arg1_bool = false;
+            }
+	    if (call.arg1_dec < varvalues[call.inputvar].v_dec) {
+		call.arg1_dec = varvalues[call.inputvar].v_dec;
+	    }
+        }
+    }
+    return true;
+}
+
+bool AggregateHandler::execMin(FunctCall &call) {
+    //Get value of the var in input. If ~0lu, then return true and update the
+    //output var
+    if (varvalues[call.inputvar].type  == VarValue::TYPE::NUL) {
+        if (call.arg1_bool) { //Int
+            varvalues[call.outputvar].v_int = call.arg1_int;
+            varvalues[call.outputvar].type = VarValue::TYPE::INT;
+        } else { //Dec
+            varvalues[call.outputvar].v_dec = call.arg1_dec;
+            varvalues[call.outputvar].type = VarValue::TYPE::DEC;
+        }
+    } else {
+        //Need to get the numerical value of the input
+        if (varvalues[call.inputvar].type  == VarValue::TYPE::INT) {
+            //Check the internal value
+            if (call.arg1_bool) {
+		if (call.arg1_int > varvalues[call.inputvar].v_int) {
+		    call.arg1_int = varvalues[call.inputvar].v_int;
+		}
+            } else {
+		if (call.arg1_dec > varvalues[call.inputvar].v_int) {
+		    call.arg1_dec = varvalues[call.inputvar].v_int;
+		}
+            }
+        } else { //Dec
+            if (call.arg1_bool) {
+                //Switch to decimal representation
+                call.arg1_dec = call.arg1_int;
+                call.arg1_bool = false;
+            }
+	    if (call.arg1_dec > varvalues[call.inputvar].v_dec) {
+		call.arg1_dec = varvalues[call.inputvar].v_dec;
+	    }
         }
     }
     return true;

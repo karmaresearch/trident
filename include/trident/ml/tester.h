@@ -268,6 +268,7 @@ struct PredictParams {
     uint16_t nthreads;
     string path_modele;
     string path_modelr;
+    string binary;
 
     PredictParams();
 

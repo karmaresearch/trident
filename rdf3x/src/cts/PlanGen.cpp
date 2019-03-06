@@ -477,6 +477,27 @@ static bool isUnused(const QueryGraph& query, const QueryGraph::Node& node, unsi
         }
     }
 
+    //Check if the variable is used in some assignments
+    for (const auto &tableFunction : query.c_getGlobalAssignments()) {
+        for (const auto &arg : tableFunction.input) {
+            if (arg.id == val) {
+                return false;
+            } else {
+                //Arg.id could be a variable associated to an aggregated function.
+                //In this case, I should check the arguments of the aggregate
+                //function
+                const auto &ahdl = query.c_getAggredateHandler();
+                const auto &assignments = ahdl.getInputOutputVars();
+                for (const auto &outputVar : assignments.first) {
+                    if (outputVar == val) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+
     return isUnused(query.getQuery(), node, val);
 }
 //---------------------------------------------------------------------------

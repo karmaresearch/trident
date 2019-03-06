@@ -12,6 +12,10 @@ class SubgraphHandler {
 
         void loadEmbeddings(string embdir);
 
+        void loadBinarizedEmbeddings(string embfile, vector<double>& embeddings);
+
+        void processBinarizedEmbeddingsDirectory(string embdir, vector<double>& emb1, vector<double>& emb2, vector<double> &e3);
+
         void loadSubgraphs(string subgraphsFile,
                 string subFormat, double varThreshold);
 
@@ -42,8 +46,34 @@ class SubgraphHandler {
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
                 uint32_t topk,
-                string &subgraphType
+                string &subgraphType,
+                DIST secondDist
                 );
+
+        void selectRelevantBinarySubgraphs(
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
+                uint32_t topk,
+                vector<double>& subEmb,
+                vector<double>& entEmb,
+                vector<double>& relEmb,
+                std::vector<uint64_t> &output
+                );
+
+        void getAllPossibleAnswers(Querier *q,
+                vector<uint64_t> &relevantSubgraphs,
+                Subgraphs<double>::TYPE t,
+                vector<int64_t> &output
+                );
+
+        void getAnswerAccuracy(vector<uint64_t> & actualEntities,
+            vector<int64_t>& expectedEntities,
+            double& accuracy);
+
+        void getActualAnswersFromTest(vector<uint64_t>& testTriples,
+            Subgraphs<double>::TYPE type,
+            uint64_t rel,
+            uint64_t ent,
+            vector<uint64_t> &output);
 
         int64_t numberInstancesInSubgraphs(
                 Querier *q,
@@ -65,7 +95,22 @@ class SubgraphHandler {
                 string formatTest,
                 uint64_t threshold,
                 double varThreshold,
-                string writeLogs);
+                string writeLogs,
+                DIST secondDist,
+                string kFile,
+                string binEmbDir);
+
+        void findAnswers(KB &kb,
+                string embAlgo,
+                string embDir,
+                string subFile,
+                string subType,
+                string nameTest,
+                string formatTest,
+                uint64_t threshold,
+                double varThreshold,
+                string writeLogs,
+                DIST secondDist);
 
         void create(KB &kb,
                 string subType,

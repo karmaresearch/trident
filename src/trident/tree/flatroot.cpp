@@ -303,6 +303,7 @@ void FlatRoot::writeFirstPerm(string sop, Root *root, bool unlabeled,
                     ntree_pso, 0, 0, 0);
         }
     }
+    ftw->done();
     delete itr;
 }
 

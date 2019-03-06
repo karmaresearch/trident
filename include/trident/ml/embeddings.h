@@ -2,6 +2,7 @@
 #define _EMBEDDINGS_H
 
 #include <trident/utils/tridentutils.h>
+#include <trident/utils/memoryfile.h>
 
 #include <kognac/utils.h>
 #include <kognac/logs.h>
@@ -17,16 +18,17 @@
 #include <fstream>
 #include <algorithm>
 
-// L3 is a custom Variance based distance
-// L4 is a combination of L1 and L3
-typedef enum { L1, L2, COSINE, KG, L3, L4 } DIST;
+// L3, L4, L5 are custom Variance based distances
+// KL is KL divergence
+typedef enum { L1 = 1, L2, L3, L4, L5, KL, COSINE, KG} DIST;
 
 template<typename K>
 class Embeddings {
     private:
         const uint32_t n;
         const uint16_t dim;
-        std::vector<K> raw;
+        // std::vector<K> raw;
+	std::unique_ptr<MemoryMappedFile> raw;
 
         std::vector<uint8_t> locks;
         std::vector<uint32_t> conflicts;
@@ -71,7 +73,22 @@ class Embeddings {
 
     public:
         Embeddings(const uint32_t n, const uint16_t dim): n(n), dim(dim) {
-            raw.resize((size_t)n * dim);
+	    char fn[] = "/local/mytemp.XXXXXX";
+	    int fd = mkstemp(fn);
+	    std::string filename = std::string(fn);
+	    if (fd == -1) {
+		LOG(ERRORL) << "Could not create temporary file " << filename;
+		throw 10;
+	    }
+	    std::vector<K> buf(dim);
+	    for (uint32_t i = 0; i < n; i++) {
+		if (write(fd, buf.data(), dim * sizeof(K)) < dim * sizeof(K)) {
+		    LOG(ERRORL) << "Could not write temporary file " << filename;
+		    throw 10;
+		}
+	    }
+	    raw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(filename, false, 0, (int64_t)n * dim * sizeof(K)));
+            // raw.resize((int64_t)n * dim);
             locks.resize(n);
             conflicts.resize(n);
             updates.resize(n);
@@ -87,8 +104,12 @@ class Embeddings {
                 LOG(ERRORL) << n << " too high";
                 throw 10;
             }
-            return raw.data() + n * dim;
+            return ((K *) raw->getData()) + (int64_t)n * dim;
         }
+
+	K* getRaw() {
+	    return (K *) raw->getData();
+	}
 
         void lock(uint32_t idx) {
             locks[idx]++;
@@ -176,8 +197,8 @@ class Embeddings {
             if (nthreads > 1) {
                 uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
-                K* begin = raw.data();
-                K* end = raw.data() + raw.size();
+                K* begin = (K *) raw->getData();
+                K* end = (K *) (raw->getData() + raw->getLength());
                 while (begin < end) {
                     uint64_t offset = batchPerThread * dim;
                     K* tmpend = (begin + offset) < end ? begin + offset : end;
@@ -190,7 +211,7 @@ class Embeddings {
                     threads[i].join();
                 }
             } else {
-                init_seq(raw.data(), raw.data() + n * dim, dim, min, max,
+                init_seq(getRaw(), getRaw() + ((size_t) n) * dim, dim, min, max,
                         normalization);
             }
         }
@@ -247,11 +268,11 @@ class Embeddings {
               }
               }
               } else {*/
-            K* data = raw.data();
+            K* data = getRaw();
             uint32_t *c = conflicts.data();
             uint32_t *u = updates.data();
             std::vector<std::thread> threads;
-            uint64_t batchsize = ((int64_t)n * dim) / nthreads;
+            uint64_t batchsize = (int64_t)n * dim / nthreads;
 
             {
                 std::string metapath = path;
@@ -277,7 +298,7 @@ class Embeddings {
                 if (compress)
                     localpath = localpath + ".gz";
                 uint64_t end = begin + batchsize;
-                if (end > ((int64_t)n * dim) || i == nthreads - 1) {
+                if (end > (int64_t)n * dim || i == nthreads - 1) {
                     end = (int64_t)n * dim;
                 }
                 LOG(DEBUGL) << "Storing " <<
@@ -332,7 +353,7 @@ class Embeddings {
                 std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim));
 
                 //Fields
-                double *raw = emb->raw.data();
+                double *raw = emb->getRaw();
                 uint32_t *up = emb->updates.data();
                 uint32_t *conf = emb->conflicts.data();
 
@@ -361,6 +382,58 @@ class Embeddings {
                 }
                 return emb;
             }
+        }
+
+        static std::shared_ptr<Embeddings<K>> loadBinary(std::string path) {
+            const uint16_t sizeline = 25;
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]);
+            ifstream ifs;
+            ifs.open(path, std::ifstream::in);
+            ifs.read(buffer.get(), 8);
+            uint64_t nSubgraphs = *(uint64_t*)buffer.get();
+            LOG(DEBUGL) << "# subgraphs : " << nSubgraphs;
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer.get(), 25);
+                int type = (int)buffer.get()[0];
+                uint64_t ent = *(uint64_t*) (buffer.get() + 1);
+                uint64_t rel = *(uint64_t*) (buffer.get() + 9);
+                uint64_t siz = *(uint64_t*) (buffer.get() + 17);
+            }
+            memset(buffer.get(), 0, 25);
+            ifs.read(buffer.get(), 18);
+            uint32_t n = (uint32_t)nSubgraphs;
+            uint16_t dim = Utils::decode_short(buffer.get());
+            uint64_t mincard = Utils::decode_long(buffer.get() , 2);
+            uint64_t nextBytes = Utils::decode_long(buffer.get(), 10);
+            LOG(INFOL) << dim << " , n = " << n << " nsub = " << nSubgraphs;
+
+            const uint16_t sizeOriginalEmbeddings = dim * 8;
+            std::unique_ptr<char> buffer2 = std::unique_ptr<char>(new char[sizeOriginalEmbeddings]);
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer2.get(), dim*8);
+            }
+
+            memset(buffer.get(), 0, 25);
+            ifs.read(buffer.get(), 2);
+            uint16_t compSize = Utils::decode_short(buffer.get());
+            LOG(INFOL) << compSize;
+
+            if (compSize % 64 == 0) {
+                compSize /= 64;
+            }
+            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, compSize));
+            //Fields
+            double *raw = emb->getRaw();
+            const uint16_t sizeCompressedEmbeddings = compSize * 8;
+            std::unique_ptr<char> buffer3 = std::unique_ptr<char>(new char[sizeCompressedEmbeddings]);
+            for (int i = 0; i < nSubgraphs; ++i) {
+                ifs.read(buffer3.get(), compSize*8);
+                memcpy((char*)raw, buffer3.get(), compSize * 8);
+                raw += compSize;
+            }
+
+            ifs.close();
+            return emb;
         }
 };
 

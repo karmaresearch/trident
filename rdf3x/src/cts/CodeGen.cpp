@@ -612,7 +612,7 @@ static Selection::Predicate* buildSelection(Runtime &runtime, const map<unsigned
                                                             }
                                                         }
 
-                                                        return new Selection::BuiltinNotExists(tree, regsToLoad, regsToCheck);
+                                                        return new Selection::BuiltinNotExists(tree, runtime, regsToLoad, regsToCheck);
                                                     }
         case QueryGraph::Filter::Builtin_aggr:
                                                     if (bindings.count(filter.id))
@@ -636,8 +636,9 @@ static Operator* translateGroupBy(Runtime& runtime, const map<unsigned, Register
             if (bindings.count(v)) {
                 regs.push_back(v);
             } else {
-                LOG(ERRORL) << "Variable not found";
-                throw 10;
+                // LOG(ERRORL) << "Variable not found";
+                // throw 10;
+                // ignore, can happen!
             }
         }
     }
@@ -802,7 +803,7 @@ static Operator* translateSubselect(Runtime& runtime, /*const map<unsigned, Regi
     }
 
     tree = new DuplLimit(tree, outputFromTheSubquery, duplicateHandling,
-            query->getLimit());
+            query->getLimit(), query->getOffset());
     return tree;
 
 }
@@ -1101,13 +1102,15 @@ static unsigned allocateRegisters(map<const QueryGraph::Node*, unsigned>& regist
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.subqueries.begin();
             itr != query.subqueries.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        // id = allocateRegisters(registers, registerClasses, *subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (std::vector<std::shared_ptr<QueryGraph>>::const_iterator itr = query.minuses.begin();
             itr != query.minuses.end(); ++itr) {
         QueryGraph* subq = itr->get();
-        id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        // id = allocateRegisters(registers, registerClasses, subq->getQuery(), id);
+        id = allocateRegisters(registers, registerClasses, *subq, id);
     }
 
     for (auto itr = query.valueNodes.begin();
@@ -1263,7 +1266,7 @@ Operator* CodeGen::translate(Runtime& runtime, const QueryGraph& query, Plan* pl
             duplicateHandling = ResultsPrinter::ShowDuplicates;
             break;
     }
-    tree = new ResultsPrinter(runtime, tree, output, duplicateHandling, query.getLimit(), silent);
+    tree = new ResultsPrinter(runtime, tree, output, duplicateHandling, query.getLimit(), query.getOffset(), silent);
 
     return tree;
 }

@@ -115,7 +115,7 @@ SPARQLParser::Filter& SPARQLParser::Filter::operator=(const Filter& other)
 }
 //---------------------------------------------------------------------------
 SPARQLParser::SPARQLParser(SPARQLLexer& lexer)
-    : lexer(lexer), variableCount(0), namedParentVariables(NULL), projectionModifier(Modifier_None), limit(~0u)
+    : lexer(lexer), variableCount(0), namedParentVariables(NULL), projectionModifier(Modifier_None), limit(~0u), offset(0)
       // Constructor
 {
 }
@@ -408,10 +408,10 @@ void SPARQLParser::parseRDFLiteral(std::string& value, Element::SubType& subType
     if (value.find('\\') != string::npos) {
         string v;
         v.swap(value);
-        for (string::const_iterator iter = v.begin(), limit = v.end(); iter != limit; ++iter) {
+        for (string::const_iterator iter = v.begin(), ilimit = v.end(); iter != ilimit; ++iter) {
             char c = (*iter);
             if (c == '\\') {
-                if ((++iter) == limit) break;
+                if ((++iter) == ilimit) break;
                 c = *iter;
             }
             value += c;
@@ -1702,21 +1702,28 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
             }
             if (lexer.isKeyword("asc") || lexer.isKeyword("desc")) {
                 Order o;
+                o.id = ~0u;
                 o.descending = lexer.isKeyword("desc");
                 o.expr = parseBrackettedExpression(localVars);
                 order.push_back(o);
             } else if (lexer.isKeyword("count")) {
                 Order o;
                 o.id = ~0u;
+                o.expr = NULL;
                 o.descending = false;
                 order.push_back(o);
             } else {
                 lexer.unget(token);
-                return;
+                Order o;
+                o.id = ~0u;
+                o.descending = false;
+                o.expr = parseConstraint(localVars);
+                order.push_back(o);
             }
         } else if (token == SPARQLLexer::Variable) {
             Order o;
             o.id = nameVariable(lexer.getTokenValue());
+            o.expr = NULL;
             o.descending = false;
             order.push_back(o);
         } else if (token == SPARQLLexer::Eof) {
@@ -1728,19 +1735,42 @@ void SPARQLParser::parseOrderBy(std::map<std::string, unsigned>& localVars)
     }
 }
 //---------------------------------------------------------------------------
-void SPARQLParser::parseLimit()
-    // Parse the limit part if any
+void SPARQLParser::parseLimitOffset()
+    // Parse the limit/offset part if any
 {
-    SPARQLLexer::Token token = lexer.getNext();
+    bool hadLimit = false;
+    bool hadOffset = false;
 
-    if ((token == SPARQLLexer::Identifier) && (lexer.isKeyword("limit"))) {
-        if (lexer.getNext() != SPARQLLexer::Integer)
-            throw ParserException("number expected after 'limit'");
-        limit = atoi(lexer.getTokenValue().c_str());
-        if (limit == 0)
-            throw ParserException("invalid limit specifier");
-    } else {
-        lexer.unget(token);
+    for (;;) {
+        SPARQLLexer::Token token = lexer.getNext();
+        if ((token == SPARQLLexer::Identifier) && (lexer.isKeyword("limit") || lexer.isKeyword("offset"))) {
+            if (lexer.isKeyword("limit")) {
+                if (hadLimit) {
+                    throw ParserException("limit specified twice");
+                }
+                hadLimit = true;
+                if (lexer.getNext() != SPARQLLexer::Integer)
+                    throw ParserException("number expected after 'limit'");
+                limit = atoi(lexer.getTokenValue().c_str());
+                if (limit <= 0)
+                    throw ParserException("invalid limit specifier");
+            } else {
+                if (hadOffset) {
+                    throw ParserException("offset specified twice");
+                }
+                if (lexer.getNext() != SPARQLLexer::Integer)
+                    throw ParserException("number expected after 'offset'");
+                offset = atoi(lexer.getTokenValue().c_str());
+                if (offset < 0)
+                    throw ParserException("invalid offset specifier");
+            }
+        } else {
+            lexer.unget(token);
+            return;
+        }
+        if (hadLimit && hadOffset) {
+            return;
+        }
     }
 }
 //---------------------------------------------------------------------------
@@ -1770,8 +1800,8 @@ void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
     // Parse the order by clause
     parseOrderBy(namedVariables);
 
-    // Parse the limit clause
-    parseLimit();
+    // Parse the limit/offset clauses
+    parseLimitOffset();
 
     // Check that the input is done
     if ((!multiQuery) && (lexer.getNext() != SPARQLLexer::Eof))
@@ -1779,7 +1809,7 @@ void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
 
     // Fixup empty projections (i.e. *)
     if (!projection.size()) {
-        for (map<string, unsigned>::const_iterator iter = namedVariables.begin(), limit = namedVariables.end(); iter != limit; ++iter)
+        for (map<string, unsigned>::const_iterator iter = namedVariables.begin(), ilimit = namedVariables.end(); iter != ilimit; ++iter)
             projection.push_back((*iter).second);
     }
 }
@@ -1787,7 +1817,7 @@ void SPARQLParser::parse(bool multiQuery, bool silentOutputVars)
 string SPARQLParser::getVariableName(unsigned id) const
 // Get the name of a variable
 {
-    for (map<string, unsigned>::const_iterator iter = namedVariables.begin(), limit = namedVariables.end(); iter != limit; ++iter)
+    for (map<string, unsigned>::const_iterator iter = namedVariables.begin(), ilimit = namedVariables.end(); iter != ilimit; ++iter)
         if ((*iter).second == id)
             return (*iter).first;
     return "";
