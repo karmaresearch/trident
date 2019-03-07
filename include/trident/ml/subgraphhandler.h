@@ -4,6 +4,8 @@
 #include <trident/ml/subgraphs.h>
 #include <trident/kb/kb.h>
 
+typedef enum {UNION, INTERSECTION, INTERUNION} ANSWER_METHOD;
+
 class SubgraphHandler {
     private:
         std::shared_ptr<Embeddings<double>> E;
@@ -62,7 +64,8 @@ class SubgraphHandler {
         void getAllPossibleAnswers(Querier *q,
                 vector<uint64_t> &relevantSubgraphs,
                 Subgraphs<double>::TYPE t,
-                vector<int64_t> &output
+                vector<int64_t> &output,
+                ANSWER_METHOD answerMethod
                 );
 
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
@@ -107,6 +110,7 @@ class SubgraphHandler {
                 string subType,
                 string nameTest,
                 string formatTest,
+                string answerMethod,
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,

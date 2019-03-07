@@ -170,6 +170,7 @@ void subgraphAnswers(KB &kb, ProgramArgs &vm) {
     sh.findAnswers(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
+            vm["answerMethod"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),

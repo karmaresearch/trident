@@ -372,6 +372,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The path of the file that contains suggested K values of top subgraphs for each relation.", false);
     subeval_options.add<string>("", "formatTest", "native",
             "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test'. Otherwise, it is a path of a file.", false);
+    subeval_options.add<string>("", "answerMethod", "union", "Method used to find answers to the query from top K subgraphs. It can be 'intersection' , 'union' or 'interunion'", false);
     subeval_options.add<long>("", "subgraphThreshold", 10,
             "Threshold to consider subgraphs while evaluating. -1 for choosing dynamic K. -2 for choosing per relation K", false);
     subeval_options.add<long>("", "minSubgraphSize", 10,
