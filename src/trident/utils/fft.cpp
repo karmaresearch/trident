@@ -4,18 +4,49 @@
 #include <cassert>
 #include <trident/utils/fft.h>
 #include <cstring>
+#include <unordered_map>
+#include <mutex>
+#include <kognac/logs.h>
+
 using namespace std;
+
+static std::mutex mylock;
+static std::unordered_map<int, std::vector<double>> sinmap;
+static std::unordered_map<int, std::vector<double>> cosmap;
+
+static std::vector<double>& getCos(int n) {
+    mylock.lock();
+    std::vector<double>& cosn = cosmap[n];
+    if (cosn.size() == 0) {
+	LOG(DEBUGL) << "Computing cos " << n;
+	for (int k = 0; k < n ; ++k){
+	    double angle = 2 * M_PI * k / n;
+	    cosn.push_back(std::cos(angle));
+	}
+    }
+    mylock.unlock();
+    return cosn;
+}
+
+static std::vector<double>& getSin(int n) {
+    mylock.lock();
+    std::vector<double>& sinn = sinmap[n];
+    if (sinn.size() == 0) {
+	LOG(DEBUGL) << "Computing sin " << n;
+	for (int k = 0; k < n ; ++k){
+	    double angle = 2 * M_PI * k / n;
+	    sinn.push_back(std::sin(angle));
+	}
+    }
+    mylock.unlock();
+    return sinn;
+}
 
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
 
     int n = in.size();
-    double cos[n];
-    double sin[n];
-    for (int k = 0; k < n ; ++k){
-	double angle = 2 * M_PI * k / n;
-	cos[k] = std::cos(angle);
-	sin[k] = std::sin(angle);
-    }
+    std::vector<double>& cos = getCos(n);
+    std::vector<double>& sin = getSin(n);
 
     for (int k = 0; k < n ; ++k){
 
