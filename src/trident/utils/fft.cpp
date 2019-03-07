@@ -4,19 +4,61 @@
 #include <cassert>
 #include <trident/utils/fft.h>
 #include <cstring>
+#include <unordered_map>
+#include <mutex>
+#include <kognac/logs.h>
+
 using namespace std;
+
+static std::mutex mylock;
+static std::unordered_map<int, std::vector<double>> sinmap;
+static std::unordered_map<int, std::vector<double>> cosmap;
+
+static std::vector<double>& getCos(int n) {
+    mylock.lock();
+    std::vector<double>& cosn = cosmap[n];
+    if (cosn.size() == 0) {
+	LOG(DEBUGL) << "Computing cos " << n;
+	for (int k = 0; k < n ; ++k){
+	    double angle = 2 * M_PI * k / n;
+	    cosn.push_back(std::cos(angle));
+	}
+    }
+    mylock.unlock();
+    return cosn;
+}
+
+static std::vector<double>& getSin(int n) {
+    mylock.lock();
+    std::vector<double>& sinn = sinmap[n];
+    if (sinn.size() == 0) {
+	LOG(DEBUGL) << "Computing sin " << n;
+	for (int k = 0; k < n ; ++k){
+	    double angle = 2 * M_PI * k / n;
+	    sinn.push_back(std::sin(angle));
+	}
+    }
+    mylock.unlock();
+    return sinn;
+}
 
 void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
 
     int n = in.size();
+    std::vector<double>& cos = getCos(n);
+    std::vector<double>& sin = getSin(n);
+
     for (int k = 0; k < n ; ++k){
 
         double realSum = 0.0;
         double imagSum = 0.0;
         for (int t = 0; t < n; ++t) {
-            double angle = 2 * M_PI * t * k / n;
-            double real = in[t].real * std::cos(angle) + in[t].imag * std::sin(angle);
-            double imag = in[t].imag * std::cos(angle) - in[t].real * std::sin(angle);
+            // double angle = 2 * M_PI * t * k / n;
+            // double real = in[t].real * std::cos(angle) + in[t].imag * std::sin(angle);
+            // double imag = in[t].imag * std::cos(angle) - in[t].real * std::sin(angle);
+	    int angle = (t * k) % n;
+            double real = in[t].real * cos[angle] + in[t].imag * sin[angle];
+            double imag = in[t].imag * cos[angle] - in[t].real * sin[angle];
             realSum += real;
             imagSum += imag;
         }

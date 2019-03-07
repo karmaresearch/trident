@@ -54,6 +54,7 @@ struct BatchIO {
 
     void clear() {
         epoch = conflicts = violations = 0;
+	loss = 0.0;
         /*for(uint16_t i = 0; i < batchsize; ++i) {
             memset(posSignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dims);
