@@ -82,13 +82,16 @@ void Learner::setup(const uint16_t nthreads,
 }
 
 void Learner::setup(const uint16_t nthreads) {
-    LOG(DEBUGL) << "Creating E ...";
+    LOG(DEBUGL) << "Creating E " << ne << " " << dim;
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
+    LOG(DEBUGL) << "Init E " << nthreads;
     E->init(nthreads, true);
-    LOG(DEBUGL) << "Creating R ...";
+    LOG(DEBUGL) << "Creating R " << nr << " " << dim;
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
+    LOG(DEBUGL) << "Init R " << nthreads;
     R->init(nthreads, false);
+    LOG(DEBUGL) << "done";
 
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;

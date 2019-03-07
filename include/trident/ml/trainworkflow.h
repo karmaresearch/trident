@@ -26,7 +26,6 @@ class TrainWorkflow {
                     break;
                 }
                 pio->q = q;
-                LOG(INFOL) << "$$$ N batches : " << nbatches;
                 tr.process_batch(*pio.get(), epoch, nbatches);
                 output->violations += pio->violations;
                 output->conflicts += pio->conflicts;

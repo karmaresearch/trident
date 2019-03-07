@@ -14,16 +14,16 @@ void SubgraphHandler::loadEmbeddings(string embdir) {
 }
 
 void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir,
-        vector<double>& subCompressedEmbeddings,
-        vector<double>& entCompressedEmbeddings,
-        vector<double>& relCompressedEmbeddings) {
-    uint32_t npos = string::npos;
+    vector<double>& subCompressedEmbeddings,
+    vector<double>& entCompressedEmbeddings,
+    vector<double>& relCompressedEmbeddings) {
+    auto npos = string::npos;
     bool flag = false;
     if (binEmbDir[binEmbDir.length()-1] == '/') {
         npos = binEmbDir.length() - 2;
         flag = true;
     }
-    uint32_t lastIndexofSlash = binEmbDir.find_last_of("/", npos);
+    auto lastIndexofSlash = binEmbDir.find_last_of("/", npos);
     string dbName = "";
     if (string::npos != lastIndexofSlash) {
         if (!flag) {
@@ -54,10 +54,10 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
 
     for (int i = 0; i < nSubgraphs; ++i) {
         ifs.read(buffer.get(), 25);
-        int type = (int)buffer.get()[0];
-        uint64_t ent = *(uint64_t*) (buffer.get() + 1);
-        uint64_t rel = *(uint64_t*) (buffer.get() + 9);
-        uint64_t siz = *(uint64_t*) (buffer.get() + 17);
+        //int type = (int)buffer.get()[0];
+        //uint64_t ent = *(uint64_t*) (buffer.get() + 1);
+        //uint64_t rel = *(uint64_t*) (buffer.get() + 9);
+        //uint64_t siz = *(uint64_t*) (buffer.get() + 17);
         //LOG(INFOL) << type << ") " << ent << " , " << rel << " : " << siz;
     }
 
@@ -79,7 +79,7 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
     uint16_t compSize = Utils::decode_short(buffer.get());
     LOG(INFOL) << compSize;
 
-    if (compSize = 64) {
+    if (compSize == 64) {
         compSize = 1;
     }
     const uint16_t sizeCompressedEmbeddings = compSize * 8;
@@ -696,13 +696,13 @@ void SubgraphHandler::evaluate(KB &kb,
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsHNormal, threshold, subType, secondDist);
             /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
-              LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
-              for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
-              LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
-              << " ---> " << relevantSubgraphsH[z];
-              }*/
-            int64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-            int64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
+            LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
+            for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
+                LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
+                << " ---> " << relevantSubgraphsH[z];
+            }*/
+            //int64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+            //int64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
             //LOG(INFOL) << binSize  << " , " << norSize;
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
