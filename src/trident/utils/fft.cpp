@@ -239,7 +239,7 @@ void cconv(double* a, double* b, uint16_t size, std::vector<float>& out) {
 }
 
 double sigmoid(double x) {
-    return x / (1 + std::abs(x));
+    return x / (1 + std::exp(x));
 }
 
 double sigmoid_given_fun(double x) {

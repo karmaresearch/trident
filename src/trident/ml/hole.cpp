@@ -98,6 +98,9 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     allrels.resize(std::distance(allrels.begin(), it));
 
     //Initialize gradient matrix
+    // PORT: this code is from __init__ of hole.py
+    // The last two lines of __init__ initialize the entity and relation
+    // embeddings. we try to do the same here
     for(uint16_t i = 0; i < allterms.size(); ++i) {
         EntityGradient entityTemp(allterms[i], dim);
         gradientsE.insert(make_pair(allterms[i], entityTemp));
@@ -116,6 +119,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
         uint64_t predicate = output2[i];
         uint64_t object = output3[i];
         //Get corresponding embeddings
+        // PORT:
+        // This code is first two calls of unzip_triples() in _pairwise_gradients
+        // We do not generate negative ids for relations/predicates
+        // hence there is no "pn" (Predicate Negative) in the C++ code
         double* sp = E->get(output1[i]);
         double* pp = R->get(output2[i]);
         double* op = E->get(output3[i]);
@@ -127,6 +134,10 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
         // pp = pn i.e. predicates are not randomly generated for
         // making a sample negative sample
         auto scorePosAll = sigmoid(score(sp, pp, op));
+        // PORT:
+        // this code is calculating pscores and nscores from _pairwise_gradients
+        // Why am I calculating two negative scores is something I don't remember
+        // This could be wrong.
         auto scoreNegObj = sigmoid(score(sp, pp, on));
         auto scoreNegSub = sigmoid(score(sn, pp, op));
 
@@ -135,14 +146,23 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
         if (scorePosAll - scoreNegObj + margin > 0) {
             io.violations += 1;
             violatedPositions.push_back(i);
+            // PORT:
+            // following temp variables are not used
             posSubjsUpdate1[i] = subject;
             posObjsUpdate1[i] = object;
             negObjsUpdate1[i] = oneg[i];
             posRels1[i] = predicate;
+            // PORT:
+            // sigmoid_given_fun is the function g_give_f from class Sigmoid from
+            // file skge/actfun.py
             violatedScorePosAll[i] = -sigmoid_given_fun(scorePosAll);
             violatedScoreNegObj[i] = -sigmoid_given_fun(scoreNegObj);
 
             // Predicate/Relation gradients
+            // PORT:
+            // calculate gpscores * ccorr (E[sp], E[op])
+            // and
+            // calculate gnscore * ccorr (E[sn], E[on])
             EntityGradient grp(predicate, dim);
             std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
             ccorr(sp, op, dim, grp.dimensions);
@@ -161,11 +181,15 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             }
 
             std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
+            // PORT:
+            // calculate Sm.dot prodcut of gradient matrix for relations
             update_gradient_matrix(gradientsR, grp, grn, predicate);
             std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
             LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
-            // Object gradients
+            // Object gradients (i.e. when score is violated because of negative object entity)
+            // PORT:
+            // compute cconv and gejp = gpscores * cconv (E[sp], E[pp])
             EntityGradient gejp(object, dim);
             start_ccorr = std::chrono::system_clock::now();
             cconv(sp, pp, dim, gejp.dimensions);
@@ -175,6 +199,9 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
                 gejp.dimensions[d] *= violatedScorePosAll[i];
             }
 
+            // PORT:
+            // compute gejn = gnscores * cconv (E[sn], E[pn])
+            // in our case pp = pn
             EntityGradient gejn(object, dim);
             start_ccorr = std::chrono::system_clock::now();
             cconv(sn, pp, dim, gejn.dimensions);
@@ -216,7 +243,7 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
             LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                grn.dimensions[d] *= violatedScoreNegObj[i];
+                grn.dimensions[d] *= violatedScoreNegSub[i];
             }
             std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsR, grp, grn, predicate);
