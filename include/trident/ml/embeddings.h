@@ -81,6 +81,7 @@ class Embeddings {
         Embeddings(const uint32_t n, const uint16_t dim, std::string pathFile): n(n), dim(dim) {
             ismem = false;
             rawFilename = pathFile;
+            LOG(INFOL) << "path file = " << pathFile;
             uint64_t rawsize = Utils::fileSize(pathFile);
             LOG(DEBUGL) << "Loading memory mapped file with " << rawsize << " bytes ...";
             fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
@@ -363,19 +364,22 @@ class Embeddings {
             //There should be a file that ends with -meta
             uint32_t n;
             uint16_t dim;
-            uint32_t embperblock = 0;
+            //uint32_t embperblock = 0;
             //Get the metadata
             std::ifstream ifs;
             ifs.open(path + "-meta", std::ifstream::in);
             char buffer[10];
             ifs.read(buffer, 10);
-            embperblock = *(uint32_t*) buffer;
+            //embperblock = *(uint32_t*) buffer;
             n = *(uint32_t*)(buffer + 4);
             dim = *(uint16_t*)(buffer + 8);
 
             //Count the files with a number as extension
-            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, path));
+            int countfile = 0;
+            std::string filetoload = path + "." + std::to_string(countfile);
+            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, filetoload));
             //TODO: load info about conflicts, updates
+            //countfile should be incremented appropriately for larger databases
             return emb;
         }
 
