@@ -47,6 +47,7 @@ class SubgraphHandler {
                 string algo,
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
+                std::vector<double> &outputDistances,
                 uint32_t topk,
                 string &subgraphType,
                 DIST secondDist
@@ -63,16 +64,20 @@ class SubgraphHandler {
 
         void getAllPossibleAnswers(Querier *q,
                 vector<uint64_t> &relevantSubgraphs,
-                Subgraphs<double>::TYPE t,
                 vector<int64_t> &output,
                 ANSWER_METHOD answerMethod
                 );
 
+        double calculateScore(uint64_t ent,
+                vector<uint64_t>& subgs,
+                Querier* q);
+
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
             vector<int64_t>& expectedEntities,
-            double& accuracy);
+            double& precision,
+            double& recall);
 
-        void getActualAnswersFromTest(vector<uint64_t>& testTriples,
+        void getExpectedAnswersFromTest(vector<uint64_t>& testTriples,
             Subgraphs<double>::TYPE type,
             uint64_t rel,
             uint64_t ent,

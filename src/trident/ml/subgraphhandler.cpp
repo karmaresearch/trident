@@ -79,7 +79,7 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
     uint16_t compSize = Utils::decode_short(buffer.get());
     LOG(INFOL) << compSize;
 
-    if (compSize == 64) {
+    if (64 == compSize) {
         compSize = 1;
     }
     const uint16_t sizeCompressedEmbeddings = compSize * 8;
@@ -114,22 +114,27 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, doub
 
 void SubgraphHandler::getAnswerAccuracy(vector<uint64_t>& expectedEntities,
         vector<int64_t>& actualEntities,
-        double& accuracy) {
-    uint64_t hits = 0;
-    for (auto ee : expectedEntities) {
-        for (auto ae : actualEntities) {
-            if (ae == ee) {
-                hits += 1;
-            }
+        double& precision,
+        double& recall) {
+    uint64_t correctGuesses = 0;
+    uint64_t guesses = actualEntities.size();
+    if (0 == guesses) {
+        return;
+    }
+    sort(expectedEntities.begin(), expectedEntities.end());
+    for (auto ae : actualEntities) {
+        if (std::binary_search(expectedEntities.begin(), expectedEntities.end(),ae)) {
+            correctGuesses += 1;
         }
     }
     uint64_t total = expectedEntities.size();
-    if (total != 0) {
-        accuracy = double(hits /double(total))*100;
+    if (0 != total) {
+        recall = double(correctGuesses /double(total))*100;
     }
+    precision = double(correctGuesses / double(guesses)) * 100;
 }
 
-void SubgraphHandler::getActualAnswersFromTest(vector<uint64_t>& testTriples,
+void SubgraphHandler::getExpectedAnswersFromTest(vector<uint64_t>& testTriples,
         Subgraphs<double>::TYPE type,
         uint64_t rel,
         uint64_t ent,
@@ -151,7 +156,7 @@ void SubgraphHandler::getActualAnswersFromTest(vector<uint64_t>& testTriples,
     }
 }
 
-vector<int64_t> intersection (const std::vector<std::vector<int64_t>> &vecs) {
+inline vector<int64_t> intersection (const std::vector<std::vector<int64_t>> &vecs) {
 
     auto last_intersection = vecs[0];
     std::vector<int64_t> curr_intersection;
@@ -166,19 +171,47 @@ vector<int64_t> intersection (const std::vector<std::vector<int64_t>> &vecs) {
     return last_intersection;
 }
 
+double SubgraphHandler::calculateScore(uint64_t ent,
+    vector<uint64_t>& subgs,
+    Querier* q) {
+    int i = 0;
+    size_t N = subgs.size();
+    double score = 0.0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        if (meta.t == Subgraphs<double>::TYPE::PO) {
+            if (q->exists(ent, meta.rel, meta.ent)) {
+                score += (N-i);
+            }
+        } else {
+            if (q->exists(meta.ent, meta.rel, ent)) {
+                score += (N-i);
+            }
+        }
+        i++;
+    }
+    // TODO: whether to multiply with distances ?
+    // Perhaps not, because
+    // subgraphs are sorted in the ascending order of these distances
+    // and the distances are just scores which will be lowest for the first subgraph
+    // and highest for the last subgraph
+    return score;
+}
+
 void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         vector<uint64_t> &relevantSubgraphs,
-        Subgraphs<double>::TYPE t,
         vector<int64_t> &output,
         ANSWER_METHOD answerMethod
         ) {
     uint64_t totalAnswers = 0;
     vector<vector<int64_t>> entityIds;
+    unordered_map <uint64_t, double> scoreMap;
     int i = 0;
     for(auto subgraphid : relevantSubgraphs) {
         Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
         int queryType = -1;
-        if (t == Subgraphs<double>::TYPE::PO) {
+        if (meta.t == Subgraphs<double>::TYPE::PO) {
             queryType = IDX_POS;
         } else {
             queryType = IDX_PSO;
@@ -205,12 +238,24 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         }
         if (answerMethod == INTERSECTION) {
             sort(entityIds[i].begin(), entityIds[i].end());
+        } else if (answerMethod == INTERUNION) {
+            for (auto ent : entityIds[i]) {
+                if (scoreMap.find(ent) == scoreMap.end()) {
+                    scoreMap[ent] = calculateScore(ent, relevantSubgraphs, q);
+                }
+            }
         }
         i++;
     }
 
     if (answerMethod == INTERSECTION) {
         output = intersection(entityIds);
+    } else if (answerMethod == INTERUNION) {
+        for (auto scores : scoreMap) {
+            if (scores.second > 2) {
+                output.push_back(scores.first);
+            }
+        }
     }
     LOG(DEBUGL) << "Total answers : " << totalAnswers;
 }
@@ -256,6 +301,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         string embeddingAlgo,
         Subgraphs<double>::TYPE t, uint64_t rel, uint64_t ent,
         std::vector<uint64_t> &output,
+        vector<double> &outputDistances,
         uint32_t topk,
         string &subgraphType,
         DIST secondDist) {
@@ -339,14 +385,17 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     if (subgraphType == "var") {
         for(uint32_t i = 0; i < varOutput.size(); ++i) {
             output.push_back(varOutput[i].second);
+            outputDistances.push_back(varOutput[i].first);
         }
     } else if (subgraphType == "kl") {
         for (uint32_t i = 0; i < divergences.size() && i < topk; ++i) {
             output.push_back(divergences[i].second);
+            outputDistances.push_back(divergences[i].first);
         }
     } else {
         for(uint32_t i = 0; i < distances.size() && i < topk; ++i) {
             output.push_back(distances[i].second);
+            outputDistances.push_back(distances[i].first);
         }
     }
 }
@@ -632,6 +681,8 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Test the queries ...";
     std::vector<uint64_t> relevantSubgraphsH;
     std::vector<uint64_t> relevantSubgraphsT;
+    std::vector<double> relevantSubgraphsHDistances;
+    std::vector<double> relevantSubgraphsTDistances;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
@@ -694,7 +745,7 @@ void SubgraphHandler::evaluate(KB &kb,
                     subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsH);
             vector<uint64_t> relevantSubgraphsHNormal;
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsHNormal, threshold, subType, secondDist);
+                    r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subType, secondDist);
             /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
             LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
             for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
@@ -706,7 +757,7 @@ void SubgraphHandler::evaluate(KB &kb,
             //LOG(INFOL) << binSize  << " , " << norSize;
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsH, threshold, subType, secondDist);
+                    r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subType, secondDist);
         }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
@@ -733,7 +784,7 @@ void SubgraphHandler::evaluate(KB &kb,
                     subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                    r, h, relevantSubgraphsT, threshold, subType, secondDist);
+                    r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subType, secondDist);
         }
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
@@ -922,6 +973,8 @@ void SubgraphHandler::findAnswers(KB &kb,
     LOG(INFOL) << "Test the queries ...";
     std::vector<uint64_t> relevantSubgraphsH;
     std::vector<uint64_t> relevantSubgraphsT;
+    std::vector<double> relevantSubgraphsHDistances;
+    std::vector<double> relevantSubgraphsTDistances;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
@@ -973,7 +1026,7 @@ void SubgraphHandler::findAnswers(KB &kb,
             }
         }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, threshold, subType, secondDist);
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subType, secondDist);
 
         ANSWER_METHOD ansMethod = UNION;
         if (answerMethod == "intersection") {
@@ -985,19 +1038,21 @@ void SubgraphHandler::findAnswers(KB &kb,
         // Return all answers from the subgraphs
         vector<int64_t> actualAnswersH;
         //LOG(INFOL) << "answer method = " << answerMethod;
-        getAllPossibleAnswers(q.get(), relevantSubgraphsH, Subgraphs<double>::TYPE::PO, actualAnswersH, ansMethod);
+        getAllPossibleAnswers(q.get(), relevantSubgraphsH, actualAnswersH, ansMethod);
         cntActualAnswersH = actualAnswersH.size();
 
         vector<uint64_t> expectedAnswersH;
-        getActualAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
+        getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
 
-        double answerAccuracyH = 0.0;
+        double answerPrecisionH = 0.0;
+        double answerRecallH = 0.0;
 
-        getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerAccuracyH);
-        if (answerAccuracyH >= 100) {
+        getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerPrecisionH, answerRecallH);
+        if (answerRecallH >= 100) {
+            LOG(INFOL) << "recall H = " << answerRecallH;
             counth++;
         }
-        LOG(INFOL) << cntActualAnswersH  << " , " << expectedAnswersH.size() << " => " << answerAccuracyH;
+        LOG(INFOL) << cntActualAnswersH  << " , " << expectedAnswersH.size() << " => " << answerRecallH;
         //Now I have the list of relevant subgraphs. Is the answer in one of these?
         //if (foundH >= 0) {
         //    counth++;
@@ -1016,22 +1071,24 @@ void SubgraphHandler::findAnswers(KB &kb,
             }
         }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                r, h, relevantSubgraphsT, threshold, subType, secondDist);
+                r, h, relevantSubgraphsT, relevantSubgraphsTDistances, threshold, subType, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         // Return all answers from subgraphs
         uint64_t cntActualAnswersT = 0;
         vector<int64_t> actualAnswersT;
-        getAllPossibleAnswers(q.get(), relevantSubgraphsT, Subgraphs<double>::TYPE::SP, actualAnswersT, ansMethod);
+        getAllPossibleAnswers(q.get(), relevantSubgraphsT, actualAnswersT, ansMethod);
         cntActualAnswersT = actualAnswersT.size();
 
         vector<uint64_t> expectedAnswersT;
         //TODO: both expected answers H and T can be collected with a single call to this function
-        getActualAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
+        getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
 
-        double answerAccuracyT = 0.0;
-        getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerAccuracyT);
-        if (answerAccuracyT >= 100) {
+        double answerPrecisionT = 0.0;
+        double answerRecallT = 0.0;
+        getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerPrecisionT, answerRecallT);
+        if (answerRecallT >= 100) {
+            LOG(INFOL) << "recall T = " << answerRecallT;
             countt++;
         }
 
@@ -1041,7 +1098,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         //    cons_comparisons_t += totalSizeT;
         //}
 
-        LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerAccuracyT;
+        LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerRecallT;
 
         if (logWriter) {
             string line = to_string(h) + " " + to_string(r) + " " + to_string(t) + "\t";
