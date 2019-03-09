@@ -129,7 +129,7 @@ void SubgraphHandler::getAnswerAccuracy(vector<uint64_t>& expectedEntities,
     }
     uint64_t total = expectedEntities.size();
     if (0 != total) {
-        recall = double(correctGuesses /double(total))*100;
+        recall = double(correctGuesses /double(total)) * 100;
     }
     precision = double(correctGuesses / double(guesses)) * 100;
 }
@@ -945,8 +945,6 @@ void SubgraphHandler::findAnswers(KB &kb,
     uint64_t sumh = 0;
     uint64_t countt = 0;
     uint64_t sumt = 0;
-    uint64_t cons_comparisons_h = 0;
-    uint64_t cons_comparisons_t = 0;
 
     char buffer[MAX_TERM_SIZE];
     std::vector<double> scores;
@@ -1005,7 +1003,6 @@ void SubgraphHandler::findAnswers(KB &kb,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
-        LOG(INFOL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
 
         // The log file for dynamicK contains a triple and the CLASS 'C' for topK
@@ -1034,12 +1031,10 @@ void SubgraphHandler::findAnswers(KB &kb,
         }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-        uint64_t cntActualAnswersH = 0;
         // Return all answers from the subgraphs
         vector<int64_t> actualAnswersH;
         //LOG(INFOL) << "answer method = " << answerMethod;
         getAllPossibleAnswers(q.get(), relevantSubgraphsH, actualAnswersH, ansMethod);
-        cntActualAnswersH = actualAnswersH.size();
 
         vector<uint64_t> expectedAnswersH;
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
@@ -1049,18 +1044,14 @@ void SubgraphHandler::findAnswers(KB &kb,
 
         getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerPrecisionH, answerRecallH);
         if (answerRecallH >= 100) {
-            LOG(INFOL) << "recall H = " << answerRecallH;
+            LOG(INFOL) << "found all answers for Query: ? " << sr << " " << st;
             counth++;
+            sumh++;
+        } else if (answerRecallH > 0) {
+            LOG(INFOL) << "@@@@@@@@@@@@@@ found some answers for query : ? " << sr << " " << st;
+            sumh++;
         }
-        LOG(INFOL) << cntActualAnswersH  << " , " << expectedAnswersH.size() << " => " << answerRecallH;
-        //Now I have the list of relevant subgraphs. Is the answer in one of these?
-        //if (foundH >= 0) {
-        //    counth++;
-        //    sumh += foundH + 1;
-        //    cons_comparisons_h += totalSizeH;
-        //}
 
-        LOG(INFOL) << "Query: " << sh << " " << sr << " ?";
         if (formatTest == "dynamicK") {
             switch(testTopKs[i+1]) {
                 case 0 : threshold = 1; break;
@@ -1075,10 +1066,8 @@ void SubgraphHandler::findAnswers(KB &kb,
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
         int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         // Return all answers from subgraphs
-        uint64_t cntActualAnswersT = 0;
         vector<int64_t> actualAnswersT;
         getAllPossibleAnswers(q.get(), relevantSubgraphsT, actualAnswersT, ansMethod);
-        cntActualAnswersT = actualAnswersT.size();
 
         vector<uint64_t> expectedAnswersT;
         //TODO: both expected answers H and T can be collected with a single call to this function
@@ -1088,17 +1077,15 @@ void SubgraphHandler::findAnswers(KB &kb,
         double answerRecallT = 0.0;
         getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerPrecisionT, answerRecallT);
         if (answerRecallT >= 100) {
-            LOG(INFOL) << "recall T = " << answerRecallT;
+            LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
             countt++;
+            sumt++;
+        } else if (answerRecallT > 0) {
+            LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
+            sumt++;
         }
 
-        //if (foundT >= 0) {
-        //    countt++;
-        //    sumt += foundT + 1;
-        //    cons_comparisons_t += totalSizeT;
-        //}
-
-        LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerRecallT;
+        //LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerRecallT;
 
         if (logWriter) {
             string line = to_string(h) + " " + to_string(r) + " " + to_string(t) + "\t";
@@ -1121,33 +1108,26 @@ void SubgraphHandler::findAnswers(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
-    LOG(INFOL) << "Found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
-    //LOG(INFOL) << "Avg (H): " << (double) sumh / counth << " (T): " << (double)sumt / countt;
-    //LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h;
-    //LOG(INFOL) << "instead          of " << nents * counth;
-    //LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t;
-    //LOG(INFOL) << "instead          of " << nents * countt;
+    LOG(INFOL) << "All answers found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
+    LOG(INFOL) << "Some answers found (H): " << sumh << " (T): " << sumt<< " of " << testTriples.size() / 3;
     LOG(INFOL) << "# entities : " << nents;
+    //float hitRateH = ((float)counth / (float)(testTriples.size()/3))*100;
+    //float hitRateT = ((float)countt / (float)(testTriples.size()/3))*100;
 
-    double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
-    double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
+    //double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
+    //double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
 
-    float reductionInverseH = (float)1 / (float)percentReductionH;
-    float reductionInverseT = (float)1 /  (float)percentReductionT;
-    float hitRateH = ((float)counth / (float)(testTriples.size()/3))*100;
-    float hitRateT = ((float)countt / (float)(testTriples.size()/3))*100;
-    float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
-    float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
-    LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
-    std::cout << threshold <<"," << counth << ","<<countt << "," << std::fixed << std::setprecision(2)<< (double)sumh/counth <<"," \
-        << (double)sumt/countt <<"," << percentReductionH <<"," << percentReductionT << "," \
-        << f1H << "," << f1T << \
-        std::endl;
+    //float reductionInverseH = (float)1 / (float)percentReductionH;
+    //float reductionInverseT = (float)1 /  (float)percentReductionT;
+    //float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
+    //float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
+    //LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
 
     if (logWriter) {
         logWriter->close();
     }
 }
+
 void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {
         dest[i] = v1[i] + v2[i];
