@@ -77,6 +77,11 @@ class SubgraphHandler {
             double& precision,
             double& recall);
 
+        void getModelAccuracy(vector<vector<uint64_t>> & actualEntities,
+            vector<vector<int64_t>> & expectedEntities,
+            double& precision,
+            double& recall);
+
         void getExpectedAnswersFromTest(vector<uint64_t>& testTriples,
             Subgraphs<double>::TYPE type,
             uint64_t rel,

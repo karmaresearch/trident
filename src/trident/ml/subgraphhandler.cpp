@@ -134,6 +134,41 @@ void SubgraphHandler::getAnswerAccuracy(vector<uint64_t>& expectedEntities,
     precision = double(correctGuesses / double(guesses)) * 100;
 }
 
+void SubgraphHandler::getModelAccuracy(vector<vector<uint64_t>>& expectedEntities,
+        vector<vector<int64_t>>& actualEntities,
+        double& precision,
+        double& recall) {
+    uint64_t totalCorrectGuesses = 0;
+    uint64_t totalActualGuesses = 0;
+    uint64_t totalExpectedAnswers = 0;
+    assert(expectedEntities.size() == actualEntities.size());
+
+    for (int i = 0; i < expectedEntities.size(); ++i){
+        uint64_t correctGuesses = 0;
+        uint64_t guesses = actualEntities[i].size();
+        if (0 == guesses) {
+            continue;
+        }
+        sort(expectedEntities[i].begin(), expectedEntities[i].end());
+        for (auto ae : actualEntities[i]) {
+            if (std::binary_search(expectedEntities[i].begin(), expectedEntities[i].end(),ae)) {
+                correctGuesses += 1;
+            }
+        }
+        uint64_t total = expectedEntities[i].size();
+        totalCorrectGuesses += correctGuesses;
+        totalActualGuesses += guesses;
+        totalExpectedAnswers += total;
+    }
+    if (0 != totalExpectedAnswers) {
+        recall = double(totalCorrectGuesses /double(totalExpectedAnswers)) * 100;
+    }
+    precision = double(totalCorrectGuesses / double(totalActualGuesses)) * 100;
+    LOG(INFOL) << "correct guesses : " << totalCorrectGuesses;
+    LOG(INFOL) << "total guesses   : " << totalActualGuesses;
+    LOG(INFOL) << "expected answers: " << totalExpectedAnswers;
+}
+
 void SubgraphHandler::getExpectedAnswersFromTest(vector<uint64_t>& testTriples,
         Subgraphs<double>::TYPE type,
         uint64_t rel,
@@ -218,7 +253,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         }
         auto itr = q->getPermuted(queryType, meta.rel, meta.ent, -1, true);
         uint64_t countResultsS = 0;
-        if (answerMethod == INTERSECTION) {
+        if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
             entityIds.push_back(vector<int64_t>());
         }
         LOG(DEBUGL) << "Subgraph ID : " << subgraphid << " " << meta.rel  << " , " << meta.ent;
@@ -227,7 +262,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
             int64_t e1 = itr->getValue1();
             int64_t e2 = itr->getValue2();
             LOG(DEBUGL) << countResultsS << ")" << e1 << ": " << p << " , " << e2;
-            if (answerMethod == INTERSECTION) {
+            if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
                 entityIds[i].push_back(e2);
             } else {
                 output.push_back(e2);
@@ -242,6 +277,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
             for (auto ent : entityIds[i]) {
                 if (scoreMap.find(ent) == scoreMap.end()) {
                     scoreMap[ent] = calculateScore(ent, relevantSubgraphs, q);
+                    //LOG(INFOL) << "Score : " << scoreMap[ent];
                 }
             }
         }
@@ -252,7 +288,19 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         output = intersection(entityIds);
     } else if (answerMethod == INTERUNION) {
         for (auto scores : scoreMap) {
-            if (scores.second > 2) {
+            auto N = relevantSubgraphs.size();
+            /**
+             * If there are 5 subgraphs (N = 5)
+             * then the score of the entity should be more than 2
+             * If entity appears in top 1 subgraph, then its score is 5
+             * if it appears in 2nd ranked subgraph, then its score is 4
+             * and so on
+             * In this way, if the entity appears in more than one low ranked
+             * subgraphs, we still include it in potential answers.
+             * */
+            double desiredScore = N * 0.4;
+            if (scores.second > desiredScore) {
+                //LOG(INFOL) << "Score = " << scores.second << " desired = " << desiredScore;
                 output.push_back(scores.first);
             }
         }
@@ -946,10 +994,13 @@ void SubgraphHandler::findAnswers(KB &kb,
     uint64_t countt = 0;
     uint64_t sumt = 0;
 
+    vector<double> allQueriesPrecisionsH;
+    vector<double> allQueriesPrecisionsT;
+    vector<double> allQueriesRecallsH;
+    vector<double> allQueriesRecallsT;
+
     char buffer[MAX_TERM_SIZE];
-    std::vector<double> scores;
     const uint64_t nents = E->getN();
-    scores.resize(nents);
 
     TranseTester<double> tester(E, R, kb.query());
     const uint16_t dime = E->getDim();
@@ -969,10 +1020,14 @@ void SubgraphHandler::findAnswers(KB &kb,
 
     //Select most promising subgraphs to do the search
     LOG(INFOL) << "Test the queries ...";
-    std::vector<uint64_t> relevantSubgraphsH;
-    std::vector<uint64_t> relevantSubgraphsT;
-    std::vector<double> relevantSubgraphsHDistances;
-    std::vector<double> relevantSubgraphsTDistances;
+    vector<uint64_t> relevantSubgraphsH;
+    vector<uint64_t> relevantSubgraphsT;
+    vector<double> relevantSubgraphsHDistances;
+    vector<double> relevantSubgraphsTDistances;
+    vector<vector<int64_t>> allActualAnswersH;
+    vector<vector<uint64_t>> allExpectedAnswersH;
+    vector<vector<int64_t>> allActualAnswersT;
+    vector<vector<uint64_t>> allExpectedAnswersT;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
@@ -1028,6 +1083,8 @@ void SubgraphHandler::findAnswers(KB &kb,
         ANSWER_METHOD ansMethod = UNION;
         if (answerMethod == "intersection") {
             ansMethod = INTERSECTION;
+        } else if (answerMethod == "interunion") {
+            ansMethod = INTERUNION;
         }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
@@ -1039,16 +1096,19 @@ void SubgraphHandler::findAnswers(KB &kb,
         vector<uint64_t> expectedAnswersH;
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
 
+        allActualAnswersH.push_back(actualAnswersH);
+        allExpectedAnswersH.push_back(expectedAnswersH);
         double answerPrecisionH = 0.0;
         double answerRecallH = 0.0;
-
         getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerPrecisionH, answerRecallH);
+        allQueriesPrecisionsH.push_back(answerPrecisionH);
+        allQueriesRecallsH.push_back(answerRecallH);
         if (answerRecallH >= 100) {
-            LOG(INFOL) << "found all answers for Query: ? " << sr << " " << st;
+            //LOG(INFOL) << "Found all answers for Query: ? " << sr << " " << st;
             counth++;
             sumh++;
         } else if (answerRecallH > 0) {
-            LOG(INFOL) << "@@@@@@@@@@@@@@ found some answers for query : ? " << sr << " " << st;
+            //LOG(INFOL) << "@@@@@@@@@@@@@@ Found some answers for query : ? " << sr << " " << st;
             sumh++;
         }
 
@@ -1073,15 +1133,19 @@ void SubgraphHandler::findAnswers(KB &kb,
         //TODO: both expected answers H and T can be collected with a single call to this function
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
 
+        allActualAnswersT.push_back(actualAnswersT);
+        allExpectedAnswersT.push_back(expectedAnswersT);
         double answerPrecisionT = 0.0;
         double answerRecallT = 0.0;
         getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerPrecisionT, answerRecallT);
+        allQueriesPrecisionsT.push_back(answerPrecisionT);
+        allQueriesRecallsT.push_back(answerRecallT);
         if (answerRecallT >= 100) {
-            LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
+            //LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
             countt++;
             sumt++;
         } else if (answerRecallT > 0) {
-            LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
+            //LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
             sumt++;
         }
 
@@ -1108,9 +1172,39 @@ void SubgraphHandler::findAnswers(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
-    LOG(INFOL) << "All answers found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
-    LOG(INFOL) << "Some answers found (H): " << sumh << " (T): " << sumt<< " of " << testTriples.size() / 3;
+    double macroPrecisionH = std::accumulate(
+                            allQueriesPrecisionsH.begin(),
+                            allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
+    double macroPrecisionT = std::accumulate(
+                            allQueriesPrecisionsT.begin(),
+                            allQueriesPrecisionsT.end(), 0.0) / allQueriesPrecisionsT.size();
+    double macroRecallH = std::accumulate(
+                            allQueriesRecallsH.begin(),
+                            allQueriesRecallsH.end(), 0.0) / allQueriesRecallsH.size();
+    double macroRecallT = std::accumulate(
+                            allQueriesRecallsT.begin(),
+                            allQueriesRecallsT.end(), 0.0) / allQueriesRecallsT.size();
+    double microPrecisionH = 0.0;
+    double microRecallH = 0.0;
+    double microPrecisionT = 0.0;
+    double microRecallT = 0.0;
     LOG(INFOL) << "# entities : " << nents;
+    LOG(INFOL) << "Macro Precision (Head) = " << macroPrecisionH;
+    LOG(INFOL) << "Macro Recall    (Head) = " << macroRecallH;
+    LOG(INFOL) << "Macro Precision (Tail) = " << macroPrecisionT;
+    LOG(INFOL) << "Macro Recall    (Tail) = " << macroRecallT;
+    LOG(INFOL) << "All  Head answers found for " << counth << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "All  Tail answers found for " << countt << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "Some Head answers found for " << sumh << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "Some Tail answers found for " << sumt << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "Computing overall accuracy for Head answers : ";
+    getModelAccuracy(allExpectedAnswersH, allActualAnswersH, microPrecisionH, microRecallH);
+    LOG(INFOL) << "Computing overall accuracy for Tail answers : ";
+    getModelAccuracy(allExpectedAnswersT, allActualAnswersT, microPrecisionT, microRecallT);
+    LOG(INFOL) << "Micro Precision (Head) = " << microPrecisionH;
+    LOG(INFOL) << "Micro Recall    (Head) = " << microRecallH;
+    LOG(INFOL) << "Micro Precision (Tail) = " << microPrecisionT;
+    LOG(INFOL) << "Micro Recall    (Tail) = " << microRecallT;
     //float hitRateH = ((float)counth / (float)(testTriples.size()/3))*100;
     //float hitRateT = ((float)countt / (float)(testTriples.size()/3))*100;
 
