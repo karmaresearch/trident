@@ -40,7 +40,7 @@ class SubgraphHandler {
                     );
 
         int64_t isAnswerInSubGraphs(uint64_t a,
-                const std::vector<uint64_t> &subgraphs, Querier *q, int64_t &totalSize);
+                const std::vector<uint64_t> &subgraphs, Querier *q);
 
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
