@@ -156,6 +156,7 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
     sh.evaluate(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
+            vm["answerMethod"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
@@ -165,7 +166,7 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
 }
 
 void subgraphAnswers(KB &kb, ProgramArgs &vm) {
-    SubgraphHandler sh;
+    /*SubgraphHandler sh;
     DIST secondDist = (DIST) vm["secondDist"].as<int>();
     sh.findAnswers(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
@@ -174,7 +175,7 @@ void subgraphAnswers(KB &kb, ProgramArgs &vm) {
             vm["subgraphThreshold"].as<long>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
-            secondDist);
+            secondDist);*/
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {

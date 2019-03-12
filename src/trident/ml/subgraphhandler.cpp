@@ -448,8 +448,11 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     }
 }
 
-int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
-        const std::vector<uint64_t> &subgs, Querier *q) {
+int64_t SubgraphHandler::isAnswerInSubGraphs(
+        uint64_t a,
+        const std::vector<uint64_t> &subgs,
+        Querier *q,
+        int64_t &totalSize) {
     DictMgmt *dict = q->getDictMgmt();
     char buffer[MAX_TERM_SIZE];
     int size;
@@ -463,6 +466,7 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(uint64_t a,
         dict->getTextRel(meta.rel, buffer, size);
         string srel = string(buffer, size);
 
+        totalSize += meta.size;
         if (meta.t == Subgraphs<double>::TYPE::PO) {
             if (q->exists(a, meta.rel, meta.ent)) {
                 //LOG(INFOL) << sent << " :<-->: " << srel;
@@ -576,6 +580,7 @@ void SubgraphHandler::evaluate(KB &kb,
         string subType,
         string nameTest,
         string formatTest,
+        string subgraphFilter,
         uint64_t subgraphThreshold,
         double varThreshold,
         string writeLogs,
@@ -807,8 +812,29 @@ void SubgraphHandler::evaluate(KB &kb,
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subType, secondDist);
         }
-        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
-        int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+
+        ANSWER_METHOD ansMethod = UNION;
+        if (subgraphFilter == "intersection") {
+            ansMethod = INTERSECTION;
+        } else if(subgraphFilter == "interunion") {
+            ansMethod = INTERUNION;
+        }
+        int64_t foundH = -1;
+        int64_t totalSizeH = 0;
+        if (UNION == ansMethod) {
+            //TODO: this foundH is the rank of the subgraph
+            foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get(), totalSizeH);
+        } else {
+        //int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+            vector<int64_t> entitiesH;
+            getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
+            vector<int64_t>::iterator it = find(entitiesH.begin(), entitiesH.end(), h);
+            if (it != entitiesH.end()) {
+                // This foundH is the rank of the entity among the selected entities
+                foundH = distance(entitiesH.begin(), it);
+            }
+            totalSizeH = entitiesH.size();
+        }
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (subgraphThreshold == -1) {
             switch(testTopKs[i+1]) {
@@ -834,9 +860,21 @@ void SubgraphHandler::evaluate(KB &kb,
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
                     r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subType, secondDist);
         }
-        int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
-        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
-        //Now I have the list of relevant subgraphs. Is the answer in one of these?
+        int64_t foundT = -1;
+        int64_t totalSizeT = 0;
+        //numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
+        if(UNION == ansMethod) {
+            //Now I have the list of relevant subgraphs. Is the answer in one of these?
+            foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get(), totalSizeT);
+        } else {
+            vector<int64_t> entitiesT;
+            getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
+            vector<int64_t>::iterator it = find(entitiesT.begin(), entitiesT.end(), t);
+            if (it != entitiesT.end()) {
+                foundT = distance(entitiesT.begin(),it);
+            }
+            totalSizeT = entitiesT.size();
+        }
         if (foundH >= 0) {
             counth++;
             sumh += foundH + 1;
@@ -904,6 +942,7 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 }
 
+/*
 void SubgraphHandler::findAnswers(KB &kb,
         string embAlgo,
         string embDir,
@@ -987,7 +1026,6 @@ void SubgraphHandler::findAnswers(KB &kb,
         BatchCreator::loadTriples(pathtest, testTriples);
     }
 
-    /*** TEST ***/
     //Stats
     uint64_t counth = 0;
     uint64_t sumh = 0;
@@ -1221,6 +1259,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         logWriter->close();
     }
 }
+*/
 
 void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {

@@ -40,7 +40,7 @@ class SubgraphHandler {
                     );
 
         int64_t isAnswerInSubGraphs(uint64_t a,
-                const std::vector<uint64_t> &subgraphs, Querier *q);
+                const std::vector<uint64_t> &subgraphs, Querier *q, int64_t &totalSize);
 
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
@@ -106,6 +106,7 @@ class SubgraphHandler {
                 string subType,
                 string nameTest,
                 string formatTest,
+                string subgraphFilter,
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
@@ -113,7 +114,7 @@ class SubgraphHandler {
                 string kFile,
                 string binEmbDir);
 
-        void findAnswers(KB &kb,
+        /*void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,
@@ -124,7 +125,7 @@ class SubgraphHandler {
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);
+                DIST secondDist);*/
 
         void create(KB &kb,
                 string subType,
