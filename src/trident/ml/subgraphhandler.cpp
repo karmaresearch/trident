@@ -589,7 +589,8 @@ void SubgraphHandler::evaluate(KB &kb,
         string writeLogs,
         DIST secondDist,
         string kFile,
-        string binEmbDir) {
+        string binEmbDir,
+        bool calcDisp) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -764,9 +765,11 @@ void SubgraphHandler::evaluate(KB &kb,
         //Calculate the displacements
         uint64_t displacementO = 0;
         uint64_t displacementS = 0;
-        getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
+        if (calcDisp) {
+            getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
                 dime, dimr, q.get(), displacementO, displacementS, scores,
                 indices, indices2);
+        }
 
         dict->getText(h, buffer);
         string sh = string(buffer);

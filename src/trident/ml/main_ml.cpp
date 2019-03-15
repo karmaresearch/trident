@@ -162,7 +162,8 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             vm["logFile"].as<string>(),
             secondDist,
             vm["kFile"].as<string>(),
-            vm["binEmbDir"].as<string>());
+            vm["binEmbDir"].as<string>(),
+            vm["calcDisp"].as<bool>());
 }
 
 void subgraphAnswers(KB &kb, ProgramArgs &vm) {

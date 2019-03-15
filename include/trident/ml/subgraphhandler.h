@@ -112,7 +112,8 @@ class SubgraphHandler {
                 string writeLogs,
                 DIST secondDist,
                 string kFile,
-                string binEmbDir);
+                string binEmbDir,
+                bool calcDisp);
 
         /*void findAnswers(KB &kb,
                 string embAlgo,
