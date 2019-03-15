@@ -343,7 +343,9 @@ class Embeddings {
             if (ismem) {
                 //Dump the content of the array into a file as-is
                 ofstream dest(path, ios::binary);
-                dest.write((char*)mraw.data(), n * dim * sizeof(K));
+		size_t nbytes = (uint64_t)n * (uint64_t)dim * sizeof(K);
+		LOG(DEBUGL) << "Dumping on disk " << nbytes << " bytes " << n << " " << dim << " " << sizeof(K);
+                dest.write((char*)mraw.data(), nbytes);
                 dest.close();
             } else {
                 //Flush the content to file
