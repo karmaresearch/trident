@@ -23,7 +23,9 @@ static int Emb_init(trident_Emb *self, PyObject *args, PyObject *kwds) {
     if (path != NULL) {
         self->E = Embeddings<double>::load(spath + "/E");
         self->R = Embeddings<double>::load(spath + "/R");
+	std::cout << "Embeddings are loaded!" << std::endl;
     }
+    import_array();
     return 0;
 }
 
@@ -37,20 +39,20 @@ static PyObject * emb_get_e(PyObject *self, PyObject *args) {
     int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
-    npy_intp dims[1];
-    dims[0] = ((trident_Emb*)self)->E->getDim();
+    npy_intp dims[1] = { ((trident_Emb*)self)->E->getDim() };
     void *data = (void*)((trident_Emb*)self)->E->get(id);
-    return PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data);
+    auto obj = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data);
+    return obj; 
 }
 
 static PyObject * emb_get_r(PyObject *self, PyObject *args) {
     int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
         return NULL;
-    npy_intp dims[1];
-    dims[0] = ((trident_Emb*)self)->R->getDim();
+    npy_intp dims[1] = { ((trident_Emb*)self)->R->getDim() };
     void *data = (void*)((trident_Emb*)self)->R->get(id);
-    return PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data);
+    auto obj = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data);
+    return obj;
 }
 
 static PyMethodDef Emb_methods[] = {
