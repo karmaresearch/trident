@@ -856,13 +856,17 @@ PyMODINIT_FUNC PyInit_trident(void) {
         return NULL;
     if (PyType_Ready(&trident_BatcherType) < 0)
         return NULL;
+    if (PyType_Ready(&trident_EmbType) < 0)
+        return NULL;
 
     Py_INCREF(&trident_DbType);
     Py_INCREF(&trident_ItrType);
     Py_INCREF(&trident_BatcherType);
+    Py_INCREF(&trident_EmbType);
     PyModule_AddObject(m, "Db", (PyObject *)&trident_DbType);
     PyModule_AddObject(m, "Itr", (PyObject *)&trident_ItrType);
     PyModule_AddObject(m, "Batcher", (PyObject *)&trident_BatcherType);
+    PyModule_AddObject(m, "Emb", (PyObject *)&trident_EmbType);
     PyModule_AddFunctions(m, globalFunctions);
 
     PyObject* ana = PyInit_analytics();
