@@ -375,9 +375,10 @@ class Embeddings {
             dim = *(uint16_t*)(buffer + 8);
 
             //Count the files with a number as extension
-            int countfile = 0;
-            std::string filetoload = path + "." + std::to_string(countfile);
-            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, filetoload));
+            //int countfile = 0;
+            //std::string filetoload = path + "." + std::to_string(countfile);
+            LOG(INFOL) << "#### UNM: loading the path : " << path;
+            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, path));
             //TODO: load info about conflicts, updates
             //countfile should be incremented appropriately for larger databases
             return emb;

@@ -88,7 +88,7 @@ class SubgraphHandler {
             uint64_t ent,
             vector<uint64_t> &output);
 
-        int64_t numberInstancesInSubgraphs(
+        uint64_t numberInstancesInSubgraphs(
                 Querier *q,
                 const std::vector<uint64_t> &subgs);
 
