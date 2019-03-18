@@ -54,8 +54,12 @@ void fft(std::vector<Complex> &in, std::vector<Complex> & out) {
         double imagSum = 0.0;
         for (int t = 0; t < n; ++t) {
             // double angle = 2 * M_PI * t * k / n;
-            // double real = in[t].real * std::cos(angle) + in[t].imag * std::sin(angle);
-            // double imag = in[t].imag * std::cos(angle) - in[t].real * std::sin(angle);
+	    // We use cos(-x) = cos(x) and sin(-x) = -sin(x)
+            // double real = in[t].real * std::cos(-angle) - in[t].imag * std::sin(-angle);
+            // double imag = in[t].imag * std::cos(-angle) + in[t].real * std::sin(-angle);
+	    // So:
+	    // double real = in.real * std::cos(angle) + in.imag * sin(angle)
+	    // double imag = in.imag * std::cos(angle) - in.real * sin(angle)
 	    int angle = (t * k) % n;
             double real = in[t].real * cos[angle] + in[t].imag * sin[angle];
             double imag = in[t].imag * cos[angle] - in[t].real * sin[angle];
@@ -104,23 +108,16 @@ void ccorr(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
     vector<Complex> bOut(n);
     fft(b, bOut);
 
-    // 3. Calculate complex conjugate of FFT(a)
+    // 3. Do complex multiplication of the conjufate of FFT(a) and FFT(b)
     for (int i = 0; i < n; ++i) {
-        aOut[i] = ~aOut[i];
-    }
-
-    // 4. Do complex multiplication of aOut and FFT(b)
-    vector<Complex> cOut(n);
-    for (int i = 0; i < n; ++i) {
-        cOut[i] = aOut[i] * bOut[i];
+        aOut[i] = ~aOut[i] * bOut[i];
     }
 
     // 5. Take inverse FFT of the result
-    vector<Complex> inverseFFT(n);
-    ifft(cOut, inverseFFT);
+    ifft(aOut, bOut);
 
     // Copy the output in the output vector
-    for (auto c : inverseFFT) {
+    for (auto c : bOut) {
         out.push_back(c.real);
     }
 }
@@ -128,15 +125,13 @@ void ccorr(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
 void ccorr(double* a, double* b, uint16_t size, vector<double>& out) {
     vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = a[i];
+        Complex temp(a[i], 0.0);
         ac.push_back(temp);
     }
 
     vector<Complex> bc;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = b[i];
+        Complex temp(b[i], 0.0);
         bc.push_back(temp);
     }
 
@@ -160,14 +155,13 @@ void cconv(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
     fft(b, bOut);
 
     // 3. Do complex multiplication of aOut and FFT(b)
-    std::vector<Complex> cOut(n);
     for (int i = 0; i < n; ++i) {
-        cOut[i] = aOut[i] * bOut[i];
+        aOut[i] *= bOut[i];
     }
 
     // 4. Take inverse FFT of the result
     vector<Complex> inverseFFT(n);
-    ifft(cOut, inverseFFT);
+    ifft(aOut, inverseFFT);
 
     // Copy the output in the output vector
     for (auto c : inverseFFT) {
@@ -178,15 +172,13 @@ void cconv(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
 void cconv(double* a, double* b, uint16_t size, std::vector<double>& out) {
     vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = a[i];
+        Complex temp(a[i], 0.0);
         ac.push_back(temp);
     }
 
     vector<Complex> bc;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = b[i];
+        Complex temp(b[i], 0.0);
         bc.push_back(temp);
     }
 
@@ -196,52 +188,40 @@ void cconv(double* a, double* b, uint16_t size, std::vector<double>& out) {
 void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
     vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = a[i];
+        Complex temp(a[i], 0.0);
         ac.push_back(temp);
     }
 
     vector<Complex> bc;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = b[i];
+        Complex temp(b[i], 0.0);
         bc.push_back(temp);
     }
 
     vector<double> out_d;
     ccorr(ac, bc, out_d);
 
-    for (auto d : out_d) {
-        out.push_back((float) d);
+    for (int i = 0; i < size; ++i) {
+	out[i] = (float) out_d[i];
     }
 }
 
 void cconv(double* a, double* b, uint16_t size, std::vector<float>& out) {
     vector<Complex> ac;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = a[i];
+        Complex temp(a[i], 0.0);
         ac.push_back(temp);
     }
 
     vector<Complex> bc;
     for (int i = 0; i < size; ++i) {
-        Complex temp;
-        temp.real = b[i];
+        Complex temp(b[i], 0.0);
         bc.push_back(temp);
     }
 
     vector<double> out_d;
     cconv(ac, bc, out_d);
-    for (auto d : out_d) {
-        out.push_back((float)d);
+    for (int i = 0; i < size; ++i) {
+	out[i] = (float) out_d[i];
     }
-}
-
-double sigmoid(double x) {
-    return x / (1 + std::exp(x));
-}
-
-double sigmoid_given_fun(double x) {
-    return x * (1.0 - x);
 }

@@ -2,6 +2,14 @@
 #include <trident/utils/fft.h>
 #include <unordered_map>
 
+inline double sigmoid(double x) {
+    return 1.0 / (1.0 + std::exp(-x));
+}
+
+inline double sigmoid_given_fun(double x) {
+    return x * (1.0 - x);
+}
+
 void HoleLearner::update_gradient_matrix(
         std::unordered_map<uint64_t, EntityGradient> &gradients,
         EntityGradient& eg1,
@@ -18,6 +26,7 @@ void HoleLearner::update_gradient_matrix(
             for (int j = 0; j < gradients[term].dimensions.size(); ++j) {
                 gradients[term].dimensions[j] += eg1.dimensions[j] + eg2.dimensions[j];
             }
+	    gradients[term].n++;
             //break;
         //}
     //}
@@ -62,53 +71,43 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     const uint32_t sizebatch = io.field1.size();
 
     //Support data structures
-    std::unordered_map<uint32_t, uint64_t> posSubjsUpdate1; // pos->sub entity
-    std::unordered_map<uint32_t, uint64_t> posObjsUpdate1; // pos->obj entity
-    std::unordered_map<uint32_t, uint64_t> negObjsUpdate1;
-    std::unordered_map<uint32_t, uint64_t> posSubjsUpdate2;
-    std::unordered_map<uint32_t, uint64_t> negSubjsUpdate2;
-    std::unordered_map<uint32_t, uint64_t> posObjsUpdate2;
-    std::unordered_map<uint32_t, uint64_t> posRels1;
-    std::unordered_map<uint32_t, uint64_t> posRels2;
 
-    std::unordered_map<uint32_t, float> violatedScorePosAll;
-    std::unordered_map<uint32_t, float> violatedScoreNegSub;
-    std::unordered_map<uint32_t, float> violatedScoreNegObj;
+    float violatedScorePos;
+    float violatedScoreNeg;
 
-    //std::vector<EntityGradient> gradientsE;
-    //std::vector<EntityGradient> gradientsR;
     std::unordered_map<uint64_t, EntityGradient> gradientsE;
     std::unordered_map<uint64_t, EntityGradient> gradientsR;
 
-    std::vector<uint32_t> violatedPositions;
+    // std::vector<uint32_t> violatedPositions;
     std::vector<uint64_t> allterms;
-    std::vector<uint64_t> allrels;
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     for(uint32_t i = 0; i < sizebatch; ++i) {
         allterms.push_back(output1[i]);
         allterms.push_back(output3[i]);
-        allrels.push_back(output2[i]);
+	allterms.push_back(sneg[i]);
+	allterms.push_back(oneg[i]);
     }
-    std::sort(allterms.begin(), allterms.end());
-    auto it = std::unique(allterms.begin(), allterms.end());
-    allterms.resize(std::distance(allterms.begin(), it));
-    std::sort(allrels.begin(), allrels.end());
-    it = std::unique(allrels.begin(), allrels.end());
-    allrels.resize(std::distance(allrels.begin(), it));
 
     //Initialize gradient matrix
     // PORT: this code is from __init__ of hole.py
     // The last two lines of __init__ initialize the entity and relation
     // embeddings. we try to do the same here
-    for(uint16_t i = 0; i < allterms.size(); ++i) {
-        EntityGradient entityTemp(allterms[i], dim);
-        gradientsE.insert(make_pair(allterms[i], entityTemp));
+    
+    // The updates will be collected in gradientsE/gradientsR, and then applied.
+    for (int i = 0; i < allterms.size(); i++) {
+	if (gradientsE.find(allterms[i]) == gradientsE.end()) {
+	    EntityGradient entityTemp(allterms[i], dim);
+	    gradientsE.insert(std::make_pair(allterms[i], entityTemp));
+	}
     }
-    for(uint16_t i = 0; i < allrels.size(); ++i) {
-        EntityGradient relationTemp(allrels[i], dim);
-        gradientsR.insert(make_pair(allrels[i], relationTemp));
+    for (int i = 0; i < sizebatch; i++) {
+	if (gradientsR.find(output2[i]) == gradientsR.end()) {
+	    EntityGradient relationTemp(output2[i], dim);
+	    gradientsR.insert(std::make_pair(output2[i], relationTemp));
+	}
     }
+
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - start;
     LOG(DEBUGL) << "Time to initialize gradients = " << duration.count() * 1000 << " ms";
 
@@ -123,40 +122,34 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
         // This code is first two calls of unzip_triples() in _pairwise_gradients
         // We do not generate negative ids for relations/predicates
         // hence there is no "pn" (Predicate Negative) in the C++ code
-        double* sp = E->get(output1[i]);
-        double* pp = R->get(output2[i]);
-        double* op = E->get(output3[i]);
+        double* sp = E->get(subject);
+        double* pp = R->get(predicate);
+        double* op = E->get(object);
         double* on = E->get(oneg[i]);
         double* sn = E->get(sneg[i]);
+	double *pn = pp;
 
         //LOG(DEBUGL) << "<" << subject << " , " << predicate << " , " << object << ">";
         //Get the distances
         // pp = pn i.e. predicates are not randomly generated for
         // making a sample negative sample
-        auto scorePosAll = sigmoid(score(sp, pp, op));
+        auto scorePos = sigmoid(score(sp, pp, op));
         // PORT:
         // this code is calculating pscores and nscores from _pairwise_gradients
-        // Why am I calculating two negative scores is something I don't remember
-        // This could be wrong.
-        auto scoreNegObj = sigmoid(score(sp, pp, on));
-        auto scoreNegSub = sigmoid(score(sn, pp, op));
+        auto scoreNeg = sigmoid(score(sn, pn, on));
 
         // to update and
         // use update_gradient function to compute CCORR
-        if (scorePosAll - scoreNegObj + margin > 0) {
+	// LOG(INFOL) << "scoreNeg = " << scoreNeg << ", scorePos = " << scorePos;
+	if (scoreNeg + margin > scorePos) {
             io.violations += 1;
-            violatedPositions.push_back(i);
-            // PORT:
-            // following temp variables are not used
-            posSubjsUpdate1[i] = subject;
-            posObjsUpdate1[i] = object;
-            negObjsUpdate1[i] = oneg[i];
-            posRels1[i] = predicate;
+            // violatedPositions.push_back(i);
             // PORT:
             // sigmoid_given_fun is the function g_give_f from class Sigmoid from
             // file skge/actfun.py
-            violatedScorePosAll[i] = -sigmoid_given_fun(scorePosAll);
-            violatedScoreNegObj[i] = -sigmoid_given_fun(scoreNegObj);
+            violatedScorePos = -sigmoid_given_fun(scorePos);
+            violatedScoreNeg = sigmoid_given_fun(scoreNeg);
+	    // LOG(INFOL) << "violatedScoreNeg = " << violatedScoreNeg << ", violatedScorePos = " << violatedScorePos;
 
             // Predicate/Relation gradients
             // PORT:
@@ -164,115 +157,135 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
             // and
             // calculate gnscore * ccorr (E[sn], E[on])
             EntityGradient grp(predicate, dim);
-            std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
+            // std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
             ccorr(sp, op, dim, grp.dimensions);
-            std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+            // std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                grp.dimensions[d] *= violatedScorePosAll[i];
+                grp.dimensions[d] *= violatedScorePos;
             }
+	    // LOG(INFOL) << "grp.dimensions[0] = " << grp.dimensions[0];
             EntityGradient grn(predicate, dim);
-            start_ccorr = std::chrono::system_clock::now();
+            // start_ccorr = std::chrono::system_clock::now();
             ccorr(sn, on, dim, grn.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+            // duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                grn.dimensions[d] *= violatedScoreNegObj[i];
+                grn.dimensions[d] *= violatedScoreNeg;
             }
+	    // LOG(INFOL) << "grn.dimensions[0] = " << grn.dimensions[0];
 
-            std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
+            // std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
             // PORT:
             // calculate Sm.dot prodcut of gradient matrix for relations
             update_gradient_matrix(gradientsR, grp, grn, predicate);
-            std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
+            // std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
+            // LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
             // Object gradients (i.e. when score is violated because of negative object entity)
             // PORT:
             // compute cconv and gejp = gpscores * cconv (E[sp], E[pp])
             EntityGradient gejp(object, dim);
-            start_ccorr = std::chrono::system_clock::now();
+            // start_ccorr = std::chrono::system_clock::now();
             cconv(sp, pp, dim, gejp.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
+            // duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                gejp.dimensions[d] *= violatedScorePosAll[i];
+                gejp.dimensions[d] *= violatedScorePos;
             }
 
             // PORT:
             // compute gejn = gnscores * cconv (E[sn], E[pn])
             // in our case pp = pn
             EntityGradient gejn(object, dim);
-            start_ccorr = std::chrono::system_clock::now();
-            cconv(sn, pp, dim, gejn.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
+            // start_ccorr = std::chrono::system_clock::now();
+            cconv(sn, pn, dim, gejn.dimensions);
+            // duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                gejn.dimensions[d] *= violatedScoreNegObj[i];
+                gejn.dimensions[d] *= violatedScoreNeg;
             }
-
-            start_grad = std::chrono::system_clock::now();
-            update_gradient_matrix(gradientsE, gejp, gejn, object);
-            duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
-
-        }
-        if (scorePosAll - scoreNegSub + margin > 0) {
-            io.violations += 1;
-            violatedPositions.push_back(i);
-            posObjsUpdate2[i] = object;
-            posSubjsUpdate2[i] = subject;
-            negSubjsUpdate2[i] = sneg[i];
-            posRels2[i] = predicate;
-            violatedScorePosAll[i] = -sigmoid_given_fun(scorePosAll);
-            violatedScoreNegSub[i] = -sigmoid_given_fun(scoreNegSub);
-
-            // Predicate/Relation gradients
-            EntityGradient grp(predicate, dim);
-            std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
-            ccorr(sp, op, dim, grp.dimensions);
-            std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
-
-            for (int d = 0; d < dim; ++d) {
-                grp.dimensions[d] *= violatedScorePosAll[i];
-            }
-            EntityGradient grn(predicate, dim);
-            start_ccorr = std::chrono::system_clock::now();
-            ccorr(sn, on, dim, grn.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
-            for (int d = 0; d < dim; ++d) {
-                grn.dimensions[d] *= violatedScoreNegSub[i];
-            }
-            std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
-            update_gradient_matrix(gradientsR, grp, grn, predicate);
-            std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
 
             // Subject gradients
             EntityGradient geip(subject, dim);
-            start_ccorr = std::chrono::system_clock::now();
+            // start_ccorr = std::chrono::system_clock::now();
             ccorr(pp, op, dim, geip.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+            // duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                geip.dimensions[d] *= violatedScorePosAll[i];
+                geip.dimensions[d] *= violatedScorePos;
             }
 
             EntityGradient gein(subject, dim);
-            start_ccorr = std::chrono::system_clock::now();
-            cconv(sn, pp, dim, gein.dimensions);
-            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
-            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
+            // start_ccorr = std::chrono::system_clock::now();
+            cconv(pn, on, dim, gein.dimensions);
+            // duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+            // LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
             for (int d = 0; d < dim; ++d) {
-                gein.dimensions[d] *= violatedScoreNegSub[i];
+                gein.dimensions[d] *= violatedScoreNeg;
             }
-            start_grad = std::chrono::system_clock::now();
+            // start_grad = std::chrono::system_clock::now();
             update_gradient_matrix(gradientsE, geip, gein, subject);
-            duration_grad = std::chrono::system_clock::now() - start_grad;
-            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
+            // duration_grad = std::chrono::system_clock::now() - start_grad;
+            // LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
+            // start_grad = std::chrono::system_clock::now();
+            update_gradient_matrix(gradientsE, gejp, gejn, object);
+            // duration_grad = std::chrono::system_clock::now() - start_grad;
+            // LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
         }
+
+//        if (scorePos - (scoreNegSub + margin) < 0) {
+//            io.violations += 1;
+//            violatedPositions.push_back(i);
+//            violatedScorePos = -sigmoid_given_fun(scorePos);
+//            violatedScoreNegSub = -sigmoid_given_fun(scoreNegSub);
+//
+//            // Predicate/Relation gradients
+//            EntityGradient grp(predicate, dim);
+//            std::chrono::system_clock::time_point start_ccorr = std::chrono::system_clock::now();
+//            ccorr(sp, op, dim, grp.dimensions);
+//            std::chrono::duration<double> duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+//            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+//
+//            for (int d = 0; d < dim; ++d) {
+//                grp.dimensions[d] *= violatedScorePos;
+//            }
+//            EntityGradient grn(predicate, dim);
+//            start_ccorr = std::chrono::system_clock::now();
+//            ccorr(sn, on, dim, grn.dimensions);
+//            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+//            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+//            for (int d = 0; d < dim; ++d) {
+//                grn.dimensions[d] *= violatedScoreNegSub;
+//            }
+//            std::chrono::system_clock::time_point start_grad = std::chrono::system_clock::now();
+//            update_gradient_matrix(gradientsR, grp, grn, predicate);
+//            std::chrono::duration<double> duration_grad = std::chrono::system_clock::now() - start_grad;
+//            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
+//
+//            // Subject gradients
+//            EntityGradient geip(subject, dim);
+//            start_ccorr = std::chrono::system_clock::now();
+//            ccorr(pp, op, dim, geip.dimensions);
+//            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+//            LOG(DEBUGL) << "Time to compute ccorr = " << duration_ccorr.count() * 1000 << " ms";
+//            for (int d = 0; d < dim; ++d) {
+//                geip.dimensions[d] *= violatedScorePos;
+//            }
+//
+//            EntityGradient gein(subject, dim);
+//            start_ccorr = std::chrono::system_clock::now();
+//            cconv(sn, pp, dim, gein.dimensions);
+//            duration_ccorr = std::chrono::system_clock::now() - start_ccorr;
+//            LOG(DEBUGL) << "Time to compute cconv = " << duration_ccorr.count() * 1000 << " ms";
+//            for (int d = 0; d < dim; ++d) {
+//                gein.dimensions[d] *= violatedScoreNegSub;
+//            }
+//            start_grad = std::chrono::system_clock::now();
+//            update_gradient_matrix(gradientsE, geip, gein, subject);
+//            duration_grad = std::chrono::system_clock::now() - start_grad;
+//            LOG(DEBUGL) << "Time to update gradient matrix = " << duration_grad.count() * 1000 << " ms";
+//        }
 
         duration = std::chrono::system_clock::now() - start;
         LOG(DEBUGL) << "Time to process sample (" << i <<")  = " << duration.count() * 1000 << " ms";
@@ -291,3 +304,39 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
                     );
     update_gradients(io, vecGradientsE, vecGradientsR);
 }
+
+/*
+void HoleLearner::update_gradients(BatchIO &io,
+	std::vector<EntityGradient> &ge,
+	std::vector<EntityGradient> &gr) {
+    //Update the gradients of the entities and relations
+    if (adagrad) {
+	LOG(ERRORL) << "adagrad not supported";
+    } else { //sgd
+        for (auto &i : ge) {
+            double *emb = E->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+		LOG(INFOL) << "Update E " << i.id << ", emb[0] was " << emb[0] << ", dimensions[0] = " << i.dimensions[0] << ", n = " << n;
+                for(int j = 0; j < dim; ++j) {
+                    emb[j] = learningrate * emb[j] + i.dimensions[j] / n;
+                }
+		LOG(INFOL) << "Update E " << i.id << ", emb[0] becomes " << emb[0];
+                E->incrUpdates(i.id);
+            }
+        }
+        for (auto &i : gr) {
+            double *emb = R->get(i.id);
+            auto n = i.n;
+            if (n > 0) {
+		LOG(INFOL) << "Update R " << i.id << ", emb[0] was " << emb[0];
+                for(int j = 0; j < dim; ++j) {
+                    emb[j] = learningrate * emb[j] + i.dimensions[j] / n;
+                }
+		LOG(INFOL) << "Update R " << i.id << ", emb[0] becomes " << emb[0];
+                R->incrUpdates(i.id);
+            }
+        }
+    }
+}
+*/

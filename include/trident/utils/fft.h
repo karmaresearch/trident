@@ -55,7 +55,5 @@ void ccorr(double* , double* , uint16_t , std::vector<double>&);
 void ccorr(double* , double* , uint16_t , std::vector<float>&);
 void cconv(double* , double* , uint16_t , std::vector<double>&);
 void cconv(double* , double* , uint16_t , std::vector<float>&);
-double sigmoid(double x);
-double sigmoid_given_fun(double x);
 
 #endif

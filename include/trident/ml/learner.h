@@ -130,7 +130,7 @@ class Learner {
         float dist_l1(double* head, double* rel, double* tail,
                 float *matrix);
 
-        void update_gradients(BatchIO &io,
+        virtual void update_gradients(BatchIO &io,
                 std::vector<EntityGradient> &ge,
                 std::vector<EntityGradient> &gr);
 
