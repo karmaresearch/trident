@@ -343,7 +343,9 @@ class Embeddings {
             if (ismem) {
                 //Dump the content of the array into a file as-is
                 ofstream dest(path, ios::binary);
-                dest.write((char*)mraw.data(), n * dim * sizeof(K));
+		size_t nbytes = (uint64_t)n * (uint64_t)dim * sizeof(K);
+		LOG(DEBUGL) << "Dumping on disk " << nbytes << " bytes " << n << " " << dim << " " << sizeof(K);
+                dest.write((char*)mraw.data(), nbytes);
                 dest.close();
             } else {
                 //Flush the content to file
@@ -375,9 +377,10 @@ class Embeddings {
             dim = *(uint16_t*)(buffer + 8);
 
             //Count the files with a number as extension
-            int countfile = 0;
-            std::string filetoload = path + "." + std::to_string(countfile);
-            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, filetoload));
+            //int countfile = 0;
+            //std::string filetoload = path + "." + std::to_string(countfile);
+            LOG(INFOL) << "#### UNM: loading the path : " << path;
+            std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, path));
             //TODO: load info about conflicts, updates
             //countfile should be incremented appropriately for larger databases
             return emb;

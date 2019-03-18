@@ -7,6 +7,7 @@
 #include <cmath>
 #include <kognac/utils.h>
 #include <unordered_map>
+#include <set>
 
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
@@ -242,6 +243,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
     uint64_t totalAnswers = 0;
     vector<vector<int64_t>> entityIds;
     unordered_map <uint64_t, double> scoreMap;
+    set<int64_t> unionAnswers;
     int i = 0;
     for(auto subgraphid : relevantSubgraphs) {
         Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
@@ -265,7 +267,8 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
             if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
                 entityIds[i].push_back(e2);
             } else {
-                output.push_back(e2);
+                unionAnswers.insert(e2);
+                //output.push_back(e2);
             }
             itr->next();
             countResultsS++;
@@ -304,6 +307,8 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
                 output.push_back(scores.first);
             }
         }
+    } else {
+        std::copy(unionAnswers.begin(), unionAnswers.end(), back_inserter(output));
     }
     LOG(DEBUGL) << "Total answers : " << totalAnswers;
 }
@@ -451,8 +456,7 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
 int64_t SubgraphHandler::isAnswerInSubGraphs(
         uint64_t a,
         const std::vector<uint64_t> &subgs,
-        Querier *q,
-        int64_t &totalSize) {
+        Querier *q) {
     DictMgmt *dict = q->getDictMgmt();
     char buffer[MAX_TERM_SIZE];
     int size;
@@ -466,7 +470,6 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
         dict->getTextRel(meta.rel, buffer, size);
         string srel = string(buffer, size);
 
-        totalSize += meta.size;
         if (meta.t == Subgraphs<double>::TYPE::PO) {
             if (q->exists(a, meta.rel, meta.ent)) {
                 //LOG(INFOL) << sent << " :<-->: " << srel;
@@ -483,10 +486,10 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
     return -1;
 }
 
-int64_t SubgraphHandler::numberInstancesInSubgraphs(
+uint64_t SubgraphHandler::numberInstancesInSubgraphs(
         Querier *q,
         const std::vector<uint64_t> &subgs) {
-    int64_t out = 0;
+    uint64_t out = 0;
     for(auto subgraphid : subgs) {
         Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
         out += meta.size;
@@ -577,7 +580,7 @@ void SubgraphHandler::evaluate(KB &kb,
         string embAlgo,
         string embDir,
         string subFile,
-        string subType,
+        string subAlgo,
         string nameTest,
         string formatTest,
         string subgraphFilter,
@@ -586,7 +589,8 @@ void SubgraphHandler::evaluate(KB &kb,
         string writeLogs,
         DIST secondDist,
         string kFile,
-        string binEmbDir) {
+        string binEmbDir,
+        bool calcDisp) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -598,7 +602,7 @@ void SubgraphHandler::evaluate(KB &kb,
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    loadSubgraphs(subFile, subType, varThreshold);
+    loadSubgraphs(subFile, subAlgo, varThreshold);
     if (binEmbDir != "") {
         processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
     }
@@ -696,10 +700,10 @@ void SubgraphHandler::evaluate(KB &kb,
 
     /*** TEST ***/
     //Stats
-    uint64_t counth = 0;
-    uint64_t sumh = 0;
-    uint64_t countt = 0;
-    uint64_t sumt = 0;
+    uint64_t hitsHead = 0;
+    uint64_t subgraphRanksHead = 0;
+    uint64_t hitsTail = 0;
+    uint64_t subgraphRanksTail = 0;
     uint64_t cons_comparisons_h = 0;
     uint64_t cons_comparisons_t = 0;
 
@@ -747,23 +751,25 @@ void SubgraphHandler::evaluate(KB &kb,
             LOG(INFOL) << "***Tested " << i / 3 << " of "
                 << testTriples.size() / 3 << " queries";
             if (i > 0) {
-                LOG(INFOL) << "***Found (H): " << counth << " (T): " << countt <<
+                LOG(INFOL) << "***Hits (H): " << hitsHead << " (T): " << hitsTail <<
                     " of " << i / 3;
-                LOG(INFOL) << "***Avg (H): " << (double) sumh / counth << " (T): "
-                    << (double)sumt / countt;
+                LOG(INFOL) << "***Mean Rank (H): " << (double) subgraphRanksHead / hitsHead << " (T): "
+                    << (double)subgraphRanksTail / hitsTail;
                 LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
-                    " instead of " << nents * counth;
+                    " instead of " << nents * hitsHead;
                 LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
-                    " instead of " << nents * countt;
+                    " instead of " << nents * hitsTail;
             }
         }
 
         //Calculate the displacements
         uint64_t displacementO = 0;
         uint64_t displacementS = 0;
-        getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
+        if (calcDisp) {
+            getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
                 dime, dimr, q.get(), displacementO, displacementS, scores,
                 indices, indices2);
+        }
 
         dict->getText(h, buffer);
         string sh = string(buffer);
@@ -798,19 +804,19 @@ void SubgraphHandler::evaluate(KB &kb,
                     subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsH);
             vector<uint64_t> relevantSubgraphsHNormal;
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subType, secondDist);
+                    r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
             /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
             LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
             for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
                 LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
                 << " ---> " << relevantSubgraphsH[z];
             }*/
-            //int64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-            //int64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
+            //uint64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+            //uint64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
             //LOG(INFOL) << binSize  << " , " << norSize;
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subType, secondDist);
+                    r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
         }
 
         ANSWER_METHOD ansMethod = UNION;
@@ -820,20 +826,20 @@ void SubgraphHandler::evaluate(KB &kb,
             ansMethod = INTERUNION;
         }
         int64_t foundH = -1;
-        int64_t totalSizeH = 0;
+        uint64_t totalSizeH = 0;
+        vector<int64_t> entitiesH;
+        getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
+        totalSizeH = entitiesH.size();
         if (UNION == ansMethod) {
             //TODO: this foundH is the rank of the subgraph
-            foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get(), totalSizeH);
+            foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
+            //totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         } else {
-        //int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-            vector<int64_t> entitiesH;
-            getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
             vector<int64_t>::iterator it = find(entitiesH.begin(), entitiesH.end(), h);
             if (it != entitiesH.end()) {
                 // This foundH is the rank of the entity among the selected entities
                 foundH = distance(entitiesH.begin(), it);
             }
-            totalSizeH = entitiesH.size();
         }
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (subgraphThreshold == -1) {
@@ -854,30 +860,29 @@ void SubgraphHandler::evaluate(KB &kb,
         }
 
         if (binEmbDir != "") {
-            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,
-                    subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
+            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                    r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subType, secondDist);
+                    r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
         }
         int64_t foundT = -1;
-        int64_t totalSizeT = 0;
-        //numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
+        uint64_t totalSizeT = 0;
+        vector<int64_t> entitiesT;
+        getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
+        totalSizeT = entitiesT.size();
         if(UNION == ansMethod) {
             //Now I have the list of relevant subgraphs. Is the answer in one of these?
-            foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get(), totalSizeT);
+            foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
+            //totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         } else {
-            vector<int64_t> entitiesT;
-            getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
             vector<int64_t>::iterator it = find(entitiesT.begin(), entitiesT.end(), t);
             if (it != entitiesT.end()) {
                 foundT = distance(entitiesT.begin(),it);
             }
-            totalSizeT = entitiesT.size();
         }
         if (foundH >= 0) {
-            counth++;
-            sumh += foundH + 1;
+            hitsHead++;
+            subgraphRanksHead += foundH + 1;
             cons_comparisons_h += totalSizeH;
             sumDisplacementSPos += displacementS;
         } else {
@@ -885,8 +890,8 @@ void SubgraphHandler::evaluate(KB &kb,
         }
 
         if (foundT >= 0) {
-            countt++;
-            sumt += foundT + 1;
+            hitsTail++;
+            subgraphRanksTail += foundT + 1;
             cons_comparisons_t += totalSizeT;
             sumDisplacementOPos += displacementO;
         } else {
@@ -914,28 +919,47 @@ void SubgraphHandler::evaluate(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
-    LOG(INFOL) << "Found (H): " << counth << " (T): " << countt << " of " << testTriples.size() / 3;
-    LOG(INFOL) << "Avg (H): " << (double) sumh / counth << " (T): " << (double)sumt / countt;
+    LOG(INFOL) << "# entities : " << nents;
+    LOG(INFOL) << "Hits (H): " << hitsHead << " (T): " << hitsTail << " of " << testTriples.size() / 3;
+
+    double normalComparisonsH = nents * hitsHead;
+    double normalComparisonsT = nents * hitsTail;
     LOG(INFOL) << "Comp. reduction (H) " << cons_comparisons_h;
-    LOG(INFOL) << "instead          of " << nents * counth;
+    LOG(INFOL) << "instead          of " << normalComparisonsH;
     LOG(INFOL) << "Comp. reduction (T) " << cons_comparisons_t;
-    LOG(INFOL) << "instead          of " << nents * countt;
+    LOG(INFOL) << "instead          of " << normalComparisonsT;
     LOG(INFOL) << "Disp(O+): " << sumDisplacementOPos / testTriples.size();
     LOG(INFOL) << "Disp(O-): " << sumDisplacementONeg / testTriples.size();
     LOG(INFOL) << "Disp(S+): " << sumDisplacementSPos / testTriples.size();
     LOG(INFOL) << "Disp(S-): " << sumDisplacementSNeg / testTriples.size();
-    LOG(INFOL) << "# entities : " << nents;
 
-    double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
-    double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
+    double percentReductionH = 0.0;
+    if (normalComparisonsH >= cons_comparisons_h) {
+        percentReductionH = ((double)(normalComparisonsH - cons_comparisons_h)/ normalComparisonsH)* 100;
+    } else {
+        percentReductionH = ((double)(cons_comparisons_h - normalComparisonsH) / cons_comparisons_h) * -100;
+    }
 
-    float reductionInverseH = (float)1 / (float)percentReductionH;
-    float reductionInverseT = (float)1 /  (float)percentReductionT;
-    float hitRateH = ((float)counth / (float)(testTriples.size()/3))*100;
-    float hitRateT = ((float)countt / (float)(testTriples.size()/3))*100;
-    float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
-    float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
-    LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
+    double percentReductionT = 0.0;
+    if (normalComparisonsT >= cons_comparisons_t) {
+        percentReductionT = ((double)(normalComparisonsT - cons_comparisons_t)/ normalComparisonsT) * 100;
+    } else {
+        percentReductionT = ((double)(cons_comparisons_t - normalComparisonsT) / cons_comparisons_t) * -100;
+    }
+
+    //float reductionInverseH = (float)1 / (float)percentReductionH;
+    //float reductionInverseT = (float)1 /  (float)percentReductionT;
+    float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
+    float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
+    LOG(INFOL) << "HitRate (H): " << hitRateH;
+    LOG(INFOL) << "HitRate (T): " << hitRateT;
+    LOG(INFOL) << "Percent Reduction (H): " << percentReductionH;
+    LOG(INFOL) << "Percent Reduction (T): " << percentReductionT;
+    LOG(INFOL) << "Mean rank (H): " << (double) subgraphRanksHead / hitsHead;
+    LOG(INFOL) << "Mean rank (T): " << (double) subgraphRanksTail / hitsTail;
+    //float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
+    //float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
+    //LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
 
     if (logWriter) {
         logWriter->close();
@@ -947,7 +971,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         string embAlgo,
         string embDir,
         string subFile,
-        string subType,
+        string subAlgo,
         string nameTest,
         string formatTest,
         string answerMethod,
@@ -963,7 +987,7 @@ void SubgraphHandler::findAnswers(KB &kb,
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    loadSubgraphs(subFile, subType, varThreshold);
+    loadSubgraphs(subFile, subAlgo, varThreshold);
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
@@ -1028,9 +1052,9 @@ void SubgraphHandler::findAnswers(KB &kb,
 
     //Stats
     uint64_t counth = 0;
-    uint64_t sumh = 0;
+    uint64_t subgraphRanksHead = 0;
     uint64_t countt = 0;
-    uint64_t sumt = 0;
+    uint64_t subgraphRanksTail = 0;
 
     vector<double> allQueriesPrecisionsH;
     vector<double> allQueriesPrecisionsT;
@@ -1079,8 +1103,8 @@ void SubgraphHandler::findAnswers(KB &kb,
             if (i > 0) {
                 LOG(INFOL) << "***Found answers (H): " << counth << " (T): " << countt <<
                     " of " << i / 3;
-                //LOG(INFOL) << "***Avg (H): " << (double) sumh / counth << " (T): "
-                //    << (double)sumt / countt;
+                //LOG(INFOL) << "***Avg (H): " << (double) subgraphRanksHead / counth << " (T): "
+                //    << (double)subgraphRanksTail / countt;
                 //LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
                 //    " instead of " << nents * counth;
                 //LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
@@ -1116,7 +1140,7 @@ void SubgraphHandler::findAnswers(KB &kb,
             }
         }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subType, secondDist);
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
 
         ANSWER_METHOD ansMethod = UNION;
         if (answerMethod == "intersection") {
@@ -1125,7 +1149,7 @@ void SubgraphHandler::findAnswers(KB &kb,
             ansMethod = INTERUNION;
         }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
-        int64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+        uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         // Return all answers from the subgraphs
         vector<int64_t> actualAnswersH;
         //LOG(INFOL) << "answer method = " << answerMethod;
@@ -1144,10 +1168,10 @@ void SubgraphHandler::findAnswers(KB &kb,
         if (answerRecallH >= 100) {
             //LOG(INFOL) << "Found all answers for Query: ? " << sr << " " << st;
             counth++;
-            sumh++;
+            subgraphRanksHead++;
         } else if (answerRecallH > 0) {
             //LOG(INFOL) << "@@@@@@@@@@@@@@ Found some answers for query : ? " << sr << " " << st;
-            sumh++;
+            subgraphRanksHead++;
         }
 
         if (formatTest == "dynamicK") {
@@ -1160,9 +1184,9 @@ void SubgraphHandler::findAnswers(KB &kb,
             }
         }
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                r, h, relevantSubgraphsT, relevantSubgraphsTDistances, threshold, subType, secondDist);
+                r, h, relevantSubgraphsT, relevantSubgraphsTDistances, threshold, subAlgo, secondDist);
         int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
-        int64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
+        uint64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         // Return all answers from subgraphs
         vector<int64_t> actualAnswersT;
         getAllPossibleAnswers(q.get(), relevantSubgraphsT, actualAnswersT, ansMethod);
@@ -1181,10 +1205,10 @@ void SubgraphHandler::findAnswers(KB &kb,
         if (answerRecallT >= 100) {
             //LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
             countt++;
-            sumt++;
+            subgraphRanksTail++;
         } else if (answerRecallT > 0) {
             //LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
-            sumt++;
+            subgraphRanksTail++;
         }
 
         //LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerRecallT;
@@ -1233,8 +1257,8 @@ void SubgraphHandler::findAnswers(KB &kb,
     LOG(INFOL) << "Macro Recall    (Tail) = " << macroRecallT;
     LOG(INFOL) << "All  Head answers found for " << counth << " queries out of " << testTriples.size() / 3;
     LOG(INFOL) << "All  Tail answers found for " << countt << " queries out of " << testTriples.size() / 3;
-    LOG(INFOL) << "Some Head answers found for " << sumh << " queries out of " << testTriples.size() / 3;
-    LOG(INFOL) << "Some Tail answers found for " << sumt << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "Some Head answers found for " << subgraphRanksHead << " queries out of " << testTriples.size() / 3;
+    LOG(INFOL) << "Some Tail answers found for " << subgraphRanksTail << " queries out of " << testTriples.size() / 3;
     LOG(INFOL) << "Computing overall accuracy for Head answers : ";
     getModelAccuracy(allExpectedAnswersH, allActualAnswersH, microPrecisionH, microRecallH);
     LOG(INFOL) << "Computing overall accuracy for Tail answers : ";

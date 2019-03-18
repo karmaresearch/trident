@@ -383,6 +383,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "Type of distance for second level of ranking", false);
     subeval_options.add<string>("", "binEmbDir", "",
             "The directory that contains the binarized embeddings of subgraphs, entities and relations.", false);
+    subeval_options.add<bool>("","calcDisp", false, "Calculate displacements. Default is DONT CALCULATE", false);
 #endif
 
     /***** GENERAL OPTIONS *****/
