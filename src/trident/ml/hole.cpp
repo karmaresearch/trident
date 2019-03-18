@@ -79,14 +79,14 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     std::unordered_map<uint64_t, EntityGradient> gradientsR;
 
     // std::vector<uint32_t> violatedPositions;
-    std::vector<uint64_t> allterms;
+    std::vector<uint64_t> allterms(sizebatch*4);
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     for(uint32_t i = 0; i < sizebatch; ++i) {
-        allterms.push_back(output1[i]);
-        allterms.push_back(output3[i]);
-	allterms.push_back(sneg[i]);
-	allterms.push_back(oneg[i]);
+        allterms[4*i] = output1[i];
+        allterms[4*i+1] = output3[i];
+	allterms[4*i+2] = sneg[i];
+	allterms[4*i+3] = oneg[i];
     }
 
     //Initialize gradient matrix

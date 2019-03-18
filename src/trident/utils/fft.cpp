@@ -117,22 +117,23 @@ void ccorr(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
     ifft(aOut, bOut);
 
     // Copy the output in the output vector
-    for (auto c : bOut) {
-        out.push_back(c.real);
+    out.resize(n);
+    for (int i = 0; i < n; ++i) {
+	out[i] = bOut[i].real;
     }
 }
 
 void ccorr(double* a, double* b, uint16_t size, vector<double>& out) {
-    vector<Complex> ac;
+    vector<Complex> ac(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(a[i], 0.0);
-        ac.push_back(temp);
+	ac[i] = temp;
     }
 
-    vector<Complex> bc;
+    vector<Complex> bc(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(b[i], 0.0);
-        bc.push_back(temp);
+        bc[i] = temp;
     }
 
     ccorr(ac, bc, out);
@@ -164,63 +165,66 @@ void cconv(std::vector<Complex>& a, std::vector<Complex>& b, std::vector<double>
     ifft(aOut, inverseFFT);
 
     // Copy the output in the output vector
-    for (auto c : inverseFFT) {
-        out.push_back(c.real);
+    out.resize(n);
+    for (int i = 0; i < n; ++i) {
+        out[i] = inverseFFT[i].real;
     }
 }
 
 void cconv(double* a, double* b, uint16_t size, std::vector<double>& out) {
-    vector<Complex> ac;
+    vector<Complex> ac(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(a[i], 0.0);
-        ac.push_back(temp);
+        ac[i] = temp;
     }
 
-    vector<Complex> bc;
+    vector<Complex> bc(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(b[i], 0.0);
-        bc.push_back(temp);
+        bc[i] = temp;
     }
 
     cconv(ac, bc, out);
 }
 
 void ccorr(double* a, double* b, uint16_t size, vector<float>& out) {
-    vector<Complex> ac;
+    vector<Complex> ac(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(a[i], 0.0);
-        ac.push_back(temp);
+        ac[i] = temp;
     }
 
-    vector<Complex> bc;
+    vector<Complex> bc(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(b[i], 0.0);
-        bc.push_back(temp);
+        bc[i] = temp;
     }
 
     vector<double> out_d;
     ccorr(ac, bc, out_d);
 
+    out.resize(size);
     for (int i = 0; i < size; ++i) {
 	out[i] = (float) out_d[i];
     }
 }
 
 void cconv(double* a, double* b, uint16_t size, std::vector<float>& out) {
-    vector<Complex> ac;
+    vector<Complex> ac(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(a[i], 0.0);
-        ac.push_back(temp);
+        ac[i] = temp;
     }
 
-    vector<Complex> bc;
+    vector<Complex> bc(size);
     for (int i = 0; i < size; ++i) {
         Complex temp(b[i], 0.0);
-        bc.push_back(temp);
+        bc[i] = temp;
     }
 
     vector<double> out_d;
     cconv(ac, bc, out_d);
+    out.resize(size);
     for (int i = 0; i < size; ++i) {
 	out[i] = (float) out_d[i];
     }
