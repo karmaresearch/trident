@@ -135,16 +135,22 @@ problem. To check SNAP has been correctly compiled, make sure that the file
 
 ## License
 
-Trident is released under Apache 2 license. In the source directory
+Trident is released under Apache 2 license.
+
+In the source directory
 there is one directory called "rdf3x". This directory
 contains a modified version of the RDF3X engine written by <a
 href="https://db.in.tum.de/~neumann/">Thomas Neumann</a>. The source code of
 RDF3X was released on  google code but unfortunately that repository is no
 longer available. The original version of RDF3X is released with Creative
 Commons. In order to comply with the original license, also this modified
-version should be considered released with the same license. There is another directory, called "snap", which contains a modified version of the SNAP library developed at
+version should be considered released with the same license.
+
+There is another directory, called "snap", which contains a modified version of the SNAP library developed at
 Stanford (<a href="http://snap.stanford.edu/snap/index.html">Here</a> is the
 link to the homepage of the project). I modified the code of SNAP in order to
 make it more efficient and to be able to scale up to larger graphs. My changes are contained in the "snap", "src/snap" and "include/snap" directories. Since the original version of SNAP is
-released with the BSD license, then also my modifications are released with
-the same license. This means that everything under these three directories should be considered released under BSD while everything in the directory "rdf3x" should be considered under Creative Commons.
+released with the BSD license, my modifications are released with the same license.
+
+This project contains parts of Kiss FFT (https://github.com/mborgerding/kissfft) which is released with
+the 3-clause BSD license. We only modified it to use double instead of float.
