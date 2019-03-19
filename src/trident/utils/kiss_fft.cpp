@@ -243,6 +243,7 @@ void kf_work(
     const int m=*factors++; /* stage's fft length/p */
     const kiss_fft_cpx * Fout_end = Fout + p*m;
 
+#if 0
 #ifdef _OPENMP
     // use openmp extensions at the 
     // top-level (not recursive)
@@ -265,6 +266,7 @@ void kf_work(
         }
         return;
     }
+#endif
 #endif
 
     if (m==1) {
