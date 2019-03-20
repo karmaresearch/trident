@@ -841,12 +841,10 @@ void SubgraphHandler::evaluate(KB &kb,
             threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO,
             r, t, embAlgo, subAlgo, secondDist);
             LOG(INFOL) << "New Dynamic threshold = " << threshold;
-        }
-
-        if (threshold > 100) {
+        } else if (subgraphThreshold > 100) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
-            threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(threshold - 100)/(double)100));
+            threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(subgraphThreshold - 100)/(double)100));
             LOG(INFOL) << "New % Threshold = " << threshold;
         }
 
@@ -959,6 +957,7 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
     LOG(INFOL) << "# entities : " << nents;
+    LOG(INFOL) << "# Subgraphs: " << subgraphs->getNSubgraphs();
     LOG(INFOL) << "Hits (H): " << hitsHead << " (T): " << hitsTail << " of " << testTriples.size() / 3;
 
     double normalComparisonsH = nents * hitsHead;
