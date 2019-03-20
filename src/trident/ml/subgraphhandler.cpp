@@ -631,7 +631,7 @@ int64_t SubgraphHandler::getDynamicThreshold(
         string &subAlgo,
         DIST secondDist
         ) {
-    // 1. Get all head's for this r and t from validation set
+    // 1. Get all entities for this r and e from validation set
     unordered_map<uint64_t, int64_t> entityRankMap;
     vector<uint64_t> validEntities;
     for(uint64_t j = 0; j < validTriples.size(); j+=3) {
@@ -662,6 +662,7 @@ int64_t SubgraphHandler::getDynamicThreshold(
     selectRelevantSubGraphs(L1, q, embAlgo, type,
             r, e, allSubgraphs, allDistances, 0xffffffff, subAlgo, secondDist);
     vector<int64_t> rankValues;
+    LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
     // find out ranks for all these entities
     areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
     for (auto kv: entityRankMap) {
@@ -839,7 +840,14 @@ void SubgraphHandler::evaluate(KB &kb,
         if (-1 == subgraphThreshold) {
             threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO,
             r, t, embAlgo, subAlgo, secondDist);
-            LOG(INFOL) << "done, now threshold = " << threshold;
+            LOG(INFOL) << "New Dynamic threshold = " << threshold;
+        }
+
+        if (threshold > 100) {
+            // Calculate new threshold based on %
+            // E.g. 101 => 1% of total subgraphs
+            threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(threshold - 100)/(double)100));
+            LOG(INFOL) << "New % Threshold = " << threshold;
         }
 
         if (binEmbDir != "") {
