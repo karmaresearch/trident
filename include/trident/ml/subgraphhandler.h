@@ -3,7 +3,7 @@
 
 #include <trident/ml/subgraphs.h>
 #include <trident/kb/kb.h>
-
+#include <unordered_map>
 typedef enum {UNION, INTERSECTION, INTERUNION} ANSWER_METHOD;
 
 class SubgraphHandler {
@@ -39,8 +39,25 @@ class SubgraphHandler {
                     std::vector<std::size_t> &indices2
                     );
 
-        int64_t isAnswerInSubGraphs(uint64_t a,
-                const std::vector<uint64_t> &subgraphs, Querier *q);
+        int64_t isAnswerInSubGraphs(uint64_t a, const std::vector<uint64_t> &subgraphs, Querier *q);
+
+        void areAnswersInSubGraphs(
+                vector<uint64_t> entities,
+                const std::vector<uint64_t> &subgs,
+                Querier *q,
+                unordered_map<uint64_t, int64_t>& entityRankMap
+                );
+
+        int64_t getDynamicThreshold(
+                Querier* q,
+                vector<uint64_t> &validTriples,
+                Subgraphs<double>::TYPE type,
+                uint64_t &r,
+                uint64_t &e,
+                string &embAlgo,
+                string &subAlgo,
+                DIST secondDist
+                );
 
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
@@ -107,7 +124,7 @@ class SubgraphHandler {
                 string nameTest,
                 string formatTest,
                 string subgraphFilter,
-                uint64_t threshold,
+                int64_t threshold,
                 double varThreshold,
                 string writeLogs,
                 DIST secondDist,

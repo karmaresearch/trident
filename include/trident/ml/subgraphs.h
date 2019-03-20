@@ -259,7 +259,6 @@ class AvgSubgraphs : public Subgraphs<K> {
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
             for(uint16_t i = 0; i < dim; ++i) {
-                LOG(DEBUGL) << "calculated index = " << dim * subgraphid + i;
                 out += abs(emb[i] - params[dim * subgraphid + i]);
             }
             return out;

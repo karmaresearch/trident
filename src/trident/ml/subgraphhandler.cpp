@@ -486,6 +486,51 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
     return -1;
 }
 
+void SubgraphHandler::areAnswersInSubGraphs(
+        vector<uint64_t> entities,
+        const std::vector<uint64_t> &subgs,
+        Querier *q,
+        unordered_map<uint64_t, int64_t>& entityRankMap) {
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
+    int size;
+    typedef unordered_map<uint64_t, int64_t>::value_type map_value_type;
+    int64_t out = 0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        dict->getText(meta.ent, buffer);
+        string sent = string(buffer);
+        dict->getTextRel(meta.rel, buffer, size);
+        string srel = string(buffer, size);
+        // If all entities have found the ranks
+        // = there is no -1 is not found in values of the map
+        // then, return
+        if (entityRankMap.end() == find_if(entityRankMap.begin(),entityRankMap.end(),
+                [](const map_value_type& vt)
+                {
+                    return vt.second == -1;
+                })) {
+            return;
+         }
+
+        for (auto a : entities) {
+            if (meta.t == Subgraphs<double>::TYPE::PO) {
+                if (q->exists(a, meta.rel, meta.ent)) {
+                    //LOG(INFOL) << sent << " :<-->: " << srel;
+                    entityRankMap[a] = out;
+                }
+            } else {
+                if (q->exists(meta.ent, meta.rel, a)) {
+                    //LOG(INFOL) << sent << " :<-->: " << srel;
+                    entityRankMap[a] = out;
+                }
+            }
+        }
+        out++;
+    }
+}
+
 uint64_t SubgraphHandler::numberInstancesInSubgraphs(
         Querier *q,
         const std::vector<uint64_t> &subgs) {
@@ -576,6 +621,64 @@ void SubgraphHandler::getDisplacement<TranseTester<double>>(
     }
 }
 
+int64_t SubgraphHandler::getDynamicThreshold(
+        Querier* q,
+        vector<uint64_t> &validTriples,
+        Subgraphs<double>::TYPE type,
+        uint64_t &r,
+        uint64_t &e,
+        string &embAlgo,
+        string &subAlgo,
+        DIST secondDist
+        ) {
+    // 1. Get all head's for this r and t from validation set
+    unordered_map<uint64_t, int64_t> entityRankMap;
+    vector<uint64_t> validEntities;
+    for(uint64_t j = 0; j < validTriples.size(); j+=3) {
+        uint64_t hv, tv, rv;
+        hv = validTriples[j];
+        rv = validTriples[j + 1];
+        tv = validTriples[j + 2];
+        if (type == Subgraphs<double>::TYPE::PO && rv == r && tv == e) {
+            // Store <ENTITY-ID, -1>
+            // -1 will be replaced by the rank of the subgraph
+            // where this ENTITY-ID will be found.
+            entityRankMap.insert(make_pair(hv,-1));
+            validEntities.push_back(hv);
+        } else {
+            if (rv == r && hv == e) {
+            entityRankMap.insert(make_pair(tv,-1));
+            validEntities.push_back(tv);
+            }
+        }
+    }
+
+    if (0 == validEntities.size()) {
+        // No triples found that share the same relation+entity pair
+        return 10;
+    }
+    vector<uint64_t> allSubgraphs;
+    vector<double> allDistances;
+    selectRelevantSubGraphs(L1, q, embAlgo, type,
+            r, e, allSubgraphs, allDistances, 0xffffffff, subAlgo, secondDist);
+    vector<int64_t> rankValues;
+    // find out ranks for all these entities
+    areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
+    for (auto kv: entityRankMap) {
+        if (kv.second != -1) {
+            rankValues.push_back(kv.second);
+        }
+    }
+    // take the average
+    uint64_t threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
+    if (0x8000000000000000 == threshold) {
+        threshold = 10;
+    }
+    LOG(INFOL) << "AVG (K) = " << threshold;
+    assert(threshold != 0);
+    return threshold;
+}
+
 void SubgraphHandler::evaluate(KB &kb,
         string embAlgo,
         string embDir,
@@ -584,7 +687,7 @@ void SubgraphHandler::evaluate(KB &kb,
         string nameTest,
         string formatTest,
         string subgraphFilter,
-        uint64_t subgraphThreshold,
+        int64_t subgraphThreshold,
         double varThreshold,
         string writeLogs,
         DIST secondDist,
@@ -608,7 +711,7 @@ void SubgraphHandler::evaluate(KB &kb,
     }
     //Load the test file
     std::vector<uint64_t> testTriples;
-    std::vector<uint64_t> testTopKs;
+    std::vector<uint64_t> validTriples;
     uint64_t threshold = subgraphThreshold;
     unordered_map<uint64_t, pair<int, int>> relKMap;
     LOG(INFOL) << "Loading the queries ...";
@@ -632,33 +735,6 @@ void SubgraphHandler::evaluate(KB &kb,
             testTriples.push_back(*(uint64_t*)(buffer.get()+8));
             testTriples.push_back(*(uint64_t*)(buffer.get()+16));
         }
-    } else if (formatTest == "dynamicK") {
-        // The file is uncompressed text file with each test triple has the following format
-        // h <space> r <space> t <space> K_h <space> K_t
-        if (!Utils::exists(nameTest)) {
-            LOG(ERRORL) << "Test file " << nameTest << " not found";
-            throw 10;
-        }
-        std::ifstream ifs(nameTest);
-        string line;
-        while (std::getline(ifs, line)) {
-            istringstream is(line);
-            string token;
-            vector<uint64_t> tokens;
-            while(getline(is, token, ' ')) {
-                uint64_t temp = std::stoull(token);
-                tokens.push_back(temp);
-            }
-            LOG(DEBUGL) << tokens[0] << "  , " << tokens[1] << " , " << tokens[2];
-            testTriples.push_back(tokens[0]);
-            testTriples.push_back(tokens[1]);
-            testTriples.push_back(tokens[2]);
-            testTopKs.push_back(tokens[3]);
-            testTopKs.push_back(tokens[4]);
-            // push the dummy value so that the for loop
-            // variable incrementation works well later
-            testTopKs.push_back(-1);
-        }
     } else {
         //The test set can be extracted from the database
         string pathtest;
@@ -670,33 +746,10 @@ void SubgraphHandler::evaluate(KB &kb,
         BatchCreator::loadTriples(pathtest, testTriples);
     }
 
-    if (subgraphThreshold == -2) {
-        // The file is uncompressed text file with each line with following format
-        // relation <space> K_h <space> K_t
-        if (!Utils::exists(kFile)) {
-            LOG(ERRORL) << "Ks file " << kFile << " not found";
-            throw 10;
-        }
-        std::ifstream ifs(kFile);
-        string line;
-        while (std::getline(ifs, line)) {
-            istringstream is(line);
-            string token;
-            uint64_t rel = 0;
-            int hK = -1, tK = -1;
-            if (getline(is, token, ' ')) {
-                rel = std::stoull(token);
-            }
-            if (getline(is, token, ' ')) {
-                hK = std::stoi(token);
-            }
-            if (getline(is, token, ' ')) {
-                tK = std::stoi(token);
-            }
-            relKMap.insert(make_pair(rel, make_pair(hK, tK)));
-        }
+    if (-1 == subgraphThreshold) {
+        string pathValid = BatchCreator::getValidPath(kb.getPath());
+        BatchCreator::loadTriples(pathValid, validTriples);
     }
-
 
     /*** TEST ***/
     //Stats
@@ -782,21 +835,11 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(DEBUGL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
 
-        if (subgraphThreshold == -1) {
-            switch(testTopKs[i]) {
-                case 0 : threshold = 1; break;
-                case 1 : threshold = 3; break;
-                case 2 : threshold = 5; break;
-                case 3 : threshold = 10; break;
-                default: threshold = 50; break;
-            }
-        } else if (subgraphThreshold == -2){
-            if (relKMap[r].first == -1 || relKMap[r].first > 10) {
-                threshold = 10;
-                LOG(INFOL) << r << " relation had no head answers during training";
-            } else {
-                threshold = relKMap[r].first;
-            }
+        LOG(INFOL) << "threshold : = " << subgraphThreshold;
+        if (-1 == subgraphThreshold) {
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO,
+            r, t, embAlgo, subAlgo, secondDist);
+            LOG(INFOL) << "done, now threshold = " << threshold;
         }
 
         if (binEmbDir != "") {
@@ -842,21 +885,9 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
-        if (subgraphThreshold == -1) {
-            switch(testTopKs[i+1]) {
-                case 0 : threshold = 1; break;
-                case 1 : threshold = 3; break;
-                case 2 : threshold = 5; break;
-                case 3 : threshold = 10; break;
-                default: threshold = 50; break;
-            }
-        } else if (subgraphThreshold == -2) {
-            if (relKMap[r].second == -1 || relKMap[r].second > 10) {
-                threshold = 10;
-                LOG(INFOL) << r << " relation had no tail answers during training";
-            } else {
-                threshold = relKMap[r].second;
-            }
+        if (-1 == subgraphThreshold) {
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP,
+            r, h, embAlgo, subAlgo, secondDist);
         }
 
         if (binEmbDir != "") {
