@@ -503,6 +503,7 @@ void SubgraphHandler::areAnswersInSubGraphs(
         string sent = string(buffer);
         dict->getTextRel(meta.rel, buffer, size);
         string srel = string(buffer, size);
+
         // If all entities have found the ranks
         // = there is no -1 is not found in values of the map
         // then, return
@@ -515,14 +516,16 @@ void SubgraphHandler::areAnswersInSubGraphs(
          }
 
         for (auto a : entities) {
+            dict->getText(a, buffer);
+            string aText = string(buffer, size);
             if (meta.t == Subgraphs<double>::TYPE::PO) {
                 if (q->exists(a, meta.rel, meta.ent)) {
-                    //LOG(INFOL) << sent << " :<-->: " << srel;
+                    //LOG(INFOL) << aText << " :<-" << srel<< "->: "  << sent << " (" << out << ")";
                     entityRankMap[a] = out;
                 }
             } else {
                 if (q->exists(meta.ent, meta.rel, a)) {
-                    //LOG(INFOL) << sent << " :<-->: " << srel;
+                    //LOG(INFOL) << sent << " :<-" << srel<< "->: "  << aText << " (" << out << ")";
                     entityRankMap[a] = out;
                 }
             }
@@ -631,6 +634,8 @@ int64_t SubgraphHandler::getDynamicThreshold(
         string &subAlgo,
         DIST secondDist
         ) {
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
     // 1. Get all entities for this r and e from validation set
     unordered_map<uint64_t, int64_t> entityRankMap;
     vector<uint64_t> validEntities;
@@ -639,22 +644,35 @@ int64_t SubgraphHandler::getDynamicThreshold(
         hv = validTriples[j];
         rv = validTriples[j + 1];
         tv = validTriples[j + 2];
-        if (type == Subgraphs<double>::TYPE::PO && rv == r && tv == e) {
-            // Store <ENTITY-ID, -1>
-            // -1 will be replaced by the rank of the subgraph
-            // where this ENTITY-ID will be found.
-            entityRankMap.insert(make_pair(hv,-1));
-            validEntities.push_back(hv);
+        dict->getText(hv, buffer);
+        string hvText = string(buffer);
+        int size;
+        dict->getTextRel(rv, buffer, size);
+        string rvText = string(buffer, size);
+        dict->getText(tv, buffer);
+        string tvText = string(buffer);
+        if (type == Subgraphs<double>::TYPE::PO) {
+            if( rv == r && tv == e) {
+                // Store <ENTITY-ID, -1>
+                // -1 will be replaced by the rank of the subgraph
+                // where this ENTITY-ID will be found.
+                entityRankMap.insert(make_pair(hv,-1));
+                validEntities.push_back(hv);
+                //LOG(INFOL) << "r = " << r << " , rv = " << rv;
+                //LOG(INFOL) << hvText << " <-- " << rvText << " --> "<< tvText;
+            }
         } else {
             if (rv == r && hv == e) {
-            entityRankMap.insert(make_pair(tv,-1));
-            validEntities.push_back(tv);
+                entityRankMap.insert(make_pair(tv,-1));
+                validEntities.push_back(tv);
+                //LOG(INFOL) << hvText << " <-- " << rvText << " --> "<< tvText;
             }
         }
     }
 
     if (0 == validEntities.size()) {
         // No triples found that share the same relation+entity pair
+        LOG(INFOL) << "Returning threshold = 10";
         return 10;
     }
     vector<uint64_t> allSubgraphs;
@@ -662,20 +680,28 @@ int64_t SubgraphHandler::getDynamicThreshold(
     selectRelevantSubGraphs(L1, q, embAlgo, type,
             r, e, allSubgraphs, allDistances, 0xffffffff, subAlgo, secondDist);
     vector<int64_t> rankValues;
-    LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
+    //LOG(INFOL) << "# of answers found in validation set = " << validEntities.size();
+    assert(validEntities.size() == entityRankMap.size());
+    //LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
+    assert(allSubgraphs.size() == subgraphs->getNSubgraphs());
     // find out ranks for all these entities
     areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
     for (auto kv: entityRankMap) {
         if (kv.second != -1) {
             rankValues.push_back(kv.second);
-        }
+        }/* else {
+            LOG(INFOL) << kv.first << " was not found in any subgraphs !!!";
+        }*/
     }
     // take the average
-    uint64_t threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
-    if (0x8000000000000000 == threshold) {
-        threshold = 10;
+    //for (auto rv : rankValues) {
+    //    LOG(INFOL) << "subgraph rank = " << rv;
+    //}
+    uint64_t threshold = 10;
+    if (0 != rankValues.size()) {
+        threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
     }
-    LOG(INFOL) << "AVG (K) = " << threshold;
+    //LOG(INFOL) << "AVG (K) = " << threshold;
     assert(threshold != 0);
     return threshold;
 }
@@ -833,14 +859,13 @@ void SubgraphHandler::evaluate(KB &kb,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
-        LOG(DEBUGL) << "Query: ? " << sr << " " << st;
+        //LOG(INFOL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
 
-        LOG(INFOL) << "threshold : = " << subgraphThreshold;
+        //LOG(INFOL) << "Initial threshold : = " << subgraphThreshold;
         if (-1 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO,
-            r, t, embAlgo, subAlgo, secondDist);
-            LOG(INFOL) << "New Dynamic threshold = " << threshold;
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist);
+            LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
         } else if (subgraphThreshold > 100) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
@@ -890,10 +915,10 @@ void SubgraphHandler::evaluate(KB &kb,
                 foundH = distance(entitiesH.begin(), it);
             }
         }
-        LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
+        //LOG(INFOL) << "Query: " << sh << " " << sr << " ?";
         if (-1 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP,
-            r, h, embAlgo, subAlgo, secondDist);
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist);
+            LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
         }
 
         if (binEmbDir != "") {
