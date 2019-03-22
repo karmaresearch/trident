@@ -56,7 +56,8 @@ class SubgraphHandler {
                 uint64_t &e,
                 string &embAlgo,
                 string &subAlgo,
-                DIST secondDist
+                DIST secondDist,
+                int64_t &subgraphThreshold
                 );
 
         void selectRelevantSubGraphs(DIST dist,

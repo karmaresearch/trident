@@ -632,10 +632,12 @@ int64_t SubgraphHandler::getDynamicThreshold(
         uint64_t &e,
         string &embAlgo,
         string &subAlgo,
-        DIST secondDist
+        DIST secondDist,
+        int64_t &subgraphThreshold
         ) {
     DictMgmt *dict = q->getDictMgmt();
     char buffer[MAX_TERM_SIZE];
+    uint64_t nSubgraphs = subgraphs->getNSubgraphs();
     // 1. Get all entities for this r and e from validation set
     unordered_map<uint64_t, int64_t> entityRankMap;
     vector<uint64_t> validEntities;
@@ -670,10 +672,30 @@ int64_t SubgraphHandler::getDynamicThreshold(
         }
     }
 
+    uint64_t threshold = 10;
+    if (nSubgraphs > 100) {
+        threshold = (int)(nSubgraphs * 0.1);
+    }
+
     if (0 == validEntities.size()) {
-        // No triples found that share the same relation+entity pair
-        LOG(INFOL) << "Returning threshold = 10";
-        return 10;
+        // No triples found that share the same relation+entity pair in valid set
+        // Check in the database (training triples)
+        int queryType = -1;
+        if (type == Subgraphs<double>::TYPE::PO) {
+            queryType = IDX_POS;
+        } else {
+            queryType = IDX_PSO;
+        }
+        auto itr = q->getPermuted(queryType, r, e, -1, true);
+        while (itr->hasNext()) {
+            validEntities.push_back(itr->getValue2());
+            itr->next();
+        }
+    }
+
+    if (0 == validEntities.size()) {
+        // No similar triples found in validation or training set
+        return threshold;
     }
     vector<uint64_t> allSubgraphs;
     vector<double> allDistances;
@@ -683,6 +705,8 @@ int64_t SubgraphHandler::getDynamicThreshold(
     //LOG(INFOL) << "# of answers found in validation set = " << validEntities.size();
     assert(validEntities.size() == entityRankMap.size());
     //LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
+
+    // Make sure that all subgraphs are selected
     assert(allSubgraphs.size() == subgraphs->getNSubgraphs());
     // find out ranks for all these entities
     areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
@@ -697,11 +721,20 @@ int64_t SubgraphHandler::getDynamicThreshold(
     //for (auto rv : rankValues) {
     //    LOG(INFOL) << "subgraph rank = " << rv;
     //}
-    uint64_t threshold = 10;
     if (0 != rankValues.size()) {
-        threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
+        if (-1 == subgraphThreshold) {
+            threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
+            //LOG(INFOL) << "AVG (K) = " << threshold;
+        } else if (-2 == subgraphThreshold) {
+            threshold = *std::max_element(rankValues.begin(), rankValues.end());
+            // max cap is 50% of total subgraphs
+            int64_t maxTopK = nSubgraphs * 0.5;
+            if (threshold > maxTopK) {
+                threshold = maxTopK;
+            }
+            //LOG(INFOL) << "MAX (K) = " << threshold;
+        }
     }
-    //LOG(INFOL) << "AVG (K) = " << threshold;
     assert(threshold != 0);
     return threshold;
 }
@@ -863,14 +896,19 @@ void SubgraphHandler::evaluate(KB &kb,
         DIST distType = L1;
 
         //LOG(INFOL) << "Initial threshold : = " << subgraphThreshold;
-        if (-1 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist);
-            LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
+        if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold);
+            //LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
         } else if (subgraphThreshold > 100) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
             threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(subgraphThreshold - 100)/(double)100));
-            LOG(INFOL) << "New % Threshold = " << threshold;
+            if (0 == threshold) {
+                // If 1% of X is 0, then use absolute value 2
+                // If 3% of X is 0, then use absolute value 4 for top K.
+                threshold = (subgraphThreshold - 100) + 1;
+            }
+            //LOG(INFOL) << "New % Threshold = " << threshold;
         }
 
         if (binEmbDir != "") {
@@ -916,9 +954,9 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
         //LOG(INFOL) << "Query: " << sh << " " << sr << " ?";
-        if (-1 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist);
-            LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
+        if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
+            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold);
+            //LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
         }
 
         if (binEmbDir != "") {

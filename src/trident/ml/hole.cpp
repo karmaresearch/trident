@@ -53,7 +53,7 @@ void HoleLearner::process_batch_withnegs(BatchIO &io, std::vector<uint64_t> &one
     std::vector<uint64_t> &output2 = io.field2;
     std::vector<uint64_t> &output3 = io.field3;
 
-    LOG(INFOL) << "$$$ Processing a batch with negs";
+    //LOG(INFOL) << "$$$ Processing a batch with negs";
     // TODO: purpose of support1, support2 etc
     // is to store sign matrices ?
     // can be used for something else ? like gradient values
