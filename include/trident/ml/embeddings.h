@@ -85,6 +85,7 @@ class Embeddings {
             LOG(DEBUGL) << "Loading memory mapped file with " << rawsize << " bytes ...";
             fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
             raw = (K*)fraw->getData();
+
             LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);
@@ -95,6 +96,14 @@ class Embeddings {
             updatesThisEpoch.resize(n);
             medianLastEpoch = allUpdatesLastEpoch = updatedEntitiesLastEpoch = 0;
             LOG(DEBUGL) << "done";
+        }
+
+        std::vector<uint32_t> &getConflicts() {
+            return conflicts;
+        }
+
+        std::vector<uint32_t> &getUpdates() {
+            return updates;
         }
 
     public:
@@ -118,6 +127,7 @@ class Embeddings {
                 fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
                 raw = (K*)fraw->getData();
             }
+
             LOG(DEBUGL) << "Creating remaining data structures ...";
             locks.resize(n);
             conflicts.resize(n);
@@ -163,18 +173,26 @@ class Embeddings {
             updatesThisEpoch[idx]++;
         }
 
+        uint32_t getNConflicts(uint32_t idx) {
+            return conflicts[idx];
+        }
+
+        uint32_t getNUpdates(uint32_t idx) {
+            return updates[idx];
+        }
+
         /*** STATS ***/
-        uint64_t getAllUpdatesLastEpoch() {
-            return allUpdatesLastEpoch;
-        }
+        /*uint64_t getAllUpdatesLastEpoch() {
+          return allUpdatesLastEpoch;
+          }
 
-        uint32_t getUpdatedEntitiesLastEpoch() {
-            return updatedEntitiesLastEpoch;
-        }
-        uint64_t getMedianUpdatesLastEpoch() {
-            return medianLastEpoch;
+          uint32_t getUpdatedEntitiesLastEpoch() {
+          return updatedEntitiesLastEpoch;
+          }
+          uint64_t getMedianUpdatesLastEpoch() {
+          return medianLastEpoch;
 
-        }
+          }*/
         /*** END STATS ***/
 
         uint16_t getDim() const {
@@ -203,23 +221,16 @@ class Embeddings {
             std::sort(nonzeroupdates.begin(), nonzeroupdates.end());
             if (nonzeroupdates.size() > 0) {
                 if (nonzeroupdates.size() % 2 == 0) {
-                    medianLastEpoch = (nonzeroupdates[nonzeroupdates.size() / 2] + nonzeroupdates[nonzeroupdates.size() / 2 + 1]) / 2;
+                    medianLastEpoch = (nonzeroupdates[nonzeroupdates.size() / 2] +
+                            nonzeroupdates[nonzeroupdates.size() / 2 + 1]) / 2;
                 } else {
                     medianLastEpoch = nonzeroupdates[nonzeroupdates.size() / 2];
                 }
             }
         }
 
-        uint32_t getUpdatesLastEpoch(uint32_t idx) {
-            return updatesLastEpoch[idx];
-        }
-
-        /*std::vector<K> &getAllEmbeddings() {
-          return raw;
-          }*/
-
-        /*const K* getPAllEmbeddings() {
-          return raw.data();
+        /*uint32_t getUpdatesLastEpoch(uint32_t idx) {
+          return updatesLastEpoch[idx];
           }*/
 
         void init(const uint16_t nthreads, const bool normalization) {
@@ -247,78 +258,6 @@ class Embeddings {
             }
         }
 
-        /*static void _store_params(std::string path, bool compress,
-          const uint16_t dim, const double *b, const double *e,
-          const uint32_t *cb, const uint32_t *up) {
-          if (compress) {
-          LOG(ERRORL) << "Not implemented";
-          throw 10;
-          }
-          std::ofstream ofs;
-          ofs.open(path, std::ofstream::out);
-          uint64_t counter = 0;
-          while (b != e) {
-          if (counter % dim == 0) {
-        //# Conflicts
-        ofs.write((char*)cb, 4);
-        cb++;
-        //# Updates
-        ofs.write((char*)up, 4);
-        up++;
-        }
-        ofs.write((char*)b, 8);
-        b++;
-        counter += 1;
-        }
-        LOG(DEBUGL) << "Done";
-        }
-
-        void store(std::string path, bool compress, uint16_t nthreads) {
-        K* data = getRaw();
-        uint32_t *c = conflicts.data();
-        uint32_t *u = updates.data();
-        std::vector<std::thread> threads;
-        uint64_t batchsize = (int64_t)n * dim / nthreads;
-
-        {
-        std::string metapath = path;
-        metapath = metapath + "-meta";
-        std::ofstream ofs;
-        ofs.open(metapath, std::ofstream::out);
-        ofs.write((char*)&batchsize, 4);
-        ofs.write((char*)&n, 4);
-        ofs.write((char*)&dim, 2);
-        }
-
-        uint64_t begin = 0;
-        uint16_t idx = 0;
-        for(uint16_t i = 0; i < nthreads; ++i) {
-        std::string localpath = path + "." + std::to_string(idx);
-        if (compress)
-        localpath = localpath + ".gz";
-        uint64_t end = begin + batchsize;
-        if (end > (int64_t)n * dim || i == nthreads - 1) {
-        end = (int64_t)n * dim;
-        }
-        LOG(DEBUGL) << "Storing " <<
-        (end - begin) << " values in " << localpath << " ...";
-        if (begin < end) {
-        threads.push_back(std::thread(
-        Embeddings::_store_params,
-        localpath, compress, dim,
-        data + begin, data + end,
-        c, u));
-        c += batchsize / dim;
-        u += batchsize / dim;
-        idx++;
-        }
-        begin = end;
-        }
-        for(uint16_t i = 0; i < threads.size(); ++i) {
-        threads[i].join();
-        }
-        }*/
-
         void store(std::string path, bool compress, uint16_t nthreads) {
             if (compress) {
                 LOG(WARNL) << "Storing embeddings in compressed format is disabled";
@@ -342,8 +281,8 @@ class Embeddings {
             if (ismem) {
                 //Dump the content of the array into a file as-is
                 ofstream dest(path, ios::binary);
-		size_t nbytes = (uint64_t)n * (uint64_t)dim * sizeof(K);
-		LOG(DEBUGL) << "Dumping on disk " << nbytes << " bytes " << n << " " << dim << " " << sizeof(K);
+                size_t nbytes = (uint64_t)n * (uint64_t)dim * sizeof(K);
+                LOG(DEBUGL) << "Dumping on disk " << nbytes << " bytes " << n << " " << dim << " " << sizeof(K);
                 dest.write((char*)mraw.data(), nbytes);
                 dest.close();
             } else {
@@ -356,7 +295,25 @@ class Embeddings {
                 Utils::copy(rawFilename, path);
             }
 
-            //TODO: Copy data about conflicts, updates
+            //Copy data about conflicts
+            {
+                std::string cpath = path;
+                cpath = cpath + "-conflicts";
+                std::ofstream ofs;
+                ofs.open(cpath, std::ofstream::out);
+                ofs.write((char*)conflicts.data(),
+                        sizeof(uint32_t) * conflicts.size());
+            }
+
+            //Save data about updates
+            {
+                std::string cpath = path;
+                cpath = cpath + "-updates";
+                std::ofstream ofs;
+                ofs.open(cpath, std::ofstream::out);
+                ofs.write((char*)updates.data(),
+                        sizeof(uint32_t) * updates.size());
+            }
 
             LOG(DEBUGL) << "done.";
         }
@@ -374,75 +331,29 @@ class Embeddings {
             embperblock = *(uint32_t*) buffer;
             n = *(uint32_t*)(buffer + 4);
             dim = *(uint16_t*)(buffer + 8);
+            ifs.close();
 
             //Count the files with a number as extension
             std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, path));
-            //TODO: load info about conflicts, updates
+
+            //Load info about conflicts
+            if (Utils::exists(path + "-conflicts")) {
+                ifs.open(path + "-conflicts", std::ifstream::in);
+                emb->getConflicts().resize(n);
+                ifs.read((char*)emb->getConflicts().data(), sizeof(uint32_t) * n);
+                ifs.close();
+            }
+
+            //Load info about updates
+            if (Utils::exists(path + "-updates")) {
+                ifs.open(path + "-updates", std::ifstream::in);
+                emb->getUpdates().resize(n);
+                ifs.read((char*)emb->getUpdates().data(), sizeof(uint32_t) * n);
+                ifs.close();
+            }
+
             return emb;
         }
-
-        /*static std::shared_ptr<Embeddings<K>> load(std::string path) {
-          std::vector<std::string> files = Utils::getFilesWithPrefix(
-          Utils::parentDir(path), Utils::filename(path));
-
-        //There should be a file that ends with -meta
-        bool metafound = false;
-        uint32_t n;
-        uint16_t dim;
-        uint32_t embperblock = 0;
-        for (auto f : files) {
-        if (Utils::ends_with(f, "-meta")) {
-        //Get the metadata
-        std::ifstream ifs;
-        ifs.open(f, std::ifstream::in);
-        char buffer[10];
-        ifs.read(buffer, 10);
-        embperblock = *(uint32_t*) buffer;
-        n = *(uint32_t*)(buffer + 4);
-        dim = *(uint16_t*)(buffer + 8);
-        metafound = true;
-        break;
-        }
-        }
-
-        if (!metafound) {
-        LOG(WARNL) << "Embedding file " << path << " not found";
-        return std::shared_ptr<Embeddings<double>>();
-        } else {
-        //Count the files with a number as extension
-        std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim));
-
-        //Fields
-        double *raw = emb->getRaw();
-        uint32_t *up = emb->updates.data();
-        uint32_t *conf = emb->conflicts.data();
-
-        uint32_t countfile = 0;
-        std::string filetoload = path + "." + std::to_string(countfile);
-        while (Utils::exists(filetoload)) {
-        std::ifstream ifs;
-        ifs.open(filetoload, std::ifstream::in);
-        const uint16_t sizeline = 8 + dim * 8;
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
-        while(true) {
-        ifs.read(buffer.get(), sizeline);
-        if (ifs.eof()) {
-        break;
-        }
-        //Parse the line
-         *conf = *(uint32_t*)buffer.get();
-         *up = *(uint32_t*)(buffer.get()+4);
-         memcpy((char*)raw, buffer.get() + 8, dim * 8);
-         conf += 1;
-         up += 1;
-         raw += dim;
-         }
-         countfile += 1;
-         filetoload = path + "." + std::to_string(countfile);
-         }
-         return emb;
-         }
-         }*/
 
         static std::shared_ptr<Embeddings<K>> loadBinary(std::string path) {
             const uint16_t sizeline = 25;
