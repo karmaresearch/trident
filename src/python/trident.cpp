@@ -680,6 +680,21 @@ static PyObject * db_lookup_id(PyObject *self, PyObject *args) {
     }
 }
 
+static PyObject * db_lookup_relid(PyObject *self, PyObject *args) {
+    const char *term;
+    if (!PyArg_ParseTuple(args, "s", &term))
+        return NULL;
+    KB *kb = ((trident_Db*)self)->kb;
+    nTerm value;
+    bool resp = kb->getDictMgmt()->getNumberRel(term, strlen(term), &value);
+    if (resp) {
+        return PyLong_FromLong(value);
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
 static PyObject * db_lookup_str(PyObject *self, PyObject *args) {
     int64_t id;
     if (!PyArg_ParseTuple(args, "l", &id))
@@ -780,6 +795,7 @@ static PyMethodDef Db_methods[] = {
     {"indegree", db_indegree, METH_VARARGS, "Get the list of all nodes with their indegrees" },
     {"outdegree", db_outdegree, METH_VARARGS, "Get the list of all nodes with their outdegrees" },
     {"lookup_id", db_lookup_id, METH_VARARGS, "Lookup for the ID of an input term" },
+    {"lookup_relid", db_lookup_relid, METH_VARARGS, "Lookup for the ID of an input relation term" },
     {"lookup_str", db_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
     {"lookup_relstr", db_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
     {"search_id", db_search_id, METH_VARARGS, "Search for the IDs of terms" },
