@@ -20,6 +20,13 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
+IF (JAVA)
+    find_package(Java REQUIRED)
+    include(UseJava)
+    find_package(JNI REQUIRED)
+    include_directories(${JNI_INCLUDE_DIRS})
+ENDIF()
+
 if(SERVER)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DSERVER=1")
     message("SERVER forces the enabling of SPARQL")
@@ -220,6 +227,12 @@ if (ANALYTICS)
     TARGET_LINK_LIBRARIES(trident trident-ana)
 ENDIF()
 
+IF(JAVA)
+    file(GLOB trident_javaSRC "src/trident/java/native/*.cpp")
+    add_library(trident-java SHARED ${trident_javaSRC})
+    set_target_properties(trident-java PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
+ENDIF()
+
 #WEBSERVER
 IF (SERVER)
     file(GLOB webserver_SRC
@@ -283,3 +296,13 @@ IF(PYTHON)
     set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
     TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana ${PY3_LIBRARIES})
 ENDIF()
+
+if(JAVA)
+    file(GLOB javaSRC "src/trident/java/karmaresearch/trident/*.java")
+    Create_javadoc(trident PACKAGES karmaresearch.trident
+        SOURCEPATH ${CMAKE_CURRENT_SOURCE_DIR}/src/trident/java WINDOWTITLE "Trident JNI Interface")
+    TARGET_LINK_LIBRARIES(trident-java trident-core trident-sparql trident-web kognac-core)
+    add_jar(jtrident ${javaSRC} trident-java trident-core trident-sparql kognac-core GENERATE_NATIVE_HEADERS headers DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/src/trident/java/native/)
+    add_dependencies(jtrident trident-java)
+ENDIF()
+
