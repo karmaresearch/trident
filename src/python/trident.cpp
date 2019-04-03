@@ -656,8 +656,8 @@ static PyObject *db_allos(PyObject *self, PyObject *args) {
         int64_t o = itr->getValue1();
         int64_t s = itr->getValue2();
         PyObject *t = PyTuple_New(2);
-        PyTuple_SetItem(t, 0, PyLong_FromLong(s));
-        PyTuple_SetItem(t, 1, PyLong_FromLong(o));
+        PyTuple_SetItem(t, 0, PyLong_FromLong(o));
+        PyTuple_SetItem(t, 1, PyLong_FromLong(s));
         PyList_Append(obj, t);
         Py_DECREF(t);
     }
