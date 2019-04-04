@@ -567,13 +567,33 @@ static PyObject *db_allo(PyObject *self, PyObject *args) {
     return obj;
 }
 
-static PyObject *db_allo_aggr(PyObject *self, PyObject *args) {
+static PyObject *db_allo_aggr_froms(PyObject *self, PyObject *args) {
     int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
     PairItr *itr = q->getPermuted(IDX_SOP, s, -1, -1, true);
+    itr->ignoreSecondColumn();
+    while (itr->hasNext()) {
+        itr->next();
+        int64_t o = itr->getValue1();
+        PyObject *value = PyLong_FromLong(o);
+        PyList_Append(obj, value);
+        Py_DECREF(value);
+    }
+
+    q->releaseItr(itr);
+    return obj;
+}
+
+static PyObject *db_allo_aggr_fromp(PyObject *self, PyObject *args) {
+    int64_t p;
+    if (!PyArg_ParseTuple(args, "l", &p))
+        return NULL;
+    Querier *q = ((trident_Db*)self)->q;
+    PyObject *obj = PyList_New(0);
+    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1, true);
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
@@ -771,9 +791,10 @@ static void db_dealloc(trident_Db* self) {
 static PyMethodDef Db_methods[] = {
     {"s", db_alls, METH_VARARGS, "Get all subjects given the p and o. Returns a Python list." },
     {"s_itr", db_alls_fast, METH_VARARGS, "Get all subjects given the p and o. Returns an itr." },
-    {"s_aggr", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
+    {"s_aggr_fromo", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
     {"o", db_allo, METH_VARARGS, "Get all objects given the s and p" },
-    {"o_aggr", db_allo_aggr, METH_VARARGS, "Get all objects given the s" },
+    {"o_aggr_froms", db_allo_aggr_froms, METH_VARARGS, "Get all objects given the s" },
+    {"o_aggr_fromp", db_allo_aggr_fromp, METH_VARARGS, "Get all objects given p" },
     {"po", db_allpo, METH_VARARGS, "Get all (predicate, objects) given s" },
     {"ps", db_allps, METH_VARARGS, "Get all (predicate, subject) given o" },
     {"os", db_allos, METH_VARARGS, "Get all (subject, object) given a p" },

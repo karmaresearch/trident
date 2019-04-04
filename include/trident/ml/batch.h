@@ -63,6 +63,7 @@ class BatchCreator {
         const bool filter;
         const std::shared_ptr<Feedback> feedback;
 
+        int usedIndex;
         std::unique_ptr<MemoryMappedFile> mappedFile;
         const char* rawtriples;
         uint64_t ntriples;
@@ -70,11 +71,17 @@ class BatchCreator {
         uint64_t currentidx;
         std::default_random_engine engine;
 
+        int64_t findFirstOccurrence(int64_t start, int64_t end, uint64_t x, int offset);
+
+        int64_t findLastOccurrence(int64_t start, int64_t end, uint64_t x, int offset);
+
         bool shouldBeUsed(int64_t s, int64_t p, int64_t o);
 
         void createInputForBatch(bool createTraining,
                 const float valid,
                 const float test);
+
+        void populateIndicesFromQuery(int64_t s, int64_t p, int64_t o);
 
     public:
         BatchCreator(string kbdir, uint64_t batchsize, uint16_t nthreads,
@@ -93,13 +100,19 @@ class BatchCreator {
                     std::shared_ptr<Feedback>()) {
             }
 
-        void start();
+        void start(int64_t s = -1, int64_t p = -1, int64_t o = -1);
 
         bool getBatch(std::vector<uint64_t> &output);
 
         bool getBatch(std::vector<uint64_t> &output1,
                 std::vector<uint64_t> &output2,
                 std::vector<uint64_t> &output3);
+
+        bool getBatchNr(uint64_t nr, std::vector<uint64_t> &output1,
+                std::vector<uint64_t> &output2,
+                std::vector<uint64_t> &output3);
+
+        uint64_t getNBatches();
 
         string getValidPath();
 
