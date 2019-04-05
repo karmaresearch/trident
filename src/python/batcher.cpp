@@ -112,7 +112,7 @@ static PyObject *batcher_getbatch_nr(PyObject *self, PyObject *args) {
 static PyObject *batcher_get_n_batches(PyObject *self, PyObject *args) {
     trident_Batcher *s = (trident_Batcher*) self;
     uint64_t nbatches = s->creator->getNBatches();
-    return PyBool_FromLong(nbatches);
+    return PyLong_FromLong(nbatches);
 }
 
 static PyMethodDef Batcher_methods[] = {

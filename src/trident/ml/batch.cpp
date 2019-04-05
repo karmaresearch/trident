@@ -339,9 +339,13 @@ void BatchCreator::start(int64_t s, int64_t p, int64_t o) {
     }
 
     LOG(DEBUGL) << "Shuffling array ...";
+    shuffle();
+    LOG(DEBUGL) << "Done";
+}
+
+void BatchCreator::shuffle() {
     std::shuffle(this->indices.begin(), this->indices.end(), engine);
     this->currentidx = 0;
-    LOG(DEBUGL) << "Done";
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
