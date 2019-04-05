@@ -747,7 +747,7 @@ int64_t SubgraphHandler::getDynamicThreshold(
 
     uint64_t threshold = 10;
     if (nSubgraphs > 100) {
-        threshold = (int)(nSubgraphs * 0.1);
+        threshold = (uint64_t)(nSubgraphs / 3);
     }
 
     start = std::chrono::system_clock::now();
