@@ -71,8 +71,6 @@ class BatchCreator {
         uint64_t currentidx;
         std::default_random_engine engine;
 
-        void shuffle();
-
         int64_t findFirstOccurrence(int64_t start, int64_t end, uint64_t x, int offset);
 
         int64_t findLastOccurrence(int64_t start, int64_t end, uint64_t x, int offset);
@@ -115,6 +113,8 @@ class BatchCreator {
                 std::vector<uint64_t> &output3);
 
         uint64_t getNBatches();
+
+        void shuffle();
 
         string getValidPath();
 

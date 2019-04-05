@@ -218,7 +218,8 @@ void BatchCreator::populateIndicesFromQuery(int64_t s, int64_t p, int64_t o) {
             int64_t idxEndFirstTerm = findLastOccurrence(idxStartFirstTerm,
                     end, firstTerm, offset);
             start = idxStartFirstTerm;
-            end = idxEndFirstTerm;
+            if (idxEndFirstTerm < end)
+                end = idxEndFirstTerm + 1;
         } else {
             start = end = 0;
         }
@@ -244,7 +245,8 @@ void BatchCreator::populateIndicesFromQuery(int64_t s, int64_t p, int64_t o) {
                 int64_t idxEndSecondTerm = findLastOccurrence(idxStartSecondTerm,
                         end, secondTerm, offset);
                 start = idxStartSecondTerm;
-                end = idxEndSecondTerm;
+                if (idxEndSecondTerm < end)
+                    end = idxEndSecondTerm + 1;
             } else {
                 start = end = 0;
             }
@@ -253,12 +255,12 @@ void BatchCreator::populateIndicesFromQuery(int64_t s, int64_t p, int64_t o) {
 
     if (idxStartSecondTerm != -1) {
         int64_t thirdTerm;
-        if (this->usedIndex == IDX_OPS || this->usedIndex == IDX_SPO) {
-            thirdTerm = p;
-            offset = 5;
-        } else if (this->usedIndex == IDX_OSP || this->usedIndex == IDX_PSO) {
+        if (this->usedIndex == IDX_OPS || this->usedIndex == IDX_POS) {
             thirdTerm = s;
             offset = 0;
+        } else if (this->usedIndex == IDX_OSP || this->usedIndex == IDX_SOP) {
+            thirdTerm = p;
+            offset = 5;
         } else {
             thirdTerm = o;
             offset = 10;
@@ -274,6 +276,8 @@ void BatchCreator::populateIndicesFromQuery(int64_t s, int64_t p, int64_t o) {
             }
         }
     }
+
+    //std::cout << "Creating an index with " << (end - start) << std::endl;
 
     //Populate indices
     this->indices.resize(end - start);
@@ -393,7 +397,8 @@ bool BatchCreator::getBatchNr(uint64_t nr, std::vector<uint64_t> &output1,
     //Try to get up to batchsize triples
     int64_t i = 0;
     int64_t cidx = nr * this->batchsize;
-    while (i < batchsize && cidx < ntriples) {
+
+    while (i < batchsize && cidx < indices.size()) {
         int64_t idx = indices[cidx];
         uint64_t s, p, o;
         if (createBatchFile) {

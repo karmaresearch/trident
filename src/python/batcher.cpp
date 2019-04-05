@@ -115,10 +115,19 @@ static PyObject *batcher_get_n_batches(PyObject *self, PyObject *args) {
     return PyLong_FromLong(nbatches);
 }
 
+static PyObject *batcher_shuffle(PyObject *self, PyObject *args) {
+    trident_Batcher *s = (trident_Batcher*) self;
+    s->creator->shuffle();
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
 static PyMethodDef Batcher_methods[] = {
     {"start", batcher_start, METH_VARARGS, "Starts the process." },
     {"getbatch", batcher_getbatch, METH_VARARGS, "Get one batch." },
     {"getbatch_nr", batcher_getbatch_nr, METH_VARARGS, "Get one specific batch." },
+    {"shuffle", batcher_shuffle, METH_VARARGS, "Shuffle the batches" },
     {"get_n_batches", batcher_get_n_batches, METH_VARARGS, "Get number of batches." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

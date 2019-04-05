@@ -226,6 +226,15 @@ static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
     }
 }
 
+static PyObject *db_count_po(PyObject *self, PyObject *args) {
+    int64_t p,o;
+    if (!PyArg_ParseTuple(args, "ll", &p, &o))
+        return NULL;
+    Querier *q = ((trident_Db*)self)->q;
+    const int64_t nresults = q->getCardOnIndex(IDX_OPS, -1, p, o);
+    return PyLong_FromLong(nresults);
+}
+
 static PyObject *db_counts(PyObject *self, PyObject *args) {
     int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
@@ -803,6 +812,7 @@ static PyMethodDef Db_methods[] = {
     {"count_s", db_counts, METH_VARARGS, "Get the number of triples with the same subject" },
     {"count_o", db_counto, METH_VARARGS, "Get the number of triples with the same object" },
     {"count_p", db_countp, METH_VARARGS, "Get the number of triples with the same predicate" },
+    {"count_po", db_count_po, METH_VARARGS, "Get the number of triples with the same predicate and object" },
     {"exists", db_exists, METH_VARARGS, "Check if the given triple exists" },
     {"existsQuery", db_existsQuery, METH_VARARGS, "Check if the given triple exists among the results of a given pattern" },
     {"n_terms", db_nterms, METH_VARARGS, "Get the number of terms in the graph" },
