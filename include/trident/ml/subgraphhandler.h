@@ -61,6 +61,8 @@ class SubgraphHandler {
                 bool hugeKG = false
                 );
 
+        vector<uint64_t> sampleSubgraphs(vector<uint64_t>& subgs, int percent=25);
+
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
                 string algo,
@@ -132,7 +134,8 @@ class SubgraphHandler {
                 DIST secondDist,
                 string kFile,
                 string binEmbDir,
-                bool calcDisp);
+                bool calcDisp,
+                int64_t sampleTest);
 
         /*void findAnswers(KB &kb,
                 string embAlgo,

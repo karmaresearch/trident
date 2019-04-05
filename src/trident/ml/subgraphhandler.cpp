@@ -228,12 +228,12 @@ inline vector<int64_t> intersectionNPercent(const vector<vector<int64_t>> &entit
     return output;
 }
 
-template<class BidiIter >
-BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random) {
+template<class K >
+K random_unique(K begin, K end, size_t num_random) {
     size_t left = std::distance(begin, end);
     srand(time(0));
     while (num_random--) {
-        BidiIter r = begin;
+        K r = begin;
         std::advance(r, rand()%left);
         std::swap(*begin, *r);
         ++begin;
@@ -251,12 +251,26 @@ vector<uint64_t> sampleTriples(vector<uint64_t> & triples, int nChosen=1000) {
     }
     random_unique(tripleIndices.begin(), tripleIndices.end(), nChosen);
     vector<uint64_t> chosenTriples(nChosen * 3);
-    for (int i = 0; i < nChosen; i+=3) {
-        chosenTriples[i]   = triples[tripleIndices[i]*3];
-        chosenTriples[i+1] = triples[tripleIndices[i]*3 + 1];
-        chosenTriples[i+2] = triples[tripleIndices[i]*3 + 2];
+    for (int i = 0, j = 0; i < nChosen*3 && j < tripleIndices.size(); i+=3, j+=1) {
+        chosenTriples[i]   = triples[tripleIndices[j]*3];
+        chosenTriples[i+1] = triples[tripleIndices[j]*3 + 1];
+        chosenTriples[i+2] = triples[tripleIndices[j]*3 + 2];
     }
     return chosenTriples;
+}
+
+vector<uint64_t> SubgraphHandler::sampleSubgraphs(vector<uint64_t>& allsub, int percent) {
+    vector<uint64_t> chosenSubgraphs;
+    uint64_t totalEntities = 0;
+    uint64_t maxEntities = (uint64_t)(E->getN() *(double)percent/100);
+    for (auto id: allsub) {
+        totalEntities += subgraphs->getMeta(id).size;
+        if (totalEntities >= maxEntities) {
+            break;
+        }
+        chosenSubgraphs.push_back(id);
+    }
+    return chosenSubgraphs;
 }
 
 double SubgraphHandler::calculateScore(uint64_t ent,
@@ -312,8 +326,8 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         }
         //LOG(DEBUGL) << "Subgraph ID : " << subgraphid << " " << meta.rel  << " , " << meta.ent;
         while(itr->hasNext()) {
-            int64_t p = itr->getKey();
-            int64_t e1 = itr->getValue1();
+            //int64_t p = itr->getKey();
+            //int64_t e1 = itr->getValue1();
             int64_t e2 = itr->getValue2();
             //LOG(DEBUGL) << countResultsS << ")" << e1 << ": " << p << " , " << e2;
             if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
@@ -362,7 +376,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
     } else {
         std::copy(unionAnswers.begin(), unionAnswers.end(), back_inserter(output));
     }
-    LOG(DEBUGL) << "Total answers : " << totalAnswers;
+    LOG(DEBUGL) << "Total possible answers : " << totalAnswers;
 }
 
 
@@ -688,24 +702,28 @@ int64_t SubgraphHandler::getDynamicThreshold(
         int64_t &subgraphThreshold,
         bool hugeKG
         ) {
-    DictMgmt *dict = q->getDictMgmt();
-    char buffer[MAX_TERM_SIZE];
+    //DictMgmt *dict = q->getDictMgmt();
+    //char buffer[MAX_TERM_SIZE];
     uint64_t nSubgraphs = subgraphs->getNSubgraphs();
     // 1. Get all entities for this r and e from validation set
     unordered_map<uint64_t, int64_t> entityRankMap;
     vector<uint64_t> validEntities;
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
+
+    start = std::chrono::system_clock::now();
     for(uint64_t j = 0; j < validTriples.size(); j+=3) {
         uint64_t hv, tv, rv;
         hv = validTriples[j];
         rv = validTriples[j + 1];
         tv = validTriples[j + 2];
-        dict->getText(hv, buffer);
-        string hvText = string(buffer);
-        int size;
-        dict->getTextRel(rv, buffer, size);
-        string rvText = string(buffer, size);
-        dict->getText(tv, buffer);
-        string tvText = string(buffer);
+        //dict->getText(hv, buffer);
+        //string hvText = string(buffer);
+        //int size;
+        //dict->getTextRel(rv, buffer, size);
+        //string rvText = string(buffer, size);
+        //dict->getText(tv, buffer);
+        //string tvText = string(buffer);
         if (type == Subgraphs<double>::TYPE::PO) {
             if( rv == r && tv == e) {
                 // Store <ENTITY-ID, -1>
@@ -724,12 +742,15 @@ int64_t SubgraphHandler::getDynamicThreshold(
             }
         }
     }
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to go through all validation triples = " << duration.count() * 1000 << " ms";
 
     uint64_t threshold = 10;
     if (nSubgraphs > 100) {
         threshold = (int)(nSubgraphs * 0.1);
     }
 
+    start = std::chrono::system_clock::now();
     if (0 == validEntities.size()) {
         // No triples found that share the same relation+entity pair in valid set
         // Check in the database (training triples)
@@ -752,36 +773,44 @@ int64_t SubgraphHandler::getDynamicThreshold(
             samples++;
         }
     }
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to go through database for similar triples = " << duration.count() * 1000 << " ms";
 
-    if (0 == validEntities.size()) {
-        // No similar triples found in validation or training set
+    if (validEntities.size() <= 4) {
+        // No similar triples or very few similar triples found
+        // in validation or training set
+        LOG(DEBUGL) << "Number of entities found in train/valid sets = " << validEntities.size()<<" Use Threshold = " << threshold;
         return threshold;
     }
     vector<uint64_t> allSubgraphs;
     vector<double> allDistances;
+
+    start = std::chrono::system_clock::now();
     selectRelevantSubGraphs(L1, q, embAlgo, type,
             r, e, allSubgraphs, allDistances, 0xffffffff, subAlgo, secondDist);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to sort all subgraphs for this query = " << duration.count() * 1000 << " ms";
     vector<int64_t> rankValues;
-    //LOG(INFOL) << "# of answers found in validation set = " << validEntities.size();
     assert(validEntities.size() == entityRankMap.size());
-    //LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
 
     // Make sure that all subgraphs are selected
     assert(allSubgraphs.size() == subgraphs->getNSubgraphs());
+
+    // Filter subgraphs based on their size:
+    // cap on number of total possible entities
+    vector<uint64_t> chosenSubgraphs = sampleSubgraphs(allSubgraphs);
+
     // find out ranks for all these entities
-    areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
+    start = std::chrono::system_clock::now();
+    areAnswersInSubGraphs(validEntities, chosenSubgraphs, q, entityRankMap);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to find "<< validEntities.size() <<" answers in all "  << chosenSubgraphs.size() << " subgraphs: " << duration.count()*1000 << "ms";
     for (auto kv: entityRankMap) {
         if (kv.second != -1) {
             rankValues.push_back(kv.second);
-        }/* else {
-            LOG(INFOL) << kv.first << " was not found in any subgraphs !!!";
-            }*/
+        }
     }
-    // take the average
-    //for (auto rv : rankValues) {
-    //    LOG(INFOL) << "subgraph rank = " << rv;
-    //}
-    int64_t maxTopK = nSubgraphs * 0.5;
+    int64_t maxTopK = (int64_t)(nSubgraphs / 3);
     if (0 != rankValues.size()) {
         if (-1 == subgraphThreshold) {
             LOG(DEBUGL) << "Accumulating " << rankValues.size() << " values";
@@ -797,6 +826,7 @@ int64_t SubgraphHandler::getDynamicThreshold(
         }
     }
     assert(threshold != 0);
+    LOG(DEBUGL) << "Use Threshold = " << threshold;
     return threshold;
 }
 
@@ -814,7 +844,8 @@ void SubgraphHandler::evaluate(KB &kb,
         DIST secondDist,
         string kFile,
         string binEmbDir,
-        bool calcDisp) {
+        bool calcDisp,
+        int64_t sampleTest) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -901,6 +932,8 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t sumDisplacementSNeg = 0;
     bool hugeKG = false;
 
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
     /*
      * dynamic cache for K's is a map with Entity as key
      * and vector of <relation , topK> as values
@@ -916,11 +949,14 @@ void SubgraphHandler::evaluate(KB &kb,
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
 
-    if (subFile.find("wikidata") != std::string::npos) {
+    if (testTriples.size() > 1000000) {
         hugeKG = true;
-        // TODO: find random indices in testTriples to sample the test data
-        testTriples = sampleTriples(testTriples);
+        testTriples = sampleTriples(testTriples, sampleTest);
         LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
+        //for (int i = 0; i < testTriples.size(); i+=3) {
+        //    LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
+        //}
+
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
             validTriples = sampleTriples(validTriples, 10000);
             LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
@@ -937,8 +973,7 @@ void SubgraphHandler::evaluate(KB &kb,
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
-        // Only handle 1000 queries for Wikidata
-        LOG(DEBUGL) << "Query " << i << ")";
+        LOG(DEBUGL) << "Query " << i/3 << ")";
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
@@ -983,7 +1018,10 @@ void SubgraphHandler::evaluate(KB &kb,
             Kache_it got = dynamicKache.find(t);
             if (dynamicKache.end() == got) {
                 // The entity does not exist in the cache as the key
+                start = std::chrono::system_clock::now();
                 threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                duration = std::chrono::system_clock::now() - start;
+                LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
                 //dynamicKache.insert(make_pair(t, vector<uint64_t, int64_t>()));
                 dynamicKache[t] = vector<pair<uint64_t,int64_t>>();
                 dynamicKache[t].push_back(make_pair(r, threshold));
@@ -1001,7 +1039,10 @@ void SubgraphHandler::evaluate(KB &kb,
                     }
                 }
                 if (false == predFound) {
+                    start = std::chrono::system_clock::now();
                     threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                    duration = std::chrono::system_clock::now() - start;
+                    LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
                     dynamicKache[t].push_back(make_pair(r,threshold));
                 }
             }
@@ -1015,7 +1056,6 @@ void SubgraphHandler::evaluate(KB &kb,
                 // If 3% of X is 0, then use absolute value 4 for top K.
                 threshold = (subgraphThreshold - 100) + 1;
             }
-            //LOG(INFOL) << "New % Threshold = " << threshold;
         }
 
         if (binEmbDir != "") {
@@ -1024,15 +1064,6 @@ void SubgraphHandler::evaluate(KB &kb,
             vector<uint64_t> relevantSubgraphsHNormal;
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-            /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
-              LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
-              for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
-              LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
-              << " ---> " << relevantSubgraphsH[z];
-              }*/
-            //uint64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-            //uint64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
-            //LOG(INFOL) << binSize  << " , " << norSize;
         } else {
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
@@ -1047,7 +1078,10 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t foundH = -1;
         uint64_t totalSizeH = 0;
         vector<int64_t> entitiesH;
+        start = std::chrono::system_clock::now();
         getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (head) = " << duration.count() * 1000 << " ms";
         totalSizeH = entitiesH.size();
         if (UNION == ansMethod) {
             //TODO: this foundH is the rank of the subgraph
@@ -1065,7 +1099,10 @@ void SubgraphHandler::evaluate(KB &kb,
             Kache_it got = dynamicKache.find(h);
             if (dynamicKache.end() == got) {
                 // The entity does not exist in the cache as the key
+                start = std::chrono::system_clock::now();
                 threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                duration = std::chrono::system_clock::now() - start;
+                LOG(DEBUGL) << "Time to compute dynamic K (tail): " << duration.count() * 1000 << " ms";
                 //dynamicKache.emplace(make_pair(t, vector<uint64_t, int64_t>()));
                 dynamicKache[h] = vector<pair<uint64_t, int64_t>>();
                 dynamicKache[h].push_back(make_pair(r, threshold));
@@ -1083,7 +1120,10 @@ void SubgraphHandler::evaluate(KB &kb,
                     }
                 }
                 if (false == predFound) {
+                    start = std::chrono::system_clock::now();
                     threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                    duration = std::chrono::system_clock::now() - start;
+                    LOG(DEBUGL) << "Time to compute dynamic K (tail): " << duration.count() * 1000 << " ms";
                     dynamicKache[h].push_back(make_pair(r, threshold));
                 }
             }
@@ -1099,7 +1139,10 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t foundT = -1;
         uint64_t totalSizeT = 0;
         vector<int64_t> entitiesT;
+        start = std::chrono::system_clock::now();
         getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (tail) = " << duration.count() * 1000 << " ms";
         totalSizeT = entitiesT.size();
         if(UNION == ansMethod) {
             //Now I have the list of relevant subgraphs. Is the answer in one of these?
@@ -1119,7 +1162,6 @@ void SubgraphHandler::evaluate(KB &kb,
             LOG(DEBUGL) << "HIT HEAD";
         } else {
             sumDisplacementSNeg += displacementS;
-            LOG(DEBUGL) << "MISS HEAD";
         }
 
         if (foundT >= 0) {
@@ -1130,7 +1172,6 @@ void SubgraphHandler::evaluate(KB &kb,
             LOG(DEBUGL) << "HIT TAIL";
         } else {
             sumDisplacementONeg += displacementO;
-            LOG(DEBUGL) << "MISS TAIL";
         }
 
         if (logWriter) {

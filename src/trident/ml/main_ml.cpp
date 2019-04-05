@@ -163,7 +163,8 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
             secondDist,
             vm["kFile"].as<string>(),
             vm["binEmbDir"].as<string>(),
-            vm["calcDisp"].as<bool>());
+            vm["calcDisp"].as<bool>(),
+            vm["sampleTest"].as<int64_t>());
 }
 
 void subgraphAnswers(KB &kb, ProgramArgs &vm) {
