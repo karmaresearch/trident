@@ -919,12 +919,12 @@ void SubgraphHandler::evaluate(KB &kb,
     if (subFile.find("wikidata") != std::string::npos) {
         hugeKG = true;
         // TODO: find random indices in testTriples to sample the test data
-        if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            testTriples = sampleTriples(testTriples);
-            validTriples = sampleTriples(validTriples, 10000);
-        }
+        testTriples = sampleTriples(testTriples);
         LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
-        LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
+        if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
+            validTriples = sampleTriples(validTriples, 10000);
+            LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
+        }
     }
 
     //Select most promising subgraphs to do the search
@@ -1006,7 +1006,7 @@ void SubgraphHandler::evaluate(KB &kb,
                 }
             }
             //LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
-        } else if (subgraphThreshold > 100) {
+        } else if (subgraphThreshold > 100 && subgraphThreshold < 200) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
             threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(subgraphThreshold - 100)/(double)100));
