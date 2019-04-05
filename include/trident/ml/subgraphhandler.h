@@ -57,7 +57,8 @@ class SubgraphHandler {
                 string &embAlgo,
                 string &subAlgo,
                 DIST secondDist,
-                int64_t &subgraphThreshold
+                int64_t &subgraphThreshold,
+                bool hugeKG = false
                 );
 
         void selectRelevantSubGraphs(DIST dist,
