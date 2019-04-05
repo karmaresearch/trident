@@ -122,7 +122,8 @@ void dump(KB *kb, string outputdir) {
         }
         if (print_p) {
             p = itr->getValue2();
-            resp = dict->getText(p, supportBuffer.get());
+            int size;
+            resp = dict->getTextRel(p, supportBuffer.get(), size);
             if (resp) {
                 out << supportBuffer.get() << "\t";
             } else {
