@@ -252,9 +252,9 @@ vector<uint64_t> sampleTriples(vector<uint64_t> & triples, int nChosen=1000) {
     random_unique(tripleIndices.begin(), tripleIndices.end(), nChosen);
     vector<uint64_t> chosenTriples(nChosen * 3);
     for (int i = 0; i < nChosen; i+=3) {
-        chosenTriples[i]   = triples[tripleIndices[i]];
-        chosenTriples[i+1] = triples[tripleIndices[i+1]];
-        chosenTriples[i+2] = triples[tripleIndices[i+2]];
+        chosenTriples[i]   = triples[tripleIndices[i]*3];
+        chosenTriples[i+1] = triples[tripleIndices[i]*3 + 1];
+        chosenTriples[i+2] = triples[tripleIndices[i]*3 + 2];
     }
     return chosenTriples;
 }
