@@ -185,7 +185,7 @@ class DictMgmt {
                 int &sizeOutput);
 
         LIBEXP bool getNumber(const char *key, const int sizeKey, nTerm *value);
-        
+
         LIBEXP bool getNumberRel(const char *key, const int sizeKey, nTerm *value);
 
         bool putDict(const char *key, int sizeKey, nTerm &value);

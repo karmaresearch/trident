@@ -23,7 +23,7 @@ static int Emb_init(trident_Emb *self, PyObject *args, PyObject *kwds) {
     if (path != NULL) {
         self->E = Embeddings<double>::load(spath + "/E");
         self->R = Embeddings<double>::load(spath + "/R");
-	std::cout << "Embeddings are loaded!" << std::endl;
+        std::cout << "Embeddings are loaded!" << std::endl;
     }
     import_array();
     return 0;
@@ -42,7 +42,7 @@ static PyObject * emb_get_e(PyObject *self, PyObject *args) {
     npy_intp dims[1] = { ((trident_Emb*)self)->E->getDim() };
     void *data = (void*)((trident_Emb*)self)->E->get(id);
     auto obj = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data);
-    return obj; 
+    return obj;
 }
 
 static PyObject * emb_get_r(PyObject *self, PyObject *args) {
@@ -55,9 +55,45 @@ static PyObject * emb_get_r(PyObject *self, PyObject *args) {
     return obj;
 }
 
+static PyObject * emb_get_info_e(PyObject *self, PyObject *args) {
+    int64_t id;
+    if (!PyArg_ParseTuple(args, "l", &id))
+        return NULL;
+    uint64_t conflicts = ((trident_Emb*)self)->E->getNConflicts(id);
+    uint64_t updates = ((trident_Emb*)self)->E->getNUpdates(id);
+
+    PyObject *obj = PyList_New(0);
+    PyObject *value = PyLong_FromLong(conflicts);
+    PyList_Append(obj, value);
+    Py_DECREF(value);
+    value = PyLong_FromLong(updates);
+    PyList_Append(obj, value);
+    Py_DECREF(value);
+    return obj;
+}
+
+static PyObject * emb_get_info_r(PyObject *self, PyObject *args) {
+    int64_t id;
+    if (!PyArg_ParseTuple(args, "l", &id))
+        return NULL;
+    uint64_t conflicts = ((trident_Emb*)self)->R->getNConflicts(id);
+    uint64_t updates = ((trident_Emb*)self)->R->getNUpdates(id);
+
+    PyObject *obj = PyList_New(0);
+    PyObject *value = PyLong_FromLong(conflicts);
+    PyList_Append(obj, value);
+    Py_DECREF(value);
+    value = PyLong_FromLong(updates);
+    PyList_Append(obj, value);
+    Py_DECREF(value);
+    return obj;
+}
+
 static PyMethodDef Emb_methods[] = {
     {"get_e", emb_get_e, METH_VARARGS, "Get the embedding of the entity" },
+    {"get_info_e", emb_get_info_e, METH_VARARGS, "Get info of the entity" },
     {"get_r", emb_get_r, METH_VARARGS, "Get the embedding of the relation" },
+    {"get_info_e", emb_get_info_r, METH_VARARGS, "Get info of the relation" },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

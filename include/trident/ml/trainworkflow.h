@@ -138,8 +138,6 @@ class TrainWorkflow {
                         elapsed_seconds.count() << "sec." << sviol;
                 }
 
-                // TODO: print gradients here.
-
                 if (shouldStoreModel && (epoch + 1) % storeits == 0) {
                     string pathmodel = storefolder + "/model-" + to_string(epoch+1);
                     LOG(INFOL) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";

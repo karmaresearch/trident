@@ -19,6 +19,7 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         rawtriples = NULL;
         ntriples = 0;
         currentidx = 0;
+        usedIndex = 0;
     }
 
 std::shared_ptr<Feedback> BatchCreator::getFeedback() {
@@ -46,16 +47,16 @@ void BatchCreator::createInputForBatch(bool createTraining,
     KBConfig config;
     KB kb(kbdir.c_str(), true, false, false, config);
     Querier *q = kb.query();
-    auto itr = q->get(IDX_POS, -1, -1, -1);
-    int64_t s,p,o;
+    auto itr = q->get(this->usedIndex, -1, -1, -1);
+    int64_t s, p, o;
 
     ofstream ofs_valid;
     if (valid > 0) {
-        ofs_valid.open(this->kbdir + "/_batch_valid", ios::out | ios::app | ios::binary);
+        ofs_valid.open(this->kbdir + "/_batch_valid" + std::to_string(this->usedIndex), ios::out | ios::app | ios::binary);
     }
     ofstream ofs_test;
     if (test > 0) {
-        ofs_test.open(this->kbdir + "/_batch_test", ios::out | ios::app | ios::binary);
+        ofs_test.open(this->kbdir + "/_batch_test" + std::to_string(this->usedIndex), ios::out | ios::app | ios::binary);
     }
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -64,14 +65,39 @@ void BatchCreator::createInputForBatch(bool createTraining,
     //Create a file called '_batch' in the maindir with a fixed-length record size
     ofstream ofs;
     if (createTraining) {
-        LOG(INFOL) << "Store the input for the batch process in " << kbdir + "/_batch ...";
-        ofs.open(this->kbdir + "/_batch", ios::out | ios::app | ios::binary);
+        LOG(INFOL) << "Store the input for the batch process in " <<
+            kbdir + "/_batch" + std::to_string(this->usedIndex) << " ...";
+        ofs.open(this->kbdir + "/_batch" + std::to_string(this->usedIndex),
+                ios::out | ios::app | ios::binary);
     }
     while (itr->hasNext()) {
         itr->next();
-        p = itr->getKey();
-        o = itr->getValue1();
-        s = itr->getValue2();
+        if (this->usedIndex == IDX_SPO) {
+            s = itr->getKey();
+            p = itr->getValue1();
+            o = itr->getValue2();
+        } else if (this->usedIndex == IDX_SOP) {
+            s = itr->getKey();
+            o = itr->getValue1();
+            p = itr->getValue2();
+        } else if (this->usedIndex == IDX_POS) {
+            p = itr->getKey();
+            o = itr->getValue1();
+            s = itr->getValue2();
+        } else if (this->usedIndex == IDX_PSO) {
+            p = itr->getKey();
+            s = itr->getValue1();
+            o = itr->getValue2();
+        } else if (this->usedIndex == IDX_OSP) {
+            o = itr->getKey();
+            s = itr->getValue1();
+            p = itr->getValue2();
+        } else if (this->usedIndex == IDX_OPS) {
+            o = itr->getKey();
+            p = itr->getValue1();
+            s = itr->getValue2();
+        }
+
         const char *cs = (const char*)&s;
         const char *cp = (const char*)&p;
         const char *co = (const char*)&o;
@@ -131,13 +157,163 @@ struct _pso {
     }
 };
 
-void BatchCreator::start() {
+int64_t BatchCreator::findFirstOccurrence(int64_t start, int64_t end, uint64_t x, int offset) {
+    int64_t idxTerm = -1;
+    while (start <= end) {
+        int64_t middle = start + (end - start) / 2;
+        int64_t term = *(int64_t*)(rawtriples + middle * 15 + offset);
+        term = term & 0xFFFFFFFFFFl;
+        if (term < x) {
+            start = middle + 1;
+        } else if (term > x) {
+            end = middle - 1;
+        } else {
+            idxTerm = middle;
+            end = middle - 1;
+        }
+    }
+    return idxTerm;
+}
+
+int64_t BatchCreator::findLastOccurrence(int64_t start, int64_t end, uint64_t x, int offset) {
+    int64_t idxTerm = -1;
+    while (start <= end) {
+        int64_t middle = start + (end - start) / 2;
+        int64_t term = *(int64_t*)(rawtriples + middle * 15 + offset);
+        term = term & 0xFFFFFFFFFFl;
+        if (term < x) {
+            start = middle + 1;
+        } else if (term > x) {
+            end = middle - 1;
+        } else {
+            idxTerm = middle;
+            start = middle + 1;
+        }
+    }
+    return idxTerm;
+}
+
+
+void BatchCreator::populateIndicesFromQuery(int64_t s, int64_t p, int64_t o) {
+    int64_t start = 0;
+    int64_t end = ntriples;
+
+    int64_t firstTerm = ~0lu;
+    int offset = 0;
+    if (this->usedIndex == IDX_POS || this->usedIndex == IDX_PSO) {
+        firstTerm = p;
+        offset = 5;
+    } else if (this->usedIndex == IDX_SOP || this->usedIndex == IDX_SPO) {
+        firstTerm = s;
+        offset = 0;
+    } else {
+        firstTerm = o;
+        offset = 10;
+    }
+
+    int64_t idxStartFirstTerm = -1;
+    if (firstTerm != -1) {
+        idxStartFirstTerm = findFirstOccurrence(start, end, firstTerm, offset);
+        if (idxStartFirstTerm != -1) {
+            int64_t idxEndFirstTerm = findLastOccurrence(idxStartFirstTerm,
+                    end, firstTerm, offset);
+            start = idxStartFirstTerm;
+            if (idxEndFirstTerm < end)
+                end = idxEndFirstTerm + 1;
+        } else {
+            start = end = 0;
+        }
+    }
+
+    int64_t idxStartSecondTerm = -1;
+    if (idxStartFirstTerm != -1) {
+        int64_t secondTerm = ~0lu;
+        if (this->usedIndex == IDX_OPS || this->usedIndex == IDX_SPO) {
+            secondTerm = p;
+            offset = 5;
+        } else if (this->usedIndex == IDX_OSP || this->usedIndex == IDX_PSO) {
+            secondTerm = s;
+            offset = 0;
+        } else {
+            secondTerm = o;
+            offset = 10;
+        }
+        if (secondTerm != -1) {
+            idxStartSecondTerm = findFirstOccurrence(start, end, secondTerm,
+                    offset);
+            if (idxStartSecondTerm != -1) {
+                int64_t idxEndSecondTerm = findLastOccurrence(idxStartSecondTerm,
+                        end, secondTerm, offset);
+                start = idxStartSecondTerm;
+                if (idxEndSecondTerm < end)
+                    end = idxEndSecondTerm + 1;
+            } else {
+                start = end = 0;
+            }
+        }
+    }
+
+    if (idxStartSecondTerm != -1) {
+        int64_t thirdTerm;
+        if (this->usedIndex == IDX_OPS || this->usedIndex == IDX_POS) {
+            thirdTerm = s;
+            offset = 0;
+        } else if (this->usedIndex == IDX_OSP || this->usedIndex == IDX_SOP) {
+            thirdTerm = p;
+            offset = 5;
+        } else {
+            thirdTerm = o;
+            offset = 10;
+        }
+        if (thirdTerm != -1) {
+            int64_t idxStartThirdTerm = findFirstOccurrence(start, end, thirdTerm,
+                    offset);
+            if (idxStartThirdTerm != -1) {
+                start = idxStartThirdTerm;
+                end = start + 1;
+            } else {
+                start = end = 0;
+            }
+        }
+    }
+
+    //std::cout << "Creating an index with " << (end - start) << std::endl;
+
+    //Populate indices
+    this->indices.resize(end - start);
+    uint64_t i = 0;
+    while (start < end) {
+        indices[i++] = start++;
+    }
+}
+
+uint64_t BatchCreator::getNBatches() {
+    int64_t n = indices.size() / this->batchsize;
+    if ((indices.size() % this->batchsize) != 0) {
+        return n + 1;
+    } else {
+        return n;
+    }
+}
+
+void BatchCreator::start(int64_t s, int64_t p, int64_t o) {
+    //Get index for s,p,o
+    this->usedIndex = IDX_POS;
+    if (s != -1 || p != -1 || o != -1) {
+        if (valid != 0 || test != 0) {
+            LOG(ERRORL) << "Query-based batching works only if the entire KB is used for training";
+            throw 10;
+        }
+        this->usedIndex = Querier::getIndex_s(6, s, p, o);
+    }
+
     //First check if the file exists
-    string fin = this->kbdir + "/_batch";
+    string fin = this->kbdir + "/_batch" + std::to_string(this->usedIndex);
     if (Utils::exists(fin)) {
     } else {
         if (createBatchFile) {
-            LOG(INFOL) << "Could not find the input file for the batch. I will create it and store it in a file called '_batch'";
+            LOG(INFOL) << "Could not find the input file for the batch."
+                " I will create it and store it in a file called '_batch'";
             createInputForBatch(createBatchFile, valid, test);
         }
     }
@@ -155,22 +331,32 @@ void BatchCreator::start() {
     }
 
     LOG(DEBUGL) << "Creating index array ...";
-    this->indices.resize(this->ntriples);
-    for(int64_t i = 0; i < this->ntriples; ++i) {
-        this->indices[i] = i;
+    if (s != -1 || p != -1 || o != -1) {
+        assert(createBatchFile);
+        //Put in indices only the triples that satisfy the query
+        populateIndicesFromQuery(s, p, o);
+    } else {
+        this->indices.resize(this->ntriples);
+        for(int64_t i = 0; i < this->ntriples; ++i) {
+            this->indices[i] = i;
+        }
     }
 
     LOG(DEBUGL) << "Shuffling array ...";
+    shuffle();
+    LOG(DEBUGL) << "Done";
+}
+
+void BatchCreator::shuffle() {
     std::shuffle(this->indices.begin(), this->indices.end(), engine);
     this->currentidx = 0;
-    LOG(DEBUGL) << "Done";
 }
 
 bool BatchCreator::getBatch(std::vector<uint64_t> &output) {
     int64_t i = 0;
     output.resize(this->batchsize * 3);
     //The output vector is already supposed to contain batchsize elements. Otherwise, resize it
-    while (i < batchsize && currentidx < ntriples) {
+    while (i < batchsize && currentidx < indices.size()) {
         int64_t idx = indices[currentidx];
         uint64_t s,p,o;
         if (createBatchFile) {
@@ -201,6 +387,46 @@ bool BatchCreator::shouldBeUsed(int64_t s, int64_t p, int64_t o) {
     return feedback->shouldBeIncluded(s, p, o);
 }
 
+bool BatchCreator::getBatchNr(uint64_t nr, std::vector<uint64_t> &output1,
+        std::vector<uint64_t> &output2,
+        std::vector<uint64_t> &output3) {
+    output1.resize(this->batchsize);
+    output2.resize(this->batchsize);
+    output3.resize(this->batchsize);
+
+    //Try to get up to batchsize triples
+    int64_t i = 0;
+    int64_t cidx = nr * this->batchsize;
+
+    while (i < batchsize && cidx < indices.size()) {
+        int64_t idx = indices[cidx];
+        uint64_t s, p, o;
+        if (createBatchFile) {
+            s = *(uint64_t *)(rawtriples + idx * 15);
+            s = s & 0xFFFFFFFFFFl;
+            p = *(uint64_t *)(rawtriples + idx * 15 + 5);
+            p = p & 0xFFFFFFFFFFl;
+            o = *(uint64_t *)(rawtriples + idx * 15 + 10);
+            o = o & 0xFFFFFFFFFFl;
+        } else {
+            kbbatch->getAt(idx, s, p, o);
+        }
+        if (!filter || shouldBeUsed(s,p,o)) {
+            output1[i] = s;
+            output2[i] = p;
+            output3[i] = o;
+            i+=1;
+        }
+        cidx++;
+    }
+    if (i < this->batchsize) {
+        output1.resize(i);
+        output2.resize(i);
+        output3.resize(i);
+    }
+    return i > 0;
+}
+
 bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
         std::vector<uint64_t> &output2,
         std::vector<uint64_t> &output3) {
@@ -210,7 +436,7 @@ bool BatchCreator::getBatch(std::vector<uint64_t> &output1,
     output3.resize(this->batchsize);
     //The output vector is already supposed to contain batchsize elements.
     //Otherwise, resize it
-    while (i < batchsize && currentidx < ntriples) {
+    while (i < batchsize && currentidx < indices.size()) {
         int64_t idx = indices[currentidx];
         uint64_t s,p,o;
         if (createBatchFile) {
