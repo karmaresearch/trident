@@ -250,6 +250,8 @@ vector<uint64_t> sampleTriples(vector<uint64_t> & triples, int nChosen=1000) {
         tripleIndices[i] = i;
     }
     random_unique(tripleIndices.begin(), tripleIndices.end(), nChosen);
+
+    assert(tripleIndices.size() == nChosen);
     vector<uint64_t> chosenTriples(nChosen * 3);
     for (int i = 0, j = 0; i < nChosen*3 && j < tripleIndices.size(); i+=3, j+=1) {
         chosenTriples[i]   = triples[tripleIndices[j]*3];
@@ -953,9 +955,9 @@ void SubgraphHandler::evaluate(KB &kb,
         hugeKG = true;
         testTriples = sampleTriples(testTriples, sampleTest);
         LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
-        //for (int i = 0; i < testTriples.size(); i+=3) {
-        //    LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
-        //}
+        for (int i = 0; i < testTriples.size(); i+=3) {
+            LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
+        }
 
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
             validTriples = sampleTriples(validTriples, 10000);
@@ -1065,8 +1067,11 @@ void SubgraphHandler::evaluate(KB &kb,
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
         } else {
+            start = std::chrono::system_clock::now();
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                     r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (HEAD)= " << duration.count() * 1000 << " ms";
         }
 
         ANSWER_METHOD ansMethod = UNION;
@@ -1078,14 +1083,12 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t foundH = -1;
         uint64_t totalSizeH = 0;
         vector<int64_t> entitiesH;
-        start = std::chrono::system_clock::now();
-        getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
-        duration = std::chrono::system_clock::now() - start;
-        LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (head) = " << duration.count() * 1000 << " ms";
-        totalSizeH = entitiesH.size();
         if (UNION == ansMethod) {
             //TODO: this foundH is the rank of the subgraph
+            start = std::chrono::system_clock::now();
             foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to check the HEAD answer = " << duration.count() * 1000 << " ms";
             //totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         } else {
             vector<int64_t>::iterator it = find(entitiesH.begin(), entitiesH.end(), h);
@@ -1133,20 +1136,22 @@ void SubgraphHandler::evaluate(KB &kb,
         if (binEmbDir != "") {
             selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
         } else {
+            start = std::chrono::system_clock::now();
             selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
                     r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (TAIL)= " << duration.count() * 1000 << " ms";
         }
         int64_t foundT = -1;
         uint64_t totalSizeT = 0;
         vector<int64_t> entitiesT;
-        start = std::chrono::system_clock::now();
-        getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
-        duration = std::chrono::system_clock::now() - start;
-        LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (tail) = " << duration.count() * 1000 << " ms";
-        totalSizeT = entitiesT.size();
         if(UNION == ansMethod) {
             //Now I have the list of relevant subgraphs. Is the answer in one of these?
+            start = std::chrono::system_clock::now();
             foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to check the TAIL answer = " << duration.count() * 1000 << " ms";
+            // Following code would not give union of all entities but is faster
             //totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         } else {
             vector<int64_t>::iterator it = find(entitiesT.begin(), entitiesT.end(), t);
@@ -1157,6 +1162,12 @@ void SubgraphHandler::evaluate(KB &kb,
         if (foundH >= 0) {
             hitsHead++;
             subgraphRanksHead += foundH + 1;
+
+            start = std::chrono::system_clock::now();
+            getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (head) = " << duration.count() * 1000 << " ms";
+            totalSizeH = entitiesH.size();
             cons_comparisons_h += totalSizeH;
             sumDisplacementSPos += displacementS;
             LOG(DEBUGL) << "HIT HEAD";
@@ -1167,6 +1178,11 @@ void SubgraphHandler::evaluate(KB &kb,
         if (foundT >= 0) {
             hitsTail++;
             subgraphRanksTail += foundT + 1;
+            start = std::chrono::system_clock::now();
+            getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (tail) = " << duration.count() * 1000 << " ms";
+            totalSizeT = entitiesT.size();
             cons_comparisons_t += totalSizeT;
             sumDisplacementOPos += displacementO;
             LOG(DEBUGL) << "HIT TAIL";
