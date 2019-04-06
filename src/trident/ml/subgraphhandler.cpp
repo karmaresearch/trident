@@ -832,6 +832,37 @@ int64_t SubgraphHandler::getDynamicThreshold(
     return threshold;
 }
 
+vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples, KB &kb) {
+
+    char buffer[MAX_TERM_SIZE];
+    DictMgmt *dict = kb.getDictMgmt();
+    vector<uint64_t> output;
+    for(uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        dict->getText(h, buffer);
+        string sh = string(buffer);
+        dict->getText(t, buffer);
+        string st = string(buffer);
+        int size;
+        dict->getTextRel(r, buffer, size);
+        string sr = string(buffer, size);
+
+        if (sh.find("\"") != std::string::npos ||
+            st.find("\"") != std::string::npos ||
+            sr.find("\"") != std::string::npos) {
+            continue;
+        }
+        output.push_back(h);
+        output.push_back(r);
+        output.push_back(t);
+    }
+
+    return output;
+}
+
 void SubgraphHandler::evaluate(KB &kb,
         string embAlgo,
         string embDir,
@@ -950,6 +981,11 @@ void SubgraphHandler::evaluate(KB &kb,
         logWriter->open(writeLogs, std::ios_base::out);
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
+
+    start = std::chrono::system_clock::now();
+    testTriples = removeLiterals(testTriples, kb);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
 
     if (testTriples.size() > 1000000) {
         hugeKG = true;

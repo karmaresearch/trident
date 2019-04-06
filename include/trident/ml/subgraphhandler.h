@@ -93,6 +93,8 @@ class SubgraphHandler {
                 vector<uint64_t>& subgs,
                 Querier* q);
 
+        vector<uint64_t> removeLiterals(vector<uint64_t>& triples, KB& kb);
+
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
             vector<int64_t>& expectedEntities,
             double& precision,
