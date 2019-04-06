@@ -20,9 +20,11 @@
 #include <thread>
 #include <regex>
 
-TridentServer::TridentServer(KB &kb, string htmlfiles, int nthreads) : kb(kb),
+TridentServer::TridentServer(KB &kb, string htmlfiles, int nthreads) :
+    kb(kb),
     dirhtmlfiles(htmlfiles),
     isActive(false), nthreads(nthreads) {
+
     }
 
 void TridentServer::startThread(int port) {

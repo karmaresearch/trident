@@ -92,7 +92,7 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
                 if (resp) {
                     std::string srel = std::string(buffer, size);
                     s2r.insert(std::make_pair(srel, r));
-                    r2s.insert(std::make_pair(r, srel));
+                    //r2s.insert(std::make_pair(r, srel));
                 } else {
                     LOG(WARNL) << "String for entity " << e << " is not found";
                 }
