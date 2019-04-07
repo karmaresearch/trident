@@ -119,7 +119,7 @@ void AvgSubgraphs<double>::processItr(Querier *q,
         uint64_t p = itr->getValue1();
         uint64_t s = itr->getValue2();
 
-        if (removeLiterals) {
+        /*if (removeLiterals) {
             dict->getText(o, buffer);
             string oText = string(buffer);
             dict->getText(s, buffer);
@@ -133,7 +133,8 @@ void AvgSubgraphs<double>::processItr(Querier *q,
                 LOG(DEBUGL) << "Found literal.. skipping";
                 continue;
             }
-        }
+        }*/
+
         /*
         While o and p are both same,
         keep adding the embeddings of 's'
@@ -147,7 +148,17 @@ void AvgSubgraphs<double>::processItr(Querier *q,
                     params.push_back(current_s[i] / count);
                 }
                 //Add metadata about the subgraph
-                addSubgraph(typ, prevo, prevp, count);
+		bool ok = true;
+		if (removeLiterals) {
+            		dict->getText(prevo, buffer);
+			if (buffer[0] == '"') {
+				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
+				ok = false;	
+			}
+		}
+		if (ok) {
+                	addSubgraph(typ, prevo, prevp, count);
+		}
             }
             count = 0;
             prevo = o;
