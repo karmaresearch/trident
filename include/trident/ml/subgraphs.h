@@ -77,7 +77,8 @@ class Subgraphs {
 
         virtual void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) = 0;
+                std::shared_ptr<Embeddings<K>> R,
+                bool removeLiterals = false) = 0;
 
         virtual void loadFromFile(string file) = 0;
 
@@ -254,7 +255,7 @@ class AvgSubgraphs : public Subgraphs<K> {
         virtual void loadFromFile(string file);
 
         virtual void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
+                std::shared_ptr<Embeddings<double>> E, bool removeLiterals = false);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
@@ -268,7 +269,8 @@ class AvgSubgraphs : public Subgraphs<K> {
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R);
+                std::shared_ptr<Embeddings<K>> R,
+                bool removeLiterals = false);
 };
 
 template<typename K>
@@ -283,7 +285,7 @@ class VarSubgraphs : public AvgSubgraphs<K> {
         VarSubgraphs(uint16_t dim, uint64_t mincard) : AvgSubgraphs<K>(dim, mincard) {}
 
         void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
+                std::shared_ptr<Embeddings<double>> E, bool removeLiterals = false);
 
         double l3(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double distance = 0.0;
