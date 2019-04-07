@@ -983,6 +983,7 @@ vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
+        LOG(DEBUGL) << sh << " " << sr << " " << st;
         if (sh.find("\"") != std::string::npos ||
             st.find("\"") != std::string::npos ||
             sr.find("\"") != std::string::npos) {
@@ -1121,13 +1122,13 @@ void SubgraphHandler::evaluate(KB &kb,
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
 
-    LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
-    LOG(DEBUGL) << "Removing triples with literals...";
-    start = std::chrono::system_clock::now();
-    testTriples = removeLiterals(testTriples, kb);
-    duration = std::chrono::system_clock::now() - start;
-    LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
-    LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
+    //LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
+    //LOG(DEBUGL) << "Removing triples with literals...";
+    //start = std::chrono::system_clock::now();
+    //testTriples = removeLiterals(testTriples, kb);
+    //duration = std::chrono::system_clock::now() - start;
+    //LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
+    //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
     //LOG(DEBUGL) << "Removing triples with no subgraphs...";
     //start = std::chrono::system_clock::now();
     //testTriples = removeImprobables(testTriples, q.get());
@@ -1140,23 +1141,6 @@ void SubgraphHandler::evaluate(KB &kb,
     //LOG(DEBUGL) << "Time to remove triples having no subgraph presence: " << duration.count() * 1000 << " ms";
     //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
     //
-    // Create a new test file on scratch2 space
-    //
-    ofstream ofs_test;
-    ofs_test.open("/var/scratch2/uji300/wikidata_test4", ios::out | ios::app | ios::binary);
-    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
-        uint64_t s = testTriples[i];
-        uint64_t p = testTriples[i+1];
-        uint64_t o = testTriples[i+2];
-        const char *cs = (const char*)&s;
-        const char *cp = (const char*)&p;
-        const char *co = (const char*)&o;
-        ofs_test.write(cs, 5); //Max numbers have 5 bytes
-        ofs_test.write(cp, 5);
-        ofs_test.write(co, 5);
-    }
-    ofs_test.close();
-    return;
 
     if (testTriples.size() > 1000000) {
         hugeKG = true;
