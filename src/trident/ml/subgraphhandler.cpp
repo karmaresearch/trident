@@ -8,6 +8,7 @@
 #include <kognac/utils.h>
 #include <unordered_map>
 #include <set>
+#include <fstream>
 
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
@@ -253,7 +254,7 @@ vector<uint64_t> sampleTriples(vector<uint64_t> & triples, int nChosen=1000) {
 
     assert(tripleIndices.size() == nChosen);
     vector<uint64_t> chosenTriples(nChosen * 3);
-    for (int i = 0, j = 0; i < nChosen*3 && j < tripleIndices.size(); i+=3, j+=1) {
+    for (uint64_t i = 0, j = 0; i < nChosen*3 && j < tripleIndices.size(); i+=3, j+=1) {
         chosenTriples[i]   = triples[tripleIndices[j]*3];
         chosenTriples[i+1] = triples[tripleIndices[j]*3 + 1];
         chosenTriples[i+2] = triples[tripleIndices[j]*3 + 2];
@@ -521,8 +522,9 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     }
 }
 
-int64_t SubgraphHandler::isAnswerInSubGraphs(
-        uint64_t a,
+int64_t SubgraphHandler::isTripleInSubGraphs(
+        uint64_t h,
+        uint64_t t,
         const std::vector<uint64_t> &subgs,
         Querier *q) {
     DictMgmt *dict = q->getDictMgmt();
@@ -539,6 +541,39 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
         string srel = string(buffer, size);
 
         if (meta.t == Subgraphs<double>::TYPE::PO) {
+            if (q->exists(h, meta.rel, meta.ent)) {
+                //LOG(DEBUGL) << sent << " :<-->: " << srel;
+                return out;
+            }
+        } else {
+            if (q->exists(meta.ent, meta.rel, t)) {
+                //LOG(DEBUGL) << sent << " :<-->: " << srel;
+                return out;
+            }
+        }
+        out++;
+    }
+    return -1;
+}
+
+int64_t SubgraphHandler::isAnswerInSubGraphs(
+        uint64_t a,
+        const std::vector<uint64_t> &subgs,
+        Querier *q) {
+    //DictMgmt *dict = q->getDictMgmt();
+    //char buffer[MAX_TERM_SIZE];
+    //int size;
+
+    int64_t out = 0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        //dict->getText(meta.ent, buffer);
+        //string sent = string(buffer);
+        //dict->getTextRel(meta.rel, buffer, size);
+        //string srel = string(buffer, size);
+
+        if (meta.t == Subgraphs<double>::TYPE::PO) {
             if (q->exists(a, meta.rel, meta.ent)) {
                 //LOG(INFOL) << sent << " :<-->: " << srel;
                 return out;
@@ -552,6 +587,78 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
         out++;
     }
     return -1;
+}
+
+vector<uint64_t> SubgraphHandler::areTriplesInSubGraphs(
+        vector<uint64_t>& testTriples,
+        const std::vector<uint64_t> &subgs,
+        Querier *q) {
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
+    int size;
+    vector<uint64_t> output;
+    vector<uint64_t> unfoundTriples;
+    vector<uint64_t> workingTestTriples = testTriples;
+    int64_t out = 0;
+    uint64_t countLiteralSubgraphs = 0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        dict->getText(meta.ent, buffer);
+        string sent = string(buffer);
+        dict->getTextRel(meta.rel, buffer, size);
+        string srel = string(buffer, size);
+        if (sent.find("\"") != std::string::npos || srel.find("\"") != std::string::npos) {
+            ++countLiteralSubgraphs;
+            LOG(DEBUGL) << countLiteralSubgraphs << " literal subgraphs...";
+            continue;
+        }
+        //LOG(DEBUGL) << "Subgraph of [" << sent << "] , [" << srel << "]";
+        for (uint64_t i = 0; i < workingTestTriples.size(); i+=3) {
+            uint64_t h, t, r;
+            h = workingTestTriples[i];
+            r = workingTestTriples[i + 1];
+            t = workingTestTriples[i + 2];
+            //dict->getText(h, buffer);
+            //string sh = string(buffer);
+            //dict->getText(t, buffer);
+            //string st = string(buffer);
+            //dict->getTextRel(r, buffer, size);
+            //string sr = string(buffer, size);
+
+            //LOG(DEBUGL) << "Triple: " << sh << " "  << sr << " " << st;
+            bool found = false;
+            if (meta.t == Subgraphs<double>::TYPE::PO) {
+                if (q->exists(h, meta.rel, meta.ent)) {
+                    //LOG(DEBUGL) << sh << " :<-" << srel<< "->: "  << sent << " (" << out << ")";
+                    found = true;
+                    output.push_back(h);
+                    output.push_back(r);
+                    output.push_back(t);
+                }
+            } else {
+                if (q->exists(meta.ent, meta.rel, t)) {
+                    //LOG(DEBUGL) << sent << " :<-" << srel<< "->: "  << st << " (" << out << ")";
+                    found = true;
+                    output.push_back(h);
+                    output.push_back(r);
+                    output.push_back(t);
+                }
+            }
+
+            if (!found) {
+                unfoundTriples.push_back(h);
+                unfoundTriples.push_back(r);
+                unfoundTriples.push_back(t);
+            }
+         }
+         workingTestTriples = unfoundTriples;
+         LOG(DEBUGL) << "Subgraph : " << subgraphid <<" Unfound triples = " << unfoundTriples.size()/3;
+         LOG(DEBUGL) << "Subgraph : " << subgraphid <<" output triples  = " << output.size()/3;
+         unfoundTriples.clear();
+         out++;
+     }
+     return output;
 }
 
 void SubgraphHandler::areAnswersInSubGraphs(
@@ -617,7 +724,8 @@ void SubgraphHandler::create(KB &kb,
         string subgraphType,
         string embdir,
         string subfile,
-        uint64_t minSubgraphSize) {
+        uint64_t minSubgraphSize,
+        bool removeLiterals) {
     std::unique_ptr<Querier> q(kb.query());
     //Load the embeddings
     loadEmbeddings(embdir);
@@ -632,7 +740,7 @@ void SubgraphHandler::create(KB &kb,
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
     }
-    subgraphs->calculateEmbeddings(q.get(), E, R);
+    subgraphs->calculateEmbeddings(q.get(), E, R, removeLiterals);
     subgraphs->storeToFile(subfile);
 }
 
@@ -800,6 +908,7 @@ int64_t SubgraphHandler::getDynamicThreshold(
 
     // Filter subgraphs based on their size:
     // cap on number of total possible entities
+    // TODO: review if this sampling is necessary
     vector<uint64_t> chosenSubgraphs = sampleSubgraphs(allSubgraphs);
 
     // find out ranks for all these entities
@@ -830,6 +939,65 @@ int64_t SubgraphHandler::getDynamicThreshold(
     assert(threshold != 0);
     LOG(DEBUGL) << "Use Threshold = " << threshold;
     return threshold;
+}
+
+vector<uint64_t> SubgraphHandler::removeImprobables(vector<uint64_t> & testTriples, Querier* q) {
+    vector<uint64_t> output;
+    vector<uint64_t> allSubIds;
+    for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
+        allSubIds.push_back(i);
+    }
+    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        int64_t found = isTripleInSubGraphs(h, r, allSubIds, q);
+        if (found >= 0) {
+            output.push_back(h);
+            output.push_back(r);
+            output.push_back(t);
+        }
+        if (i % 10000 == 0) {
+            LOG(DEBUGL) << i/3 << " triples processed";
+        }
+    }
+    return output;
+}
+
+vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples, KB &kb) {
+
+    char buffer[MAX_TERM_SIZE];
+    DictMgmt *dict = kb.getDictMgmt();
+    vector<uint64_t> output;
+    for(uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        dict->getText(h, buffer);
+        string sh = string(buffer);
+        dict->getText(t, buffer);
+        string st = string(buffer);
+        int size;
+        dict->getTextRel(r, buffer, size);
+        string sr = string(buffer, size);
+
+        if (sh.find("\"") != std::string::npos ||
+            st.find("\"") != std::string::npos ||
+            sr.find("\"") != std::string::npos) {
+            continue;
+        }
+        if (h == t) {
+            LOG(DEBUGL) << "skipping same head and tail";
+            continue;
+        }
+        output.push_back(h);
+        output.push_back(r);
+        output.push_back(t);
+    }
+
+    return output;
 }
 
 void SubgraphHandler::evaluate(KB &kb,
@@ -894,8 +1062,10 @@ void SubgraphHandler::evaluate(KB &kb,
         string pathtest;
         if (nameTest == "valid") {
             pathtest = BatchCreator::getValidPath(kb.getPath());
-        } else {
+        } else if (nameTest == "test") {
             pathtest = BatchCreator::getTestPath(kb.getPath());
+        } else {
+            pathtest = nameTest;
         }
         BatchCreator::loadTriples(pathtest, testTriples);
     }
@@ -950,6 +1120,43 @@ void SubgraphHandler::evaluate(KB &kb,
         logWriter->open(writeLogs, std::ios_base::out);
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
+
+    LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
+    LOG(DEBUGL) << "Removing triples with literals...";
+    start = std::chrono::system_clock::now();
+    testTriples = removeLiterals(testTriples, kb);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
+    LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
+    //LOG(DEBUGL) << "Removing triples with no subgraphs...";
+    //start = std::chrono::system_clock::now();
+    //testTriples = removeImprobables(testTriples, q.get());
+    //vector<uint64_t> allSubIds;
+    //for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
+    //    allSubIds.push_back(i);
+    //}
+    //testTriples = areTriplesInSubGraphs(testTriples, allSubIds, q.get());
+    //duration = std::chrono::system_clock::now() - start;
+    //LOG(DEBUGL) << "Time to remove triples having no subgraph presence: " << duration.count() * 1000 << " ms";
+    //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
+    //
+    // Create a new test file on scratch2 space
+    //
+    ofstream ofs_test;
+    ofs_test.open("/var/scratch2/uji300/wikidata_test4", ios::out | ios::app | ios::binary);
+    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t s = testTriples[i];
+        uint64_t p = testTriples[i+1];
+        uint64_t o = testTriples[i+2];
+        const char *cs = (const char*)&s;
+        const char *cp = (const char*)&p;
+        const char *co = (const char*)&o;
+        ofs_test.write(cs, 5); //Max numbers have 5 bytes
+        ofs_test.write(cp, 5);
+        ofs_test.write(co, 5);
+    }
+    ofs_test.close();
+    return;
 
     if (testTriples.size() > 1000000) {
         hugeKG = true;
