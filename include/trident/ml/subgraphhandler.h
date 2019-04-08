@@ -41,6 +41,9 @@ class SubgraphHandler {
 
         int64_t isAnswerInSubGraphs(uint64_t a, const std::vector<uint64_t> &subgraphs, Querier *q);
 
+        int64_t isTripleInSubGraphs(uint64_t h, uint64_t t, const std::vector<uint64_t> &subgs, Querier *q);
+        vector<uint64_t> areTriplesInSubGraphs(vector<uint64_t> &testTriples,const std::vector<uint64_t> &subgs, Querier *q);
+
         void areAnswersInSubGraphs(
                 vector<uint64_t> entities,
                 const std::vector<uint64_t> &subgs,
@@ -92,6 +95,9 @@ class SubgraphHandler {
         double calculateScore(uint64_t ent,
                 vector<uint64_t>& subgs,
                 Querier* q);
+
+        vector<uint64_t> removeLiterals(vector<uint64_t>& triples, KB& kb);
+        vector<uint64_t> removeImprobables(vector<uint64_t>& triples, Querier* q);
 
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
             vector<int64_t>& expectedEntities,
@@ -154,7 +160,8 @@ class SubgraphHandler {
                 string subType,
                 string embDir,
                 string subFile,
-                uint64_t minSubgraphSize);
+                uint64_t minSubgraphSize,
+                bool removeLiterals);
 
         void getAllSubgraphs(Querier *q);
 };

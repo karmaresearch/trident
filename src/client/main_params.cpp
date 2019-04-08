@@ -384,6 +384,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     subeval_options.add<string>("", "binEmbDir", "",
             "The directory that contains the binarized embeddings of subgraphs, entities and relations.", false);
     subeval_options.add<bool>("","calcDisp", false, "Calculate displacements. Default is DONT CALCULATE", false);
+    subeval_options.add<bool>("","removeLiterals", false, "Remove literals when making subgraphs. Default is DONT REMOVE", false);
     subeval_options.add<int64_t>("","sampleTest", 1000, "Number of triples to sample for test", false);
 #endif
 

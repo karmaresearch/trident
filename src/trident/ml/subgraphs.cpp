@@ -94,16 +94,17 @@ template<>
 void AvgSubgraphs<double>::processItr(Querier *q,
         PairItr *itr,
         Subgraphs<double>::TYPE typ,
-        std::shared_ptr<Embeddings<double>> E) {
+        std::shared_ptr<Embeddings<double>> E,
+        bool removeLiterals) {
     std::vector<double> current_s;
     current_s.resize(dim);
     for(uint16_t i = 0; i < dim; ++i) {
         current_s[i] = 0.0;
     }
 
-    //DictMgmt *dict = q->getDictMgmt();
-    //char buffer[MAX_TERM_SIZE];
-    //int size = 0;
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
+    int size = 0;
 
     LOG(DEBUGL) << "Min card " << mincard;
 
@@ -118,6 +119,36 @@ void AvgSubgraphs<double>::processItr(Querier *q,
         uint64_t p = itr->getValue1();
         uint64_t s = itr->getValue2();
 
+	if (removeLiterals) {
+            		dict->getText(o, buffer);
+			if (buffer[0] == '"') {
+				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
+				continue;
+			}
+            		dict->getText(s, buffer);
+			if (buffer[0] == '"') {
+				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
+				continue;
+			}
+
+		}
+
+        /*if (removeLiterals) {
+            dict->getText(o, buffer);
+            string oText = string(buffer);
+            dict->getText(s, buffer);
+            string sText = string(buffer);
+            dict->getTextRel(p, buffer, size);
+            string pText = string(buffer, size);
+
+            if (oText.find("\"") != std::string::npos ||
+                sText.find("\"") != std::string::npos ||
+                pText.find("\"") != std::string::npos) {
+                LOG(DEBUGL) << "Found literal.. skipping";
+                continue;
+            }
+        }*/
+
         /*
         While o and p are both same,
         keep adding the embeddings of 's'
@@ -131,7 +162,7 @@ void AvgSubgraphs<double>::processItr(Querier *q,
                     params.push_back(current_s[i] / count);
                 }
                 //Add metadata about the subgraph
-                addSubgraph(typ, prevo, prevp, count);
+                	addSubgraph(typ, prevo, prevp, count);
             }
             count = 0;
             prevo = o;
@@ -162,18 +193,19 @@ void AvgSubgraphs<double>::processItr(Querier *q,
 template<>
 void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
         std::shared_ptr<Embeddings<double>> E,
-        std::shared_ptr<Embeddings<double>> R) {
+        std::shared_ptr<Embeddings<double>> R,
+        bool removeLiterals) {
     const uint16_t dim = E->getDim();
     this->dim = dim;
 
     LOG(INFOL) << "Creating OPS embeddings";
     auto itr = q->get(IDX_OPS, -1, -1, -1);
-    processItr(q, itr, Subgraphs<double>::TYPE::PO, E);
+    processItr(q, itr, Subgraphs<double>::TYPE::PO, E, removeLiterals);
     q->releaseItr(itr);
 
     LOG(INFOL) << "Creating SPO embeddings";
     itr = q->get(IDX_SPO, -1, -1, -1);
-    processItr(q, itr, Subgraphs<double>::TYPE::SP, E);
+    processItr(q, itr, Subgraphs<double>::TYPE::SP, E, removeLiterals);
     q->releaseItr(itr);
     LOG(INFOL) << "Done. Added subgraphs=" << getNSubgraphs();
 }
@@ -182,16 +214,17 @@ template<>
 void VarSubgraphs<double>::processItr(Querier *q,
         PairItr *itr,
         Subgraphs<double>::TYPE typ,
-        std::shared_ptr<Embeddings<double>> E) {
+        std::shared_ptr<Embeddings<double>> E,
+        bool removeLiterals) {
     std::vector<double> current_s;
     current_s.resize(dim);
     for(uint16_t i = 0; i < dim; ++i) {
         current_s[i] = 0.0;
     }
 
-    //DictMgmt *dict = q->getDictMgmt();
-    //char buffer[MAX_TERM_SIZE];
-    //int size = 0;
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
+    int size = 0;
     std::vector<uint64_t> subjects;
 
     int64_t count = 0;
@@ -203,6 +236,20 @@ void VarSubgraphs<double>::processItr(Querier *q,
         uint64_t p = itr->getValue1();
         uint64_t s = itr->getValue2();
 
+        if (removeLiterals) {
+            dict->getText(o, buffer);
+            string oText = string(buffer);
+            dict->getText(s, buffer);
+            string sText = string(buffer);
+            dict->getTextRel(p, buffer, size);
+            string pText = string(buffer, size);
+
+            if (oText.find("\"") != std::string::npos ||
+                sText.find("\"") != std::string::npos ||
+                pText.find("\"") != std::string::npos) {
+                continue;
+            }
+        }
         if (o != prevo || p != prevp) {
             if (count > mincard) {
                 //Add the variance embedding
