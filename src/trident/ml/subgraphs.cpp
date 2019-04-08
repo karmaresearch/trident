@@ -119,6 +119,20 @@ void AvgSubgraphs<double>::processItr(Querier *q,
         uint64_t p = itr->getValue1();
         uint64_t s = itr->getValue2();
 
+	if (removeLiterals) {
+            		dict->getText(o, buffer);
+			if (buffer[0] == '"') {
+				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
+				continue;
+			}
+            		dict->getText(s, buffer);
+			if (buffer[0] == '"') {
+				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
+				continue;
+			}
+
+		}
+
         /*if (removeLiterals) {
             dict->getText(o, buffer);
             string oText = string(buffer);
@@ -148,17 +162,7 @@ void AvgSubgraphs<double>::processItr(Querier *q,
                     params.push_back(current_s[i] / count);
                 }
                 //Add metadata about the subgraph
-		bool ok = true;
-		if (removeLiterals) {
-            		dict->getText(prevo, buffer);
-			if (buffer[0] == '"') {
-				//LOG(DEBUGL) << "Skipping " << std::string(buffer);
-				ok = false;	
-			}
-		}
-		if (ok) {
                 	addSubgraph(typ, prevo, prevp, count);
-		}
             }
             count = 0;
             prevo = o;
