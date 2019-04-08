@@ -6,6 +6,9 @@ CINCLUDES= -I../include -I$(KOGNAC)/include -I../snap -I../snap/snap-core -I../s
 CLIBS=-L$(KOGNAC_BUILDDIR) -L$(TRIDENT_BUILDDIR) -L../snap/snap-core -L$(KOGNAC_BUILDDIR)/external/lz4/lib -L$(KOGNAC_BUILDDIR)/external/sparsehash/src -ltrident-core -lkognac-core
 CPLUS=g++
 
+test_convert:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./convertTriples -std=c++0x -O3 convertBinaryToTridentDB.cpp -ltrident-core -ltrident-ml -ltrident-ana
+
 test_ppr:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testPPR -std=c++0x -O0 -g test_ppr.cpp -ltrident-ana
 
@@ -52,7 +55,7 @@ test_sorting2:
 	g++ $(CINCLUDES) $(CLIBS) -o testSorting2  -O0 -g test_sorting2.cpp -llz4 -lpthread
 
 test_pfor:
-	g++ $(CINCLUDES) $(CLIBS) -o testpfor -O3 -std=c++0x -g test_parallel_for.cpp 
+	g++ $(CINCLUDES) $(CLIBS) -o testpfor -O3 -std=c++0x -g test_parallel_for.cpp
 
 test_sorting3:
 	g++ $(CINCLUDES) $(CLIBS) -o testSorting3 -O3 -std=c++0x -g test_sorting3.cpp
@@ -96,16 +99,16 @@ testlz4:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testLz4 test_lz4io.cpp -std=c++0x
 
 testintermediate:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testIntermediate test_intermediatetripledata.cpp -std=c++0x 
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testIntermediate test_intermediatetripledata.cpp -std=c++0x
 
 testnewcompress:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testNewcompress test_newcompress.cpp -std=c++0x
 
 testreaddict:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testReadDict test_readdictfiles.cpp -std=c++0x 
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testReadDict test_readdictfiles.cpp -std=c++0x
 
 testsizegroups:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testsizegroups -llz4 test_sizegroups.cpp -std=c++0x 
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testsizegroups -llz4 test_sizegroups.cpp -std=c++0x
 
 testloadmap:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -O0 -g -o testLoadMap -llz4 test_loadmap.cpp -std=c++0x
