@@ -983,7 +983,7 @@ vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
-        LOG(DEBUGL) << sh << " " << sr << " " << st;
+        //LOG(DEBUGL) << sh << " " << sr << " " << st;
         if (sh.find("\"") != std::string::npos ||
             st.find("\"") != std::string::npos ||
             sr.find("\"") != std::string::npos) {
@@ -1146,9 +1146,9 @@ void SubgraphHandler::evaluate(KB &kb,
         hugeKG = true;
         testTriples = sampleTriples(testTriples, sampleTest);
         LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
-        for (int i = 0; i < testTriples.size(); i+=3) {
-            LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
-        }
+        //for (int i = 0; i < testTriples.size(); i+=3) {
+        //    LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
+        //}
 
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
             validTriples = sampleTriples(validTriples, 10000);
@@ -1240,7 +1240,7 @@ void SubgraphHandler::evaluate(KB &kb,
                 }
             }
             //LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
-        } else if (subgraphThreshold > 100 && subgraphThreshold < 200) {
+        } else if (subgraphThreshold > 100 && subgraphThreshold <= 200) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
             threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(subgraphThreshold - 100)/(double)100));
