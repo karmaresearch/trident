@@ -51,7 +51,7 @@ class Tester {
             scores.resize(ne);
             const uint16_t dime = E->getDim();
             const uint16_t dimr = R->getDim();
-            std::vector<K> testArray(dime);
+            std::vector<K> testArray(ne);
             double *test = testArray.data();
             std::vector<std::size_t> indices(ne);
             std::iota(indices.begin(), indices.end(), 0u);

@@ -3,6 +3,8 @@
 
 #include <trident/ml/subgraphs.h>
 #include <trident/kb/kb.h>
+#include <unordered_map>
+typedef enum {UNION, INTERSECTION, INTERUNION} ANSWER_METHOD;
 
 class SubgraphHandler {
     private:
@@ -37,14 +39,39 @@ class SubgraphHandler {
                     std::vector<std::size_t> &indices2
                     );
 
-        int64_t isAnswerInSubGraphs(uint64_t a,
-                const std::vector<uint64_t> &subgraphs, Querier *q);
+        int64_t isAnswerInSubGraphs(uint64_t a, const std::vector<uint64_t> &subgraphs, Querier *q);
+
+        int64_t isTripleInSubGraphs(uint64_t h, uint64_t t, const std::vector<uint64_t> &subgs, Querier *q);
+        vector<uint64_t> areTriplesInSubGraphs(vector<uint64_t> &testTriples,const std::vector<uint64_t> &subgs, Querier *q);
+
+        void areAnswersInSubGraphs(
+                vector<uint64_t> entities,
+                const std::vector<uint64_t> &subgs,
+                Querier *q,
+                unordered_map<uint64_t, int64_t>& entityRankMap
+                );
+
+        int64_t getDynamicThreshold(
+                Querier* q,
+                vector<uint64_t> &validTriples,
+                Subgraphs<double>::TYPE type,
+                uint64_t &r,
+                uint64_t &e,
+                string &embAlgo,
+                string &subAlgo,
+                DIST secondDist,
+                int64_t &subgraphThreshold,
+                bool hugeKG = false
+                );
+
+        vector<uint64_t> sampleSubgraphs(vector<uint64_t>& subgs, int percent=25);
 
         void selectRelevantSubGraphs(DIST dist,
                 Querier *q,
                 string algo,
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 std::vector<uint64_t> &output,
+                std::vector<double> &outputDistances,
                 uint32_t topk,
                 string &subgraphType,
                 DIST secondDist
@@ -61,21 +88,34 @@ class SubgraphHandler {
 
         void getAllPossibleAnswers(Querier *q,
                 vector<uint64_t> &relevantSubgraphs,
-                Subgraphs<double>::TYPE t,
-                vector<int64_t> &output
+                vector<int64_t> &output,
+                ANSWER_METHOD answerMethod
                 );
+
+        double calculateScore(uint64_t ent,
+                vector<uint64_t>& subgs,
+                Querier* q);
+
+        vector<uint64_t> removeLiterals(vector<uint64_t>& triples, KB& kb);
+        vector<uint64_t> removeImprobables(vector<uint64_t>& triples, Querier* q);
 
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
             vector<int64_t>& expectedEntities,
-            double& accuracy);
+            double& precision,
+            double& recall);
 
-        void getActualAnswersFromTest(vector<uint64_t>& testTriples,
+        void getModelAccuracy(vector<vector<uint64_t>> & actualEntities,
+            vector<vector<int64_t>> & expectedEntities,
+            double& precision,
+            double& recall);
+
+        void getExpectedAnswersFromTest(vector<uint64_t>& testTriples,
             Subgraphs<double>::TYPE type,
             uint64_t rel,
             uint64_t ent,
             vector<uint64_t> &output);
 
-        int64_t numberInstancesInSubgraphs(
+        uint64_t numberInstancesInSubgraphs(
                 Querier *q,
                 const std::vector<uint64_t> &subgs);
 
@@ -93,30 +133,35 @@ class SubgraphHandler {
                 string subType,
                 string nameTest,
                 string formatTest,
-                uint64_t threshold,
+                string subgraphFilter,
+                int64_t threshold,
                 double varThreshold,
                 string writeLogs,
                 DIST secondDist,
                 string kFile,
-                string binEmbDir);
+                string binEmbDir,
+                bool calcDisp,
+                int64_t sampleTest);
 
-        void findAnswers(KB &kb,
+        /*void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,
                 string subType,
                 string nameTest,
                 string formatTest,
+                string answerMethod,
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);
+                DIST secondDist);*/
 
         void create(KB &kb,
                 string subType,
                 string embDir,
                 string subFile,
-                uint64_t minSubgraphSize);
+                uint64_t minSubgraphSize,
+                bool removeLiterals);
 
         void getAllSubgraphs(Querier *q);
 };

@@ -55,8 +55,13 @@ static void Batcher_dealloc(trident_Itr* self) {
 }
 
 static PyObject *batcher_start(PyObject *self, PyObject *args) {
-    trident_Batcher *s = (trident_Batcher*) self;
-    s->creator->start();
+    trident_Batcher *se = (trident_Batcher*) self;
+    int64_t s = -1;
+    int64_t p = -1;
+    int64_t o = -1;
+    if (!PyArg_ParseTuple(args, "|lll", &s, &p, &o))
+        return NULL;
+    se->creator->start(s, p, o);
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -81,9 +86,49 @@ static PyObject *batcher_getbatch(PyObject *self, PyObject *args) {
     }
 }
 
+static PyObject *batcher_getbatch_nr(PyObject *self, PyObject *args) {
+    uint64_t batch_nr = 0;
+    if (!PyArg_ParseTuple(args, "l", &batch_nr))
+        return NULL;
+    trident_Batcher *s = (trident_Batcher*) self;
+    bool out = s->creator->getBatchNr(batch_nr, s->batch1, s->batch2, s->batch3); //Split column by column
+    if (out) {
+        const uint32_t size = s->batch1.size();
+        npy_intp dims[1] = { size };
+        PyObject* subj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)s->batch1.data());
+        PyObject* pred = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch2.data()));
+        PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)(s->batch3.data()));
+        PyObject *t = PyTuple_New(3);
+        PyTuple_SetItem(t, 0, subj);
+        PyTuple_SetItem(t, 1, pred);
+        PyTuple_SetItem(t, 2, obj);
+        return t;
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
+static PyObject *batcher_get_n_batches(PyObject *self, PyObject *args) {
+    trident_Batcher *s = (trident_Batcher*) self;
+    uint64_t nbatches = s->creator->getNBatches();
+    return PyLong_FromLong(nbatches);
+}
+
+static PyObject *batcher_shuffle(PyObject *self, PyObject *args) {
+    trident_Batcher *s = (trident_Batcher*) self;
+    s->creator->shuffle();
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
 static PyMethodDef Batcher_methods[] = {
     {"start", batcher_start, METH_VARARGS, "Starts the process." },
     {"getbatch", batcher_getbatch, METH_VARARGS, "Get one batch." },
+    {"getbatch_nr", batcher_getbatch_nr, METH_VARARGS, "Get one specific batch." },
+    {"shuffle", batcher_shuffle, METH_VARARGS, "Shuffle the batches" },
+    {"get_n_batches", batcher_get_n_batches, METH_VARARGS, "Get number of batches." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

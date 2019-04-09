@@ -156,28 +156,32 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
     sh.evaluate(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
-            vm["subgraphThreshold"].as<long>(),
+            vm["answerMethod"].as<string>(),
+            vm["subgraphThreshold"].as<int64_t>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
             secondDist,
             vm["kFile"].as<string>(),
-            vm["binEmbDir"].as<string>());
+            vm["binEmbDir"].as<string>(),
+            vm["calcDisp"].as<bool>(),
+            vm["sampleTest"].as<int64_t>());
 }
 
 void subgraphAnswers(KB &kb, ProgramArgs &vm) {
-    SubgraphHandler sh;
+    /*SubgraphHandler sh;
     DIST secondDist = (DIST) vm["secondDist"].as<int>();
     sh.findAnswers(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
+            vm["answerMethod"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
-            secondDist);
+            secondDist);*/
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.create(kb, vm["subAlgo"].as<string>(), vm["embDir"].as<string>(),
-            vm["subFile"].as<string>(), vm["minSubgraphSize"].as<long>());
+            vm["subFile"].as<string>(), vm["minSubgraphSize"].as<long>(), vm["removeLiterals"].as<bool>());
 }

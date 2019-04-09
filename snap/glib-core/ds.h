@@ -768,7 +768,7 @@ void TVec<TVal, TSizeTy>::Resize(const TSizeTy& _MxVals){
     try {
       ValT=new TVal[MxVals];
     }
-    catch (std::exception Ex){
+    catch (std::exception& Ex){
       FailR(TStr::Fmt("TVec::Resize: %s, Length:%s, Capacity:%s, New capacity:%s, Type:%s [Program failed to allocate more memory. Solution: Get a bigger machine and a 64-bit compiler.]",
         Ex.what(), TInt::GetStr(Vals).CStr(), TInt::GetStr(MxVals).CStr(), TInt::GetStr(_MxVals).CStr(), GetTypeNm(*this).CStr()).CStr());}
   } else {
@@ -776,7 +776,7 @@ void TVec<TVal, TSizeTy>::Resize(const TSizeTy& _MxVals){
     try {
       NewValT=new TVal[MxVals];
     }
-    catch (std::exception Ex){
+    catch (std::exception& Ex){
       FailR(TStr::Fmt("TVec::Resize: %s, Length:%s, Capacity:%s, New capacity:%s, Type:%s [Program failed to allocate more memory. Solution: Get a bigger machine and a 64-bit compiler.]",
         Ex.what(), TInt::GetStr(Vals).CStr(), TInt::GetStr(MxVals).CStr(), TInt::GetStr(_MxVals).CStr(), GetTypeNm(*this).CStr()).CStr());}
     IAssert(NewValT!=NULL);

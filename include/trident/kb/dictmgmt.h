@@ -133,6 +133,7 @@ class DictMgmt {
         google::sparse_hash_map<string, uint64_t> gud_textid;
         google::sparse_hash_map<uint64_t, uint64_t> r2e;
         google::sparse_hash_map<uint64_t, string> r2s;
+        google::sparse_hash_map<string, uint64_t> s2r;
         bool gud_modified;
         uint64_t gud_largestID;
         string gudLocation;
@@ -184,6 +185,8 @@ class DictMgmt {
                 int &sizeOutput);
 
         LIBEXP bool getNumber(const char *key, const int sizeKey, nTerm *value);
+
+        LIBEXP bool getNumberRel(const char *key, const int sizeKey, nTerm *value);
 
         bool putDict(const char *key, int sizeKey, nTerm &value);
 

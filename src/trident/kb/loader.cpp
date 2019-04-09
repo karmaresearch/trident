@@ -281,7 +281,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     int64_t processedtriples = 0;
     while (buffer.b != NULL) {
         //Read the file
-	const char *pivotbuffer = buffer.b;
+        const char *pivotbuffer = buffer.b;
         const char *input = NULL;
         size_t sizeinput = 0;
         if (buffer.gzipped) {
@@ -1695,10 +1695,10 @@ void Loader::loadKB_handleGraphTransformations(KB &kb,
                 t.readFrom(&reader);
                 //Write both versions.
                 t.writeTo(&writer);
-		//swap them
-		int64_t box = t.first;
-		t.first = t.third;
-		t.third = box;
+                //swap them
+                int64_t box = t.first;
+                t.first = t.third;
+                t.third = box;
                 t.writeTo(&writer);
             }
         }
