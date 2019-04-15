@@ -176,7 +176,7 @@ class DictMgmt {
 
         LIBEXP bool getText(nTerm key, std::string &value);
 
-        bool getTextRel(nTerm key, char *value, int &size);
+        LIBEXP bool getTextRel(nTerm key, char *value, int &size);
 
         LIBEXP bool getText(nTerm key, char *value, int &size);
 
