@@ -15,6 +15,7 @@ LearnParams::LearnParams() {
     batchsize = 1000;
     adagrad = false;
     nthreads = 1;
+    nevalthreads = 1;
     nstorethreads = 1;
     evalits = 10;
     storeits = 10;
@@ -43,6 +44,7 @@ std::string LearnParams::changeable_tostring() {
     out += ";batchsize=" + to_string(batchsize);
     out += ";adagrad=" + to_string(adagrad);
     out += ";nthreads=" + to_string(nthreads);
+    out += ";nstorethreads=" + to_string(nevalthreads);
     out += ";nstorethreads=" + to_string(nstorethreads);
     out += ";evalits=" + to_string(evalits);
     out += ";storeits=" + to_string(storeits);
@@ -80,13 +82,16 @@ void Learner::setup(const uint16_t nthreads,
 }
 
 void Learner::setup(const uint16_t nthreads) {
-    LOG(DEBUGL) << "Creating E ...";
+    LOG(DEBUGL) << "Creating E " << ne << " " << dim;
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
+    LOG(DEBUGL) << "Init E " << nthreads;
     E->init(nthreads, true);
-    LOG(DEBUGL) << "Creating R ...";
+    LOG(DEBUGL) << "Creating R " << nr << " " << dim;
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
+    LOG(DEBUGL) << "Init R " << nthreads;
     R->init(nthreads, false);
+    LOG(DEBUGL) << "done";
 
     std::unique_ptr<double> lpe2;
     std::unique_ptr<double> lpr2;

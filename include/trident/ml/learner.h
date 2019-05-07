@@ -14,6 +14,8 @@ struct EntityGradient {
         dimensions.resize(ndims);
         n = 0;
     }
+    EntityGradient(): id(0xffffffff) {
+    }
 };
 
 struct BatchIO {
@@ -52,6 +54,7 @@ struct BatchIO {
 
     void clear() {
         epoch = conflicts = violations = 0;
+	loss = 0.0;
         /*for(uint16_t i = 0; i < batchsize; ++i) {
             memset(posSignMatrix[i].get(), 0, sizeof(float) * dims);
             memset(neg1SignMatrix[i].get(), 0, sizeof(float) * dims);
@@ -79,6 +82,7 @@ struct LearnParams {
     uint16_t batchsize;
     bool adagrad;
     uint16_t nthreads;
+    uint16_t nevalthreads;
     uint16_t nstorethreads;
     uint32_t evalits;
     uint32_t storeits;
@@ -126,7 +130,7 @@ class Learner {
         float dist_l1(double* head, double* rel, double* tail,
                 float *matrix);
 
-        void update_gradients(BatchIO &io,
+        virtual void update_gradients(BatchIO &io,
                 std::vector<EntityGradient> &ge,
                 std::vector<EntityGradient> &gr);
 

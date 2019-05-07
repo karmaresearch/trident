@@ -226,6 +226,15 @@ static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
     }
 }
 
+static PyObject *db_count_po(PyObject *self, PyObject *args) {
+    int64_t p,o;
+    if (!PyArg_ParseTuple(args, "ll", &p, &o))
+        return NULL;
+    Querier *q = ((trident_Db*)self)->q;
+    const int64_t nresults = q->getCardOnIndex(IDX_OPS, -1, p, o);
+    return PyLong_FromLong(nresults);
+}
+
 static PyObject *db_counts(PyObject *self, PyObject *args) {
     int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
@@ -567,13 +576,33 @@ static PyObject *db_allo(PyObject *self, PyObject *args) {
     return obj;
 }
 
-static PyObject *db_allo_aggr(PyObject *self, PyObject *args) {
+static PyObject *db_allo_aggr_froms(PyObject *self, PyObject *args) {
     int64_t s;
     if (!PyArg_ParseTuple(args, "l", &s))
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
     PairItr *itr = q->getPermuted(IDX_SOP, s, -1, -1, true);
+    itr->ignoreSecondColumn();
+    while (itr->hasNext()) {
+        itr->next();
+        int64_t o = itr->getValue1();
+        PyObject *value = PyLong_FromLong(o);
+        PyList_Append(obj, value);
+        Py_DECREF(value);
+    }
+
+    q->releaseItr(itr);
+    return obj;
+}
+
+static PyObject *db_allo_aggr_fromp(PyObject *self, PyObject *args) {
+    int64_t p;
+    if (!PyArg_ParseTuple(args, "l", &p))
+        return NULL;
+    Querier *q = ((trident_Db*)self)->q;
+    PyObject *obj = PyList_New(0);
+    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1, true);
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
@@ -656,8 +685,8 @@ static PyObject *db_allos(PyObject *self, PyObject *args) {
         int64_t o = itr->getValue1();
         int64_t s = itr->getValue2();
         PyObject *t = PyTuple_New(2);
-        PyTuple_SetItem(t, 0, PyLong_FromLong(s));
-        PyTuple_SetItem(t, 1, PyLong_FromLong(o));
+        PyTuple_SetItem(t, 0, PyLong_FromLong(o));
+        PyTuple_SetItem(t, 1, PyLong_FromLong(s));
         PyList_Append(obj, t);
         Py_DECREF(t);
     }
@@ -672,6 +701,21 @@ static PyObject * db_lookup_id(PyObject *self, PyObject *args) {
     KB *kb = ((trident_Db*)self)->kb;
     nTerm value;
     bool resp = kb->getDictMgmt()->getNumber(term, strlen(term), &value);
+    if (resp) {
+        return PyLong_FromLong(value);
+    } else {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
+
+static PyObject * db_lookup_relid(PyObject *self, PyObject *args) {
+    const char *term;
+    if (!PyArg_ParseTuple(args, "s", &term))
+        return NULL;
+    KB *kb = ((trident_Db*)self)->kb;
+    nTerm value;
+    bool resp = kb->getDictMgmt()->getNumberRel(term, strlen(term), &value);
     if (resp) {
         return PyLong_FromLong(value);
     } else {
@@ -756,9 +800,10 @@ static void db_dealloc(trident_Db* self) {
 static PyMethodDef Db_methods[] = {
     {"s", db_alls, METH_VARARGS, "Get all subjects given the p and o. Returns a Python list." },
     {"s_itr", db_alls_fast, METH_VARARGS, "Get all subjects given the p and o. Returns an itr." },
-    {"s_aggr", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
+    {"s_aggr_fromo", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
     {"o", db_allo, METH_VARARGS, "Get all objects given the s and p" },
-    {"o_aggr", db_allo_aggr, METH_VARARGS, "Get all objects given the s" },
+    {"o_aggr_froms", db_allo_aggr_froms, METH_VARARGS, "Get all objects given the s" },
+    {"o_aggr_fromp", db_allo_aggr_fromp, METH_VARARGS, "Get all objects given p" },
     {"po", db_allpo, METH_VARARGS, "Get all (predicate, objects) given s" },
     {"ps", db_allps, METH_VARARGS, "Get all (predicate, subject) given o" },
     {"os", db_allos, METH_VARARGS, "Get all (subject, object) given a p" },
@@ -767,6 +812,7 @@ static PyMethodDef Db_methods[] = {
     {"count_s", db_counts, METH_VARARGS, "Get the number of triples with the same subject" },
     {"count_o", db_counto, METH_VARARGS, "Get the number of triples with the same object" },
     {"count_p", db_countp, METH_VARARGS, "Get the number of triples with the same predicate" },
+    {"count_po", db_count_po, METH_VARARGS, "Get the number of triples with the same predicate and object" },
     {"exists", db_exists, METH_VARARGS, "Check if the given triple exists" },
     {"existsQuery", db_existsQuery, METH_VARARGS, "Check if the given triple exists among the results of a given pattern" },
     {"n_terms", db_nterms, METH_VARARGS, "Get the number of terms in the graph" },
@@ -780,6 +826,7 @@ static PyMethodDef Db_methods[] = {
     {"indegree", db_indegree, METH_VARARGS, "Get the list of all nodes with their indegrees" },
     {"outdegree", db_outdegree, METH_VARARGS, "Get the list of all nodes with their outdegrees" },
     {"lookup_id", db_lookup_id, METH_VARARGS, "Lookup for the ID of an input term" },
+    {"lookup_relid", db_lookup_relid, METH_VARARGS, "Lookup for the ID of an input relation term" },
     {"lookup_str", db_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
     {"lookup_relstr", db_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
     {"search_id", db_search_id, METH_VARARGS, "Search for the IDs of terms" },
@@ -856,13 +903,17 @@ PyMODINIT_FUNC PyInit_trident(void) {
         return NULL;
     if (PyType_Ready(&trident_BatcherType) < 0)
         return NULL;
+    if (PyType_Ready(&trident_EmbType) < 0)
+        return NULL;
 
     Py_INCREF(&trident_DbType);
     Py_INCREF(&trident_ItrType);
     Py_INCREF(&trident_BatcherType);
+    Py_INCREF(&trident_EmbType);
     PyModule_AddObject(m, "Db", (PyObject *)&trident_DbType);
     PyModule_AddObject(m, "Itr", (PyObject *)&trident_ItrType);
     PyModule_AddObject(m, "Batcher", (PyObject *)&trident_BatcherType);
+    PyModule_AddObject(m, "Emb", (PyObject *)&trident_EmbType);
     PyModule_AddFunctions(m, globalFunctions);
 
     PyObject* ana = PyInit_analytics();

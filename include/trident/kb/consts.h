@@ -40,6 +40,8 @@
 #endif
 
 //This is a list of all permutation IDs. It is replicated in tridentcompr/Compressor.h
+// Use IDX_SPO : to find all possible Os where S and P are fixed
+// Use IDX_POS : to find all possible Ss where O and P are fixed
 #define IDX_SPO 0
 #define IDX_OPS 1
 #define IDX_POS 2

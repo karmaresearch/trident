@@ -1,23 +1,28 @@
-#ifndef _DISTMUL_TESTER_H
-#define _DISTMUL_TESTER_H
+#ifndef _TRANSE_BINARY_TESTER_H
+#define _TRANSE_BINARY_TESTER_H
 
 #include <trident/ml/tester.h>
 
 template<typename K>
-class DistMulTester : public Tester<K> {
+class TranseBinaryTester : public Tester<K> {
     public:
-        DistMulTester(std::shared_ptr<Embeddings<K>> E,
+        TranseBinaryTester(std::shared_ptr<Embeddings<K>> E,
+               std::shared_ptr<Embeddings<K>> R, Querier* q) : Tester<K>(E, R, q) {
+        }
+
+        TranseBinaryTester(std::shared_ptr<Embeddings<K>> E,
                std::shared_ptr<Embeddings<K>> R) : Tester<K>(E, R) {
         }
 
         double closeness(K *v1, uint64_t entity, uint16_t dim) {
-            double res = 0;
             Embeddings<K> *pE = (this->E).get();
             K* v2 = pE->get(entity);
-            for(uint16_t i = 0; i < dim; ++i) {
-                res += v1[i] * v2[i];
+            uint64_t count = 0;
+            for (uint16_t i = 0; i < dim; ++i) {
+                uint64_t result = (((uint64_t)v1[i]) ^ ((uint64_t)v2[i]));
+                count += __builtin_popcount(~result);
             }
-            return -res;
+            return (double)count / (double)(dim * sizeof(uint64_t) * 8);
         }
 
         void predictO(uint64_t sub, uint16_t dims, uint64_t pred, uint16_t dimp, K* o) {
@@ -26,7 +31,7 @@ class DistMulTester : public Tester<K> {
             K* s = pE->get(sub);
             K* p = pR->get(pred);
             for (uint16_t i = 0; i < dims; ++i) {
-                o[i] = s[i] * p[i];
+                o[i] = (double) (((uint64_t)s[i]) | ((uint64_t)p[i]));
             }
         }
 
@@ -35,8 +40,8 @@ class DistMulTester : public Tester<K> {
             Embeddings<K> *pR = (this->R).get();
             K* o = pE->get(obj);
             K* p = pR->get(pred);
-            for (uint16_t i = 0; i < dimo; ++i) {
-                s[i] = o[i] * p[i];
+            for (uint16_t i = 0; i < dimp; ++i) {
+                s[i] = (double)(~(((uint64_t)o[i]) & ((uint64_t)p[i])));
             }
         }
 };
