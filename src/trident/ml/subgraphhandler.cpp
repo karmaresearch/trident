@@ -608,7 +608,7 @@ vector<uint64_t> SubgraphHandler::areTriplesInSubGraphs(
         string sent = string(buffer);
         dict->getTextRel(meta.rel, buffer, size);
         string srel = string(buffer, size);
-        if (sent.find("\"") != std::string::npos || srel.find("\"") != std::string::npos) {
+        if (sent.find("\"") != std::string::npos) {
             ++countLiteralSubgraphs;
             LOG(DEBUGL) << countLiteralSubgraphs << " literal subgraphs...";
             continue;
@@ -655,6 +655,9 @@ vector<uint64_t> SubgraphHandler::areTriplesInSubGraphs(
          workingTestTriples = unfoundTriples;
          LOG(DEBUGL) << "Subgraph : " << subgraphid <<" Unfound triples = " << unfoundTriples.size()/3;
          LOG(DEBUGL) << "Subgraph : " << subgraphid <<" output triples  = " << output.size()/3;
+         if (output.size()/ 3 > 100000) {
+            break;
+         }
          unfoundTriples.clear();
          out++;
      }
@@ -958,8 +961,11 @@ vector<uint64_t> SubgraphHandler::removeImprobables(vector<uint64_t> & testTripl
             output.push_back(r);
             output.push_back(t);
         }
-        if (i % 10000 == 0) {
-            LOG(DEBUGL) << i/3 << " triples processed";
+        if (i % 3000 == 0) {
+            LOG(DEBUGL) << i/3 << " triples processed. output =  " << output.size()/3;
+        }
+        if (output.size() / 3 > 10000) {
+            break;
         }
     }
     return output;
@@ -1072,8 +1078,8 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-        string pathValid = BatchCreator::getValidPath(kb.getPath());
-        BatchCreator::loadTriples(pathValid, validTriples);
+        //string pathValid = BatchCreator::getValidPath(kb.getPath());
+        //BatchCreator::loadTriples(pathValid, validTriples);
     }
 
     /*** TEST ***/
@@ -1122,26 +1128,61 @@ void SubgraphHandler::evaluate(KB &kb,
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
 
-    //LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
+    LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
     //LOG(DEBUGL) << "Removing triples with literals...";
     //start = std::chrono::system_clock::now();
     //testTriples = removeLiterals(testTriples, kb);
     //duration = std::chrono::system_clock::now() - start;
     //LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
     //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
-    //LOG(DEBUGL) << "Removing triples with no subgraphs...";
-    //start = std::chrono::system_clock::now();
-    //testTriples = removeImprobables(testTriples, q.get());
-    //vector<uint64_t> allSubIds;
-    //for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
-    //    allSubIds.push_back(i);
-    //}
-    //testTriples = areTriplesInSubGraphs(testTriples, allSubIds, q.get());
+    /*start = std::chrono::system_clock::now();
+    testTriples = sampleTriples(testTriples, 200000);
+    LOG(DEBUGL) << "Chosen " << testTriples.size() << " random triples.";
+    LOG(DEBUGL) << "Removing triples with no subgraphs...";
+    testTriples = removeImprobables(testTriples, q.get());
+    */
+    /*vector<uint64_t> allSubIds;
+    for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
+        allSubIds.push_back(i);
+    }
+    testTriples = areTriplesInSubGraphs(testTriples, allSubIds, q.get());
+    */
     //duration = std::chrono::system_clock::now() - start;
     //LOG(DEBUGL) << "Time to remove triples having no subgraph presence: " << duration.count() * 1000 << " ms";
     //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
-    //
 
+    // Create a new test file on scratch2 space
+    /*
+    ofstream ofs_test;
+    ofs_test.open("/var/scratch2/uji300/wikidata_test_10000", ios::out | ios::app | ios::binary);
+    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t s = testTriples[i];
+        uint64_t p = testTriples[i+1];
+        uint64_t o = testTriples[i+2];
+        const char *cs = (const char*)&s;
+        const char *cp = (const char*)&p;
+        const char *co = (const char*)&o;
+        ofs_test.write(cs, 5); //Max numbers have 5 bytes
+        ofs_test.write(cp, 5);
+        ofs_test.write(co, 5);
+    }
+    ofs_test.close();
+    return;
+    */
+
+    // Count number of entities without literals
+    // TODO: fixme
+    uint64_t nEntitiesWithoutLiterals = 148546616;
+    /*
+    for (uint64_t i = 0; i < nents; ++i) {
+        dict->getText(i, buffer);
+        string sent = string(buffer);
+        if (sent[0] != '\"') {
+            nEntitiesWithoutLiterals++;
+        }
+    }*/
+
+    LOG(DEBUGL) << "# Entities without literals : " << nEntitiesWithoutLiterals;
     if (testTriples.size() > 1000000) {
         hugeKG = true;
         testTriples = sampleTriples(testTriples, sampleTest);
@@ -1151,8 +1192,8 @@ void SubgraphHandler::evaluate(KB &kb,
         //}
 
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            validTriples = sampleTriples(validTriples, 10000);
-            LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
+            //validTriples = sampleTriples(validTriples, 10000);
+            //LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
         }
     }
 
@@ -1402,6 +1443,13 @@ void SubgraphHandler::evaluate(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
+    LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
+    double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
+    double woLiteralsnormalComparisonsT = nEntitiesWithoutLiterals * hitsTail;
+    double woLiteralPercentReductionH   = ((double)(woLiteralsnormalComparisonsH - cons_comparisons_h)/woLiteralsnormalComparisonsH) * 100;
+    double woLiteralPercentReductionT   = ((double)(woLiteralsnormalComparisonsT - cons_comparisons_t)/woLiteralsnormalComparisonsT) * 100;
+    LOG(INFOL) << "Without Literals Percent Reduction (H): " << woLiteralPercentReductionH;
+    LOG(INFOL) << "Without Literals Percent Reduction (T): " << woLiteralPercentReductionT;
     LOG(INFOL) << "# entities : " << nents;
     LOG(INFOL) << "# Subgraphs: " << subgraphs->getNSubgraphs();
     LOG(INFOL) << "Hits (H): " << hitsHead << " (T): " << hitsTail << " of " << testTriples.size() / 3;
