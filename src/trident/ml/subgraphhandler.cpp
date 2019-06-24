@@ -10,6 +10,11 @@
 #include <set>
 #include <fstream>
 
+#include "/home/uji300/faiss/IndexPQ.h"
+#include "/home/uji300/faiss/IndexIVFPQ.h"
+#include "/home/uji300/faiss/IndexFlat.h"
+#include "/home/uji300/faiss/index_io.h"
+
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
     this->R = Embeddings<double>::load(embdir + "/R");
@@ -739,6 +744,41 @@ void SubgraphHandler::create(KB &kb,
     } else if (subgraphType == "var") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(
                 new VarSubgraphs<double>(0, minSubgraphSize));
+    } else if (subgraphType == "ann"){
+        int d = E->getDim();
+        size_t nb = E->getN();
+        size_t add_bs = 10000;
+        size_t nt = nb;
+        size_t nhash = 2;
+        size_t nbits_subq = 9;
+        size_t ncentroids = 1 << (nhash * nbits_subq);  // total # of centroids
+        int bytes_per_code = d /5; // d must be multiple of it
+
+        faiss::MultiIndexQuantizer coarse_quantizer (d, nhash, nbits_subq);
+        faiss::MetricType metric = faiss::METRIC_L2; // can be METRIC_INNER_PRODUCT
+        faiss::IndexIVFPQ index (&coarse_quantizer, d, ncentroids, bytes_per_code, 8);
+        index.quantizer_trains_alone = true;
+        index.nprobe = 2048;
+        index.verbose = true;
+        vector<long> ids(nt);
+        vector<float> float_emb(nt);
+        for (uint64_t i = 0; i < nt; ++i) {
+            double *emb = E->get(i);
+            for (uint16_t j = 0; j < d; ++j) {
+                float_emb.push_back((float)emb[j]);
+            }
+            ids[i] = i;
+        }
+        index.train(nt, float_emb.data());
+        faiss::write_index(&index, "/var/scratch2/uji300/train_index_ann.faiss");
+        for (size_t begin = 0; begin < nb; begin += add_bs) {
+            size_t end = std::min(begin + add_bs, nb);
+            index.add_with_ids(end-begin,
+                                float_emb.data() + d * begin,
+                                ids.data() + begin);
+        }
+        faiss::write_index(&index, "/var/scratch2/uji300/populated_index_ann.faiss");
+
     } else {
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
@@ -1034,7 +1074,12 @@ void SubgraphHandler::evaluate(KB &kb,
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    loadSubgraphs(subFile, subAlgo, varThreshold);
+    faiss::Index *annIndex = NULL;
+    if (subAlgo == "ann") {
+        annIndex = faiss::read_index("/var/scratch2/uji300/populated_index_ann.faiss");
+    } else {
+        loadSubgraphs(subFile, subAlgo, varThreshold);
+    }
     if (binEmbDir != "") {
         processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
     }
@@ -1074,6 +1119,7 @@ void SubgraphHandler::evaluate(KB &kb,
         } else {
             pathtest = nameTest;
         }
+        LOG(INFOL) << "path test = " << pathtest;
         BatchCreator::loadTriples(pathtest, testTriples);
     }
 
@@ -1171,16 +1217,14 @@ void SubgraphHandler::evaluate(KB &kb,
     */
 
     // Count number of entities without literals
-    // TODO: fixme
-    uint64_t nEntitiesWithoutLiterals = 148546616;
-    /*
+    uint64_t nEntitiesWithoutLiterals = 0;// for Wikidata 148546616;
     for (uint64_t i = 0; i < nents; ++i) {
         dict->getText(i, buffer);
         string sent = string(buffer);
         if (sent[0] != '\"') {
             nEntitiesWithoutLiterals++;
         }
-    }*/
+    }
 
     LOG(DEBUGL) << "# Entities without literals : " << nEntitiesWithoutLiterals;
     if (testTriples.size() > 1000000) {
@@ -1205,6 +1249,10 @@ void SubgraphHandler::evaluate(KB &kb,
     std::vector<double> relevantSubgraphsTDistances;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
+
+    // For ANN test
+    vector<float> tailQueriesAnn;
+    vector<float> headQueriesAnn;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         LOG(DEBUGL) << "Query " << i/3 << ")";
@@ -1224,6 +1272,23 @@ void SubgraphHandler::evaluate(KB &kb,
                 LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
                     " instead of " << nents * hitsTail;
             }
+        }
+
+        if (subAlgo == "ann") {
+            uint16_t dim = E->getDim();
+            std::unique_ptr<double> tailResultAnn =
+            std::unique_ptr<double>(new double[dim]);
+            std::unique_ptr<double> headResultAnn =
+            std::unique_ptr<double>(new double[dim]);
+            add(tailResultAnn.get(), E->get(h), E->get(r), dim);
+            for (uint16_t j = 0; j < dim; ++j) {
+                tailQueriesAnn.push_back((float)tailResultAnn.get()[j]);
+            }
+            sub(headResultAnn.get(), E->get(t), E->get(r), dim);
+            for (uint16_t j = 0; j < dim; ++j) {
+                headQueriesAnn.push_back((float)headResultAnn.get()[j]);
+            }
+            continue;
         }
 
         //Calculate the displacements
@@ -1442,6 +1507,20 @@ void SubgraphHandler::evaluate(KB &kb,
             }
             *logWriter.get() << line << endl;
         }
+    }
+
+    if (subAlgo == "ann"){
+        int k = 10;
+        vector<faiss::Index::idx_t> nns (k * testTriples.size());
+        vector<float> dis (k * testTriples.size());
+        annIndex->search(testTriples.size(), tailQueriesAnn.data(), k, dis.data(), nns.data());
+        for (int i = 0; i < testTriples.size(); ++i) {
+            LOG(INFOL) << "Query #" << i+1 << ") ";
+            for (int j = 0; j < k; ++j) {
+                LOG(INFOL) << nns[j + i *k] << " ";
+            }
+        }
+        return;
     }
     LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
     double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
