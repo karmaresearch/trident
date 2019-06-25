@@ -747,37 +747,35 @@ void SubgraphHandler::create(KB &kb,
     } else if (subgraphType == "ann"){
         int d = E->getDim();
         size_t nb = E->getN();
-        size_t add_bs = 10000;
         size_t nt = nb;
-        size_t nhash = 2;
-        size_t nbits_subq = 9;
-        size_t ncentroids = 1 << (nhash * nbits_subq);  // total # of centroids
-        int bytes_per_code = d /5; // d must be multiple of it
+        faiss::IndexFlatL2 coarse_quantizer(d);
 
-        faiss::MultiIndexQuantizer coarse_quantizer (d, nhash, nbits_subq);
-        faiss::MetricType metric = faiss::METRIC_L2; // can be METRIC_INNER_PRODUCT
-        faiss::IndexIVFPQ index (&coarse_quantizer, d, ncentroids, bytes_per_code, 8);
-        index.quantizer_trains_alone = true;
-        index.nprobe = 2048;
+        int ncentroids = int(4 * sqrt(nb));  // total # of centroids
+
+        faiss::IndexIVFPQ index (&coarse_quantizer, d, ncentroids, d/10, 8);
+        //index.quantizer_trains_alone = true;
+        //index.nprobe = 2048;
         index.verbose = true;
-        vector<long> ids(nt);
+        //vector<long> ids(nt);
         vector<float> float_emb(nt);
         for (uint64_t i = 0; i < nt; ++i) {
             double *emb = E->get(i);
             for (uint16_t j = 0; j < d; ++j) {
                 float_emb.push_back((float)emb[j]);
             }
-            ids[i] = i;
+        //    ids[i] = i;
         }
         index.train(nt, float_emb.data());
-        faiss::write_index(&index, "/var/scratch2/uji300/train_index_ann.faiss");
-        for (size_t begin = 0; begin < nb; begin += add_bs) {
+        faiss::write_index(&index, subfile.c_str());
+        //faiss::write_index(&index, "/var/scratch2/uji300/train_index_ann");
+        //index.add(nt, float_emb.data());
+        /*for (size_t begin = 0; begin < nb; begin += add_bs) {
             size_t end = std::min(begin + add_bs, nb);
             index.add_with_ids(end-begin,
                                 float_emb.data() + d * begin,
                                 ids.data() + begin);
-        }
-        faiss::write_index(&index, "/var/scratch2/uji300/populated_index_ann.faiss");
+        }*/
+        //faiss::write_index(&index, subfile.c_str());
 
     } else {
         LOG(ERRORL) << "Subgraph type not recognized!";
@@ -1076,7 +1074,8 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Loading the subgraphs ...";
     faiss::Index *annIndex = NULL;
     if (subAlgo == "ann") {
-        annIndex = faiss::read_index("/var/scratch2/uji300/populated_index_ann.faiss");
+        annIndex = faiss::read_index(subFile.c_str());
+        assert(annIndex != NULL);
     } else {
         loadSubgraphs(subFile, subAlgo, varThreshold);
     }
@@ -1253,29 +1252,24 @@ void SubgraphHandler::evaluate(KB &kb,
     // For ANN test
     vector<float> tailQueriesAnn;
     vector<float> headQueriesAnn;
+    uint16_t dim = E->getDim();
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         LOG(DEBUGL) << "Query " << i/3 << ")";
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
-        if (i % offset == 0) {
-            LOG(INFOL) << "***Tested " << i / 3 << " of "
-                << testTriples.size() / 3 << " queries";
-            if (i > 0) {
-                LOG(INFOL) << "***Hits (H): " << hitsHead << " (T): " << hitsTail <<
-                    " of " << i / 3;
-                LOG(INFOL) << "***Mean Rank (H): " << (double) subgraphRanksHead / hitsHead << " (T): "
-                    << (double)subgraphRanksTail / hitsTail;
-                LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
-                    " instead of " << nents * hitsHead;
-                LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
-                    " instead of " << nents * hitsTail;
-            }
-        }
 
         if (subAlgo == "ann") {
-            uint16_t dim = E->getDim();
+            size_t nt = E->getN();
+            vector<float> float_emb(nt);
+            for (uint64_t i = 0; i < nt; ++i) {
+                double *emb = E->get(i);
+                for (uint16_t j = 0; j < dim; ++j) {
+                    float_emb.push_back((float)emb[j]);
+                }
+            }
+            annIndex->add(E->getN(), float_emb.data());
             std::unique_ptr<double> tailResultAnn =
             std::unique_ptr<double>(new double[dim]);
             std::unique_ptr<double> headResultAnn =
@@ -1289,6 +1283,21 @@ void SubgraphHandler::evaluate(KB &kb,
                 headQueriesAnn.push_back((float)headResultAnn.get()[j]);
             }
             continue;
+        }
+
+        if (i % offset == 0) {
+            LOG(INFOL) << "***Tested " << i / 3 << " of "
+                << testTriples.size() / 3 << " queries";
+            if (i > 0) {
+                LOG(INFOL) << "***Hits (H): " << hitsHead << " (T): " << hitsTail <<
+                    " of " << i / 3;
+                LOG(INFOL) << "***Mean Rank (H): " << (double) subgraphRanksHead / hitsHead << " (T): "
+                    << (double)subgraphRanksTail / hitsTail;
+                LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
+                    " instead of " << nents * hitsHead;
+                LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
+                    " instead of " << nents * hitsTail;
+            }
         }
 
         //Calculate the displacements
@@ -1511,15 +1520,38 @@ void SubgraphHandler::evaluate(KB &kb,
 
     if (subAlgo == "ann"){
         int k = 10;
-        vector<faiss::Index::idx_t> nns (k * testTriples.size());
-        vector<float> dis (k * testTriples.size());
-        annIndex->search(testTriples.size(), tailQueriesAnn.data(), k, dis.data(), nns.data());
-        for (int i = 0; i < testTriples.size(); ++i) {
-            LOG(INFOL) << "Query #" << i+1 << ") ";
+        LOG(INFOL) << "K = 10 nearest neighbours: ";
+        vector<faiss::Index::idx_t> nns (k * testTriples.size()/3);
+        vector<float> dis (k * testTriples.size()/3);
+        annIndex->search(testTriples.size()/3, tailQueriesAnn.data(), k, dis.data(), nns.data());
+        for (int i = 0; i < testTriples.size(); i += 3) {
+            LOG(DEBUGL) << "Query " << i/3 + 1<< ")";
+            uint64_t t = testTriples[i + 2];
+
             for (int j = 0; j < k; ++j) {
-                LOG(INFOL) << nns[j + i *k] << " ";
+                //LOG(INFOL) << nns[j + i *k] << " ";
+                if (t == nns[j + i * k]) {
+                    hitsTail++;
+                }
             }
         }
+        LOG(INFOL) << "checking head queries :";
+        annIndex->search(testTriples.size()/3, headQueriesAnn.data(), k, dis.data(), nns.data());
+        for (int i = 0; i < testTriples.size(); i += 3) {
+            LOG(DEBUGL) << "Query " << i/3 + 1<< ")";
+            uint64_t h = testTriples[i];
+
+            for (int j = 0; j < k; ++j) {
+                //LOG(INFOL) << nns[j + i *k] << " ";
+                if (h == nns[j + i * k]) {
+                    hitsHead++;
+                }
+            }
+        }
+        float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
+        float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
+        LOG(INFOL) << "HitRate (H): " << hitRateH;
+        LOG(INFOL) << "HitRate (T): " << hitRateT;
         return;
     }
     LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;

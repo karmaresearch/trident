@@ -171,8 +171,6 @@ class Subgraphs {
                         uint64_t countResultsO = 0;
                         vector<double*> trueEmbeddings;
                         while(itr->hasNext()) {
-                            int64_t key = itr->getKey();
-                            int64_t entity1 = itr->getValue1();
                             int64_t entity2 = itr->getValue2();
                             itr->next();
                             if (entity2 != -1){
@@ -189,9 +187,7 @@ class Subgraphs {
                         uint64_t countResultsS = 0;
                         vector<double*> trueEmbeddings;
                         while (itr->hasNext()) {
-                            int64_t entity1 = itr->getValue1();
                             int64_t entity2 = itr->getValue2();
-                            int64_t key = itr->getKey();
                             itr->next();
                             if (entity2 != -1) {
                                 trueEmbeddings.push_back(E->get(entity2));
