@@ -1,5 +1,6 @@
 #include <trident/ml/tester.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/distmultester.h>
 #include <trident/ml/transebinarytester.h>
 #include <trident/ml/holetester.h>
 #include <trident/ml/batch.h>
@@ -53,6 +54,9 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
         }
     } else if (algo == "hole") {
         HoleTester<double> tester(E,R, kb.query());
+        auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
+    } else if (algo == "distmul"){
+        DistMulTester<double> tester(E, R);
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
     } else {
         LOG(ERRORL) << "Not yet supported";
