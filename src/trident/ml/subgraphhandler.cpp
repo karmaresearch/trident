@@ -10,11 +10,11 @@
 #include <set>
 #include <fstream>
 
-#include "/var/scratch2/uji300/faiss/IndexPQ.h"
-#include "/var/scratch2/uji300/faiss/IndexIVFPQ.h"
-#include "/var/scratch2/uji300/faiss/IndexFlat.h"
-#include "/var/scratch2/uji300/faiss/IndexIVFFlat.h"
-#include "/var/scratch2/uji300/faiss/index_io.h"
+#include <faiss/IndexPQ.h>
+#include <faiss/IndexIVFPQ.h>
+#include <faiss/IndexFlat.h>
+#include <faiss/IndexIVFFlat.h>
+#include <faiss/index_io.h>
 
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
@@ -1562,7 +1562,7 @@ void SubgraphHandler::evaluate(KB &kb,
         int nq = testTriples.size()/3;
         LOG(DEBUGL) << "tail queries vector size : " << tailQueriesAnn.size();
         LOG(DEBUGL) << "tail queries : " << tailQueriesAnn.size() / dim;
-        vector<long> nns (k * nq);
+        vector<long long> nns (k * nq);
         vector<float> dis (k * nq);
         annIndex->search(nq, tailQueriesAnn.data(), k, dis.data(), nns.data());
         for (int ii = 0; ii < testTriples.size(); ii += 3) {
@@ -1579,7 +1579,7 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
         LOG(INFOL) << "checking head queries :";
-        vector<long>(k * nq).swap(nns);
+        vector<long long>(k * nq).swap(nns);
         vector<float>(k * nq).swap(dis);
         annIndex->search(nq, headQueriesAnn.data(), k, dis.data(), nns.data());
         for (int ii = 0; ii < testTriples.size(); ii += 3) {
