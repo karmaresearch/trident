@@ -48,7 +48,7 @@ void printHelp(const char *programName, string section,
         cout << "predict\t\t\t launch an algorithm to use KG embeddings for link prediction." << endl;
         cout << "subcreate\t\t create embeddings of subgraphs." << endl;
         cout << "subeval\t\t\t use embeddings of subgraphs for link prediction." << endl;
-        cout << "subanswers\t\t\t use embeddings of subgraphs for finding all answers of the query." << endl;
+        cout << "answer \t\t finding all answers of a given query using embeddings or other methods." << endl;
 #endif
 
         cout << "server\t\t\t start a server for SPARQL queries." << endl << endl;
@@ -90,7 +90,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "learn"
             && cmd != "predict"
             && cmd != "subcreate"
-            && cmd != "subanswers"
+            && cmd != "answer"
             && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
@@ -355,7 +355,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
 #ifdef ML
     /***** SUBGRAPHS *****/
-    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval> or <subanswers>");
+    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval> or <answer>");
     subeval_options.add<string>("", "embAlgo", "",
             "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
