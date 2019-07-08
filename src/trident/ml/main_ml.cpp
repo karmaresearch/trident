@@ -168,6 +168,69 @@ void subgraphEval(KB &kb, ProgramArgs &vm) {
 }
 
 void answer(KB &kb, ProgramArgs &vm) {
+    //Params
+    std::string embDir = vm["embDir"].as<std::string>();
+    std::string subFile = vm["subFile"].as<std::string>();
+    std::string subAlgo = vm["subAlgo"].as<std::string>();
+    double varThreshold = vm["varThreshold"].as<double>();
+
+    //Load the embeddings
+    LOG(INFOL) << "Loading the embeddings ...";
+    SubgraphHandler sh;
+    sh.loadEmbeddings(embDir);
+    LOG(INFOL) << "Loading the subgraphs ...";
+    sh.loadSubgraphs(subFile, subAlgo, varThreshold);
+
+    bool headQuery = false;
+    uint64_t resource = 0;
+    uint64_t relation = 0;
+
+    //Load the query or queries
+    if (vm.count("query")) {
+        //Parse the query in JSON format
+        uint64_t nElements = 0;
+        DictMgmt *dict = kb.getDictMgmt();
+        string queryFileName = vm["query"].as<string>();
+        std::fstream inFile;
+        inFile.open(queryFileName);//open the input file
+        std::stringstream strStream;
+        strStream << inFile.rdbuf();//read the file
+        std::string value = strStream.str();
+        JSON obj;
+        JSON::read(value, obj);
+
+        //Parse the relation
+        std::string strVal = obj.getValue("predicate");
+        nTerm key = 0;
+        bool ok = dict->getNumberRel(strVal.c_str(), strVal.size(), &key);
+        relation = key;
+
+        if (obj.existKey("subject")) {
+            strVal = obj.getValue("subject");
+            headQuery = false;
+        } else {
+            strVal = obj.getValue("object");
+            headQuery = true;
+        }
+
+        ok = dict->getNumberRel(strVal.c_str(), strVal.size(), &key);
+        relation = key;
+
+
+
+
+    } else {
+        //Not implemented
+        throw 10;
+    }
+
+    //TODO: Rank subgraphs
+    std::vector<uint64_t> relevantSubgraphs;
+
+
+    //TODO: Select the most promising ones
+
+    //TODO: Select promising entities
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {

@@ -12,14 +12,18 @@ class SubgraphHandler {
         std::shared_ptr<Embeddings<double>> R;
         std::shared_ptr<Subgraphs<double>> subgraphs;
 
-        void loadEmbeddings(string embdir);
 
         void loadBinarizedEmbeddings(string embfile, vector<double>& embeddings);
 
         void processBinarizedEmbeddingsDirectory(string embdir, vector<double>& emb1, vector<double>& emb2, vector<double> &e3);
 
+    public:
+        void loadEmbeddings(string embdir);
+
         void loadSubgraphs(string subgraphsFile,
                 string subFormat, double varThreshold);
+
+    private:
 
         template<typename K>
             void getDisplacement(K &tester,

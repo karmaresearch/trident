@@ -83,6 +83,10 @@ class TridentServer {
         //OK
         static string lookup(string sId, TridentLayer &db);
 
+
+        //OK
+        void execLinkPrediction(string query, JSON &response);
+
         //OK
         static void execSPARQLQuery(string sparqlquery,
                 bool explain,

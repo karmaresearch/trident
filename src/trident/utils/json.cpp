@@ -1,5 +1,7 @@
 #include <trident/utils/json.h>
 
+#include <rapidjson/document.h>
+
 std::string escape_json(const std::string &s) {
     std::ostringstream o;
     for (auto c = s.cbegin(); c != s.cend(); c++) {
@@ -64,5 +66,15 @@ void JSON::write(std::ostream &out, JSON &value) {
 }
 
 void JSON::read(std::string &in, JSON &value) {
-    //TODO
+    //Use RapidJSON for parsing ... (fast, BSD)
+    rapidjson::Document document;
+    if (document.Parse(in.c_str()).HasParseError()) {
+        return;
+    }
+    auto itr = document.MemberBegin();
+    while (itr != document.MemberEnd()) {
+        value.put(itr->name.GetString(), itr->value.GetString());
+        itr++;
+    }
+
 }

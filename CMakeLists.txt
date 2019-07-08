@@ -186,7 +186,7 @@ IF(ML)
 
     # Install FAISS
     find_library(omp omp)
-    find_library(openblas openblas)
+    find_library(openblas openblas PATHS /usr/local/opt/openblas/lib)
     ExternalProject_Add(git-faiss
         DOWNLOAD_COMMAND git clone https://github.com/facebookresearch/faiss.git
         DOWNLOAD_DIR .

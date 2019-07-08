@@ -110,6 +110,16 @@ string TridentServer::lookup(string sId, TridentLayer &db) {
     return string(start, end - start);
 }
 
+
+void TridentServer::execLinkPrediction(string query, JSON &response) {
+    JSON jquery;
+    JSON::read(query, jquery);
+    std::string subject = jquery.getValue("subject");
+    std::string predicate = jquery.getValue("predicate");
+    std::string object = jquery.getValue("object");
+    std::cout << subject << " " << predicate << " " << object << std::endl;
+}
+
 void TridentServer::execSPARQLQuery(string sparqlquery,
         bool explain,
         int64_t nterms,
@@ -272,6 +282,16 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             JSON::write(buf, pt);
             page = buf.str();
             isjson = true;
+        } else if (path == "/predict") {
+            string form = req.substr(req.find("application/x-www-form-urlencoded"));
+            string query = _getValueParam(form, "query");
+            query = HttpClient::unescape(query);
+            JSON pt;
+            execLinkPrediction(query, pt);
+            std::ostringstream buf;
+            JSON::write(buf, pt);
+            page = buf.str();
+            isjson = true;
         } else {
             page = "Error!";
         }
@@ -296,21 +316,8 @@ void TridentServer::processRequest(std::string req, std::string &res) {
         res+= to_string(page.size()) + "\r\n\r\n" + page;
     }
 
-    /*boost::asio::async_write(socket, boost::asio::buffer(res),
-      boost::asio::transfer_all(),
-      boost::bind(&Server::writeHandler,
-      shared_from_this(),
-      boost::asio::placeholders::error,
-      boost::asio::placeholders::bytes_transferred));*/
-
     setInactive();
 }
-
-/*void TridentServer::Server::writeHandler(const boost::system::error_code &err,
-  std::size_t bytes) {
-  socket.close();
-  inter->connect();
-  };*/
 
 string TridentServer::getDefaultPage() {
     return getPage("/index.html");

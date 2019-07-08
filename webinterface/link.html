@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <meta name="author" content="Jacopo Urbani">
+    <meta name="description" content="Trident">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="bootstrap.min.css" rel="stylesheet" type="text/css">
+    <script src="jquery.js" type="application/javascript"></script>
+    <script src="popper.min.js" type="application/javascript"></script>
+    <script src="tether.min.js" type="application/javascript"></script>
+    <script src="bootstrap.min.js" type="application/javascript"></script>
+
+    <title>Trident Web Interface</title>
+</head>
+
+<body>
+        <div class="container-fluid">
+            <h1>Trident</h1>
+
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="/">SPARQL</a>
+                  </li>
+
+                  <li class="nav-item active">
+                    <a class="nav-link" href="/link.html">Link Prediction <span class="sr-only"></span></a>
+                  </li>
+                </ul>
+                </div>
+            </nav>
+        </div>
+
+        <div class="container-fluid">
+            <div class="form-group">
+            <form id="query-form" name="query-form" accept-charset="utf-8">
+                <label for="query"><h3>Query</h3></label>
+                <textarea class="form-control" id="query" name="query" rows="3">{ "subject" : "<URI>",  "predicate" : "<URI>", "object" : "?" }</textarea>
+                <button id="submitForm" class="btn btn-primary btn-block" type="button">Submit</button>
+            </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#submitForm').click( function() {
+            var inputdata = $('#query-form').serialize();
+            $.post('/predict', inputdata, function(data) {
+                alert(JSON.stringify(data));
+            },
+            'json' // I expect a JSON response
+            );
+         });
+    </script>
+</body>
+</html>

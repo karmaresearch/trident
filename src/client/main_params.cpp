@@ -48,7 +48,7 @@ void printHelp(const char *programName, string section,
         cout << "predict\t\t\t launch an algorithm to use KG embeddings for link prediction." << endl;
         cout << "subcreate\t\t create embeddings of subgraphs." << endl;
         cout << "subeval\t\t\t use embeddings of subgraphs for link prediction." << endl;
-        cout << "answer \t\t finding all answers of a given query using embeddings or other methods." << endl;
+        cout << "answer \t\t\t finding all answers of a given query using embeddings or other methods." << endl;
 #endif
 
         cout << "server\t\t\t start a server for SPARQL queries." << endl << endl;
@@ -414,6 +414,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     sections.insert(make_pair("predict",&ml_options));
     sections.insert(make_pair("subeval",&subeval_options));
     sections.insert(make_pair("subcreate",&subeval_options));
+    sections.insert(make_pair("answer",&subeval_options));
 #endif
 
     vm.parse(argc, argv);
