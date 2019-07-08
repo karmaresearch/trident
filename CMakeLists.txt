@@ -184,7 +184,7 @@ IF(ML)
         "src/trident/ml/*.cpp"
         src/trident/mining/miner.cpp)
     set(COMPILE_FLAGS "-DFINTEGER=int  -fopenmp -m64 -msse4 -mpopcnt -lopenblas -lfaiss ${COMPILE_FLAGS}")
-    LINK_DIRECTORIES("/home/uji300/faiss")
+    LINK_DIRECTORIES("/var/scratch2/uji300/faiss")
     SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -lopenblas -lfaiss")
     add_library(trident-ml SHARED ${ml_SRC})
     set_target_properties(trident-ml PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")

@@ -748,41 +748,32 @@ void SubgraphHandler::create(KB &kb,
     } else if (subgraphType == "ann"){
         int d = E->getDim();
         size_t nb = E->getN();
+        size_t nr = R->getN();
         size_t nt = nb;
-        faiss::IndexFlatL2 coarse_quantizer(d);
-
         int ncentroids = int(4 * sqrt(nb));  // total # of centroids
-
-        faiss::IndexIVFPQ index (&coarse_quantizer, d, ncentroids, d/10, 8);
-        //index.quantizer_trains_alone = true;
-        //index.nprobe = 2048;
-        index.verbose = true;
-        vector<long> ids(nt);
-        vector<float> float_emb(nt * d);
-        for (long i = 0; i < nt; ++i) {
-            double *emb = E->get(i);
-            for (uint16_t j = 0; j < d; ++j) {
-                float_emb.push_back((float)emb[j]);
-            }
-            ids[i] = i;
-            if (i < 0) {
-                LOG(DEBUGL) << "Negative id : " << i;
-            }
+        int bytesPerCode = 4; // d must be multiple of this
+        int bitsPerSubcode = 8;
+        if (d % 10 == 0) {
+            bytesPerCode = d /10;
         }
-        index.train(nt, float_emb.data());
-        index.add(nt, float_emb.data());
-        //faiss::write_index(&index, subfile.c_str());
-        //faiss::write_index(&index, "/var/scratch2/uji300/train_index_ann");
-        //index.add(nt, float_emb.data());
-        /*size_t add_bs = 1000;
-        for (size_t begin = 0; begin < nb; begin += add_bs) {
-            size_t end = std::min(begin + add_bs, nb);
-            index.add_with_ids(end-begin,
-                                float_emb.data() + d * begin,
-                                ids.data() + begin);
-        }*/
-        faiss::write_index(&index, subfile.c_str());
+        faiss::IndexFlatL2 quantizer(d);
+        faiss::IndexIVFPQ index(&quantizer, d, ncentroids, bytesPerCode, bitsPerSubcode);
 
+        index.verbose = true;
+        float *float_emb = new float[nt * d];
+        for (long i2 = 0; i2 < nt; ++i2) {
+            double *emb = E->get(i2);
+            double *remb = NULL;
+            for (uint16_t j2 = 0; j2 < d; ++j2) {
+                float_emb[d * i2 + j2] = (float)emb[j2];
+            }
+            float_emb[d * i2] += i2 / 1000.;
+        }
+        index.train(nt, float_emb);
+        index.add(nt, float_emb);
+        index.nprobe = 16;
+        faiss::write_index(&index, subfile.c_str());
+        delete [] float_emb;
     } else {
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
@@ -1265,19 +1256,8 @@ void SubgraphHandler::evaluate(KB &kb,
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
-        int iq = i/3;
         if (subAlgo == "ann") {
-            /*
-             size_t nt = E->getN();
-            vector<float> float_emb(nt);
-            for (uint64_t i = 0; i < nt; ++i) {
-                double *emb = E->get(i);
-                for (uint16_t j = 0; j < dim; ++j) {
-                    float_emb.push_back((float)emb[j]);
-                }
-            }
-            annIndex->add(E->getN(), float_emb.data());
-            */
+            int iq = i/3;
             std::unique_ptr<double> tailResultAnn =
             std::unique_ptr<double>(new double[dim]);
             std::unique_ptr<double> headResultAnn =
@@ -1285,16 +1265,11 @@ void SubgraphHandler::evaluate(KB &kb,
             add(tailResultAnn.get(), E->get(h), R->get(r), dim);
             assert(h < E->getN() && t < E->getN());
             for (uint16_t j = 0; j < dim; ++j) {
-                //tailQueriesAnn.push_back((float)tailResultAnn.get()[j]);
                 tailQueriesAnn[dim * iq + j] = (float) tailResultAnn.get()[j];
-                //tailQueriesAnn.push_back((float)E->get(t)[j]);
             }
             tailQueriesAnn[dim * iq] += iq / 1000.;
             sub(headResultAnn.get(), E->get(t), R->get(r), dim);
             for (uint16_t j = 0; j < dim; ++j) {
-                //LOG(DEBUGL) << (float)headResultAnn.get()[j];
-                //headQueriesAnn.push_back((float)headResultAnn.get()[j]);
-                //headQueriesAnn.push_back((float)E->get(h)[j]);
                 headQueriesAnn[dim * iq + j] = (float) headResultAnn.get()[j];
             }
             headQueriesAnn[dim * iq] += iq / 1000.0;
@@ -1536,122 +1511,38 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     if (subAlgo == "ann"){
-            // TODO delme +
-            int d = E->getDim();
-            size_t nb = E->getN();
-            size_t nr = R->getN();
-            size_t nt = nb;
-            faiss::IndexFlatL2 quantizer(d);
-            faiss::IndexIVFPQ index(&quantizer, d, 100, 5, 8);
-            //assert(!index.is_trained);
-            //int ncentroids = int(4 * sqrt(nb));  // total # of centroids
-
-            index.verbose = true;
-            //vector<long> ids(nt);
-            //vector<float> float_emb(nt * d);
-            float *float_emb = new float[nt * d];
-            for (long i2 = 0; i2 < nt; ++i2) {
-                double *emb = E->get(i2);
-                double *remb = NULL;
-                //LOG(DEBUGL) << nr << " - " << i2 << ") ";
-                if (i2 < nr) {
-                    remb = R->get(i2);
-                    assert(!memcmp(emb, remb, sizeof(double) * d));
-                }
-                for (uint16_t j2 = 0; j2 < d; ++j2) {
-                    //float_emb.push_back((float)emb[j2]);
-                    float_emb[d * i2 + j2] = (float)emb[j2];
-                }
-                float_emb[d * i2] += i2 / 1000.;
-            }
-            index.train(nt, float_emb);
-            //assert(index.is_trained);
-            index.add(nt, float_emb);
-            LOG(DEBUGL) << "index total = " << index.ntotal;
-            index.nprobe = 16;
-            //annIndex = &index;
-            //TODO : delme -
-        int k = 25;
-        LOG(INFOL) << k << " nearest neighbours: ";
+        int k = threshold;
         int nq = testTriples.size()/3;
-        long* nns = new long [(k * nq)];
-        float* dis = new float[(k * nq)];
-        LOG(INFOL) << "checking head queries :";
-        /*sanity check for first five embeddings that we added
-         * index.search(5, float_emb, k, dis.data(), nns.data());
-        for (int ii = 0; ii < 5; ++ii) {
-            for (int jj = 0; jj < k; ++jj) {
-                LOG(DEBUGL) << nns[ii * k + jj];
-            }
-            LOG(DEBUGL) << "=========";
-        }*/
-        index.search(nq, headQueriesAnn, k, dis,nns);
+        long* nnsHead = new long [(k * nq)];
+        float* disHead = new float[(k * nq)];
+        long* nnsTail = new long [(k * nq)];
+        float* disTail = new float[(k * nq)];
+        annIndex->search(nq, headQueriesAnn, k, disHead, nnsHead);
+        annIndex->search(nq, tailQueriesAnn, k, disTail, nnsTail);
         for (int ii = 0; ii < testTriples.size(); ii += 3) {
             uint64_t h = testTriples[ii];
             uint64_t r = testTriples[ii+1];
             uint64_t t = testTriples[ii+2];
             int ind = ii/3;
-            dict->getText(h, buffer);
-            string sh = string(buffer);
-            dict->getText(t, buffer);
-            string st = string(buffer);
-            int size;
-            dict->getTextRel(r, buffer, size);
-            string sr = string(buffer, size);
-            LOG(DEBUGL) << "st = " << st << " rel = " << sr;
             for (int jj = 0; jj < k; ++jj) {
-                //LOG(INFOL) << nns[jj + ii *k] << " ";
-                if (h == nns[jj + ind * k]) {
+                if (h == nnsHead[jj + ind * k]) {
                     hitsHead++;
-                    //LOG(DEBUGL) << "h = " << h << " ; found = " << nns[jj + ind * k];
                     break;
-                } else {
-                    dict->getText(nns[jj + ind*k], buffer);
-                    string sh = string(buffer);
-                    LOG(DEBUGL) << sh;
-                    //if (nns[jj + ind*k] > 1000) {
-                    LOG(DEBUGL) << jj+1 << ")" << nns[jj + ind*k] <<
-                    " ( h = " << h << " )";
-                    //}
                 }
             }
-            //LOG(DEBUGL) << "=======";
-        }
-        memset(nns, 0, sizeof(long) * (k * nq));
-        memset(dis, 0, sizeof(float) * (k * nq));
-        // tail queries
-        index.search(nq, tailQueriesAnn, k, dis, nns);
-        for (int ii = 0; ii < testTriples.size(); ii += 3) {
-            uint64_t h = testTriples[ii];
-            uint64_t r = testTriples[ii+1];
-            uint64_t t = testTriples[ii+2];
-            int ind = ii/3;
-            dict->getText(h, buffer);
-            string sh = string(buffer);
-            dict->getText(t, buffer);
-            string st = string(buffer);
-            int size;
-            dict->getTextRel(r, buffer, size);
-            string sr = string(buffer, size);
-            //LOG(DEBUGL) << "sh = " << sh << " rel = " << sr;
             for (int jj = 0; jj < k; ++jj) {
-                //LOG(INFOL) << nns[j + i *k] << " ";
-                if (t == nns[jj + ind * k]) {
+                if (t == nnsTail[jj + ind * k]) {
                     hitsTail++;
-                    //LOG(DEBUGL) << "t = " << t << " ; found = " << nns[jj + ind * k];
                     break;
-                } else {
-                    dict->getText(nns[jj+ind*k], buffer);
-                    string sans = string(buffer);
-                    //LOG(DEBUGL) << sans << dis[jj + ind *k];
-                    if (nns[jj + ind*k] > 11) {
-                    LOG(DEBUGL) << jj+1 << ")" << nns[jj + ind*k] <<
-                    " (t = " << t << " )";
-                    }
                 }
-
             }
         }
+        delete [] nnsHead;
+        delete [] disHead;
+        delete [] nnsTail;
+        delete [] disTail;
+        delete [] headQueriesAnn;
+        delete [] tailQueriesAnn;
         float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
         float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
         LOG(INFOL) << "HitRate (H): " << hitRateH;
