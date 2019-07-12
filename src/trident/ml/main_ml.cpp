@@ -177,7 +177,8 @@ void subgraphAnswers(KB &kb, ProgramArgs &vm) {
             vm["subgraphThreshold"].as<long>(),
             vm["varThreshold"].as<double>(),
             vm["logFile"].as<string>(),
-            secondDist);
+            secondDist,
+            vm["kFile"].as<string>());
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {

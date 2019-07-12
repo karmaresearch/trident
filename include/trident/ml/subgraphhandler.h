@@ -154,7 +154,8 @@ class SubgraphHandler {
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);
+                DIST secondDist,
+                string kFile);
 
         void create(KB &kb,
                 string subType,

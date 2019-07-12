@@ -1496,6 +1496,7 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
 
+    /*
     if (subAlgo == "ann"){
         int k = threshold;
         int nq = testTriples.size()/3;
@@ -1540,7 +1541,7 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(INFOL) << "Hit@" << k << " (H): " << hitRateH;
         LOG(INFOL) << "Hit@" << k << " (T): " << hitRateT;
         return;
-    }
+    }*/
     LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
     double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
     double woLiteralsnormalComparisonsT = nEntitiesWithoutLiterals * hitsTail;
@@ -1603,7 +1604,8 @@ void SubgraphHandler::findAnswers(KB &kb,
     uint64_t threshold,
     double varThreshold,
     string writeLogs,
-    DIST secondDist) {
+    DIST secondDist,
+    string kFile) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -1613,12 +1615,14 @@ void SubgraphHandler::findAnswers(KB &kb,
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
     faiss::Index *annIndex = NULL;
-    if (subAlgo == "ann") {
-        annIndex = faiss::read_index(subFile.c_str());
+    bool useANN = false;
+    if (subAlgo.find("ann") != string::npos) {
+        annIndex = faiss::read_index(kFile.c_str());
         assert(annIndex != NULL);
-    } else {
-        loadSubgraphs(subFile, subAlgo, varThreshold);
+        useANN = true;
+        subAlgo = subAlgo.substr(subAlgo.find("ann") + 3);
     }
+    loadSubgraphs(subFile, subAlgo, varThreshold);
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
@@ -1725,15 +1729,15 @@ void SubgraphHandler::findAnswers(KB &kb,
     vector<vector<uint64_t>> allExpectedAnswersT;
     uint64_t offset = testTriples.size() / 100;
     uint16_t dim = E->getDim();
-    float* tailQueriesAnn = new float [((testTriples.size()/3) * dim)];
-    float* headQueriesAnn = new float [((testTriples.size()/3) * dim)];
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
-        if (subAlgo == "ann") {
+        float tailQueriesAnn[dim];
+        float headQueriesAnn[dim];
+        if (useANN) {
             int iq = i/3;
             std::unique_ptr<double> tailResultAnn =
             std::unique_ptr<double>(new double[dim]);
@@ -1742,16 +1746,15 @@ void SubgraphHandler::findAnswers(KB &kb,
             add(tailResultAnn.get(), E->get(h), R->get(r), dim);
             assert(h < E->getN() && t < E->getN());
             for (uint16_t j = 0; j < dim; ++j) {
-                tailQueriesAnn[dim * iq + j] = (float) tailResultAnn.get()[j];
+                tailQueriesAnn[j] = (float) tailResultAnn.get()[j];
             }
-            tailQueriesAnn[dim * iq] += iq / 1000.;
+            tailQueriesAnn[0] += iq / 1000.;
 
             sub(headResultAnn.get(), E->get(t), R->get(r), dim);
             for (uint16_t j = 0; j < dim; ++j) {
-                headQueriesAnn[dim * iq + j] = (float) headResultAnn.get()[j];
+                headQueriesAnn[j] = (float) headResultAnn.get()[j];
             }
-            headQueriesAnn[dim * iq] += iq / 1000.;
-            continue;
+            headQueriesAnn[0] += iq / 1000.;
         }
         if (i % offset == 0) {
             LOG(INFOL) << "***Tested " << i / 3 << " of "
@@ -1795,8 +1798,6 @@ void SubgraphHandler::findAnswers(KB &kb,
                 default: threshold = 50; break;
             }
         }
-        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
 
         ANSWER_METHOD ansMethod = UNION;
         if (answerMethod == "intersection") {
@@ -1806,6 +1807,8 @@ void SubgraphHandler::findAnswers(KB &kb,
         }
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
         // Return all answers from the subgraphs
         vector<int64_t> actualAnswersH;
         //LOG(INFOL) << "answer method = " << answerMethod;
@@ -1813,6 +1816,17 @@ void SubgraphHandler::findAnswers(KB &kb,
 
         vector<uint64_t> expectedAnswersH;
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
+        if (useANN) {
+            int kHead = expectedAnswersH.size();
+            long nnsHead[kHead];
+            float disHead[kHead];
+            start = std::chrono::system_clock::now();
+            annIndex->search(1, headQueriesAnn, kHead, disHead, nnsHead);
+            duration = std::chrono::system_clock::now() - start;
+            for (int jj = 0; jj < kHead; ++jj) {
+                actualAnswersH.push_back(nnsHead[jj]);
+            }
+        }
 
         allActualAnswersH.push_back(actualAnswersH);
         allExpectedAnswersH.push_back(expectedAnswersH);
@@ -1850,6 +1864,20 @@ void SubgraphHandler::findAnswers(KB &kb,
         vector<uint64_t> expectedAnswersT;
         //TODO: both expected answers H and T can be collected with a single call to this function
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
+
+        if (useANN) {
+            int kTail = expectedAnswersT.size();
+            long nnsTail[kTail];
+            float disTail[kTail];
+            start = std::chrono::system_clock::now();
+            annIndex->search(1, tailQueriesAnn, kTail, disTail, nnsTail);
+            duration = std::chrono::system_clock::now() - start;
+            //LOG(DEBUGL) << "Time to find approximate nearest neighbours (tail)= " << duration.count() * 1000 << " ms";
+            vector<int64_t> actualAnswersT;
+            for (int jj = 0; jj < kTail; ++jj) {
+                actualAnswersT.push_back(nnsTail[jj]);
+            }
+        }
 
         allActualAnswersT.push_back(actualAnswersT);
         allExpectedAnswersT.push_back(expectedAnswersT);
@@ -1890,7 +1918,7 @@ void SubgraphHandler::findAnswers(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
-    if (subAlgo == "ann"){
+    /*if (useANN){
         //int nq = testTriples.size()/3;
         for (int ii = 0; ii < testTriples.size(); ii += 3) {
             uint64_t h = testTriples[ii];
@@ -1962,9 +1990,7 @@ void SubgraphHandler::findAnswers(KB &kb,
             delete [] nnsTail;
             delete [] disTail;
         }
-    }
-    delete [] headQueriesAnn;
-    delete [] tailQueriesAnn;
+    }*/
     double macroPrecisionH = std::accumulate(
             allQueriesPrecisionsH.begin(),
             allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
