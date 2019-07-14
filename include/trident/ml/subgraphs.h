@@ -211,13 +211,13 @@ class Subgraphs {
                             start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l1(q, i, emb, dim), i));
                             duration = std::chrono::system_clock::now() - start;
-                            LOG(DEBUGL) << "L1 distance time = " << duration.count() * 1000000 << " us";
+                            //LOG(DEBUGL) << "L1 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case L3:
                             start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l3(q, i, emb, dim), i));
                             duration = std::chrono::system_clock::now() - start;
-                            LOG(DEBUGL) << "Var1 distance time = " << duration.count() * 1000000 << " us";
+                            //LOG(DEBUGL) << "Var1 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case L4:
                             distances.push_back(make_pair(l3NoSquare(q, i, emb, dim),i));
@@ -226,12 +226,12 @@ class Subgraphs {
                             start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
                             duration = std::chrono::system_clock::now() - start;
-                            LOG(DEBUGL) << "Var2 distance time = " << duration.count() * 1000000 << " us";
+                            //LOG(DEBUGL) << "Var2 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case KL:
                             distances.push_back(make_pair(kl(q, i, emb, dim, trueAverages, trueVariances), i));
                             duration = std::chrono::system_clock::now() - start;
-                            LOG(DEBUGL) << "KL distance time = " << duration.count() * 1000000 << " us";
+                            //LOG(DEBUGL) << "KL distance time = " << duration.count() * 1000000 << " us";
                             break;
                         default:
                             LOG(ERRORL) << "Not implemented";

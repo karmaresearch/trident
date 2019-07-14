@@ -529,7 +529,7 @@ int main(int argc, const char** argv) {
 #ifdef ML
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
-        answer(kb, vm);
+        //answer(kb, vm);
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;

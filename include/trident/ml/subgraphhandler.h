@@ -136,7 +136,7 @@ class SubgraphHandler {
                 bool calcDisp,
                 int64_t sampleTest);
 
-        /*void findAnswers(KB &kb,
+        void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,
@@ -147,7 +147,8 @@ class SubgraphHandler {
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);*/
+                DIST secondDist,
+                string kFile);
 
         Subgraphs<double>::Metadata getSubgraphMetadata(size_t idx);
 
