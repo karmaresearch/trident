@@ -38,18 +38,64 @@
             <div class="form-group">
             <form id="query-form" name="query-form" accept-charset="utf-8">
                 <label for="query"><h3>Query</h3></label>
+
                 <textarea class="form-control" id="query" name="query" rows="3">{ "subject" : "<URI>",  "predicate" : "<URI>", "object" : "?" }</textarea>
+
+                <input type="number" class="form-control" id="subgraphThreshold" aria-describedby="subgraphThreshold" name="subgraphThreshold" placeholder="N. Subgraphs">
                 <button id="submitForm" class="btn btn-primary btn-block" type="button">Submit</button>
             </form>
             </div>
         </div>
     </div>
 
+    <div id="msgBox"></div>
+    </div>
+
+    <div id="subgraphResults" class="d-none">
+        <table id="tblResults" class="table table-striped">
+            <thead>
+                <th scope="col">Distance</th>
+                <th scope="col">Subgraph</th>
+                <th scope="col">Cardinality</th>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
     <script>
         $('#submitForm').click( function() {
             var inputdata = $('#query-form').serialize();
             $.post('/predict', inputdata, function(data) {
-                alert(JSON.stringify(data));
+                var box = $("#msgBox");
+                box.empty();
+                if (data["status"] == "error") {
+                    var tags = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                    var tags1 = '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
+                    box.append(tags + data["errordesc"] + tags1);
+                    $("#subgraphResults").addClass('d-none');
+                    return;
+                }
+
+                var res = data["subgraphs"];
+                var t = $("#tblResults tbody")[0];
+                t.innerHTML = "";
+                for(var i = 0; i < res.length; ++i) {
+                    //Add a row
+                    var newRow = t.insertRow();
+                    var conf = newRow.insertCell(0);
+                    var tconf = document.createTextNode(res[i]["confidence"]);
+                    conf.appendChild(tconf);
+
+                    var name = newRow.insertCell(1);
+                    var tname = document.createTextNode(res[i]["name"]);
+                    name.appendChild(tname);
+
+                    var card = newRow.insertCell(2);
+                    var tcard = document.createTextNode(res[i]["cardinality"]);
+                    card.appendChild(tcard);
+                }
+                $("#subgraphResults").removeClass('d-none');
             },
             'json' // I expect a JSON response
             );

@@ -2043,3 +2043,8 @@ void SubgraphHandler::sub(double *dest, double *v1, double *v2, uint16_t dim) {
         dest[i] = v1[i] - v2[i];
     }
 }
+
+
+Subgraphs<double>::Metadata SubgraphHandler::getSubgraphMetadata(size_t idx) {
+    return subgraphs->getMeta(idx);
+}

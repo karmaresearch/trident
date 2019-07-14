@@ -70,17 +70,6 @@ class SubgraphHandler {
 
         vector<uint64_t> sampleSubgraphs(vector<uint64_t>& subgs, int percent=25);
 
-        void selectRelevantSubGraphs(DIST dist,
-                Querier *q,
-                string algo,
-                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
-                std::vector<uint64_t> &output,
-                std::vector<double> &outputDistances,
-                uint32_t topk,
-                string &subgraphType,
-                DIST secondDist
-                );
-
         void selectRelevantBinarySubgraphs(
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
                 uint32_t topk,
@@ -160,6 +149,8 @@ class SubgraphHandler {
                 string writeLogs,
                 DIST secondDist);*/
 
+        Subgraphs<double>::Metadata getSubgraphMetadata(size_t idx);
+
         void create(KB &kb,
                 string subType,
                 string embDir,
@@ -168,6 +159,17 @@ class SubgraphHandler {
                 bool removeLiterals);
 
         void getAllSubgraphs(Querier *q);
+
+        void selectRelevantSubGraphs(DIST dist,
+                Querier *q,
+                string algo,
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
+                std::vector<uint64_t> &output,
+                std::vector<double> &outputDistances,
+                uint32_t topk,
+                string &subgraphType,
+                DIST secondDist
+                );
 };
 
 #endif
