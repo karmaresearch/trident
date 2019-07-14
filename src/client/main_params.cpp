@@ -366,6 +366,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The path of the file to write logs of the test.", false);
     subeval_options.add<string>("", "subFile", "",
             "The path of the file that contains embeddings of the subgraphs.", false);
+    subeval_options.add<string>("", "faillFile", "",
+            "The path of the file that contains an index file created by approx neighbor-based search (FAISS library).", false);
     subeval_options.add<string>("", "nameTest", "",
             "The path (or name) of the dataset to use to test the performance of the subgraph embeddings.", false);
     subeval_options.add<string>("", "kFile", "",

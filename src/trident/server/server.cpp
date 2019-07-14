@@ -26,6 +26,7 @@ TridentServer::TridentServer(KB &kb,
     kb(kb), vm(vm),
     dirhtmlfiles(htmlfiles),
     isActive(false), nthreads(nthreads) {
+        annIndex = NULL;
 
         if (vm["embDir"].as<std::string>() != ""
                 && vm["subFile"].as<std::string>() != "") {
@@ -39,8 +40,15 @@ TridentServer::TridentServer(KB &kb,
             std::string subAlgo = vm["subAlgo"].as<std::string>();
             double varThreshold = vm["varThreshold"].as<double>();
             sh->loadSubgraphs(subFile, subAlgo, varThreshold);
+
+            LOG(INFOL) << "Loading the FAISS index file ...";
+            if (vm.count("faissFile") &&
+                    vm["faissFile"].as<std::string>() != "") {
+                std::string faissFile = vm["faissFile"].as<std::string>();
+                annIndex = faiss::read_index(faissFile.c_str());
+            }
         }
-        buffer = std::unique_ptr<char>(new char[MAX_TERM_SIZE + 1]);
+        buffer = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE + 1]);
     }
 
 void TridentServer::startThread(int port) {
@@ -163,46 +171,58 @@ void TridentServer::execLinkPrediction(string query,
         return;
     }
 
-    //Get subgraphs for a given subquery
-    DIST distType = L1;
-    std::string embAlgo = vm["embAlgo"].as<std::string>();
-    std::string subAlgo = vm["subAlgo"].as<std::string>();
-    DIST secondDist = (DIST) vm["secondDist"].as<int>();
+    if (algo == ""  || algo == "subgraphs") {
+        //Get subgraphs for a given subquery
+        DIST distType = L1;
+        std::string embAlgo = vm["embAlgo"].as<std::string>();
+        std::string subAlgo = vm["subAlgo"].as<std::string>();
+        DIST secondDist = (DIST) vm["secondDist"].as<int>();
 
-    std::vector<uint64_t> subgraphs;
-    std::vector<double> confidence;
+        std::vector<uint64_t> subgraphs;
+        std::vector<double> confidence;
 
-    sh->selectRelevantSubGraphs(distType, kb.getQuerier(), embAlgo,
-            typeQuery, r, t, subgraphs, confidence, subgraphThreshold,
-            subAlgo, secondDist);
+        sh->selectRelevantSubGraphs(distType, kb.getQuerier(), embAlgo,
+                typeQuery, r, t, subgraphs, confidence, subgraphThreshold,
+                subAlgo, secondDist);
 
-    JSON results;
-    for(size_t i = 0; i < subgraphs.size(); ++i) {
-        JSON row;
-        row.put("confidence", confidence[i]);
+        JSON results;
+        for(size_t i = 0; i < subgraphs.size(); ++i) {
+            JSON row;
+            row.put("confidence", confidence[i]);
 
-        auto meta = sh->getSubgraphMetadata(subgraphs[i]);
-        std::string name;
-        if (meta.t == Subgraphs<double>::TYPE::PO)
-            name = "PO ";
-        else
-            name = "SP ";
-        int sizebuffer = 0;
-        kb.getKB()->getDictMgmt()->getTextRel(meta.rel,
-                buffer.get(), sizebuffer);
-        name += std::string(buffer.get(), sizebuffer) + " ";
-        kb.getKB()->getDictMgmt()->getText(meta.ent,
-                buffer.get(), sizebuffer);
-        name += std::string(buffer.get(), sizebuffer);
+            auto meta = sh->getSubgraphMetadata(subgraphs[i]);
+            std::string name;
+            if (meta.t == Subgraphs<double>::TYPE::PO)
+                name = "PO ";
+            else
+                name = "SP ";
+            int sizebuffer = 0;
+            kb.getKB()->getDictMgmt()->getTextRel(meta.rel,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer) + " ";
+            kb.getKB()->getDictMgmt()->getText(meta.ent,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer);
 
-        row.put("name", name);
-        row.put("cardinality", meta.size);
-        results.push_back(row);
+            row.put("name", name);
+            row.put("cardinality", meta.size);
+            results.push_back(row);
+        }
+        response.add_child("subgraphs", results);
+    } else { //Assume we are invoking FAISS
+        int dim = sh->getE()->getDim();
+       std::unique_ptr<double[]> dBuffer(new double[dim]);
+        std::unique_ptr<float[]> fBuffer(new float[dim]);
+
+        //TODO: prepare the query
+
+        size_t k = 10; //Get the top-k entities
+        std::unique_ptr<long long[]> idxs = std::unique_ptr<long long[]>(
+                new long long[k]);
+
+        //annIndex->search(1, fBuffer.get(), k, idxs.get());
+
     }
-    response.add_child("subgraphs", results);
-
-
-
     response.put("status", "ok");
 }
 

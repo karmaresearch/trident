@@ -170,6 +170,14 @@ class SubgraphHandler {
                 string &subgraphType,
                 DIST secondDist
                 );
+
+        std::shared_ptr<Embeddings<double>> getR() {
+            return R;
+        }
+
+        std::shared_ptr<Embeddings<double>> getE() {
+            return E;
+        }
 };
 
 #endif

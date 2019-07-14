@@ -657,17 +657,17 @@ vector<uint64_t> SubgraphHandler::areTriplesInSubGraphs(
                 unfoundTriples.push_back(r);
                 unfoundTriples.push_back(t);
             }
-         }
-         workingTestTriples = unfoundTriples;
-         LOG(DEBUGL) << "Subgraph : " << subgraphid <<" Unfound triples = " << unfoundTriples.size()/3;
-         LOG(DEBUGL) << "Subgraph : " << subgraphid <<" output triples  = " << output.size()/3;
-         if (output.size()/ 3 > 100000) {
+        }
+        workingTestTriples = unfoundTriples;
+        LOG(DEBUGL) << "Subgraph : " << subgraphid <<" Unfound triples = " << unfoundTriples.size()/3;
+        LOG(DEBUGL) << "Subgraph : " << subgraphid <<" output triples  = " << output.size()/3;
+        if (output.size()/ 3 > 100000) {
             break;
-         }
-         unfoundTriples.clear();
-         out++;
-     }
-     return output;
+        }
+        unfoundTriples.clear();
+        out++;
+    }
+    return output;
 }
 
 void SubgraphHandler::areAnswersInSubGraphs(
@@ -775,12 +775,12 @@ void SubgraphHandler::create(KB &kb,
         //faiss::write_index(&index, "/var/scratch2/uji300/train_index_ann");
         //index.add(nt, float_emb.data());
         /*size_t add_bs = 1000;
-        for (size_t begin = 0; begin < nb; begin += add_bs) {
-            size_t end = std::min(begin + add_bs, nb);
-            index.add_with_ids(end-begin,
-                                float_emb.data() + d * begin,
-                                ids.data() + begin);
-        }*/
+          for (size_t begin = 0; begin < nb; begin += add_bs) {
+          size_t end = std::min(begin + add_bs, nb);
+          index.add_with_ids(end-begin,
+          float_emb.data() + d * begin,
+          ids.data() + begin);
+          }*/
         faiss::write_index(&index, subfile.c_str());
 
     } else {
@@ -1035,8 +1035,8 @@ vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples,
 
         //LOG(DEBUGL) << sh << " " << sr << " " << st;
         if (sh.find("\"") != std::string::npos ||
-            st.find("\"") != std::string::npos ||
-            sr.find("\"") != std::string::npos) {
+                st.find("\"") != std::string::npos ||
+                sr.find("\"") != std::string::npos) {
             continue;
         }
         if (h == t) {
@@ -1086,7 +1086,8 @@ void SubgraphHandler::evaluate(KB &kb,
         loadSubgraphs(subFile, subAlgo, varThreshold);
     }
     if (binEmbDir != "") {
-        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
+        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings,
+                entCompressedEmbeddings, relCompressedEmbeddings);
     }
     //Load the test file
     std::vector<uint64_t> testTriples;
@@ -1129,8 +1130,6 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-        //string pathValid = BatchCreator::getValidPath(kb.getPath());
-        //BatchCreator::loadTriples(pathValid, validTriples);
     }
 
     /*** TEST ***/
@@ -1180,46 +1179,6 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
-    //LOG(DEBUGL) << "Removing triples with literals...";
-    //start = std::chrono::system_clock::now();
-    //testTriples = removeLiterals(testTriples, kb);
-    //duration = std::chrono::system_clock::now() - start;
-    //LOG(DEBUGL) << "Time to remove triples with literals: " << duration.count() * 1000 << " ms";
-    //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
-    /*start = std::chrono::system_clock::now();
-    testTriples = sampleTriples(testTriples, 200000);
-    LOG(DEBUGL) << "Chosen " << testTriples.size() << " random triples.";
-    LOG(DEBUGL) << "Removing triples with no subgraphs...";
-    testTriples = removeImprobables(testTriples, q.get());
-    */
-    /*vector<uint64_t> allSubIds;
-    for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
-        allSubIds.push_back(i);
-    }
-    testTriples = areTriplesInSubGraphs(testTriples, allSubIds, q.get());
-    */
-    //duration = std::chrono::system_clock::now() - start;
-    //LOG(DEBUGL) << "Time to remove triples having no subgraph presence: " << duration.count() * 1000 << " ms";
-    //LOG(DEBUGL) << "# of triples = " << testTriples.size()/3;
-
-    // Create a new test file on scratch2 space
-    /*
-    ofstream ofs_test;
-    ofs_test.open("/var/scratch2/uji300/wikidata_test_10000", ios::out | ios::app | ios::binary);
-    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
-        uint64_t s = testTriples[i];
-        uint64_t p = testTriples[i+1];
-        uint64_t o = testTriples[i+2];
-        const char *cs = (const char*)&s;
-        const char *cp = (const char*)&p;
-        const char *co = (const char*)&o;
-        ofs_test.write(cs, 5); //Max numbers have 5 bytes
-        ofs_test.write(cp, 5);
-        ofs_test.write(co, 5);
-    }
-    ofs_test.close();
-    return;
-    */
 
     // Count number of entities without literals
     uint64_t nEntitiesWithoutLiterals = 0;// for Wikidata 148546616;
@@ -1236,13 +1195,7 @@ void SubgraphHandler::evaluate(KB &kb,
         hugeKG = true;
         testTriples = sampleTriples(testTriples, sampleTest);
         LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
-        //for (int i = 0; i < testTriples.size(); i+=3) {
-        //    LOG(DEBUGL) << testTriples[i] << " " << testTriples[i+1]  << " " << testTriples[i+2];
-        //}
-
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            //validTriples = sampleTriples(validTriples, 10000);
-            //LOG(DEBUGL) << "After sampling: # of valid triples : " << validTriples.size();
         }
     }
 
@@ -1261,46 +1214,28 @@ void SubgraphHandler::evaluate(KB &kb,
     float* headQueriesAnn = new float [((testTriples.size()/3) * dim)];
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
-        //LOG(DEBUGL) << "Query " << i/3 << ")";
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
         int iq = i/3;
         if (subAlgo == "ann") {
-            /*
-             size_t nt = E->getN();
-            vector<float> float_emb(nt);
-            for (uint64_t i = 0; i < nt; ++i) {
-                double *emb = E->get(i);
-                for (uint16_t j = 0; j < dim; ++j) {
-                    float_emb.push_back((float)emb[j]);
-                }
-            }
-            annIndex->add(E->getN(), float_emb.data());
-            */
             std::unique_ptr<double> tailResultAnn =
-            std::unique_ptr<double>(new double[dim]);
+                std::unique_ptr<double>(new double[dim]);
             std::unique_ptr<double> headResultAnn =
-            std::unique_ptr<double>(new double[dim]);
+                std::unique_ptr<double>(new double[dim]);
             add(tailResultAnn.get(), E->get(h), R->get(r), dim);
             assert(h < E->getN() && t < E->getN());
             for (uint16_t j = 0; j < dim; ++j) {
-                //tailQueriesAnn.push_back((float)tailResultAnn.get()[j]);
                 tailQueriesAnn[dim * iq + j] = (float) tailResultAnn.get()[j];
-                //tailQueriesAnn.push_back((float)E->get(t)[j]);
             }
             tailQueriesAnn[dim * iq] += iq / 1000.;
             sub(headResultAnn.get(), E->get(t), R->get(r), dim);
             for (uint16_t j = 0; j < dim; ++j) {
-                //LOG(DEBUGL) << (float)headResultAnn.get()[j];
-                //headQueriesAnn.push_back((float)headResultAnn.get()[j]);
-                //headQueriesAnn.push_back((float)E->get(h)[j]);
                 headQueriesAnn[dim * iq + j] = (float) headResultAnn.get()[j];
             }
             headQueriesAnn[dim * iq] += iq / 1000.0;
             continue;
         }
-
 
         if (i % offset == 0) {
             LOG(INFOL) << "***Tested " << i / 3 << " of "
@@ -1334,20 +1269,19 @@ void SubgraphHandler::evaluate(KB &kb,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
-        //LOG(INFOL) << "Query: ? " << sr << " " << st;
-        //LOG(DEBUGL) << "Triple: " << sh << " "  << sr << " " << st;
         DIST distType = L1;
 
-        //LOG(INFOL) << "Initial threshold : = " << subgraphThreshold;
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
             Kache_it got = dynamicKache.find(t);
             if (dynamicKache.end() == got) {
                 // The entity does not exist in the cache as the key
                 start = std::chrono::system_clock::now();
-                threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                threshold = getDynamicThreshold(q.get(), validTriples,
+                        Subgraphs<double>::TYPE::PO, r, t, embAlgo,
+                        subAlgo, secondDist, subgraphThreshold, hugeKG);
                 duration = std::chrono::system_clock::now() - start;
+
                 LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
-                //dynamicKache.insert(make_pair(t, vector<uint64_t, int64_t>()));
                 dynamicKache[t] = vector<pair<uint64_t,int64_t>>();
                 dynamicKache[t].push_back(make_pair(r, threshold));
             } else {
@@ -1365,13 +1299,14 @@ void SubgraphHandler::evaluate(KB &kb,
                 }
                 if (false == predFound) {
                     start = std::chrono::system_clock::now();
-                    threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
+                    threshold = getDynamicThreshold(q.get(), validTriples,
+                            Subgraphs<double>::TYPE::PO, r, t, embAlgo,
+                            subAlgo, secondDist, subgraphThreshold, hugeKG);
                     duration = std::chrono::system_clock::now() - start;
                     LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
                     dynamicKache[t].push_back(make_pair(r,threshold));
                 }
             }
-            //LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
         } else if (subgraphThreshold > 100 && subgraphThreshold <= 200) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
@@ -1536,41 +1471,41 @@ void SubgraphHandler::evaluate(KB &kb,
     }
 
     if (subAlgo == "ann"){
-            // TODO delme +
-            int d = E->getDim();
-            size_t nb = E->getN();
-            size_t nr = R->getN();
-            size_t nt = nb;
-            faiss::IndexFlatL2 quantizer(d);
-            faiss::IndexIVFPQ index(&quantizer, d, 100, 5, 8);
-            //assert(!index.is_trained);
-            //int ncentroids = int(4 * sqrt(nb));  // total # of centroids
+        // TODO delme +
+        int d = E->getDim();
+        size_t nb = E->getN();
+        size_t nr = R->getN();
+        size_t nt = nb;
+        faiss::IndexFlatL2 quantizer(d);
+        faiss::IndexIVFPQ index(&quantizer, d, 100, 5, 8);
+        //assert(!index.is_trained);
+        //int ncentroids = int(4 * sqrt(nb));  // total # of centroids
 
-            index.verbose = true;
-            //vector<long> ids(nt);
-            //vector<float> float_emb(nt * d);
-            float *float_emb = new float[nt * d];
-            for (long i2 = 0; i2 < nt; ++i2) {
-                double *emb = E->get(i2);
-                double *remb = NULL;
-                //LOG(DEBUGL) << nr << " - " << i2 << ") ";
-                if (i2 < nr) {
-                    remb = R->get(i2);
-                    assert(!memcmp(emb, remb, sizeof(double) * d));
-                }
-                for (uint16_t j2 = 0; j2 < d; ++j2) {
-                    //float_emb.push_back((float)emb[j2]);
-                    float_emb[d * i2 + j2] = (float)emb[j2];
-                }
-                float_emb[d * i2] += i2 / 1000.;
+        index.verbose = true;
+        //vector<long> ids(nt);
+        //vector<float> float_emb(nt * d);
+        float *float_emb = new float[nt * d];
+        for (long i2 = 0; i2 < nt; ++i2) {
+            double *emb = E->get(i2);
+            double *remb = NULL;
+            //LOG(DEBUGL) << nr << " - " << i2 << ") ";
+            if (i2 < nr) {
+                remb = R->get(i2);
+                assert(!memcmp(emb, remb, sizeof(double) * d));
             }
-            index.train(nt, float_emb);
-            //assert(index.is_trained);
-            index.add(nt, float_emb);
-            LOG(DEBUGL) << "index total = " << index.ntotal;
-            index.nprobe = 16;
-            //annIndex = &index;
-            //TODO : delme -
+            for (uint16_t j2 = 0; j2 < d; ++j2) {
+                //float_emb.push_back((float)emb[j2]);
+                float_emb[d * i2 + j2] = (float)emb[j2];
+            }
+            float_emb[d * i2] += i2 / 1000.;
+        }
+        index.train(nt, float_emb);
+        //assert(index.is_trained);
+        index.add(nt, float_emb);
+        LOG(DEBUGL) << "index total = " << index.ntotal;
+        index.nprobe = 16;
+        //annIndex = &index;
+        //TODO : delme -
         int k = 25;
         LOG(INFOL) << k << " nearest neighbours: ";
         int nq = testTriples.size()/3;
@@ -1579,12 +1514,12 @@ void SubgraphHandler::evaluate(KB &kb,
         LOG(INFOL) << "checking head queries :";
         /*sanity check for first five embeddings that we added
          * index.search(5, float_emb, k, dis.data(), nns.data());
-        for (int ii = 0; ii < 5; ++ii) {
-            for (int jj = 0; jj < k; ++jj) {
-                LOG(DEBUGL) << nns[ii * k + jj];
-            }
-            LOG(DEBUGL) << "=========";
-        }*/
+         for (int ii = 0; ii < 5; ++ii) {
+         for (int jj = 0; jj < k; ++jj) {
+         LOG(DEBUGL) << nns[ii * k + jj];
+         }
+         LOG(DEBUGL) << "=========";
+         }*/
         index.search(nq, headQueriesAnn, k, dis,nns);
         for (int ii = 0; ii < testTriples.size(); ii += 3) {
             uint64_t h = testTriples[ii];
@@ -1611,7 +1546,7 @@ void SubgraphHandler::evaluate(KB &kb,
                     LOG(DEBUGL) << sh;
                     //if (nns[jj + ind*k] > 1000) {
                     LOG(DEBUGL) << jj+1 << ")" << nns[jj + ind*k] <<
-                    " ( h = " << h << " )";
+                        " ( h = " << h << " )";
                     //}
                 }
             }
@@ -1645,8 +1580,8 @@ void SubgraphHandler::evaluate(KB &kb,
                     string sans = string(buffer);
                     //LOG(DEBUGL) << sans << dis[jj + ind *k];
                     if (nns[jj + ind*k] > 11) {
-                    LOG(DEBUGL) << jj+1 << ")" << nns[jj + ind*k] <<
-                    " (t = " << t << " )";
+                        LOG(DEBUGL) << jj+1 << ")" << nns[jj + ind*k] <<
+                            " (t = " << t << " )";
                     }
                 }
 
@@ -1694,8 +1629,6 @@ void SubgraphHandler::evaluate(KB &kb,
         percentReductionT = ((double)(cons_comparisons_t - normalComparisonsT) / cons_comparisons_t) * -100;
     }
 
-    //float reductionInverseH = (float)1 / (float)percentReductionH;
-    //float reductionInverseT = (float)1 /  (float)percentReductionT;
     float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
     float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
     LOG(INFOL) << "HitRate (H): " << hitRateH;
@@ -1704,333 +1637,11 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Percent Reduction (T): " << percentReductionT;
     LOG(INFOL) << "Mean rank (H): " << (double) subgraphRanksHead / hitsHead;
     LOG(INFOL) << "Mean rank (T): " << (double) subgraphRanksTail / hitsTail;
-    //float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
-    //float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
-    //LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
 
     if (logWriter) {
         logWriter->close();
     }
 }
-
-/*
-   void SubgraphHandler::findAnswers(KB &kb,
-   string embAlgo,
-   string embDir,
-   string subFile,
-   string subAlgo,
-   string nameTest,
-   string formatTest,
-   string answerMethod,
-   uint64_t threshold,
-   double varThreshold,
-   string writeLogs,
-   DIST secondDist) {
-   DictMgmt *dict = kb.getDictMgmt();
-   std::unique_ptr<Querier> q(kb.query());
-
-//Load the embeddings
-LOG(INFOL) << "Loading the embeddings ...";
-loadEmbeddings(embDir);
-//Load the subgraphs
-LOG(INFOL) << "Loading the subgraphs ...";
-loadSubgraphs(subFile, subAlgo, varThreshold);
-//Load the test file
-std::vector<uint64_t> testTriples;
-std::vector<uint64_t> testTopKs;
-LOG(INFOL) << "Loading the queries ...";
-if (formatTest == "python") {
-//The file is a uncompressed file with all the test triples serialized after
-//each other
-if (!Utils::exists(nameTest)) {
-LOG(ERRORL) << "Test file " << nameTest << " not found";
-throw 10;
-}
-std::ifstream ifs;
-ifs.open(nameTest, std::ifstream::in);
-const uint16_t sizeline = 8 * 3;
-std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[sizeline]); //one line
-while (true) {
-ifs.read(buffer.get(), sizeline);
-if (ifs.eof()) {
-break;
-}
-testTriples.push_back(*(uint64_t*)buffer.get());
-testTriples.push_back(*(uint64_t*)(buffer.get()+8));
-testTriples.push_back(*(uint64_t*)(buffer.get()+16));
-}
-} else if (formatTest == "dynamicK") {
-// The file is uncompressed text file with each test triple has the following format
-// h <space> r <space> t <space> K_h <space> K_t
-if (!Utils::exists(nameTest)) {
-LOG(ERRORL) << "Test file " << nameTest << " not found";
-throw 10;
-}
-std::ifstream ifs(nameTest);
-string line;
-while (std::getline(ifs, line)) {
-istringstream is(line);
-string token;
-vector<uint64_t> tokens;
-while(getline(is, token, ' ')) {
-uint64_t temp = std::stoull(token);
-tokens.push_back(temp);
-}
-LOG(DEBUGL) << tokens[0] << "  , " << tokens[1] << " , " << tokens[2];
-testTriples.push_back(tokens[0]);
-testTriples.push_back(tokens[1]);
-testTriples.push_back(tokens[2]);
-testTopKs.push_back(tokens[3]);
-testTopKs.push_back(tokens[4]);
-// push the dummy value so that the for loop
-// variable incrementation works well later
-testTopKs.push_back(-1);
-}
-} else {
-    //The test set can be extracted from the database
-    string pathtest;
-    if (nameTest == "valid") {
-        pathtest = BatchCreator::getValidPath(kb.getPath());
-    } else {
-        pathtest = BatchCreator::getTestPath(kb.getPath());
-    }
-    BatchCreator::loadTriples(pathtest, testTriples);
-}
-
-//Stats
-uint64_t counth = 0;
-uint64_t subgraphRanksHead = 0;
-uint64_t countt = 0;
-uint64_t subgraphRanksTail = 0;
-
-vector<double> allQueriesPrecisionsH;
-vector<double> allQueriesPrecisionsT;
-vector<double> allQueriesRecallsH;
-vector<double> allQueriesRecallsT;
-
-char buffer[MAX_TERM_SIZE];
-const uint64_t nents = E->getN();
-
-TranseTester<double> tester(E, R, kb.query());
-const uint16_t dime = E->getDim();
-std::vector<double> testArray(dime);
-std::vector<std::size_t> indices(nents);
-std::iota(indices.begin(), indices.end(), 0u);
-std::vector<std::size_t> indices2(nents);
-std::iota(indices2.begin(), indices2.end(), 0u);
-
-std::unique_ptr<ofstream> logWriter;
-
-if (writeLogs != "") {
-    logWriter = std::unique_ptr<ofstream>(new ofstream());
-    logWriter->open(writeLogs, std::ios_base::out);
-    *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
-}
-
-//Select most promising subgraphs to do the search
-LOG(INFOL) << "Test the queries ...";
-vector<uint64_t> relevantSubgraphsH;
-vector<uint64_t> relevantSubgraphsT;
-vector<double> relevantSubgraphsHDistances;
-vector<double> relevantSubgraphsTDistances;
-vector<vector<int64_t>> allActualAnswersH;
-vector<vector<uint64_t>> allExpectedAnswersH;
-vector<vector<int64_t>> allActualAnswersT;
-vector<vector<uint64_t>> allExpectedAnswersT;
-uint64_t offset = testTriples.size() / 100;
-if (offset == 0) offset = 1;
-for(uint64_t i = 0; i < testTriples.size(); i+=3) {
-    uint64_t h, t, r;
-    h = testTriples[i];
-    r = testTriples[i + 1];
-    t = testTriples[i + 2];
-    if (i % offset == 0) {
-        LOG(INFOL) << "***Tested " << i / 3 << " of "
-            << testTriples.size() / 3 << " queries";
-        if (i > 0) {
-            LOG(INFOL) << "***Found answers (H): " << counth << " (T): " << countt <<
-                " of " << i / 3;
-            //LOG(INFOL) << "***Avg (H): " << (double) subgraphRanksHead / counth << " (T): "
-            //    << (double)subgraphRanksTail / countt;
-            //LOG(INFOL) << "***Comp. reduction (H) " << cons_comparisons_h <<
-            //    " instead of " << nents * counth;
-            //LOG(INFOL) << "***Comp. reduction (T) " << cons_comparisons_t <<
-            //    " instead of " << nents * countt;
-        }
-    }
-
-    dict->getText(h, buffer);
-    string sh = string(buffer);
-    dict->getText(t, buffer);
-    string st = string(buffer);
-    int size;
-    dict->getTextRel(r, buffer, size);
-    string sr = string(buffer, size);
-
-    DIST distType = L1;
-
-    // The log file for dynamicK contains a triple and the CLASS 'C' for topK
-    // Following is the conversion between the class and topK value
-    // C : topK
-    // 0 : 1
-    // 1 : 3
-    // 2 : 5
-    // 3 : 10
-    // 4 : 50
-    if (formatTest == "dynamicK") {
-        switch(testTopKs[i]) {
-            case 0 : threshold = 1; break;
-            case 1 : threshold = 3; break;
-            case 2 : threshold = 5; break;
-            case 3 : threshold = 10; break;
-            default: threshold = 50; break;
-        }
-    }
-    selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-            r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-
-    ANSWER_METHOD ansMethod = UNION;
-    if (answerMethod == "intersection") {
-        ansMethod = INTERSECTION;
-    } else if (answerMethod == "interunion") {
-        ansMethod = INTERUNION;
-    }
-    int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
-    uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-    // Return all answers from the subgraphs
-    vector<int64_t> actualAnswersH;
-    //LOG(INFOL) << "answer method = " << answerMethod;
-    getAllPossibleAnswers(q.get(), relevantSubgraphsH, actualAnswersH, ansMethod);
-
-    vector<uint64_t> expectedAnswersH;
-    getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
-
-    allActualAnswersH.push_back(actualAnswersH);
-    allExpectedAnswersH.push_back(expectedAnswersH);
-    double answerPrecisionH = 0.0;
-    double answerRecallH = 0.0;
-    getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerPrecisionH, answerRecallH);
-    allQueriesPrecisionsH.push_back(answerPrecisionH);
-    allQueriesRecallsH.push_back(answerRecallH);
-    if (answerRecallH >= 100) {
-        //LOG(INFOL) << "Found all answers for Query: ? " << sr << " " << st;
-        counth++;
-        subgraphRanksHead++;
-    } else if (answerRecallH > 0) {
-        //LOG(INFOL) << "@@@@@@@@@@@@@@ Found some answers for query : ? " << sr << " " << st;
-        subgraphRanksHead++;
-    }
-
-    if (formatTest == "dynamicK") {
-        switch(testTopKs[i+1]) {
-            case 0 : threshold = 1; break;
-            case 1 : threshold = 3; break;
-            case 2 : threshold = 5; break;
-            case 3 : threshold = 10; break;
-            default: threshold = 50; break;
-        }
-    }
-    selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-            r, h, relevantSubgraphsT, relevantSubgraphsTDistances, threshold, subAlgo, secondDist);
-    int64_t foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
-    uint64_t totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
-    // Return all answers from subgraphs
-    vector<int64_t> actualAnswersT;
-    getAllPossibleAnswers(q.get(), relevantSubgraphsT, actualAnswersT, ansMethod);
-
-    vector<uint64_t> expectedAnswersT;
-    //TODO: both expected answers H and T can be collected with a single call to this function
-    getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
-
-    allActualAnswersT.push_back(actualAnswersT);
-    allExpectedAnswersT.push_back(expectedAnswersT);
-    double answerPrecisionT = 0.0;
-    double answerRecallT = 0.0;
-    getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerPrecisionT, answerRecallT);
-    allQueriesPrecisionsT.push_back(answerPrecisionT);
-    allQueriesRecallsT.push_back(answerRecallT);
-    if (answerRecallT >= 100) {
-        //LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
-        countt++;
-        subgraphRanksTail++;
-    } else if (answerRecallT > 0) {
-        //LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
-        subgraphRanksTail++;
-    }
-
-    //LOG(INFOL) << cntActualAnswersT << " , " << expectedAnswersT.size() << " => " << answerRecallT;
-
-    if (logWriter) {
-        string line = to_string(h) + " " + to_string(r) + " " + to_string(t) + "\t";
-        line += to_string(foundH) + "\t" + to_string(foundT) + "\t" +
-            to_string(totalSizeH) + "\t" + to_string(totalSizeT);
-        if (foundH >= 0) {
-            auto &metadata = subgraphs->getMeta(relevantSubgraphsH[foundH]);
-            line += "\t" + to_string(metadata.t) + "\t" + to_string(metadata.rel);
-            line += "\t" + to_string(metadata.ent);
-        } else {
-            line += "\tN.A.\tN.A.\tN.A.";
-        }
-        if (foundT >= 0) {
-            auto &metadata = subgraphs->getMeta(relevantSubgraphsT[foundT]);
-            line += "\t" + to_string(metadata.t) + "\t" + to_string(metadata.rel);
-            line += "\t" + to_string(metadata.ent);
-        } else {
-            line += "\tN.A.\tN.A.\tN.A.";
-        }
-        *logWriter.get() << line << endl;
-    }
-}
-double macroPrecisionH = std::accumulate(
-        allQueriesPrecisionsH.begin(),
-        allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
-double macroPrecisionT = std::accumulate(
-        allQueriesPrecisionsT.begin(),
-        allQueriesPrecisionsT.end(), 0.0) / allQueriesPrecisionsT.size();
-double macroRecallH = std::accumulate(
-        allQueriesRecallsH.begin(),
-        allQueriesRecallsH.end(), 0.0) / allQueriesRecallsH.size();
-double macroRecallT = std::accumulate(
-        allQueriesRecallsT.begin(),
-        allQueriesRecallsT.end(), 0.0) / allQueriesRecallsT.size();
-double microPrecisionH = 0.0;
-double microRecallH = 0.0;
-double microPrecisionT = 0.0;
-double microRecallT = 0.0;
-LOG(INFOL) << "# entities : " << nents;
-LOG(INFOL) << "Macro Precision (Head) = " << macroPrecisionH;
-LOG(INFOL) << "Macro Recall    (Head) = " << macroRecallH;
-LOG(INFOL) << "Macro Precision (Tail) = " << macroPrecisionT;
-LOG(INFOL) << "Macro Recall    (Tail) = " << macroRecallT;
-LOG(INFOL) << "All  Head answers found for " << counth << " queries out of " << testTriples.size() / 3;
-LOG(INFOL) << "All  Tail answers found for " << countt << " queries out of " << testTriples.size() / 3;
-LOG(INFOL) << "Some Head answers found for " << subgraphRanksHead << " queries out of " << testTriples.size() / 3;
-LOG(INFOL) << "Some Tail answers found for " << subgraphRanksTail << " queries out of " << testTriples.size() / 3;
-LOG(INFOL) << "Computing overall accuracy for Head answers : ";
-getModelAccuracy(allExpectedAnswersH, allActualAnswersH, microPrecisionH, microRecallH);
-LOG(INFOL) << "Computing overall accuracy for Tail answers : ";
-getModelAccuracy(allExpectedAnswersT, allActualAnswersT, microPrecisionT, microRecallT);
-LOG(INFOL) << "Micro Precision (Head) = " << microPrecisionH;
-LOG(INFOL) << "Micro Recall    (Head) = " << microRecallH;
-LOG(INFOL) << "Micro Precision (Tail) = " << microPrecisionT;
-LOG(INFOL) << "Micro Recall    (Tail) = " << microRecallT;
-//float hitRateH = ((float)counth / (float)(testTriples.size()/3))*100;
-//float hitRateT = ((float)countt / (float)(testTriples.size()/3))*100;
-
-//double percentReductionH = ((double)((nents*counth) - cons_comparisons_h)/ (double)(nents * counth)) * 100;
-//double percentReductionT = ((double)((nents*countt) - cons_comparisons_t)/ (double)(nents * countt)) * 100;
-
-//float reductionInverseH = (float)1 / (float)percentReductionH;
-//float reductionInverseT = (float)1 /  (float)percentReductionT;
-//float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
-//float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
-//LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
-
-if (logWriter) {
-    logWriter->close();
-}
-}
-*/
 
 void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {

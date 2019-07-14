@@ -14,6 +14,12 @@
 #include <cts/parser/SPARQLParser.hpp>
 #include <rts/runtime/QueryDict.hpp>
 
+#include <faiss/IndexPQ.h>
+#include <faiss/IndexIVFPQ.h>
+#include <faiss/IndexFlat.h>
+#include <faiss/IndexIVFFlat.h>
+#include <faiss/index_io.h>
+
 #include <map>
 
 using namespace std;
@@ -23,8 +29,9 @@ class TridentServer {
         TridentLayer kb;
         std::unique_ptr<SubgraphHandler> sh;
         ProgramArgs &vm;
+        faiss::Index *annIndex;
 
-        std::unique_ptr<char> buffer;
+        std::unique_ptr<char[]> buffer;
 
     private:
         string dirhtmlfiles;
