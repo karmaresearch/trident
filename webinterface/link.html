@@ -51,16 +51,20 @@
     <div id="msgBox"></div>
     </div>
 
-    <div id="subgraphResults" class="d-none">
-        <table id="tblResults" class="table table-striped">
-            <thead>
-                <th scope="col">Distance</th>
-                <th scope="col">Subgraph</th>
-                <th scope="col">Cardinality</th>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+
+    <div id="results" class="d-none">
+        <div>Runtime: <span id="runtimeLbl"></span> ms.</div>
+        <div id="subgraphResults">
+            <table id="tblResults" class="table table-striped">
+                <thead>
+                    <th scope="col">Distance</th>
+                    <th scope="col">Subgraph</th>
+                    <th scope="col">Cardinality</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -73,9 +77,12 @@
                     var tags = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
                     var tags1 = '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
                     box.append(tags + data["errordesc"] + tags1);
-                    $("#subgraphResults").addClass('d-none');
+                    $("#results").addClass('d-none');
                     return;
                 }
+
+                var runtime = data["runtime_ms"];
+                $("#runtimeLbl").text(runtime);
 
                 var res = data["subgraphs"];
                 var t = $("#tblResults tbody")[0];
@@ -95,7 +102,7 @@
                     var tcard = document.createTextNode(res[i]["cardinality"]);
                     card.appendChild(tcard);
                 }
-                $("#subgraphResults").removeClass('d-none');
+                $("#results").removeClass('d-none');
             },
             'json' // I expect a JSON response
             );

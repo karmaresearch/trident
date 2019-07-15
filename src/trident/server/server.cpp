@@ -138,6 +138,8 @@ void TridentServer::execLinkPrediction(string query,
         int64_t subgraphThreshold,
         string algo,
         JSON &response) {
+    auto start = std::chrono::high_resolution_clock::now();
+
     JSON jquery;
     JSON::read(query, jquery);
     std::string subject = jquery.getValue("subject");
@@ -211,18 +213,23 @@ void TridentServer::execLinkPrediction(string query,
         response.add_child("subgraphs", results);
     } else { //Assume we are invoking FAISS
         int dim = sh->getE()->getDim();
-       std::unique_ptr<double[]> dBuffer(new double[dim]);
+        std::unique_ptr<double[]> dBuffer(new double[dim]);
         std::unique_ptr<float[]> fBuffer(new float[dim]);
 
         //TODO: prepare the query
 
         size_t k = 10; //Get the top-k entities
+        std::unique_ptr<float[]> distances(new float[k]);
         std::unique_ptr<long long[]> idxs = std::unique_ptr<long long[]>(
                 new long long[k]);
+        annIndex->search(1, fBuffer.get(), k, distances.get(), idxs.get());
 
-        //annIndex->search(1, fBuffer.get(), k, idxs.get());
+        //TODO: Process the results
 
     }
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    response.put("runtime_ms", (long)std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
     response.put("status", "ok");
 }
 

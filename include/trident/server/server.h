@@ -14,6 +14,7 @@
 #include <cts/parser/SPARQLParser.hpp>
 #include <rts/runtime/QueryDict.hpp>
 
+#include <faiss/Index.h>
 #include <faiss/IndexPQ.h>
 #include <faiss/IndexIVFPQ.h>
 #include <faiss/IndexFlat.h>
