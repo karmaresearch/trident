@@ -23,6 +23,14 @@ class JSON {
             values.insert(std::make_pair(name, value));
         }
 
+        bool existKey(std::string name) {
+            return values.count(name);
+        }
+
+        std::string getValue(std::string name) {
+            return values[name];
+        }
+
         void put(std::string name, long value) {
             if (name=="")
                 throw 10;

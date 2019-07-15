@@ -20,11 +20,35 @@
 #include <thread>
 #include <regex>
 
-TridentServer::TridentServer(KB &kb, string htmlfiles, int nthreads) :
-    kb(kb),
+TridentServer::TridentServer(KB &kb,
+        ProgramArgs &vm,
+        string htmlfiles, int nthreads) :
+    kb(kb), vm(vm),
     dirhtmlfiles(htmlfiles),
     isActive(false), nthreads(nthreads) {
+        annIndex = NULL;
 
+        if (vm["embDir"].as<std::string>() != ""
+                && vm["subFile"].as<std::string>() != "") {
+            sh = std::unique_ptr<SubgraphHandler>(new SubgraphHandler());
+            //Load the embeddings
+            LOG(INFOL) << "Loading the embeddings ...";
+            sh->loadEmbeddings(vm["embDir"].as<std::string>());
+            //Load the subgraphs
+            LOG(INFOL) << "Loading the subgraphs ...";
+            std::string subFile = vm["subFile"].as<std::string>();
+            std::string subAlgo = vm["subAlgo"].as<std::string>();
+            double varThreshold = vm["varThreshold"].as<double>();
+            sh->loadSubgraphs(subFile, subAlgo, varThreshold);
+
+            LOG(INFOL) << "Loading the FAISS index file ...";
+            if (vm.count("faissFile") &&
+                    vm["faissFile"].as<std::string>() != "") {
+                std::string faissFile = vm["faissFile"].as<std::string>();
+                annIndex = faiss::read_index(faissFile.c_str());
+            }
+        }
+        buffer = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE + 1]);
     }
 
 void TridentServer::startThread(int port) {
@@ -108,6 +132,105 @@ string TridentServer::lookup(string sId, TridentLayer &db) {
     unsigned st;
     db.lookupById(id, start, end, type, st);
     return string(start, end - start);
+}
+
+void TridentServer::execLinkPrediction(string query,
+        int64_t subgraphThreshold,
+        string algo,
+        JSON &response) {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    JSON jquery;
+    JSON::read(query, jquery);
+    std::string subject = jquery.getValue("subject");
+    std::string predicate = jquery.getValue("predicate");
+    std::string object = jquery.getValue("object");
+
+    uint64_t r, t;
+    bool respRel = kb.getKB()->getDictMgmt()->getNumberRel(predicate.c_str(),
+            predicate.size(), &r);
+    if (!respRel) {
+        response.put("status", "error");
+        response.put("errordesc", "The ID for the relation was not found!");
+        return;
+    }
+
+    Subgraphs<double>::TYPE typeQuery;
+    bool resp = false;
+    if (object == "?") {
+        typeQuery = Subgraphs<double>::TYPE::SP;
+        resp = kb.getKB()->getDictMgmt()->getNumber(subject.c_str(),
+                subject.size(), &t);
+    } else {
+        typeQuery = Subgraphs<double>::TYPE::PO;
+        resp = kb.getKB()->getDictMgmt()->getNumber(object.c_str(),
+                object.size(), &t);
+    }
+
+    if (!resp) {
+        response.put("status", "error");
+        response.put("errordesc", "The ID for the entity was not found!");
+        return;
+    }
+
+    if (algo == ""  || algo == "subgraphs") {
+        //Get subgraphs for a given subquery
+        DIST distType = L1;
+        std::string embAlgo = vm["embAlgo"].as<std::string>();
+        std::string subAlgo = vm["subAlgo"].as<std::string>();
+        DIST secondDist = (DIST) vm["secondDist"].as<int>();
+
+        std::vector<uint64_t> subgraphs;
+        std::vector<double> confidence;
+
+        sh->selectRelevantSubGraphs(distType, kb.getQuerier(), embAlgo,
+                typeQuery, r, t, subgraphs, confidence, subgraphThreshold,
+                subAlgo, secondDist);
+
+        JSON results;
+        for(size_t i = 0; i < subgraphs.size(); ++i) {
+            JSON row;
+            row.put("confidence", confidence[i]);
+
+            auto meta = sh->getSubgraphMetadata(subgraphs[i]);
+            std::string name;
+            if (meta.t == Subgraphs<double>::TYPE::PO)
+                name = "PO ";
+            else
+                name = "SP ";
+            int sizebuffer = 0;
+            kb.getKB()->getDictMgmt()->getTextRel(meta.rel,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer) + " ";
+            kb.getKB()->getDictMgmt()->getText(meta.ent,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer);
+
+            row.put("name", name);
+            row.put("cardinality", meta.size);
+            results.push_back(row);
+        }
+        response.add_child("subgraphs", results);
+    } else { //Assume we are invoking FAISS
+        int dim = sh->getE()->getDim();
+        std::unique_ptr<double[]> dBuffer(new double[dim]);
+        std::unique_ptr<float[]> fBuffer(new float[dim]);
+
+        //TODO: prepare the query
+
+        size_t k = 10; //Get the top-k entities
+        std::unique_ptr<float[]> distances(new float[k]);
+        std::unique_ptr<long long[]> idxs = std::unique_ptr<long long[]>(
+                new long long[k]);
+        annIndex->search(1, fBuffer.get(), k, distances.get(), idxs.get());
+
+        //TODO: Process the results
+
+    }
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    response.put("runtime_ms", (long)std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    response.put("status", "ok");
 }
 
 void TridentServer::execSPARQLQuery(string sparqlquery,
@@ -272,6 +395,23 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             JSON::write(buf, pt);
             page = buf.str();
             isjson = true;
+        } else if (path == "/predict") {
+            string form = req.substr(req.find("application/x-www-form-urlencoded"));
+            string query = _getValueParam(form, "query");
+            query = HttpClient::unescape(query);
+            string stopk = _getValueParam(form, "subgraphThreshold");
+            int64_t topk = vm["subgraphThreshold"].as<long>();
+            if (stopk != "") {
+                topk = std::stoi(stopk);
+            }
+            string algo = _getValueParam(form, "algo");
+
+            JSON pt;
+            execLinkPrediction(query, topk, algo, pt);
+            std::ostringstream buf;
+            JSON::write(buf, pt);
+            page = buf.str();
+            isjson = true;
         } else {
             page = "Error!";
         }
@@ -296,21 +436,8 @@ void TridentServer::processRequest(std::string req, std::string &res) {
         res+= to_string(page.size()) + "\r\n\r\n" + page;
     }
 
-    /*boost::asio::async_write(socket, boost::asio::buffer(res),
-      boost::asio::transfer_all(),
-      boost::bind(&Server::writeHandler,
-      shared_from_this(),
-      boost::asio::placeholders::error,
-      boost::asio::placeholders::bytes_transferred));*/
-
     setInactive();
 }
-
-/*void TridentServer::Server::writeHandler(const boost::system::error_code &err,
-  std::size_t bytes) {
-  socket.close();
-  inter->connect();
-  };*/
 
 string TridentServer::getDefaultPage() {
     return getPage("/index.html");

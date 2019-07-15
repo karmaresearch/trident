@@ -12,14 +12,18 @@ class SubgraphHandler {
         std::shared_ptr<Embeddings<double>> R;
         std::shared_ptr<Subgraphs<double>> subgraphs;
 
-        void loadEmbeddings(string embdir);
 
         void loadBinarizedEmbeddings(string embfile, vector<double>& embeddings);
 
         void processBinarizedEmbeddingsDirectory(string embdir, vector<double>& emb1, vector<double>& emb2, vector<double> &e3);
 
+    public:
+        void loadEmbeddings(string embdir);
+
         void loadSubgraphs(string subgraphsFile,
                 string subFormat, double varThreshold);
+
+    private:
 
         template<typename K>
             void getDisplacement(K &tester,
@@ -65,17 +69,6 @@ class SubgraphHandler {
                 );
 
         vector<uint64_t> sampleSubgraphs(vector<uint64_t>& subgs, int percent=25);
-
-        void selectRelevantSubGraphs(DIST dist,
-                Querier *q,
-                string algo,
-                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
-                std::vector<uint64_t> &output,
-                std::vector<double> &outputDistances,
-                uint32_t topk,
-                string &subgraphType,
-                DIST secondDist
-                );
 
         void selectRelevantBinarySubgraphs(
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
@@ -143,7 +136,7 @@ class SubgraphHandler {
                 bool calcDisp,
                 int64_t sampleTest);
 
-        /*void findAnswers(KB &kb,
+        void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,
@@ -154,7 +147,10 @@ class SubgraphHandler {
                 uint64_t threshold,
                 double varThreshold,
                 string writeLogs,
-                DIST secondDist);*/
+                DIST secondDist,
+                string kFile);
+
+        Subgraphs<double>::Metadata getSubgraphMetadata(size_t idx);
 
         void create(KB &kb,
                 string subType,
@@ -164,6 +160,25 @@ class SubgraphHandler {
                 bool removeLiterals);
 
         void getAllSubgraphs(Querier *q);
+
+        void selectRelevantSubGraphs(DIST dist,
+                Querier *q,
+                string algo,
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
+                std::vector<uint64_t> &output,
+                std::vector<double> &outputDistances,
+                uint32_t topk,
+                string &subgraphType,
+                DIST secondDist
+                );
+
+        std::shared_ptr<Embeddings<double>> getR() {
+            return R;
+        }
+
+        std::shared_ptr<Embeddings<double>> getE() {
+            return E;
+        }
 };
 
 #endif

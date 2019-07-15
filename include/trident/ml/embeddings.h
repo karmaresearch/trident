@@ -337,7 +337,6 @@ class Embeddings {
             //Count the files with a number as extension
             //int countfile = 0;
             //std::string filetoload = path + "." + std::to_string(countfile);
-            LOG(INFOL) << "#### UNM: loading the path : " << path;
             std::shared_ptr<Embeddings<double>> emb(new Embeddings(n, dim, path));
 
             //Load info about conflicts

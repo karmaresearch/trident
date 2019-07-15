@@ -129,7 +129,7 @@ std::string HttpClient::unescape(const std::string &s) {
             dst.push_back(*src++);
         }
     }
-    return std::string(dst.data(), dst.size());
+     return std::string(dst.data(), dst.size());
 }
 
 //Inspired by https://stackoverflow.com/questions/154536/encode-decode-urls-in-c#17708801

@@ -31,6 +31,7 @@ if(SERVER)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DSERVER=1")
     message("SERVER forces the enabling of SPARQL")
     set(SPARQL "1")
+    set(ML "1")
 ENDIF()
 IF(SPARQL)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DSPARQL=1")
@@ -183,9 +184,30 @@ IF(ML)
         "src/trident/mining/*.cpp"
         "src/trident/ml/*.cpp"
         src/trident/mining/miner.cpp)
+
+    # Install FAISS
+    find_library(omp omp)
+    find_library(openblas openblas PATHS /usr/local/opt/openblas/lib)
+    ExternalProject_Add(git-faiss
+        DOWNLOAD_COMMAND git clone https://github.com/facebookresearch/faiss.git
+        DOWNLOAD_DIR .
+        SOURCE_DIR faiss/
+        CONFIGURE_COMMAND ""
+        BUILD_IN_SOURCE 1
+        BUILD_COMMAND "export" "CXX=/usr/local/opt/llvm/bin/clang -std=c++11" && "export" "CPUFLAGS=-msse4 -mpopcnt" && "export" "" && "export" "LDFLAGS=-fPIC -fopenmp -L/usr/local/opt/llvm/lib" && "export" "CPPFLAGS=-fPIC -m64 -Wall -g -O3 -Wno-sign-compare -DFINTEGER=int -fopenmp -I/usr/local/opt/llvm/include" && make -j libfaiss.a
+        INSTALL_COMMAND ""
+        )
+    ExternalProject_Get_Property(git-faiss SOURCE_DIR)
+    include_directories(${SOURCE_DIR}/..)
+    add_library(faiss STATIC IMPORTED)
+    add_dependencies(faiss git-faiss)
+    set(FAISS_LIB "${CMAKE_BINARY_DIR}/faiss")
+    set_property(TARGET faiss PROPERTY IMPORTED_LOCATION "${FAISS_LIB}/libfaiss.a")
+
+    set(COMPILE_FLAGS "-DFINTEGER=int -m64 -msse4 ${COMPILE_FLAGS}")
     add_library(trident-ml SHARED ${ml_SRC})
     set_target_properties(trident-ml PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-ml kognac-core trident-core)
+    TARGET_LINK_LIBRARIES(trident-ml kognac-core trident-core faiss omp ${openblas})
     TARGET_LINK_LIBRARIES(trident trident-ml)
 ENDIF()
 
@@ -242,7 +264,7 @@ IF (SERVER)
 
     add_library(trident-web SHARED ${webserver_SRC})
     set_target_properties(trident-web PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-web kognac-core trident-core trident-sparql)
+    TARGET_LINK_LIBRARIES(trident-web kognac-core trident-core trident-sparql trident-ml)
     TARGET_LINK_LIBRARIES(trident trident-web)
 ENDIF()
 

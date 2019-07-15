@@ -202,12 +202,16 @@ void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
     auto itr = q->get(IDX_OPS, -1, -1, -1);
     processItr(q, itr, Subgraphs<double>::TYPE::PO, E, removeLiterals);
     q->releaseItr(itr);
+    uint64_t opsSubs = getNSubgraphs();
+    LOG(DEBUGL) << "OP subgraphs : " << opsSubs;
 
     LOG(INFOL) << "Creating SPO embeddings";
     itr = q->get(IDX_SPO, -1, -1, -1);
     processItr(q, itr, Subgraphs<double>::TYPE::SP, E, removeLiterals);
     q->releaseItr(itr);
     LOG(INFOL) << "Done. Added subgraphs=" << getNSubgraphs();
+
+    LOG(DEBUGL) << " SP subgraphs : " << getNSubgraphs() - opsSubs;
 }
 
 template<>
