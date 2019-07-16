@@ -42,6 +42,10 @@
                 <textarea class="form-control" id="query" name="query" rows="3">{ "subject" : "<URI>",  "predicate" : "<URI>", "object" : "?" }</textarea>
 
                 <input type="number" class="form-control" id="subgraphThreshold" aria-describedby="subgraphThreshold" name="subgraphThreshold" placeholder="N. Subgraphs">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="true" id="excludeZeroP" name="excludeZeroP">
+                    <label class="form-check-label" for="excludeZeroP">Exclude subgraphs with P(Q|P)=0 </label>
+                </div>
                 <button id="submitForm" class="btn btn-primary btn-block" type="button">Submit</button>
             </form>
             </div>
@@ -60,6 +64,7 @@
                     <th scope="col">Distance</th>
                     <th scope="col">Subgraph</th>
                     <th scope="col">Cardinality</th>
+                    <th scope="col">P(Q|P)</th>
                 </thead>
                 <tbody>
                 </tbody>
@@ -101,6 +106,10 @@
                     var card = newRow.insertCell(2);
                     var tcard = document.createTextNode(res[i]["cardinality"]);
                     card.appendChild(tcard);
+
+                    var prob = newRow.insertCell(3);
+                    var tprob = document.createTextNode(res[i]["prob"]);
+                    prob.appendChild(tprob);
                 }
                 $("#results").removeClass('d-none');
             },

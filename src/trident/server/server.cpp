@@ -28,6 +28,41 @@ TridentServer::TridentServer(KB &kb,
     isActive(false), nthreads(nthreads) {
         annIndex = NULL;
 
+        //query patterns
+        Pattern *po_query = new Pattern();
+        po_query->addVar(0, "x");
+        po_query->idx(1);
+        Pattern *sp_query = new Pattern();
+        sp_query->addVar(2, "x");
+        sp_query->idx(0);
+
+        Pattern *po_sg = new Pattern();
+        po_sg->addVar(0, "x");
+        po_sg->idx(1);
+        Pattern *sp_sg = new Pattern();
+        sp_sg->addVar(2, "x");
+        sp_sg->idx(0);
+
+        std::vector<Filter*> filters;
+        std::vector<std::string> projections;
+        projections.push_back("x");
+        std::vector<Pattern*> popo;
+        popo.push_back(po_query);
+        popo.push_back(po_sg);
+        q_popo = std::unique_ptr<Query>(new Query(popo, filters, projections));
+        std::vector<Pattern*> sppo;
+        sppo.push_back(sp_query);
+        sppo.push_back(po_sg);
+        q_sppo = std::unique_ptr<Query>(new Query(sppo, filters, projections));
+        std::vector<Pattern*> spsp;
+        spsp.push_back(sp_query);
+        spsp.push_back(sp_sg);
+        q_spsp = std::unique_ptr<Query>(new Query(spsp, filters, projections));
+        std::vector<Pattern*> posp;
+        posp.push_back(po_query);
+        posp.push_back(sp_sg);
+        q_posp = std::unique_ptr<Query>(new Query(posp, filters, projections));
+
         if (vm["embDir"].as<std::string>() != ""
                 && vm["subFile"].as<std::string>() != "") {
             sh = std::unique_ptr<SubgraphHandler>(new SubgraphHandler());
@@ -136,6 +171,7 @@ string TridentServer::lookup(string sId, TridentLayer &db) {
 
 void TridentServer::execLinkPrediction(string query,
         int64_t subgraphThreshold,
+        bool excludeZeroP,
         string algo,
         JSON &response) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -183,10 +219,12 @@ void TridentServer::execLinkPrediction(string query,
         std::vector<uint64_t> subgraphs;
         std::vector<double> confidence;
 
+        LOG(INFOL) << "Select relevant subgraphs ...";
         sh->selectRelevantSubGraphs(distType, kb.getQuerier(), embAlgo,
                 typeQuery, r, t, subgraphs, confidence, subgraphThreshold,
                 subAlgo, secondDist);
 
+        LOG(INFOL) << "Compute conditional probabilities ...";
         JSON results;
         for(size_t i = 0; i < subgraphs.size(); ++i) {
             JSON row;
@@ -194,10 +232,61 @@ void TridentServer::execLinkPrediction(string query,
 
             auto meta = sh->getSubgraphMetadata(subgraphs[i]);
             std::string name;
-            if (meta.t == Subgraphs<double>::TYPE::PO)
+            Query* q;
+            if (meta.t == Subgraphs<double>::TYPE::PO) {
                 name = "PO ";
-            else
+                //Setup the query
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    q = q_popo.get();
+                } else {
+                    q = q_sppo.get();
+                }
+                Pattern *pq = q->getPatterns()[0];
+                pq->predicate(r);
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    pq->object(t);
+                } else {
+                    pq->subject(t);
+                }
+                Pattern *pp = q->getPatterns()[1];
+                pp->predicate(meta.rel);
+                pp->object(meta.ent);
+            } else {
                 name = "SP ";
+                //Setup the query
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    q = q_posp.get();
+                } else {
+                    q = q_spsp.get();
+                }
+                Pattern *pq = q->getPatterns()[0];
+                pq->predicate(r);
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    pq->object(t);
+                } else {
+                    pq->subject(t);
+                }
+                Pattern *pp = q->getPatterns()[1];
+                pp->predicate(meta.rel);
+                pp->subject(meta.ent);
+            }
+
+            //Prepare the query
+            TridentQueryPlan plan(kb.getQuerier());
+            plan.create(*q, SIMPLE);
+            TupleIterator *root = plan.getIterator();
+            size_t count = 0;
+            while (root->hasNext()) {
+                root->next();
+                count++;
+            }
+            plan.releaseIterator(root);
+            double condProb = (double)count / meta.size;
+            if (excludeZeroP && condProb == 0)
+                continue;
+
+            row.put("prob", condProb);
+
             int sizebuffer = 0;
             kb.getKB()->getDictMgmt()->getTextRel(meta.rel,
                     buffer.get(), sizebuffer);
@@ -400,6 +489,8 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             string query = _getValueParam(form, "query");
             query = HttpClient::unescape(query);
             string stopk = _getValueParam(form, "subgraphThreshold");
+            string excludezero = _getValueParam(form, "excludeZeroP");
+            std::cout << excludezero << std::endl;
             int64_t topk = vm["subgraphThreshold"].as<long>();
             if (stopk != "") {
                 topk = std::stoi(stopk);
@@ -407,7 +498,7 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             string algo = _getValueParam(form, "algo");
 
             JSON pt;
-            execLinkPrediction(query, topk, algo, pt);
+            execLinkPrediction(query, topk, excludezero == "true", algo, pt);
             std::ostringstream buf;
             JSON::write(buf, pt);
             page = buf.str();
