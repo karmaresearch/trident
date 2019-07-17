@@ -6,6 +6,8 @@
 #include <trident/utils/json.h>
 #include <trident/utils/httpserver.h>
 #include <trident/ml/subgraphhandler.h>
+#include <trident/sparql/query.h>
+#include <trident/sparql/plan.h>
 
 #include <layers/TridentLayer.hpp>
 #include <kognac/progargs.h>
@@ -31,6 +33,11 @@ class TridentServer {
         std::unique_ptr<SubgraphHandler> sh;
         ProgramArgs &vm;
         faiss::Index *annIndex;
+
+        std::unique_ptr<Query> q_popo;
+        std::unique_ptr<Query> q_sppo;
+        std::unique_ptr<Query> q_spsp;
+        std::unique_ptr<Query> q_posp;
 
         std::unique_ptr<char[]> buffer;
 
@@ -100,7 +107,9 @@ class TridentServer {
 
         //OK
         void execLinkPrediction(string query,
-                int64_t subgraphThreshold, string algo, JSON &response);
+                int64_t subgraphThreshold,
+                bool excludeZeroP,
+                string algo, JSON &response);
 
         //OK
         static void execSPARQLQuery(string sparqlquery,
