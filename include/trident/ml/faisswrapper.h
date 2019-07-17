@@ -43,7 +43,7 @@ class FaissWrapper{
         void create(string embDir, string subfile);
 
         void nearestNeighbours(
-            unique_ptr<Querier>& q,
+            Querier* q,
             int iq,
             string embAlgo,
             string subAlgo,

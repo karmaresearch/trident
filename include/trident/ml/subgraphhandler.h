@@ -6,6 +6,11 @@
 #include <unordered_map>
 typedef enum {UNION, INTERSECTION, INTERUNION} ANSWER_METHOD;
 
+// dynamic cache for K's is a map with Entity as key
+// and vector of <relation , topK> as values
+typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>> Kache;
+typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>>::const_iterator Kache_it;
+
 class SubgraphHandler {
     private:
         std::shared_ptr<Embeddings<double>> E;
@@ -64,6 +69,21 @@ class SubgraphHandler {
                 string &subAlgo,
                 DIST secondDist,
                 int64_t &subgraphThreshold,
+                bool hugeKG = false
+                );
+
+        void useDynamicKache(
+                Querier* q,
+                vector<uint64_t> &validTriples,
+                Subgraphs<double>::TYPE type,
+                uint64_t &r,
+                uint64_t &e,
+                string &embAlgo,
+                string &subAlgo,
+                DIST secondDist,
+                int64_t &subgraphThreshold,
+                Kache& dynamicKache,
+                uint64_t& threshold,
                 bool hugeKG = false
                 );
 

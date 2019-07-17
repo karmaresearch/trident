@@ -16,6 +16,7 @@
 #include <faiss/IndexIVFFlat.h>
 #include <faiss/index_io.h>
 
+
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
     this->R = Embeddings<double>::load(embdir + "/R");
@@ -1013,6 +1014,61 @@ vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples,
     return output;
 }
 
+void SubgraphHandler::useDynamicKache(
+        Querier* q,
+        vector<uint64_t> &validTriples,
+        Subgraphs<double>::TYPE type,
+        uint64_t &r,
+        uint64_t &e,
+        string &embAlgo,
+        string &subAlgo,
+        DIST secondDist,
+        int64_t &subgraphThreshold,
+        Kache& dynamicKache,
+        uint64_t& threshold,
+        bool hugeKG
+        )
+{
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
+    Kache_it got = dynamicKache.find(e);
+    int64_t tempThreshold;
+    if (dynamicKache.end() == got) {
+        // The entity does not exist in the cache as the key
+        start = std::chrono::system_clock::now();
+        tempThreshold = getDynamicThreshold(q, validTriples,
+                type, r, e, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, hugeKG);
+        duration = std::chrono::system_clock::now() - start;
+
+        LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
+        dynamicKache[e] = vector<pair<uint64_t,int64_t>>();
+        dynamicKache[e].push_back(make_pair(r, threshold));
+    } else {
+        // Entity exists as the key
+        // find out its vector and check if the pair exists for this relation
+        vector<pair<uint64_t, int64_t>> existingPairs = dynamicKache[e];
+        bool predFound = false;
+        for (const auto &ep : existingPairs) {
+            if (ep.first == r) {
+                tempThreshold = ep.second;
+                predFound = true;
+                break;
+            }
+        }
+        if (false == predFound) {
+            start = std::chrono::system_clock::now();
+            tempThreshold = getDynamicThreshold(q, validTriples,
+                    type, r, e, embAlgo,
+                    subAlgo, secondDist, subgraphThreshold, hugeKG);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
+            dynamicKache[e].push_back(make_pair(r,threshold));
+        }
+    }
+    threshold = tempThreshold;
+}
+
 void SubgraphHandler::evaluate(KB &kb,
         string embAlgo,
         string embDir,
@@ -1109,12 +1165,6 @@ void SubgraphHandler::evaluate(KB &kb,
 
     std::chrono::system_clock::time_point start;
     std::chrono::duration<double> duration;
-    /*
-     * dynamic cache for K's is a map with Entity as key
-     * and vector of <relation , topK> as values
-     * */
-    typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>> Kache;
-    typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>>::const_iterator Kache_it;
     Kache dynamicKache;
     std::unique_ptr<ofstream> logWriter;
 
@@ -1152,34 +1202,11 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
 
-    // For ANN test
-    uint16_t dim = E->getDim();
-    float* tailQueriesAnn = new float [((testTriples.size()/3) * dim)];
-    float* headQueriesAnn = new float [((testTriples.size()/3) * dim)];
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
-        if (subAlgo == "ann") {
-            int iq = i/3;
-            std::unique_ptr<double> tailResultAnn =
-                std::unique_ptr<double>(new double[dim]);
-            std::unique_ptr<double> headResultAnn =
-                std::unique_ptr<double>(new double[dim]);
-            add(tailResultAnn.get(), E->get(h), R->get(r), dim);
-            assert(h < E->getN() && t < E->getN());
-            for (uint16_t j = 0; j < dim; ++j) {
-                tailQueriesAnn[dim * iq + j] = (float) tailResultAnn.get()[j];
-            }
-            tailQueriesAnn[dim * iq] += iq / 1000.;
-            sub(headResultAnn.get(), E->get(t), R->get(r), dim);
-            for (uint16_t j = 0; j < dim; ++j) {
-                headQueriesAnn[dim * iq + j] = (float) headResultAnn.get()[j];
-            }
-            headQueriesAnn[dim * iq] += iq / 1000.;
-            continue;
-        }
 
         if (i % offset == 0) {
             LOG(INFOL) << "***Tested " << i / 3 << " of "
@@ -1216,41 +1243,9 @@ void SubgraphHandler::evaluate(KB &kb,
         DIST distType = L1;
 
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            Kache_it got = dynamicKache.find(t);
-            if (dynamicKache.end() == got) {
-                // The entity does not exist in the cache as the key
-                start = std::chrono::system_clock::now();
-                threshold = getDynamicThreshold(q.get(), validTriples,
-                        Subgraphs<double>::TYPE::PO, r, t, embAlgo,
-                        subAlgo, secondDist, subgraphThreshold, hugeKG);
-                duration = std::chrono::system_clock::now() - start;
-
-                LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
-                dynamicKache[t] = vector<pair<uint64_t,int64_t>>();
-                dynamicKache[t].push_back(make_pair(r, threshold));
-            } else {
-                // Entity exists as the key
-                // find out its vector and check if the pair exists for this relation
-                vector<pair<uint64_t, int64_t>> existingPairs = dynamicKache[t];
-                bool predFound = false;
-                for (const auto &ep : existingPairs) {
-                    if (ep.first == r) {
-                        threshold = ep.second;
-                        LOG(DEBUGL) << "CACHE HIT (HEAD prediction): " << sr << ", " << st;
-                        predFound = true;
-                        break;
-                    }
-                }
-                if (false == predFound) {
-                    start = std::chrono::system_clock::now();
-                    threshold = getDynamicThreshold(q.get(), validTriples,
-                            Subgraphs<double>::TYPE::PO, r, t, embAlgo,
-                            subAlgo, secondDist, subgraphThreshold, hugeKG);
-                    duration = std::chrono::system_clock::now() - start;
-                    LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
-                    dynamicKache[t].push_back(make_pair(r,threshold));
-                }
-            }
+            useDynamicKache(q.get(), validTriples,
+                Subgraphs<double>::TYPE::PO, r, t, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, dynamicKache, threshold, hugeKG);
         } else if (subgraphThreshold > 100 && subgraphThreshold <= 200) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
@@ -1293,38 +1288,9 @@ void SubgraphHandler::evaluate(KB &kb,
         }
         LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            Kache_it got = dynamicKache.find(h);
-            if (dynamicKache.end() == got) {
-                // The entity does not exist in the cache as the key
-                start = std::chrono::system_clock::now();
-                threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
-                duration = std::chrono::system_clock::now() - start;
-                LOG(DEBUGL) << "Time to compute dynamic K (tail): " << duration.count() * 1000 << " ms";
-                //dynamicKache.emplace(make_pair(t, vector<uint64_t, int64_t>()));
-                dynamicKache[h] = vector<pair<uint64_t, int64_t>>();
-                dynamicKache[h].push_back(make_pair(r, threshold));
-            } else {
-                // entity exists as the key
-                // find out its vector and check if the pair exists for this relation
-                vector<pair<uint64_t, int64_t>> existingPairs = dynamicKache[h];
-                bool predFound = false;
-                for (const auto& ep: existingPairs) {
-                    if (ep.first == r) {
-                        threshold = ep.second;
-                        LOG(DEBUGL) << "CACHE HIT (TAIL prediction): " << sr << ", " << sh;
-                        predFound = true;
-                        break;
-                    }
-                }
-                if (false == predFound) {
-                    start = std::chrono::system_clock::now();
-                    threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold, hugeKG);
-                    duration = std::chrono::system_clock::now() - start;
-                    LOG(DEBUGL) << "Time to compute dynamic K (tail): " << duration.count() * 1000 << " ms";
-                    dynamicKache[h].push_back(make_pair(r, threshold));
-                }
-            }
-            //LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
+            useDynamicKache(q.get(), validTriples,
+                Subgraphs<double>::TYPE::SP, r, h, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, dynamicKache, threshold, hugeKG);
         }
 
         start = std::chrono::system_clock::now();

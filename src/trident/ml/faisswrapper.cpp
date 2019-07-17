@@ -83,7 +83,7 @@ void FaissWrapper::create(string embDir, string subfile) {
 }
 
 void FaissWrapper::nearestNeighbours(
-    unique_ptr<Querier>& q,
+    Querier* q,
     int iq,
     string embAlgo,
     string subAlgo,
@@ -117,12 +117,12 @@ void FaissWrapper::nearestNeighbours(
     // Select sungraphs for this query
     vector<uint64_t> relevantSubgraphs;
     vector<double> relevantSubgraphsDistances;
-    sh.selectRelevantSubGraphs(L1, q.get(), embAlgo, type,
+    sh.selectRelevantSubGraphs(L1, q, embAlgo, type,
                             rel, ent, relevantSubgraphs, relevantSubgraphsDistances,
                             threshold, subAlgo, secondDist);
 
     // Find union/intersection of these subgraphs
-    sh.getAllPossibleAnswers(q.get(), relevantSubgraphs, actualAnswers, ansMethod);
+    sh.getAllPossibleAnswers(q, relevantSubgraphs, actualAnswers, ansMethod);
     
     // Set out param k = size of number of entities in these subgraphs
     k = actualAnswers.size();
@@ -207,7 +207,7 @@ void FaissWrapper::evaluate(
         // Head queries
         vector<int64_t> actualAnswersH;
         nearestNeighbours(
-            q,
+            q.get(),
             iq,
             embAlgo,
             subAlgo,
@@ -230,7 +230,7 @@ void FaissWrapper::evaluate(
         // Tail queries
         vector<int64_t> actualAnswersT;
         nearestNeighbours(
-            q,
+            q.get(),
             iq,
             embAlgo,
             subAlgo,
