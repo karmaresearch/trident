@@ -73,8 +73,7 @@ TridentServer::TridentServer(KB &kb,
             LOG(INFOL) << "Loading the subgraphs ...";
             std::string subFile = vm["subFile"].as<std::string>();
             std::string subAlgo = vm["subAlgo"].as<std::string>();
-            double varThreshold = vm["varThreshold"].as<double>();
-            sh->loadSubgraphs(subFile, subAlgo, varThreshold);
+            sh->loadSubgraphs(subFile, subAlgo);
 
             LOG(INFOL) << "Loading the FAISS index file ...";
             if (vm.count("faissFile") &&

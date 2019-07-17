@@ -57,7 +57,6 @@ void FaissWrapper::create(string embDir, string subfile) {
     loadEmbeddings(embDir);
     int d = E->getDim();
     size_t nb = E->getN();
-    size_t nr = R->getN();
     size_t nt = nb;
     int ncentroids = int(4 * sqrt(nb));  // total # of centroids
     int bytesPerCode = 4; // d must be multiple of this
@@ -72,7 +71,6 @@ void FaissWrapper::create(string embDir, string subfile) {
     float float_emb[nt * d];
     for (long i2 = 0; i2 < nt; ++i2) {
         double *emb = E->get(i2);
-        double *remb = NULL;
         for (uint16_t j2 = 0; j2 < d; ++j2) {
             float_emb[d * i2 + j2] = (float)emb[j2];
         }
@@ -156,7 +154,6 @@ void FaissWrapper::evaluate(
     string kFile
     )
 {
-    DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
     //Load the embeddings
@@ -196,7 +193,6 @@ void FaissWrapper::evaluate(
 
     annIndex = faiss::read_index(kFile.c_str());
     assert(annIndex != NULL);
-    uint16_t dim = E->getDim();
     int nq = testTriples.size()/3;
     uint64_t hitsHead = 0;
     uint64_t hitsTail = 0;
@@ -254,8 +250,8 @@ void FaissWrapper::evaluate(
             }
         }
     }
-    float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
-    float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
+    float hitRateH = ((float)hitsHead / (float)(nq))*100;
+    float hitRateT = ((float)hitsTail / (float)(nq))*100;
     LOG(INFOL) << "Hit@" << kHead << " (H): " << hitRateH;
     LOG(INFOL) << "Hit@" << kTail << " (T): " << hitRateT;
     return;
