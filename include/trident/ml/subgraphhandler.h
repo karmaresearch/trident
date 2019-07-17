@@ -20,8 +20,7 @@ class SubgraphHandler {
     public:
         void loadEmbeddings(string embdir);
 
-        void loadSubgraphs(string subgraphsFile,
-                string subFormat, double varThreshold);
+        void loadSubgraphs(string subgraphsFile, string subFormat);
 
     private:
 
@@ -79,12 +78,14 @@ class SubgraphHandler {
                 std::vector<uint64_t> &output
                 );
 
+        public:
         void getAllPossibleAnswers(Querier *q,
                 vector<uint64_t> &relevantSubgraphs,
                 vector<int64_t> &output,
                 ANSWER_METHOD answerMethod
                 );
 
+        private:
         double calculateScore(uint64_t ent,
                 vector<uint64_t>& subgs,
                 Querier* q);
@@ -128,7 +129,6 @@ class SubgraphHandler {
                 string formatTest,
                 string subgraphFilter,
                 int64_t threshold,
-                double varThreshold,
                 string writeLogs,
                 DIST secondDist,
                 string kFile,
@@ -145,7 +145,6 @@ class SubgraphHandler {
                 string formatTest,
                 string answerMethod,
                 uint64_t threshold,
-                double varThreshold,
                 string writeLogs,
                 DIST secondDist,
                 string kFile);

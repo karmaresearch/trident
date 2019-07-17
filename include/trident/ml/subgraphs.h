@@ -23,7 +23,6 @@ class Subgraphs {
         };
 
     protected:
-        double alpha = 0.75;
         std::vector<Metadata> subgraphs;
         void loadFromFile(std::ifstream &ifile) {
             const uint16_t sizeline = 25;
@@ -282,8 +281,7 @@ class VarSubgraphs : public AvgSubgraphs<K> {
     private:
         std::vector<K> variances;
     public:
-        VarSubgraphs(double alpha = 0.75) : AvgSubgraphs<K>() {
-            this->alpha = alpha;
+        VarSubgraphs() : AvgSubgraphs<K>() {
         }
 
         VarSubgraphs(uint16_t dim, uint64_t mincard) : AvgSubgraphs<K>(dim, mincard) {}

@@ -101,7 +101,7 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
     ifs.close();
 }
 
-void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, double varThreshold) {
+void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
     if (!Utils::exists(subgraphsFile)) {
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
         throw 10;
@@ -112,7 +112,7 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, doub
             subformat == "avgvar" ||
             subformat == "avg+var" ||
             subformat == "kl") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>(varThreshold));
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
         throw 10;
@@ -745,35 +745,6 @@ void SubgraphHandler::create(KB &kb,
     } else if (subgraphType == "var") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(
                 new VarSubgraphs<double>(0, minSubgraphSize));
-    } else if (subgraphType == "ann"){
-        int d = E->getDim();
-        size_t nb = E->getN();
-        size_t nr = R->getN();
-        size_t nt = nb;
-        int ncentroids = int(4 * sqrt(nb));  // total # of centroids
-        int bytesPerCode = 4; // d must be multiple of this
-        int bitsPerSubcode = 8;
-        if (d % 10 == 0) {
-            bytesPerCode = d /10;
-        }
-        faiss::IndexFlatL2 quantizer(d);
-        faiss::IndexIVFPQ index(&quantizer, d, ncentroids, bytesPerCode, bitsPerSubcode);
-
-        index.verbose = true;
-        float *float_emb = new float[nt * d];
-        for (long i2 = 0; i2 < nt; ++i2) {
-            double *emb = E->get(i2);
-            double *remb = NULL;
-            for (uint16_t j2 = 0; j2 < d; ++j2) {
-                float_emb[d * i2 + j2] = (float)emb[j2];
-            }
-            float_emb[d * i2] += i2 / 1000.;
-        }
-        index.train(nt, float_emb);
-        index.add(nt, float_emb);
-        index.nprobe = 16;
-        faiss::write_index(&index, subfile.c_str());
-        delete [] float_emb;
     } else {
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
@@ -1051,7 +1022,6 @@ void SubgraphHandler::evaluate(KB &kb,
         string formatTest,
         string subgraphFilter,
         int64_t subgraphThreshold,
-        double varThreshold,
         string writeLogs,
         DIST secondDist,
         string kFile,
@@ -1061,25 +1031,13 @@ void SubgraphHandler::evaluate(KB &kb,
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
-    vector<double> subCompressedEmbeddings;
-    vector<double> entCompressedEmbeddings;
-    vector<double> relCompressedEmbeddings;
     //Load the embeddings
     LOG(INFOL) << "Loading the embeddings ...";
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    faiss::Index *annIndex = NULL;
-    if (subAlgo == "ann") {
-        annIndex = faiss::read_index(subFile.c_str());
-        assert(annIndex != NULL);
-    } else {
-        loadSubgraphs(subFile, subAlgo, varThreshold);
-    }
-    if (binEmbDir != "") {
-        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings,
-                entCompressedEmbeddings, relCompressedEmbeddings);
-    }
+    loadSubgraphs(subFile, subAlgo);
+
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> validTriples;
@@ -1304,19 +1262,11 @@ void SubgraphHandler::evaluate(KB &kb,
             }
         }
 
-        if (binEmbDir != "") {
-            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::PO, r, t, threshold,
-                    subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsH);
-            vector<uint64_t> relevantSubgraphsHNormal;
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-        } else {
-            start = std::chrono::system_clock::now();
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-            duration = std::chrono::system_clock::now() - start;
-            LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (HEAD)= " << duration.count() * 1000 << " ms";
-        }
+        start = std::chrono::system_clock::now();
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (HEAD)= " << duration.count() * 1000 << " ms";
 
         ANSWER_METHOD ansMethod = UNION;
         if (subgraphFilter == "intersection") {
@@ -1377,15 +1327,11 @@ void SubgraphHandler::evaluate(KB &kb,
             //LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
         }
 
-        if (binEmbDir != "") {
-            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
-        } else {
-            start = std::chrono::system_clock::now();
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                    r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
-            duration = std::chrono::system_clock::now() - start;
-            LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (TAIL)= " << duration.count() * 1000 << " ms";
-        }
+        start = std::chrono::system_clock::now();
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
+                r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (TAIL)= " << duration.count() * 1000 << " ms";
         int64_t foundT = -1;
         uint64_t totalSizeT = 0;
         vector<int64_t> entitiesT;
@@ -1456,52 +1402,6 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
 
-    /*
-    if (subAlgo == "ann"){
-        int k = threshold;
-        int nq = testTriples.size()/3;
-        long* nnsHead = new long [(k * nq)];
-        float* disHead = new float[(k * nq)];
-        long* nnsTail = new long [(k * nq)];
-        float* disTail = new float[(k * nq)];
-        start = std::chrono::system_clock::now();
-        annIndex->search(nq, headQueriesAnn, k, disHead, nnsHead);
-        duration = std::chrono::system_clock::now() - start;
-        LOG(DEBUGL) << "Time to find approximate nearest neighbours (head)= " << duration.count() * 1000 << " ms";
-        start = std::chrono::system_clock::now();
-        annIndex->search(nq, tailQueriesAnn, k, disTail, nnsTail);
-        duration = std::chrono::system_clock::now() - start;
-        LOG(DEBUGL) << "Time to find approximate nearest neighbours (tail)= " << duration.count() * 1000 << " ms";
-        for (int ii = 0; ii < testTriples.size(); ii += 3) {
-            uint64_t h = testTriples[ii];
-            uint64_t r = testTriples[ii+1];
-            uint64_t t = testTriples[ii+2];
-            int ind = ii/3;
-            for (int jj = 0; jj < k; ++jj) {
-                if (h == nnsHead[jj + ind * k]) {
-                    hitsHead++;
-                    break;
-                }
-            }
-            for (int jj = 0; jj < k; ++jj) {
-                if (t == nnsTail[jj + ind * k]) {
-                    hitsTail++;
-                    break;
-                }
-            }
-        }
-        delete [] nnsHead;
-        delete [] disHead;
-        delete [] nnsTail;
-        delete [] disTail;
-        delete [] headQueriesAnn;
-        delete [] tailQueriesAnn;
-        float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
-        float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
-        LOG(INFOL) << "Hit@" << k << " (H): " << hitRateH;
-        LOG(INFOL) << "Hit@" << k << " (T): " << hitRateT;
-        return;
-    }*/
     LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
     double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
     double woLiteralsnormalComparisonsT = nEntitiesWithoutLiterals * hitsTail;
@@ -1561,7 +1461,6 @@ void SubgraphHandler::findAnswers(KB &kb,
     string formatTest,
     string answerMethod,
     uint64_t threshold,
-    double varThreshold,
     string writeLogs,
     DIST secondDist,
     string kFile) {
@@ -1581,7 +1480,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         useANN = true;
         subAlgo = subAlgo.substr(subAlgo.find("ann") + 3);
     }
-    loadSubgraphs(subFile, subAlgo, varThreshold);
+    loadSubgraphs(subFile, subAlgo);
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
@@ -1764,10 +1663,10 @@ void SubgraphHandler::findAnswers(KB &kb,
         } else if (answerMethod == "interunion") {
             ansMethod = INTERUNION;
         }
-        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
-        uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
+        int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
+        uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         // Return all answers from the subgraphs
         vector<int64_t> actualAnswersH;
         //LOG(INFOL) << "answer method = " << answerMethod;
@@ -1877,79 +1776,6 @@ void SubgraphHandler::findAnswers(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
-    /*if (useANN){
-        //int nq = testTriples.size()/3;
-        for (int ii = 0; ii < testTriples.size(); ii += 3) {
-            uint64_t h = testTriples[ii];
-            uint64_t r = testTriples[ii+1];
-            uint64_t t = testTriples[ii+2];
-            int ind = ii/3;
-            vector<uint64_t> expectedAnswersH;
-            getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
-            allExpectedAnswersH.push_back(expectedAnswersH);
-            int kHead = expectedAnswersH.size();
-            long* nnsHead = new long [(kHead)];
-            float* disHead = new float[(kHead)];
-            start = std::chrono::system_clock::now();
-            annIndex->search(1, headQueriesAnn+(ind*dim), kHead, disHead, nnsHead);
-            duration = std::chrono::system_clock::now() - start;
-            //LOG(DEBUGL) << "Time to find approximate nearest neighbours (head)= " << duration.count() * 1000 << " ms";
-
-            vector<int64_t> actualAnswersH;
-            for (int jj = 0; jj < kHead; ++jj) {
-                actualAnswersH.push_back(nnsHead[jj]);
-            }
-            allActualAnswersH.push_back(actualAnswersH);
-            double answerPrecisionH = 0.0;
-            double answerRecallH = 0.0;
-            getAnswerAccuracy(expectedAnswersH, actualAnswersH, answerPrecisionH, answerRecallH);
-            allQueriesPrecisionsH.push_back(answerPrecisionH);
-            allQueriesRecallsH.push_back(answerRecallH);
-            if (answerRecallH >= 100) {
-                //LOG(INFOL) << "Found all answers for Query: ? " << sr << " " << st;
-                counth++;
-                subgraphRanksHead++;
-            } else if (answerRecallH > 0) {
-                //LOG(INFOL) << "@@@@@@@@@@@@@@ Found some answers for query : ? " << sr << " " << st;
-                subgraphRanksHead++;
-            }
-
-            // tail queries
-            vector<uint64_t> expectedAnswersT;
-            getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
-            allExpectedAnswersT.push_back(expectedAnswersT);
-            int kTail = expectedAnswersT.size();
-            long* nnsTail = new long [(kTail )];
-            float* disTail = new float[(kTail )];
-            start = std::chrono::system_clock::now();
-            annIndex->search(1, tailQueriesAnn+(ind*dim), kTail, disTail, nnsTail);
-            duration = std::chrono::system_clock::now() - start;
-            //LOG(DEBUGL) << "Time to find approximate nearest neighbours (tail)= " << duration.count() * 1000 << " ms";
-            vector<int64_t> actualAnswersT;
-            for (int jj = 0; jj < kTail; ++jj) {
-                actualAnswersT.push_back(nnsTail[jj]);
-            }
-            allActualAnswersT.push_back(actualAnswersT);
-            double answerPrecisionT = 0.0;
-            double answerRecallT = 0.0;
-            getAnswerAccuracy(expectedAnswersT, actualAnswersT, answerPrecisionT, answerRecallT);
-            allQueriesPrecisionsT.push_back(answerPrecisionT);
-            allQueriesRecallsT.push_back(answerRecallT);
-            if (answerRecallT >= 100) {
-                //LOG(INFOL) << "Found all answers for Query: " << sh << " " << sr << " ?";
-                countt++;
-                subgraphRanksTail++;
-            } else if (answerRecallT > 0) {
-                //LOG(INFOL) << "####### Found some answers for query : " << sh << " " << sr << " ?";
-                subgraphRanksTail++;
-            }
-
-            delete [] nnsHead;
-            delete [] disHead;
-            delete [] nnsTail;
-            delete [] disTail;
-        }
-    }*/
     double macroPrecisionH = std::accumulate(
             allQueriesPrecisionsH.begin(),
             allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
