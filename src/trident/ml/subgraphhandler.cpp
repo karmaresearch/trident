@@ -107,10 +107,11 @@ void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
         throw 10;
     }
-    if (subformat == "avg") {
+    if (subformat == "avg" || subformat == "annavg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
     } else if (subformat == "var" ||
             subformat == "avgvar" ||
+            subformat == "annvar" ||
             subformat == "avg+var" ||
             subformat == "kl") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
@@ -1642,7 +1643,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
         if (useANN) {
             int kHead = expectedAnswersH.size();
-            long long nnsHead[kHead];
+            long nnsHead[kHead];
             float disHead[kHead];
             start = std::chrono::system_clock::now();
             annIndex->search(1, headQueriesAnn, kHead, disHead, nnsHead);
@@ -1691,7 +1692,7 @@ void SubgraphHandler::findAnswers(KB &kb,
 
         if (useANN) {
             int kTail = expectedAnswersT.size();
-            long long nnsTail[kTail];
+            long nnsTail[kTail];
             float disTail[kTail];
             start = std::chrono::system_clock::now();
             annIndex->search(1, tailQueriesAnn, kTail, disTail, nnsTail);

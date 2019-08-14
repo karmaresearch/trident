@@ -85,6 +85,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "analytics"
 #endif
             && cmd != "mine"
+            && cmd != "ann"
             && cmd != "server"
             && cmd != "dump"
             && cmd != "learn"

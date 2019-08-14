@@ -27,7 +27,10 @@ class SubgraphHandler {
 
         void loadSubgraphs(string subgraphsFile, string subFormat);
 
-    private:
+        size_t getNumberOfSubgraphs() {
+            return subgraphs->getNSubgraphs();
+        }
+ private:
 
         template<typename K>
             void getDisplacement(K &tester,

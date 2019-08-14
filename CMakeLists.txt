@@ -186,7 +186,14 @@ IF(ML)
         src/trident/mining/miner.cpp)
 
     # Install FAISS
-    find_library(omp omp)
+    set(CMAKE_PREFIX_PATH /cm/shared/apps/open64/4.5.2.1/lib)
+    #find_library(omp omp)
+    find_package(OpenMP QUIET)
+    if (OPENMP_FOUND)
+        message("OpenMP found")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    endif()
     find_library(openblas openblas PATHS /usr/local/opt/openblas/lib)
     ExternalProject_Add(git-faiss
         DOWNLOAD_COMMAND git clone https://github.com/facebookresearch/faiss.git
@@ -194,7 +201,7 @@ IF(ML)
         SOURCE_DIR faiss/
         CONFIGURE_COMMAND ""
         BUILD_IN_SOURCE 1
-        BUILD_COMMAND "export" "CXX=/usr/local/opt/llvm/bin/clang -std=c++11" && "export" "CPUFLAGS=-msse4 -mpopcnt" && "export" "" && "export" "LDFLAGS=-fPIC -fopenmp -L/usr/local/opt/llvm/lib" && "export" "CPPFLAGS=-fPIC -m64 -Wall -g -O3 -Wno-sign-compare -DFINTEGER=int -fopenmp -I/usr/local/opt/llvm/include" && make -j libfaiss.a
+        BUILD_COMMAND "export" "CXX=/cm/shared/package/gcc/4.9.3/bin/g++ -std=c++11" && "export" "CPUFLAGS=-msse4 -mpopcnt" && "export" "" && "export" "LDFLAGS=-fPIC -fopenmp " && "export" "CPPFLAGS=-fPIC -m64 -Wall -g -O3 -Wno-sign-compare -DFINTEGER=int -fopenmp " && make -j libfaiss.a
         INSTALL_COMMAND ""
         )
     ExternalProject_Get_Property(git-faiss SOURCE_DIR)
@@ -207,7 +214,7 @@ IF(ML)
     set(COMPILE_FLAGS "-DFINTEGER=int -m64 -msse4 ${COMPILE_FLAGS}")
     add_library(trident-ml SHARED ${ml_SRC})
     set_target_properties(trident-ml PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(trident-ml kognac-core trident-core faiss omp ${openblas})
+    TARGET_LINK_LIBRARIES(trident-ml kognac-core trident-core faiss ${openblas})
     TARGET_LINK_LIBRARIES(trident trident-ml)
 ENDIF()
 

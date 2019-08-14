@@ -27,10 +27,11 @@ void FaissWrapper::loadSubgraphs(string subgraphsFile, string subformat) {
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
         throw 10;
     }
-    if (subformat == "avg") {
+    if (subformat == "avg" || subformat == "annavg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
     } else if (subformat == "var" ||
             subformat == "avgvar" ||
+            subformat == "annvar" ||
             subformat == "avg+var" ||
             subformat == "kl") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
@@ -114,7 +115,7 @@ void FaissWrapper::nearestNeighbours(
     }
     queriesAnn[0] += iq / 1000.;
 
-    // Select sungraphs for this query
+    // Select subgraphs for this query
     vector<uint64_t> relevantSubgraphs;
     vector<double> relevantSubgraphsDistances;
     sh.selectRelevantSubGraphs(L1, q, embAlgo, type,
@@ -123,15 +124,15 @@ void FaissWrapper::nearestNeighbours(
 
     // Find union/intersection of these subgraphs
     sh.getAllPossibleAnswers(q, relevantSubgraphs, actualAnswers, ansMethod);
-    
+
     // Set out param k = size of number of entities in these subgraphs
     k = actualAnswers.size();
-    
+
     // Reset the output vector for possible heads
     vector<int64_t>().swap(actualAnswers);
 
     // Query the Approx nearest neighbours for this query
-    long long nns[k];
+    long nns[k];
     float dis[k];
     start = std::chrono::system_clock::now();
     annIndex->search(1, queriesAnn, k, dis, nns);
@@ -147,7 +148,7 @@ void FaissWrapper::evaluate(
     string embDir,
     string subFile,
     string subAlgo,
-    string nameTest, 
+    string nameTest,
     int64_t threshold,
     string subgraphFilter,
     DIST secondDist,
@@ -254,5 +255,6 @@ void FaissWrapper::evaluate(
     float hitRateT = ((float)hitsTail / (float)(nq))*100;
     LOG(INFOL) << "Hit@" << kHead << " (H): " << hitRateH;
     LOG(INFOL) << "Hit@" << kTail << " (T): " << hitRateT;
+    LOG(INFOL) << "# of total subgraphs : " << sh.getNumberOfSubgraphs();
     return;
 }
