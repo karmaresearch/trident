@@ -44,6 +44,10 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     }
     BatchCreator::loadTriples(pathtest, testset);
 
+    LOG(INFOL) << "path = " << pathtest;
+    LOG(INFOL) << "**** " << testset.size();
+    LOG(INFOL) << "#### " << testset.size()/3;
+
     if (algo == "transe") {
         if (p.binary == "true") {
             TranseBinaryTester<double> tester(E, R, kb.query());

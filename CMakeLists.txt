@@ -39,7 +39,7 @@ ENDIF()
 IF(PYTHON)
     message("PYTHON forces the enabling of ML and ANALYTICS")
     set(ML "1")
-    set(ANALYTICS "1")
+    set(ANALYTICS "0")
 ENDIF()
 if(ANALYTICS)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DANALYTICS=1")
@@ -194,7 +194,7 @@ IF(ML)
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     endif()
-    find_library(openblas openblas PATHS /usr/local/opt/openblas/lib)
+    find_library(openblas openblas PATHS /cm/images/MLNX-centos74-MIC-image/cm/shared/apps/openblas/0.2.18/lib)
     ExternalProject_Add(git-faiss
         DOWNLOAD_COMMAND git clone https://github.com/facebookresearch/faiss.git
         DOWNLOAD_DIR .
@@ -281,8 +281,9 @@ IF(PYTHON)
     set(Python_ADDITIONAL_VERSIONS 3.5)
     pkg_check_modules(PY3 REQUIRED QUIET python3)
     IF(PY3_FOUND)
-        INCLUDE_DIRECTORIES(${PY3_INCLUDE_DIRS})
-        LINK_DIRECTORIES(${PY3_LIBRARY_DIRS})
+        INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIR})
+        LINK_DIRECTORIES(${PYTHON_LIBRARY})
+        message("Python include path = ${PYTHON_INCLUDE_DIR}")
     ENDIF()
     #NumPY
     if(NOT PYTHON_EXECUTABLE)
@@ -299,6 +300,7 @@ IF(PYTHON)
             COMMAND "${PYTHON_EXECUTABLE}" -c
             "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
             OUTPUT_VARIABLE __numpy_path)
+        message("numpy path : ${__numpy_path}")
         # And the version
         execute_process(
             COMMAND "${PYTHON_EXECUTABLE}" -c
@@ -323,7 +325,7 @@ IF(PYTHON)
     add_library(tridentp SHARED ${tridentp_SRC}) #Python library
     set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
     set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana ${PY3_LIBRARIES})
+    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml ${PY3_LIBRARIES})
 ENDIF()
 
 if(JAVA)

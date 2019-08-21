@@ -66,6 +66,20 @@ static PyObject *batcher_start(PyObject *self, PyObject *args) {
     return Py_None;
 }
 
+static PyObject *batcher_load_triples(PyObject *self, PyObject *args) {
+    trident_Batcher *se = (trident_Batcher*) self;
+    const char *path;
+    if (!PyArg_ParseTuple(args, "s", &path))
+        return NULL;
+    se->batch1.clear();
+    se->creator->BatchCreator::loadTriples(path, se->batch1);
+    const uint32_t size = se->batch1.size();
+
+    npy_intp dims[1] = {size};
+    PyObject *triples = PyArray_SimpleNewFromData(1, dims, NPY_UINT64, (void*)se->batch1.data());
+    return triples;
+}
+
 static PyObject *batcher_getbatch(PyObject *self, PyObject *args) {
     trident_Batcher *s = (trident_Batcher*) self;
     bool out = s->creator->getBatch(s->batch1, s->batch2, s->batch3); //Split column by column
@@ -126,6 +140,7 @@ static PyObject *batcher_shuffle(PyObject *self, PyObject *args) {
 static PyMethodDef Batcher_methods[] = {
     {"start", batcher_start, METH_VARARGS, "Starts the process." },
     {"getbatch", batcher_getbatch, METH_VARARGS, "Get one batch." },
+    {"load_triples", batcher_load_triples, METH_VARARGS, "Get all triples from path." },
     {"getbatch_nr", batcher_getbatch_nr, METH_VARARGS, "Get one specific batch." },
     {"shuffle", batcher_shuffle, METH_VARARGS, "Shuffle the batches" },
     {"get_n_batches", batcher_get_n_batches, METH_VARARGS, "Get number of batches." },

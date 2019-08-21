@@ -394,6 +394,11 @@ TChA& TChA::operator+=(const TChA& ChA){
   strcpy(Bf+BfL, ChA.CStr()); BfL+=ChA.Len(); return *this;
 }
 
+TChA& TChA::operator+(const TChA& ChA){
+  Resize(BfL+ChA.Len());
+  strcpy(Bf+BfL, ChA.CStr()); BfL+=ChA.Len(); return *this;
+}
+
 TChA& TChA::operator+=(const TStr& Str){
   Resize(BfL+Str.Len());
   strcpy(Bf+BfL, Str.CStr()); BfL+=Str.Len(); return *this;

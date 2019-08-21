@@ -239,6 +239,7 @@ public:
 
   TChA& operator+=(const TMem& Mem);
   TChA& operator+=(const TChA& ChA);
+  TChA& operator+(const TChA& ChA);
   TChA& operator+=(const TStr& Str);
   TChA& operator+=(const char* CStr);
   TChA& operator+=(const char& Ch){

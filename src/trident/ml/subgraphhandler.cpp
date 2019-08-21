@@ -1175,7 +1175,7 @@ void SubgraphHandler::evaluate(KB &kb,
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
     }
 
-    LOG(DEBUGL) << "Initial number of test triples : " << testTriples.size()/3;
+    LOG(INFOL) << "Initial number of test triples : " << testTriples.size()/3;
 
     // Count number of entities without literals
     uint64_t nEntitiesWithoutLiterals = 0;// for Wikidata 148546616;

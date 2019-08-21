@@ -916,9 +916,9 @@ PyMODINIT_FUNC PyInit_trident(void) {
     PyModule_AddObject(m, "Emb", (PyObject *)&trident_EmbType);
     PyModule_AddFunctions(m, globalFunctions);
 
-    PyObject* ana = PyInit_analytics();
-    Py_INCREF(ana);
-    PyModule_AddObject(m, "analytics", ana);
+    //PyObject* ana = PyInit_analytics();
+    //Py_INCREF(ana);
+    //PyModule_AddObject(m, "analytics", ana);
 
     //Default logging level to warn
     Logger::setMinLevel(4);

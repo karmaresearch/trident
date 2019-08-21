@@ -3,7 +3,6 @@
 #include <trident/kb/kb.h>
 
 #include <snap/directed.h>
-#include <snap-core/Snap.h>
 
 #include <Python.h>
 #include <numpy/ndarrayobject.h>
