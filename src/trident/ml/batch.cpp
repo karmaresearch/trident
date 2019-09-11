@@ -26,6 +26,10 @@ std::shared_ptr<Feedback> BatchCreator::getFeedback() {
     return feedback;
 }
 
+int BatchCreator::getUsedIndex() {
+    return this->usedIndex;
+}
+
 string BatchCreator::getValidPath() {
     return kbdir + "/_batch_valid";
 }

@@ -116,6 +116,8 @@ class BatchCreator {
 
         void shuffle();
 
+        int getUsedIndex();
+
         string getValidPath();
 
         string getTestPath();

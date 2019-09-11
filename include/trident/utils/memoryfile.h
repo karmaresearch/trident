@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <errno.h>
 #endif
 
 class MemoryMappedFile {
@@ -63,7 +64,7 @@ class MemoryMappedFile {
                         ro ? PROT_READ : (PROT_READ | PROT_WRITE),
                         MAP_SHARED, fd, start));
             if (data == MAP_FAILED) {
-                LOG(ERRORL) << "Failed mapping the file " << file;
+                LOG(ERRORL) << "Failed mapping the file " << file << " Error:" << strerror(errno);
                 throw 10;
             }
 #endif
