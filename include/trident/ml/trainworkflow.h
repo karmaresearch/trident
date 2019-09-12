@@ -63,6 +63,7 @@ class TrainWorkflow {
             }
 
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+	    uint64_t oldViolations = std::numeric_limits<uint64_t>::max();
             for (uint32_t epoch = 0; epoch < epochs; ++epoch) {
                 std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
                 //Init code
@@ -128,6 +129,10 @@ class TrainWorkflow {
                 string sviol = " Loss=" + to_string(totalLoss);
                 if (tr.generateViolations()) {
                     sviol = " Violations=" + to_string(totalV);
+		    if (totalV < oldViolations) {
+			oldViolations = totalV;
+			sviol += '*';
+		    }
                 }
 
                 if (nthreads > 1) {
