@@ -48,7 +48,7 @@ void printHelp(const char *programName, string section,
         cout << "predict\t\t\t launch an algorithm to use KG embeddings for link prediction." << endl;
         cout << "subcreate\t\t create embeddings of subgraphs." << endl;
         cout << "subeval\t\t\t use embeddings of subgraphs for link prediction." << endl;
-        cout << "subanswers\t\t\t use embeddings of subgraphs for finding all answers of the query." << endl;
+        cout << "answer \t\t\t finding all answers of a given query using embeddings or other methods." << endl;
 #endif
 
         cout << "server\t\t\t start a server for SPARQL queries." << endl << endl;
@@ -85,12 +85,13 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "analytics"
 #endif
             && cmd != "mine"
+            && cmd != "ann"
             && cmd != "server"
             && cmd != "dump"
             && cmd != "learn"
             && cmd != "predict"
             && cmd != "subcreate"
-            && cmd != "subanswers"
+            && cmd != "answer"
             && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
@@ -355,7 +356,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
 #ifdef ML
     /***** SUBGRAPHS *****/
-    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval> or <subanswers>");
+    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval> or <answer>");
     subeval_options.add<string>("", "embAlgo", "",
             "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
@@ -366,6 +367,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The path of the file to write logs of the test.", false);
     subeval_options.add<string>("", "subFile", "",
             "The path of the file that contains embeddings of the subgraphs.", false);
+    subeval_options.add<string>("", "faillFile", "",
+            "The path of the file that contains an index file created by approx neighbor-based search (FAISS library).", false);
     subeval_options.add<string>("", "nameTest", "",
             "The path (or name) of the dataset to use to test the performance of the subgraph embeddings.", false);
     subeval_options.add<string>("", "kFile", "",
@@ -384,6 +387,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     subeval_options.add<string>("", "binEmbDir", "",
             "The directory that contains the binarized embeddings of subgraphs, entities and relations.", false);
     subeval_options.add<bool>("","calcDisp", false, "Calculate displacements. Default is DONT CALCULATE", false);
+    subeval_options.add<bool>("","removeLiterals", false, "Remove literals when making subgraphs. Default is DONT REMOVE", false);
+    subeval_options.add<int64_t>("","sampleTest", 1000, "Number of triples to sample for test", false);
 #endif
 
     /***** GENERAL OPTIONS *****/
@@ -412,6 +417,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     sections.insert(make_pair("predict",&ml_options));
     sections.insert(make_pair("subeval",&subeval_options));
     sections.insert(make_pair("subcreate",&subeval_options));
+    sections.insert(make_pair("answer",&subeval_options));
 #endif
 
     vm.parse(argc, argv);

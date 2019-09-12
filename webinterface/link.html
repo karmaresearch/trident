@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <meta name="author" content="Jacopo Urbani">
+    <meta name="description" content="Trident">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="bootstrap.min.css" rel="stylesheet" type="text/css">
+    <script src="jquery.js" type="application/javascript"></script>
+    <script src="popper.min.js" type="application/javascript"></script>
+    <script src="tether.min.js" type="application/javascript"></script>
+    <script src="bootstrap.min.js" type="application/javascript"></script>
+
+    <title>Trident Web Interface</title>
+</head>
+
+<body>
+        <div class="container-fluid">
+            <h1>Trident</h1>
+
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="/">SPARQL</a>
+                  </li>
+
+                  <li class="nav-item active">
+                    <a class="nav-link" href="/link.html">Link Prediction <span class="sr-only"></span></a>
+                  </li>
+                </ul>
+                </div>
+            </nav>
+        </div>
+
+        <div class="container-fluid">
+            <div class="form-group">
+            <form id="query-form" name="query-form" accept-charset="utf-8">
+                <label for="query"><h3>Query</h3></label>
+
+                <textarea class="form-control" id="query" name="query" rows="3">{ "subject" : "<URI>",  "predicate" : "<URI>", "object" : "?" }</textarea>
+
+                <input type="number" class="form-control" id="subgraphThreshold" aria-describedby="subgraphThreshold" name="subgraphThreshold" placeholder="N. Subgraphs">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="true" id="excludeZeroP" name="excludeZeroP">
+                    <label class="form-check-label" for="excludeZeroP">Exclude subgraphs with P(Q|P)=0 </label>
+                </div>
+                <button id="submitForm" class="btn btn-primary btn-block" type="button">Submit</button>
+            </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="msgBox"></div>
+    </div>
+
+
+    <div id="results" class="d-none">
+        <div>Runtime: <span id="runtimeLbl"></span> ms.</div>
+        <div id="subgraphResults">
+            <table id="tblResults" class="table table-striped">
+                <thead>
+                    <th scope="col">Distance</th>
+                    <th scope="col">Subgraph</th>
+                    <th scope="col">Cardinality</th>
+                    <th scope="col">P(Q|P)</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        $('#submitForm').click( function() {
+            var inputdata = $('#query-form').serialize();
+            $.post('/predict', inputdata, function(data) {
+                var box = $("#msgBox");
+                box.empty();
+                if (data["status"] == "error") {
+                    var tags = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                    var tags1 = '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
+                    box.append(tags + data["errordesc"] + tags1);
+                    $("#results").addClass('d-none');
+                    return;
+                }
+
+                var runtime = data["runtime_ms"];
+                $("#runtimeLbl").text(runtime);
+
+                var res = data["subgraphs"];
+                var t = $("#tblResults tbody")[0];
+                t.innerHTML = "";
+                for(var i = 0; i < res.length; ++i) {
+                    //Add a row
+                    var newRow = t.insertRow();
+                    var conf = newRow.insertCell(0);
+                    var tconf = document.createTextNode(res[i]["confidence"]);
+                    conf.appendChild(tconf);
+
+                    var name = newRow.insertCell(1);
+                    var tname = document.createTextNode(res[i]["name"]);
+                    name.appendChild(tname);
+
+                    var card = newRow.insertCell(2);
+                    var tcard = document.createTextNode(res[i]["cardinality"]);
+                    card.appendChild(tcard);
+
+                    var prob = newRow.insertCell(3);
+                    var tprob = document.createTextNode(res[i]["prob"]);
+                    prob.appendChild(tprob);
+                }
+                $("#results").removeClass('d-none');
+            },
+            'json' // I expect a JSON response
+            );
+         });
+    </script>
+</body>
+</html>

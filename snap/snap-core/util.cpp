@@ -1,5 +1,6 @@
 /////////////////////////////////////////////////
 // Graph Utilities
+
 void TGUtil::GetCdf(const TIntPrV& PdfV, TIntPrV& CdfV) {
   CdfV = PdfV;
   for (int i = 1; i < CdfV.Len(); i++) {
@@ -322,7 +323,8 @@ bool TStrUtil::GetNormalizedUrl(const TChA& UrlIn, const TChA& BaseUrl, TChA& Ur
   }
   // http://www. --> http://
   if (UrlOut.IsPrefix("http://www.")) {
-    UrlOut = TChA("http://") + UrlOut.GetSubStr(11, TInt::Mx);
+    TChA temp("http://");
+    UrlOut = temp + UrlOut.GetSubStr(11, TInt::Mx);
   }
   UrlOut.ToLc();
   return true;

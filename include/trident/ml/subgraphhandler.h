@@ -6,20 +6,31 @@
 #include <unordered_map>
 typedef enum {UNION, INTERSECTION, INTERUNION} ANSWER_METHOD;
 
+// dynamic cache for K's is a map with Entity as key
+// and vector of <relation , topK> as values
+typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>> Kache;
+typedef unordered_map<uint64_t,vector<pair<uint64_t,int64_t>>>::const_iterator Kache_it;
+
 class SubgraphHandler {
     private:
         std::shared_ptr<Embeddings<double>> E;
         std::shared_ptr<Embeddings<double>> R;
         std::shared_ptr<Subgraphs<double>> subgraphs;
 
-        void loadEmbeddings(string embdir);
 
         void loadBinarizedEmbeddings(string embfile, vector<double>& embeddings);
 
         void processBinarizedEmbeddingsDirectory(string embdir, vector<double>& emb1, vector<double>& emb2, vector<double> &e3);
 
-        void loadSubgraphs(string subgraphsFile,
-                string subFormat, double varThreshold);
+    public:
+        void loadEmbeddings(string embdir);
+
+        void loadSubgraphs(string subgraphsFile, string subFormat);
+
+        size_t getNumberOfSubgraphs() {
+            return subgraphs->getNSubgraphs();
+        }
+ private:
 
         template<typename K>
             void getDisplacement(K &tester,
@@ -41,6 +52,9 @@ class SubgraphHandler {
 
         int64_t isAnswerInSubGraphs(uint64_t a, const std::vector<uint64_t> &subgraphs, Querier *q);
 
+        int64_t isTripleInSubGraphs(uint64_t h, uint64_t t, const std::vector<uint64_t> &subgs, Querier *q);
+        vector<uint64_t> areTriplesInSubGraphs(vector<uint64_t> &testTriples,const std::vector<uint64_t> &subgs, Querier *q);
+
         void areAnswersInSubGraphs(
                 vector<uint64_t> entities,
                 const std::vector<uint64_t> &subgs,
@@ -57,19 +71,26 @@ class SubgraphHandler {
                 string &embAlgo,
                 string &subAlgo,
                 DIST secondDist,
-                int64_t &subgraphThreshold
+                int64_t &subgraphThreshold,
+                bool hugeKG = false
                 );
 
-        void selectRelevantSubGraphs(DIST dist,
-                Querier *q,
-                string algo,
-                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
-                std::vector<uint64_t> &output,
-                std::vector<double> &outputDistances,
-                uint32_t topk,
-                string &subgraphType,
-                DIST secondDist
+        void useDynamicKache(
+                Querier* q,
+                vector<uint64_t> &validTriples,
+                Subgraphs<double>::TYPE type,
+                uint64_t &r,
+                uint64_t &e,
+                string &embAlgo,
+                string &subAlgo,
+                DIST secondDist,
+                int64_t &subgraphThreshold,
+                Kache& dynamicKache,
+                uint64_t& threshold,
+                bool hugeKG = false
                 );
+
+        vector<uint64_t> sampleSubgraphs(vector<uint64_t>& subgs, int percent=25);
 
         void selectRelevantBinarySubgraphs(
                 Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
@@ -80,15 +101,20 @@ class SubgraphHandler {
                 std::vector<uint64_t> &output
                 );
 
+        public:
         void getAllPossibleAnswers(Querier *q,
                 vector<uint64_t> &relevantSubgraphs,
                 vector<int64_t> &output,
                 ANSWER_METHOD answerMethod
                 );
 
+        private:
         double calculateScore(uint64_t ent,
                 vector<uint64_t>& subgs,
                 Querier* q);
+
+        vector<uint64_t> removeLiterals(vector<uint64_t>& triples, KB& kb);
+        vector<uint64_t> removeImprobables(vector<uint64_t>& triples, Querier* q);
 
         void getAnswerAccuracy(vector<uint64_t> & actualEntities,
             vector<int64_t>& expectedEntities,
@@ -126,14 +152,14 @@ class SubgraphHandler {
                 string formatTest,
                 string subgraphFilter,
                 int64_t threshold,
-                double varThreshold,
                 string writeLogs,
                 DIST secondDist,
                 string kFile,
                 string binEmbDir,
-                bool calcDisp);
+                bool calcDisp,
+                int64_t sampleTest);
 
-        /*void findAnswers(KB &kb,
+        void findAnswers(KB &kb,
                 string embAlgo,
                 string embDir,
                 string subFile,
@@ -142,17 +168,39 @@ class SubgraphHandler {
                 string formatTest,
                 string answerMethod,
                 uint64_t threshold,
-                double varThreshold,
                 string writeLogs,
-                DIST secondDist);*/
+                DIST secondDist,
+                string kFile);
+
+        Subgraphs<double>::Metadata getSubgraphMetadata(size_t idx);
 
         void create(KB &kb,
                 string subType,
                 string embDir,
                 string subFile,
-                uint64_t minSubgraphSize);
+                uint64_t minSubgraphSize,
+                bool removeLiterals);
 
         void getAllSubgraphs(Querier *q);
+
+        void selectRelevantSubGraphs(DIST dist,
+                Querier *q,
+                string algo,
+                Subgraphs<double>::TYPE t, uint64_t v1, uint64_t v2,
+                std::vector<uint64_t> &output,
+                std::vector<double> &outputDistances,
+                uint32_t topk,
+                string &subgraphType,
+                DIST secondDist
+                );
+
+        std::shared_ptr<Embeddings<double>> getR() {
+            return R;
+        }
+
+        std::shared_ptr<Embeddings<double>> getE() {
+            return E;
+        }
 };
 
 #endif

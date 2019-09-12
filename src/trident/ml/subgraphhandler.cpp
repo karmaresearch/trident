@@ -8,6 +8,14 @@
 #include <kognac/utils.h>
 #include <unordered_map>
 #include <set>
+#include <fstream>
+
+#include <faiss/IndexPQ.h>
+#include <faiss/IndexIVFPQ.h>
+#include <faiss/IndexFlat.h>
+#include <faiss/IndexIVFFlat.h>
+#include <faiss/index_io.h>
+
 
 void SubgraphHandler::loadEmbeddings(string embdir) {
     this->E = Embeddings<double>::load(embdir + "/E");
@@ -15,9 +23,9 @@ void SubgraphHandler::loadEmbeddings(string embdir) {
 }
 
 void SubgraphHandler::processBinarizedEmbeddingsDirectory(string binEmbDir,
-    vector<double>& subCompressedEmbeddings,
-    vector<double>& entCompressedEmbeddings,
-    vector<double>& relCompressedEmbeddings) {
+        vector<double>& subCompressedEmbeddings,
+        vector<double>& entCompressedEmbeddings,
+        vector<double>& relCompressedEmbeddings) {
     auto npos = string::npos;
     bool flag = false;
     if (binEmbDir[binEmbDir.length()-1] == '/') {
@@ -94,18 +102,19 @@ void SubgraphHandler::loadBinarizedEmbeddings(string subFile, vector<double>& ra
     ifs.close();
 }
 
-void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat, double varThreshold) {
+void SubgraphHandler::loadSubgraphs(string subgraphsFile, string subformat) {
     if (!Utils::exists(subgraphsFile)) {
         LOG(ERRORL) << "The file " << subgraphsFile << " does not exist";
         throw 10;
     }
-    if (subformat == "avg") {
+    if (subformat == "avg" || subformat == "annavg") {
         subgraphs = std::shared_ptr<Subgraphs<double>>(new AvgSubgraphs<double>());
     } else if (subformat == "var" ||
             subformat == "avgvar" ||
+            subformat == "annvar" ||
             subformat == "avg+var" ||
             subformat == "kl") {
-        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>(varThreshold));
+        subgraphs = std::shared_ptr<Subgraphs<double>>(new VarSubgraphs<double>());
     } else {
         LOG(ERRORL) << "Subgraph format not implemented!";
         throw 10;
@@ -207,9 +216,77 @@ inline vector<int64_t> intersection (const std::vector<std::vector<int64_t>> &ve
     return last_intersection;
 }
 
+inline vector<int64_t> intersectionNPercent(const vector<vector<int64_t>> &entityIds, int percent=50) {
+    vector<int64_t> output;
+    size_t N = entityIds.size();
+    size_t required = (int) (N * ((float)percent/100.0));
+    for (int i = 0; i < entityIds.size(); ++i) {
+        for (int j = 0; j < entityIds[i].size(); ++j) {
+            int cntFound = 0;
+            for (int k = 0; k < entityIds.size(); ++k) {
+                bool found = std::binary_search(entityIds[k].begin(), entityIds[k].end(), entityIds[i][j]);
+                if (found) {
+                    cntFound++;
+                }
+            }
+            if (cntFound == required) {
+                output.push_back(entityIds[i][j]);
+            }
+        }
+    }
+    return output;
+}
+
+template<class K >
+K random_unique(K begin, K end, size_t num_random) {
+    size_t left = std::distance(begin, end);
+    srand(time(0));
+    while (num_random--) {
+        K r = begin;
+        std::advance(r, rand()%left);
+        std::swap(*begin, *r);
+        ++begin;
+        --left;
+    }
+    return begin;
+}
+
+vector<uint64_t> sampleTriples(vector<uint64_t> & triples, int nChosen=1000) {
+    uint64_t totalTriples = triples.size() / 3;
+    LOG(DEBUGL) << "total triples : " << totalTriples;
+    vector<uint64_t> tripleIndices(totalTriples);
+    for (uint64_t i = 0; i < totalTriples; ++i) {
+        tripleIndices[i] = i;
+    }
+    random_unique(tripleIndices.begin(), tripleIndices.end(), nChosen);
+
+    assert(tripleIndices.size() == nChosen);
+    vector<uint64_t> chosenTriples(nChosen * 3);
+    for (uint64_t i = 0, j = 0; i < nChosen*3 && j < tripleIndices.size(); i+=3, j+=1) {
+        chosenTriples[i]   = triples[tripleIndices[j]*3];
+        chosenTriples[i+1] = triples[tripleIndices[j]*3 + 1];
+        chosenTriples[i+2] = triples[tripleIndices[j]*3 + 2];
+    }
+    return chosenTriples;
+}
+
+vector<uint64_t> SubgraphHandler::sampleSubgraphs(vector<uint64_t>& allsub, int percent) {
+    vector<uint64_t> chosenSubgraphs;
+    uint64_t totalEntities = 0;
+    uint64_t maxEntities = (uint64_t)(E->getN() *(double)percent/100);
+    for (auto id: allsub) {
+        totalEntities += subgraphs->getMeta(id).size;
+        if (totalEntities >= maxEntities) {
+            break;
+        }
+        chosenSubgraphs.push_back(id);
+    }
+    return chosenSubgraphs;
+}
+
 double SubgraphHandler::calculateScore(uint64_t ent,
-    vector<uint64_t>& subgs,
-    Querier* q) {
+        vector<uint64_t>& subgs,
+        Querier* q) {
     int i = 0;
     size_t N = subgs.size();
     double score = 0.0;
@@ -258,12 +335,12 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
             entityIds.push_back(vector<int64_t>());
         }
-        LOG(DEBUGL) << "Subgraph ID : " << subgraphid << " " << meta.rel  << " , " << meta.ent;
+        //LOG(DEBUGL) << "Subgraph ID : " << subgraphid << " " << meta.rel  << " , " << meta.ent;
         while(itr->hasNext()) {
-            int64_t p = itr->getKey();
-            int64_t e1 = itr->getValue1();
+            //int64_t p = itr->getKey();
+            //int64_t e1 = itr->getValue1();
             int64_t e2 = itr->getValue2();
-            LOG(DEBUGL) << countResultsS << ")" << e1 << ": " << p << " , " << e2;
+            //LOG(DEBUGL) << countResultsS << ")" << e1 << ": " << p << " , " << e2;
             if (answerMethod == INTERSECTION || answerMethod == INTERUNION) {
                 entityIds[i].push_back(e2);
             } else {
@@ -288,7 +365,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
     }
 
     if (answerMethod == INTERSECTION) {
-        output = intersection(entityIds);
+        output = intersectionNPercent(entityIds);
     } else if (answerMethod == INTERUNION) {
         for (auto scores : scoreMap) {
             auto N = relevantSubgraphs.size();
@@ -310,7 +387,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
     } else {
         std::copy(unionAnswers.begin(), unionAnswers.end(), back_inserter(output));
     }
-    LOG(DEBUGL) << "Total answers : " << totalAnswers;
+    //LOG(DEBUGL) << "Total possible answers : " << totalAnswers;
 }
 
 
@@ -453,8 +530,9 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
     }
 }
 
-int64_t SubgraphHandler::isAnswerInSubGraphs(
-        uint64_t a,
+int64_t SubgraphHandler::isTripleInSubGraphs(
+        uint64_t h,
+        uint64_t t,
         const std::vector<uint64_t> &subgs,
         Querier *q) {
     DictMgmt *dict = q->getDictMgmt();
@@ -471,6 +549,39 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
         string srel = string(buffer, size);
 
         if (meta.t == Subgraphs<double>::TYPE::PO) {
+            if (q->exists(h, meta.rel, meta.ent)) {
+                //LOG(DEBUGL) << sent << " :<-->: " << srel;
+                return out;
+            }
+        } else {
+            if (q->exists(meta.ent, meta.rel, t)) {
+                //LOG(DEBUGL) << sent << " :<-->: " << srel;
+                return out;
+            }
+        }
+        out++;
+    }
+    return -1;
+}
+
+int64_t SubgraphHandler::isAnswerInSubGraphs(
+        uint64_t a,
+        const std::vector<uint64_t> &subgs,
+        Querier *q) {
+    //DictMgmt *dict = q->getDictMgmt();
+    //char buffer[MAX_TERM_SIZE];
+    //int size;
+
+    int64_t out = 0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        //dict->getText(meta.ent, buffer);
+        //string sent = string(buffer);
+        //dict->getTextRel(meta.rel, buffer, size);
+        //string srel = string(buffer, size);
+
+        if (meta.t == Subgraphs<double>::TYPE::PO) {
             if (q->exists(a, meta.rel, meta.ent)) {
                 //LOG(INFOL) << sent << " :<-->: " << srel;
                 return out;
@@ -484,6 +595,81 @@ int64_t SubgraphHandler::isAnswerInSubGraphs(
         out++;
     }
     return -1;
+}
+
+vector<uint64_t> SubgraphHandler::areTriplesInSubGraphs(
+        vector<uint64_t>& testTriples,
+        const std::vector<uint64_t> &subgs,
+        Querier *q) {
+    DictMgmt *dict = q->getDictMgmt();
+    char buffer[MAX_TERM_SIZE];
+    int size;
+    vector<uint64_t> output;
+    vector<uint64_t> unfoundTriples;
+    vector<uint64_t> workingTestTriples = testTriples;
+    int64_t out = 0;
+    uint64_t countLiteralSubgraphs = 0;
+    for(auto subgraphid : subgs) {
+        Subgraphs<double>::Metadata &meta = subgraphs->getMeta(subgraphid);
+
+        dict->getText(meta.ent, buffer);
+        string sent = string(buffer);
+        dict->getTextRel(meta.rel, buffer, size);
+        string srel = string(buffer, size);
+        if (sent.find("\"") != std::string::npos) {
+            ++countLiteralSubgraphs;
+            LOG(DEBUGL) << countLiteralSubgraphs << " literal subgraphs...";
+            continue;
+        }
+        //LOG(DEBUGL) << "Subgraph of [" << sent << "] , [" << srel << "]";
+        for (uint64_t i = 0; i < workingTestTriples.size(); i+=3) {
+            uint64_t h, t, r;
+            h = workingTestTriples[i];
+            r = workingTestTriples[i + 1];
+            t = workingTestTriples[i + 2];
+            //dict->getText(h, buffer);
+            //string sh = string(buffer);
+            //dict->getText(t, buffer);
+            //string st = string(buffer);
+            //dict->getTextRel(r, buffer, size);
+            //string sr = string(buffer, size);
+
+            //LOG(DEBUGL) << "Triple: " << sh << " "  << sr << " " << st;
+            bool found = false;
+            if (meta.t == Subgraphs<double>::TYPE::PO) {
+                if (q->exists(h, meta.rel, meta.ent)) {
+                    //LOG(DEBUGL) << sh << " :<-" << srel<< "->: "  << sent << " (" << out << ")";
+                    found = true;
+                    output.push_back(h);
+                    output.push_back(r);
+                    output.push_back(t);
+                }
+            } else {
+                if (q->exists(meta.ent, meta.rel, t)) {
+                    //LOG(DEBUGL) << sent << " :<-" << srel<< "->: "  << st << " (" << out << ")";
+                    found = true;
+                    output.push_back(h);
+                    output.push_back(r);
+                    output.push_back(t);
+                }
+            }
+
+            if (!found) {
+                unfoundTriples.push_back(h);
+                unfoundTriples.push_back(r);
+                unfoundTriples.push_back(t);
+            }
+        }
+        workingTestTriples = unfoundTriples;
+        LOG(DEBUGL) << "Subgraph : " << subgraphid <<" Unfound triples = " << unfoundTriples.size()/3;
+        LOG(DEBUGL) << "Subgraph : " << subgraphid <<" output triples  = " << output.size()/3;
+        if (output.size()/ 3 > 100000) {
+            break;
+        }
+        unfoundTriples.clear();
+        out++;
+    }
+    return output;
 }
 
 void SubgraphHandler::areAnswersInSubGraphs(
@@ -508,12 +694,12 @@ void SubgraphHandler::areAnswersInSubGraphs(
         // = there is no -1 is not found in values of the map
         // then, return
         if (entityRankMap.end() == find_if(entityRankMap.begin(),entityRankMap.end(),
-                [](const map_value_type& vt)
-                {
+                    [](const map_value_type& vt)
+                    {
                     return vt.second == -1;
-                })) {
+                    })) {
             return;
-         }
+        }
 
         for (auto a : entities) {
             dict->getText(a, buffer);
@@ -549,7 +735,8 @@ void SubgraphHandler::create(KB &kb,
         string subgraphType,
         string embdir,
         string subfile,
-        uint64_t minSubgraphSize) {
+        uint64_t minSubgraphSize,
+        bool removeLiterals) {
     std::unique_ptr<Querier> q(kb.query());
     //Load the embeddings
     loadEmbeddings(embdir);
@@ -564,7 +751,7 @@ void SubgraphHandler::create(KB &kb,
         LOG(ERRORL) << "Subgraph type not recognized!";
         throw 10;
     }
-    subgraphs->calculateEmbeddings(q.get(), E, R);
+    subgraphs->calculateEmbeddings(q.get(), E, R, removeLiterals);
     subgraphs->storeToFile(subfile);
 }
 
@@ -633,26 +820,31 @@ int64_t SubgraphHandler::getDynamicThreshold(
         string &embAlgo,
         string &subAlgo,
         DIST secondDist,
-        int64_t &subgraphThreshold
+        int64_t &subgraphThreshold,
+        bool hugeKG
         ) {
-    DictMgmt *dict = q->getDictMgmt();
-    char buffer[MAX_TERM_SIZE];
+    //DictMgmt *dict = q->getDictMgmt();
+    //char buffer[MAX_TERM_SIZE];
     uint64_t nSubgraphs = subgraphs->getNSubgraphs();
     // 1. Get all entities for this r and e from validation set
     unordered_map<uint64_t, int64_t> entityRankMap;
     vector<uint64_t> validEntities;
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
+
+    start = std::chrono::system_clock::now();
     for(uint64_t j = 0; j < validTriples.size(); j+=3) {
         uint64_t hv, tv, rv;
         hv = validTriples[j];
         rv = validTriples[j + 1];
         tv = validTriples[j + 2];
-        dict->getText(hv, buffer);
-        string hvText = string(buffer);
-        int size;
-        dict->getTextRel(rv, buffer, size);
-        string rvText = string(buffer, size);
-        dict->getText(tv, buffer);
-        string tvText = string(buffer);
+        //dict->getText(hv, buffer);
+        //string hvText = string(buffer);
+        //int size;
+        //dict->getTextRel(rv, buffer, size);
+        //string rvText = string(buffer, size);
+        //dict->getText(tv, buffer);
+        //string tvText = string(buffer);
         if (type == Subgraphs<double>::TYPE::PO) {
             if( rv == r && tv == e) {
                 // Store <ENTITY-ID, -1>
@@ -671,12 +863,15 @@ int64_t SubgraphHandler::getDynamicThreshold(
             }
         }
     }
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to go through all validation triples = " << duration.count() * 1000 << " ms";
 
     uint64_t threshold = 10;
     if (nSubgraphs > 100) {
-        threshold = (int)(nSubgraphs * 0.1);
+        threshold = (uint64_t)(nSubgraphs / 3);
     }
 
+    start = std::chrono::system_clock::now();
     if (0 == validEntities.size()) {
         // No triples found that share the same relation+entity pair in valid set
         // Check in the database (training triples)
@@ -687,56 +882,192 @@ int64_t SubgraphHandler::getDynamicThreshold(
             queryType = IDX_PSO;
         }
         auto itr = q->getPermuted(queryType, r, e, -1, true);
+        int samples = 0;
         while (itr->hasNext()) {
+            if (hugeKG) {
+                if (100 == samples) {
+                    break;
+                }
+            }
             validEntities.push_back(itr->getValue2());
             itr->next();
+            samples++;
         }
     }
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to go through database for similar triples = " << duration.count() * 1000 << " ms";
 
-    if (0 == validEntities.size()) {
-        // No similar triples found in validation or training set
+    if (validEntities.size() <= 4) {
+        // No similar triples or very few similar triples found
+        // in validation or training set
+        LOG(DEBUGL) << "Number of entities found in train/valid sets = " << validEntities.size()<<" Use Threshold = " << threshold;
         return threshold;
     }
     vector<uint64_t> allSubgraphs;
     vector<double> allDistances;
+
+    start = std::chrono::system_clock::now();
     selectRelevantSubGraphs(L1, q, embAlgo, type,
             r, e, allSubgraphs, allDistances, 0xffffffff, subAlgo, secondDist);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to sort all subgraphs for this query = " << duration.count() * 1000 << " ms";
     vector<int64_t> rankValues;
-    //LOG(INFOL) << "# of answers found in validation set = " << validEntities.size();
     assert(validEntities.size() == entityRankMap.size());
-    //LOG(INFOL) << "# of subgraphs = " << allSubgraphs.size();
 
     // Make sure that all subgraphs are selected
     assert(allSubgraphs.size() == subgraphs->getNSubgraphs());
+
+    // Filter subgraphs based on their size:
+    // cap on number of total possible entities
+    // TODO: review if this sampling is necessary
+    vector<uint64_t> chosenSubgraphs = sampleSubgraphs(allSubgraphs);
+
     // find out ranks for all these entities
-    areAnswersInSubGraphs(validEntities, allSubgraphs, q, entityRankMap);
+    start = std::chrono::system_clock::now();
+    areAnswersInSubGraphs(validEntities, chosenSubgraphs, q, entityRankMap);
+    duration = std::chrono::system_clock::now() - start;
+    LOG(DEBUGL) << "Time to find "<< validEntities.size() <<" answers in all "  << chosenSubgraphs.size() << " subgraphs: " << duration.count()*1000 << "ms";
     for (auto kv: entityRankMap) {
         if (kv.second != -1) {
             rankValues.push_back(kv.second);
-        }/* else {
-            LOG(INFOL) << kv.first << " was not found in any subgraphs !!!";
-        }*/
+        }
     }
-    // take the average
-    //for (auto rv : rankValues) {
-    //    LOG(INFOL) << "subgraph rank = " << rv;
-    //}
+    int64_t maxTopK = (int64_t)(nSubgraphs / 3);
     if (0 != rankValues.size()) {
         if (-1 == subgraphThreshold) {
+            LOG(DEBUGL) << "Accumulating " << rankValues.size() << " values";
             threshold = std::accumulate(rankValues.begin(), rankValues.end(), 0.0) / rankValues.size();
-            //LOG(INFOL) << "AVG (K) = " << threshold;
+            LOG(DEBUGL) << "AVG (K) = " << threshold;
         } else if (-2 == subgraphThreshold) {
             threshold = *std::max_element(rankValues.begin(), rankValues.end());
-            // max cap is 50% of total subgraphs
-            int64_t maxTopK = nSubgraphs * 0.5;
-            if (threshold > maxTopK) {
-                threshold = maxTopK;
-            }
-            //LOG(INFOL) << "MAX (K) = " << threshold;
+        }
+        // max cap is 50% of total subgraphs
+        if (threshold > maxTopK) {
+            threshold = maxTopK;
+            LOG(DEBUGL) << "NEW (K) = " << threshold;
         }
     }
     assert(threshold != 0);
+    LOG(DEBUGL) << "Use Threshold = " << threshold;
     return threshold;
+}
+
+vector<uint64_t> SubgraphHandler::removeImprobables(vector<uint64_t> & testTriples, Querier* q) {
+    vector<uint64_t> output;
+    vector<uint64_t> allSubIds;
+    for (uint64_t i = 0; i < subgraphs->getNSubgraphs(); ++i) {
+        allSubIds.push_back(i);
+    }
+    for (uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        int64_t found = isTripleInSubGraphs(h, r, allSubIds, q);
+        if (found >= 0) {
+            output.push_back(h);
+            output.push_back(r);
+            output.push_back(t);
+        }
+        if (i % 3000 == 0) {
+            LOG(DEBUGL) << i/3 << " triples processed. output =  " << output.size()/3;
+        }
+        if (output.size() / 3 > 10000) {
+            break;
+        }
+    }
+    return output;
+}
+
+vector<uint64_t> SubgraphHandler::removeLiterals(vector<uint64_t> & testTriples, KB &kb) {
+
+    char buffer[MAX_TERM_SIZE];
+    DictMgmt *dict = kb.getDictMgmt();
+    vector<uint64_t> output;
+    for(uint64_t i = 0; i < testTriples.size(); i+=3) {
+        uint64_t h, t, r;
+        h = testTriples[i];
+        r = testTriples[i + 1];
+        t = testTriples[i + 2];
+        dict->getText(h, buffer);
+        string sh = string(buffer);
+        dict->getText(t, buffer);
+        string st = string(buffer);
+        int size;
+        dict->getTextRel(r, buffer, size);
+        string sr = string(buffer, size);
+
+        //LOG(DEBUGL) << sh << " " << sr << " " << st;
+        if (sh.find("\"") != std::string::npos ||
+                st.find("\"") != std::string::npos ||
+                sr.find("\"") != std::string::npos) {
+            continue;
+        }
+        if (h == t) {
+            LOG(DEBUGL) << "skipping same head and tail";
+            continue;
+        }
+        output.push_back(h);
+        output.push_back(r);
+        output.push_back(t);
+    }
+
+    return output;
+}
+
+void SubgraphHandler::useDynamicKache(
+        Querier* q,
+        vector<uint64_t> &validTriples,
+        Subgraphs<double>::TYPE type,
+        uint64_t &r,
+        uint64_t &e,
+        string &embAlgo,
+        string &subAlgo,
+        DIST secondDist,
+        int64_t &subgraphThreshold,
+        Kache& dynamicKache,
+        uint64_t& threshold,
+        bool hugeKG
+        )
+{
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
+    Kache_it got = dynamicKache.find(e);
+    int64_t tempThreshold;
+    if (dynamicKache.end() == got) {
+        // The entity does not exist in the cache as the key
+        start = std::chrono::system_clock::now();
+        tempThreshold = getDynamicThreshold(q, validTriples,
+                type, r, e, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, hugeKG);
+        duration = std::chrono::system_clock::now() - start;
+
+        LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
+        dynamicKache[e] = vector<pair<uint64_t,int64_t>>();
+        dynamicKache[e].push_back(make_pair(r, threshold));
+    } else {
+        // Entity exists as the key
+        // find out its vector and check if the pair exists for this relation
+        vector<pair<uint64_t, int64_t>> existingPairs = dynamicKache[e];
+        bool predFound = false;
+        for (const auto &ep : existingPairs) {
+            if (ep.first == r) {
+                tempThreshold = ep.second;
+                predFound = true;
+                break;
+            }
+        }
+        if (false == predFound) {
+            start = std::chrono::system_clock::now();
+            tempThreshold = getDynamicThreshold(q, validTriples,
+                    type, r, e, embAlgo,
+                    subAlgo, secondDist, subgraphThreshold, hugeKG);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to compute dynamic K (head): " << duration.count() * 1000 << " ms";
+            dynamicKache[e].push_back(make_pair(r,threshold));
+        }
+    }
+    threshold = tempThreshold;
 }
 
 void SubgraphHandler::evaluate(KB &kb,
@@ -748,27 +1079,22 @@ void SubgraphHandler::evaluate(KB &kb,
         string formatTest,
         string subgraphFilter,
         int64_t subgraphThreshold,
-        double varThreshold,
         string writeLogs,
         DIST secondDist,
         string kFile,
         string binEmbDir,
-        bool calcDisp) {
+        bool calcDisp,
+        int64_t sampleTest) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
-    vector<double> subCompressedEmbeddings;
-    vector<double> entCompressedEmbeddings;
-    vector<double> relCompressedEmbeddings;
     //Load the embeddings
     LOG(INFOL) << "Loading the embeddings ...";
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    loadSubgraphs(subFile, subAlgo, varThreshold);
-    if (binEmbDir != "") {
-        processBinarizedEmbeddingsDirectory(binEmbDir, subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings);
-    }
+    loadSubgraphs(subFile, subAlgo);
+
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> validTriples;
@@ -800,15 +1126,13 @@ void SubgraphHandler::evaluate(KB &kb,
         string pathtest;
         if (nameTest == "valid") {
             pathtest = BatchCreator::getValidPath(kb.getPath());
-        } else {
+        } else if (nameTest == "test") {
             pathtest = BatchCreator::getTestPath(kb.getPath());
+        } else {
+            pathtest = nameTest;
         }
+        LOG(INFOL) << "path test = " << pathtest;
         BatchCreator::loadTriples(pathtest, testTriples);
-    }
-
-    if (-1 == subgraphThreshold) {
-        string pathValid = BatchCreator::getValidPath(kb.getPath());
-        BatchCreator::loadTriples(pathValid, validTriples);
     }
 
     /*** TEST ***/
@@ -838,13 +1162,36 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t sumDisplacementONeg = 0;
     uint64_t sumDisplacementSPos = 0;
     uint64_t sumDisplacementSNeg = 0;
+    bool hugeKG = false;
 
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
+    Kache dynamicKache;
     std::unique_ptr<ofstream> logWriter;
 
     if (writeLogs != "") {
         logWriter = std::unique_ptr<ofstream>(new ofstream());
         logWriter->open(writeLogs, std::ios_base::out);
         *logWriter.get() << "Query\tTestHead\tTestTail\tComparisonHead\tComparisonTail" << std::endl;
+    }
+
+    LOG(INFOL) << "Initial number of test triples : " << testTriples.size()/3;
+
+    // Count number of entities without literals
+    uint64_t nEntitiesWithoutLiterals = 0;// for Wikidata 148546616;
+    for (uint64_t i = 0; i < nents; ++i) {
+        dict->getText(i, buffer);
+        string sent = string(buffer);
+        if (sent[0] != '\"') {
+            nEntitiesWithoutLiterals++;
+        }
+    }
+
+    LOG(DEBUGL) << "# Entities without literals : " << nEntitiesWithoutLiterals;
+    if (testTriples.size() > 1000000) {
+        hugeKG = true;
+        testTriples = sampleTriples(testTriples, sampleTest);
+        LOG(DEBUGL) << "After sampling: # of test triples : " << testTriples.size();
     }
 
     //Select most promising subgraphs to do the search
@@ -855,11 +1202,13 @@ void SubgraphHandler::evaluate(KB &kb,
     std::vector<double> relevantSubgraphsTDistances;
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
+
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
+
         if (i % offset == 0) {
             LOG(INFOL) << "***Tested " << i / 3 << " of "
                 << testTriples.size() / 3 << " queries";
@@ -880,8 +1229,8 @@ void SubgraphHandler::evaluate(KB &kb,
         uint64_t displacementS = 0;
         if (calcDisp) {
             getDisplacement<TranseTester<double>>(tester, test, h, t, r, nents,
-                dime, dimr, q.get(), displacementO, displacementS, scores,
-                indices, indices2);
+                    dime, dimr, q.get(), displacementO, displacementS, scores,
+                    indices, indices2);
         }
 
         dict->getText(h, buffer);
@@ -892,14 +1241,13 @@ void SubgraphHandler::evaluate(KB &kb,
         dict->getTextRel(r, buffer, size);
         string sr = string(buffer, size);
 
-        //LOG(INFOL) << "Query: ? " << sr << " " << st;
         DIST distType = L1;
 
-        //LOG(INFOL) << "Initial threshold : = " << subgraphThreshold;
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::PO, r, t, embAlgo, subAlgo, secondDist, subgraphThreshold);
-            //LOG(INFOL) << "For Head prediction New Dynamic threshold = " << threshold;
-        } else if (subgraphThreshold > 100) {
+            useDynamicKache(q.get(), validTriples,
+                Subgraphs<double>::TYPE::PO, r, t, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, dynamicKache, threshold, hugeKG);
+        } else if (subgraphThreshold > 100 && subgraphThreshold <= 200) {
             // Calculate new threshold based on %
             // E.g. 101 => 1% of total subgraphs
             threshold = (uint64_t) (subgraphs->getNSubgraphs() * ((double)(subgraphThreshold - 100)/(double)100));
@@ -908,28 +1256,13 @@ void SubgraphHandler::evaluate(KB &kb,
                 // If 3% of X is 0, then use absolute value 4 for top K.
                 threshold = (subgraphThreshold - 100) + 1;
             }
-            //LOG(INFOL) << "New % Threshold = " << threshold;
         }
 
-        if (binEmbDir != "") {
-            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::PO, r, t, threshold,
-                    subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsH);
-            vector<uint64_t> relevantSubgraphsHNormal;
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsHNormal, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-            /*LOG(INFOL) << "relevant subgraphs H = " << relevantSubgraphsH.size();
-            LOG(INFOL) << "relevant subgraphs HN= " << relevantSubgraphsHNormal.size();
-            for (int z = 0; z <  relevantSubgraphsH.size(); z++)  {
-                LOG(INFOL) << ">>>> " << relevantSubgraphsHNormal[z] \
-                << " ---> " << relevantSubgraphsH[z];
-            }*/
-            //uint64_t binSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
-            //uint64_t norSize = numberInstancesInSubgraphs(q.get(), relevantSubgraphsHNormal);
-            //LOG(INFOL) << binSize  << " , " << norSize;
-        } else {
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                    r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
-        }
+        start = std::chrono::system_clock::now();
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (HEAD)= " << duration.count() * 1000 << " ms";
 
         ANSWER_METHOD ansMethod = UNION;
         if (subgraphFilter == "intersection") {
@@ -940,11 +1273,12 @@ void SubgraphHandler::evaluate(KB &kb,
         int64_t foundH = -1;
         uint64_t totalSizeH = 0;
         vector<int64_t> entitiesH;
-        getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
-        totalSizeH = entitiesH.size();
         if (UNION == ansMethod) {
             //TODO: this foundH is the rank of the subgraph
+            start = std::chrono::system_clock::now();
             foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to check the HEAD answer = " << duration.count() * 1000 << " ms";
             //totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         } else {
             vector<int64_t>::iterator it = find(entitiesH.begin(), entitiesH.end(), h);
@@ -953,26 +1287,28 @@ void SubgraphHandler::evaluate(KB &kb,
                 foundH = distance(entitiesH.begin(), it);
             }
         }
-        //LOG(INFOL) << "Query: " << sh << " " << sr << " ?";
+        LOG(DEBUGL) << "Query: " << sh << " " << sr << " ?";
         if (-1 == subgraphThreshold || -2 == subgraphThreshold) {
-            threshold = getDynamicThreshold(q.get(), validTriples, Subgraphs<double>::TYPE::SP, r, h, embAlgo, subAlgo, secondDist, subgraphThreshold);
-            //LOG(INFOL) << "For Tail  prediction New Dynamic threshold = " << threshold;
+            useDynamicKache(q.get(), validTriples,
+                Subgraphs<double>::TYPE::SP, r, h, embAlgo,
+                subAlgo, secondDist, subgraphThreshold, dynamicKache, threshold, hugeKG);
         }
 
-        if (binEmbDir != "") {
-            selectRelevantBinarySubgraphs(Subgraphs<double>::TYPE::SP, r, h, threshold,subCompressedEmbeddings, entCompressedEmbeddings, relCompressedEmbeddings, relevantSubgraphsT);
-        } else {
-            selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
-                    r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
-        }
+        start = std::chrono::system_clock::now();
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::SP,
+                r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
+        duration = std::chrono::system_clock::now() - start;
+        LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (TAIL)= " << duration.count() * 1000 << " ms";
         int64_t foundT = -1;
         uint64_t totalSizeT = 0;
         vector<int64_t> entitiesT;
-        getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
-        totalSizeT = entitiesT.size();
         if(UNION == ansMethod) {
             //Now I have the list of relevant subgraphs. Is the answer in one of these?
+            start = std::chrono::system_clock::now();
             foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to check the TAIL answer = " << duration.count() * 1000 << " ms";
+            // Following code would not give union of all entities but is faster
             //totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         } else {
             vector<int64_t>::iterator it = find(entitiesT.begin(), entitiesT.end(), t);
@@ -983,8 +1319,15 @@ void SubgraphHandler::evaluate(KB &kb,
         if (foundH >= 0) {
             hitsHead++;
             subgraphRanksHead += foundH + 1;
+
+            start = std::chrono::system_clock::now();
+            getAllPossibleAnswers(q.get(), relevantSubgraphsH, entitiesH, ansMethod);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (head) = " << duration.count() * 1000 << " ms";
+            totalSizeH = entitiesH.size();
             cons_comparisons_h += totalSizeH;
             sumDisplacementSPos += displacementS;
+            LOG(DEBUGL) << "HIT HEAD";
         } else {
             sumDisplacementSNeg += displacementS;
         }
@@ -992,8 +1335,14 @@ void SubgraphHandler::evaluate(KB &kb,
         if (foundT >= 0) {
             hitsTail++;
             subgraphRanksTail += foundT + 1;
+            start = std::chrono::system_clock::now();
+            getAllPossibleAnswers(q.get(), relevantSubgraphsT, entitiesT, ansMethod);
+            duration = std::chrono::system_clock::now() - start;
+            LOG(DEBUGL) << "Time to find all potential answers(union/intersection) (tail) = " << duration.count() * 1000 << " ms";
+            totalSizeT = entitiesT.size();
             cons_comparisons_t += totalSizeT;
             sumDisplacementOPos += displacementO;
+            LOG(DEBUGL) << "HIT TAIL";
         } else {
             sumDisplacementONeg += displacementO;
         }
@@ -1019,6 +1368,14 @@ void SubgraphHandler::evaluate(KB &kb,
             *logWriter.get() << line << endl;
         }
     }
+
+    LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
+    double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
+    double woLiteralsnormalComparisonsT = nEntitiesWithoutLiterals * hitsTail;
+    double woLiteralPercentReductionH   = ((double)(woLiteralsnormalComparisonsH - cons_comparisons_h)/woLiteralsnormalComparisonsH) * 100;
+    double woLiteralPercentReductionT   = ((double)(woLiteralsnormalComparisonsT - cons_comparisons_t)/woLiteralsnormalComparisonsT) * 100;
+    LOG(INFOL) << "Without Literals Percent Reduction (H): " << woLiteralPercentReductionH;
+    LOG(INFOL) << "Without Literals Percent Reduction (T): " << woLiteralPercentReductionT;
     LOG(INFOL) << "# entities : " << nents;
     LOG(INFOL) << "# Subgraphs: " << subgraphs->getNSubgraphs();
     LOG(INFOL) << "Hits (H): " << hitsHead << " (T): " << hitsTail << " of " << testTriples.size() / 3;
@@ -1048,8 +1405,6 @@ void SubgraphHandler::evaluate(KB &kb,
         percentReductionT = ((double)(cons_comparisons_t - normalComparisonsT) / cons_comparisons_t) * -100;
     }
 
-    //float reductionInverseH = (float)1 / (float)percentReductionH;
-    //float reductionInverseT = (float)1 /  (float)percentReductionT;
     float hitRateH = ((float)hitsHead / (float)(testTriples.size()/3))*100;
     float hitRateT = ((float)hitsTail / (float)(testTriples.size()/3))*100;
     LOG(INFOL) << "HitRate (H): " << hitRateH;
@@ -1058,28 +1413,24 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Percent Reduction (T): " << percentReductionT;
     LOG(INFOL) << "Mean rank (H): " << (double) subgraphRanksHead / hitsHead;
     LOG(INFOL) << "Mean rank (T): " << (double) subgraphRanksTail / hitsTail;
-    //float f1H = (2 * reductionInverseH * hitRateH) / (reductionInverseH + hitRateH);
-    //float f1T = (2 * reductionInverseT * hitRateT) / (reductionInverseT + hitRateT);
-    //LOG(INFOL) << "f1H = " << f1H << " , f1T = " << f1T;
 
     if (logWriter) {
         logWriter->close();
     }
 }
 
-/*
 void SubgraphHandler::findAnswers(KB &kb,
-        string embAlgo,
-        string embDir,
-        string subFile,
-        string subAlgo,
-        string nameTest,
-        string formatTest,
-        string answerMethod,
-        uint64_t threshold,
-        double varThreshold,
-        string writeLogs,
-        DIST secondDist) {
+    string embAlgo,
+    string embDir,
+    string subFile,
+    string subAlgo,
+    string nameTest,
+    string formatTest,
+    string answerMethod,
+    uint64_t threshold,
+    string writeLogs,
+    DIST secondDist,
+    string kFile) {
     DictMgmt *dict = kb.getDictMgmt();
     std::unique_ptr<Querier> q(kb.query());
 
@@ -1088,7 +1439,15 @@ void SubgraphHandler::findAnswers(KB &kb,
     loadEmbeddings(embDir);
     //Load the subgraphs
     LOG(INFOL) << "Loading the subgraphs ...";
-    loadSubgraphs(subFile, subAlgo, varThreshold);
+    faiss::Index *annIndex = NULL;
+    bool useANN = false;
+    if (subAlgo.find("ann") != string::npos) {
+        annIndex = faiss::read_index(kFile.c_str());
+        assert(annIndex != NULL);
+        useANN = true;
+        subAlgo = subAlgo.substr(subAlgo.find("ann") + 3);
+    }
+    loadSubgraphs(subFile, subAlgo);
     //Load the test file
     std::vector<uint64_t> testTriples;
     std::vector<uint64_t> testTopKs;
@@ -1097,8 +1456,8 @@ void SubgraphHandler::findAnswers(KB &kb,
         //The file is a uncompressed file with all the test triples serialized after
         //each other
         if (!Utils::exists(nameTest)) {
-            LOG(ERRORL) << "Test file " << nameTest << " not found";
-            throw 10;
+        LOG(ERRORL) << "Test file " << nameTest << " not found";
+        throw 10;
         }
         std::ifstream ifs;
         ifs.open(nameTest, std::ifstream::in);
@@ -1107,7 +1466,7 @@ void SubgraphHandler::findAnswers(KB &kb,
         while (true) {
             ifs.read(buffer.get(), sizeline);
             if (ifs.eof()) {
-                break;
+            break;
             }
             testTriples.push_back(*(uint64_t*)buffer.get());
             testTriples.push_back(*(uint64_t*)(buffer.get()+8));
@@ -1117,29 +1476,29 @@ void SubgraphHandler::findAnswers(KB &kb,
         // The file is uncompressed text file with each test triple has the following format
         // h <space> r <space> t <space> K_h <space> K_t
         if (!Utils::exists(nameTest)) {
-            LOG(ERRORL) << "Test file " << nameTest << " not found";
-            throw 10;
-        }
-        std::ifstream ifs(nameTest);
-        string line;
-        while (std::getline(ifs, line)) {
-            istringstream is(line);
-            string token;
-            vector<uint64_t> tokens;
-            while(getline(is, token, ' ')) {
-                uint64_t temp = std::stoull(token);
-                tokens.push_back(temp);
-            }
-            LOG(DEBUGL) << tokens[0] << "  , " << tokens[1] << " , " << tokens[2];
-            testTriples.push_back(tokens[0]);
-            testTriples.push_back(tokens[1]);
-            testTriples.push_back(tokens[2]);
-            testTopKs.push_back(tokens[3]);
-            testTopKs.push_back(tokens[4]);
-            // push the dummy value so that the for loop
-            // variable incrementation works well later
-            testTopKs.push_back(-1);
-        }
+        LOG(ERRORL) << "Test file " << nameTest << " not found";
+        throw 10;
+    }
+    std::ifstream ifs(nameTest);
+    string line;
+    while (std::getline(ifs, line)) {
+    istringstream is(line);
+    string token;
+    vector<uint64_t> tokens;
+    while(getline(is, token, ' ')) {
+    uint64_t temp = std::stoull(token);
+    tokens.push_back(temp);
+    }
+    LOG(DEBUGL) << tokens[0] << "  , " << tokens[1] << " , " << tokens[2];
+    testTriples.push_back(tokens[0]);
+    testTriples.push_back(tokens[1]);
+    testTriples.push_back(tokens[2]);
+    testTopKs.push_back(tokens[3]);
+    testTopKs.push_back(tokens[4]);
+    // push the dummy value so that the for loop
+    // variable incrementation works well later
+    testTopKs.push_back(-1);
+    }
     } else {
         //The test set can be extracted from the database
         string pathtest;
@@ -1161,6 +1520,8 @@ void SubgraphHandler::findAnswers(KB &kb,
     vector<double> allQueriesPrecisionsT;
     vector<double> allQueriesRecallsH;
     vector<double> allQueriesRecallsT;
+    std::chrono::system_clock::time_point start;
+    std::chrono::duration<double> duration;
 
     char buffer[MAX_TERM_SIZE];
     const uint64_t nents = E->getN();
@@ -1192,12 +1553,34 @@ void SubgraphHandler::findAnswers(KB &kb,
     vector<vector<int64_t>> allActualAnswersT;
     vector<vector<uint64_t>> allExpectedAnswersT;
     uint64_t offset = testTriples.size() / 100;
+    uint16_t dim = E->getDim();
     if (offset == 0) offset = 1;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
         r = testTriples[i + 1];
         t = testTriples[i + 2];
+        float tailQueriesAnn[dim];
+        float headQueriesAnn[dim];
+        if (useANN) {
+            int iq = i/3;
+            std::unique_ptr<double> tailResultAnn =
+            std::unique_ptr<double>(new double[dim]);
+            std::unique_ptr<double> headResultAnn =
+            std::unique_ptr<double>(new double[dim]);
+            add(tailResultAnn.get(), E->get(h), R->get(r), dim);
+            assert(h < E->getN() && t < E->getN());
+            for (uint16_t j = 0; j < dim; ++j) {
+                tailQueriesAnn[j] = (float) tailResultAnn.get()[j];
+            }
+            tailQueriesAnn[0] += iq / 1000.;
+
+            sub(headResultAnn.get(), E->get(t), R->get(r), dim);
+            for (uint16_t j = 0; j < dim; ++j) {
+                headQueriesAnn[j] = (float) headResultAnn.get()[j];
+            }
+            headQueriesAnn[0] += iq / 1000.;
+        }
         if (i % offset == 0) {
             LOG(INFOL) << "***Tested " << i / 3 << " of "
                 << testTriples.size() / 3 << " queries";
@@ -1240,8 +1623,6 @@ void SubgraphHandler::findAnswers(KB &kb,
                 default: threshold = 50; break;
             }
         }
-        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
-                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
 
         ANSWER_METHOD ansMethod = UNION;
         if (answerMethod == "intersection") {
@@ -1249,6 +1630,8 @@ void SubgraphHandler::findAnswers(KB &kb,
         } else if (answerMethod == "interunion") {
             ansMethod = INTERUNION;
         }
+        selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
+                r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
         int64_t foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
         uint64_t totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         // Return all answers from the subgraphs
@@ -1258,6 +1641,17 @@ void SubgraphHandler::findAnswers(KB &kb,
 
         vector<uint64_t> expectedAnswersH;
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::PO, r, t, expectedAnswersH);
+        if (useANN) {
+            int kHead = expectedAnswersH.size();
+            long nnsHead[kHead];
+            float disHead[kHead];
+            start = std::chrono::system_clock::now();
+            annIndex->search(1, headQueriesAnn, kHead, disHead, nnsHead);
+            duration = std::chrono::system_clock::now() - start;
+            for (int jj = 0; jj < kHead; ++jj) {
+                actualAnswersH.push_back(nnsHead[jj]);
+            }
+        }
 
         allActualAnswersH.push_back(actualAnswersH);
         allExpectedAnswersH.push_back(expectedAnswersH);
@@ -1295,6 +1689,20 @@ void SubgraphHandler::findAnswers(KB &kb,
         vector<uint64_t> expectedAnswersT;
         //TODO: both expected answers H and T can be collected with a single call to this function
         getExpectedAnswersFromTest(testTriples, Subgraphs<double>::TYPE::SP, r, h, expectedAnswersT);
+
+        if (useANN) {
+            int kTail = expectedAnswersT.size();
+            long nnsTail[kTail];
+            float disTail[kTail];
+            start = std::chrono::system_clock::now();
+            annIndex->search(1, tailQueriesAnn, kTail, disTail, nnsTail);
+            duration = std::chrono::system_clock::now() - start;
+            //LOG(DEBUGL) << "Time to find approximate nearest neighbours (tail)= " << duration.count() * 1000 << " ms";
+            vector<int64_t> actualAnswersT;
+            for (int jj = 0; jj < kTail; ++jj) {
+                actualAnswersT.push_back(nnsTail[jj]);
+            }
+        }
 
         allActualAnswersT.push_back(actualAnswersT);
         allExpectedAnswersT.push_back(expectedAnswersT);
@@ -1336,17 +1744,17 @@ void SubgraphHandler::findAnswers(KB &kb,
         }
     }
     double macroPrecisionH = std::accumulate(
-                            allQueriesPrecisionsH.begin(),
-                            allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
+            allQueriesPrecisionsH.begin(),
+            allQueriesPrecisionsH.end(), 0.0) / allQueriesPrecisionsH.size();
     double macroPrecisionT = std::accumulate(
-                            allQueriesPrecisionsT.begin(),
-                            allQueriesPrecisionsT.end(), 0.0) / allQueriesPrecisionsT.size();
+            allQueriesPrecisionsT.begin(),
+            allQueriesPrecisionsT.end(), 0.0) / allQueriesPrecisionsT.size();
     double macroRecallH = std::accumulate(
-                            allQueriesRecallsH.begin(),
-                            allQueriesRecallsH.end(), 0.0) / allQueriesRecallsH.size();
+            allQueriesRecallsH.begin(),
+            allQueriesRecallsH.end(), 0.0) / allQueriesRecallsH.size();
     double macroRecallT = std::accumulate(
-                            allQueriesRecallsT.begin(),
-                            allQueriesRecallsT.end(), 0.0) / allQueriesRecallsT.size();
+            allQueriesRecallsT.begin(),
+            allQueriesRecallsT.end(), 0.0) / allQueriesRecallsT.size();
     double microPrecisionH = 0.0;
     double microRecallH = 0.0;
     double microPrecisionT = 0.0;
@@ -1384,7 +1792,6 @@ void SubgraphHandler::findAnswers(KB &kb,
         logWriter->close();
     }
 }
-*/
 
 void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {
@@ -1396,4 +1803,9 @@ void SubgraphHandler::sub(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {
         dest[i] = v1[i] - v2[i];
     }
+}
+
+
+Subgraphs<double>::Metadata SubgraphHandler::getSubgraphMetadata(size_t idx) {
+    return subgraphs->getMeta(idx);
 }

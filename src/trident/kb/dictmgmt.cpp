@@ -80,10 +80,22 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
             //Load the mappings from the relation IDs to the entity IDs
             r2e.set_deleted_key(UINT64_MAX);
             LZ4Reader reader(e2r);
+            char buffer[MAX_TERM_SIZE];
+
             while (!reader.isEof()) {
                 int64_t e = reader.parseLong();
                 int64_t r = reader.parseLong();
                 r2e.insert(std::make_pair(r,e));
+                //Also store the corresponding strings
+                int size = 0;
+                bool resp = getText(e, buffer, size);
+                if (resp) {
+                    std::string srel = std::string(buffer, size);
+                    s2r.insert(std::make_pair(srel, r));
+                    //r2s.insert(std::make_pair(r, srel));
+                } else {
+                    LOG(WARNL) << "String for entity " << e << " is not found";
+                }
             }
         } else if (Utils::exists(e2s)) {
             LOG(DEBUGL) << "Load the mappings rel->ent (string) from " << e2s;
@@ -93,7 +105,8 @@ DictMgmt::DictMgmt(Dict mainDict, string dirToStoreGUD, bool hash, string e2r,
                 int64_t r = reader.parseLong();
                 int size;
                 const char *t = reader.parseString(size);
-                r2s.insert(std::make_pair(r,string(t + 2, size-2)));
+                s2r.insert(std::make_pair(string(t + 2, size - 2), r));
+                r2s.insert(std::make_pair(r,string(t + 2, size - 2)));
             }
 
         }
@@ -228,6 +241,15 @@ bool DictMgmt::getNumber(const char *key, const int sizeKey, nTerm *value) {
         }
     }
 
+    return false;
+}
+
+bool DictMgmt::getNumberRel(const char *key, const int sizeKey, nTerm *value) {
+    std::string skey = std::string(key, sizeKey);
+    if (s2r.count(skey)) {
+        *value = s2r[skey];
+        return true;
+    }
     return false;
 }
 

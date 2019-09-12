@@ -41,7 +41,7 @@ class TrainWorkflow {
                 const uint16_t nstorethreads,
                 const uint32_t evalits,
                 const uint32_t storeits,
-                const string pathvalid,
+                string pathvalid,
                 const string storefolder,
                 const bool compresstorage) {
 
@@ -53,6 +53,7 @@ class TrainWorkflow {
             if (shouldStoreModel && !Utils::exists(storefolder)) {
                 Utils::create_directories(storefolder);
             }
+
 
             auto E = tr.getE();
             auto R = tr.getR();
@@ -79,6 +80,10 @@ class TrainWorkflow {
                 for(uint16_t i = 0; i < nthreads; ++i) {
                     doneQueue.push(std::shared_ptr<BatchIO>(
                                 new BatchIO(batcher.getBatchSize())));
+                }
+
+                if (!Utils::exists(pathvalid)) {
+                    pathvalid += std::to_string(batcher.getUsedIndex());
                 }
 
                 //Start nthreads
@@ -143,8 +148,6 @@ class TrainWorkflow {
                         elapsed_seconds.count() << "sec." << sviol;
                 }
 
-                // TODO: print gradients here.
-
                 if (shouldStoreModel && (epoch + 1) % storeits == 0) {
                     string pathmodel = storefolder + "/model-" + to_string(epoch+1);
                     LOG(INFOL) << "Storing the model into " << pathmodel << " with " << nstorethreads << " threads";
@@ -196,7 +199,7 @@ class TrainWorkflow {
                             batcher.getFeedback()->addFeedbacks(result);
                         }
                     } else {
-                        LOG(WARNL) << "I'm supposed to test the model but no data is available";
+                        LOG(WARNL) << "I'm supposed to test the model but no data is available " << pathvalid;
                     }
                 }
             }

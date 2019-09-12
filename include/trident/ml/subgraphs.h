@@ -23,7 +23,6 @@ class Subgraphs {
         };
 
     protected:
-        double alpha = 0.75;
         std::vector<Metadata> subgraphs;
         void loadFromFile(std::ifstream &ifile) {
             const uint16_t sizeline = 25;
@@ -77,7 +76,8 @@ class Subgraphs {
 
         virtual void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R) = 0;
+                std::shared_ptr<Embeddings<K>> R,
+                bool removeLiterals = false) = 0;
 
         virtual void loadFromFile(string file) = 0;
 
@@ -161,17 +161,16 @@ class Subgraphs {
                 vector<double> trueAverages;
                 vector<double> trueVariances;
 
+                std::chrono::system_clock::time_point start;
+                std::chrono::duration<double> duration;
                 if (dist == KL) {
+                    start = std::chrono::system_clock::now();
                     if (excludeType == Subgraphs<double>::TYPE::SP) {
                         auto itr = q->getPermuted(IDX_SPO, excludeEnt, excludeRel, -1, true);
                         uint64_t countResultsO = 0;
                         vector<double*> trueEmbeddings;
                         while(itr->hasNext()) {
-                            int64_t key = itr->getKey();
-                            int64_t entity1 = itr->getValue1();
                             int64_t entity2 = itr->getValue2();
-                            LOG(DEBUGL) << excludeEnt << " , " << excludeRel;
-                            LOG(DEBUGL) << countResultsO << ")" << key << ": " << entity1 << " , " << entity2;
                             itr->next();
                             if (entity2 != -1){
                                 trueEmbeddings.push_back(E->get(entity2));
@@ -182,17 +181,12 @@ class Subgraphs {
                             }
                         }
                         computeAV(trueEmbeddings, trueAverages, trueVariances, dim);
-                        LOG(DEBUGL) << "# of true embeddings : " << trueEmbeddings.size();
                     } else {
                         auto itr = q->getPermuted(IDX_POS, excludeRel, excludeEnt, -1, true);
                         uint64_t countResultsS = 0;
                         vector<double*> trueEmbeddings;
                         while (itr->hasNext()) {
-                            int64_t entity1 = itr->getValue1();
                             int64_t entity2 = itr->getValue2();
-                            int64_t key = itr->getKey();
-                            LOG(DEBUGL) << excludeEnt << " , " << excludeRel;
-                            LOG(DEBUGL) << countResultsS << ")" << key << ": " << entity1 << " , " << entity2;
                             itr->next();
                             if (entity2 != -1) {
                                 trueEmbeddings.push_back(E->get(entity2));
@@ -203,7 +197,6 @@ class Subgraphs {
                             }
                         }
                         computeAV(trueEmbeddings, trueAverages, trueVariances, dim);
-                        LOG(DEBUGL) << "########## of true embeddings : " << trueEmbeddings.size();
                     }
                 }
                 for(size_t i = 0; i < subgraphs.size(); ++i) {
@@ -214,19 +207,30 @@ class Subgraphs {
                     }
                     switch (dist) {
                         case L1:
+                            start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l1(q, i, emb, dim), i));
+                            duration = std::chrono::system_clock::now() - start;
+                            //LOG(DEBUGL) << "L1 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case L3:
+                            start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l3(q, i, emb, dim), i));
+                            duration = std::chrono::system_clock::now() - start;
+                            //LOG(DEBUGL) << "Var1 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case L4:
                             distances.push_back(make_pair(l3NoSquare(q, i, emb, dim),i));
                             break;
                         case L5:
+                            start = std::chrono::system_clock::now();
                             distances.push_back(make_pair(l3Div(q, i, emb, dim),i));
+                            duration = std::chrono::system_clock::now() - start;
+                            //LOG(DEBUGL) << "Var2 distance time = " << duration.count() * 1000000 << " us";
                             break;
                         case KL:
                             distances.push_back(make_pair(kl(q, i, emb, dim, trueAverages, trueVariances), i));
+                            duration = std::chrono::system_clock::now() - start;
+                            //LOG(DEBUGL) << "KL distance time = " << duration.count() * 1000000 << " us";
                             break;
                         default:
                             LOG(ERRORL) << "Not implemented";
@@ -254,7 +258,7 @@ class AvgSubgraphs : public Subgraphs<K> {
         virtual void loadFromFile(string file);
 
         virtual void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
+                std::shared_ptr<Embeddings<double>> E, bool removeLiterals = false);
 
         double l1(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double out = 0;
@@ -268,7 +272,8 @@ class AvgSubgraphs : public Subgraphs<K> {
 
         void calculateEmbeddings(Querier *q,
                 std::shared_ptr<Embeddings<K>> E,
-                std::shared_ptr<Embeddings<K>> R);
+                std::shared_ptr<Embeddings<K>> R,
+                bool removeLiterals = false);
 };
 
 template<typename K>
@@ -276,14 +281,13 @@ class VarSubgraphs : public AvgSubgraphs<K> {
     private:
         std::vector<K> variances;
     public:
-        VarSubgraphs(double alpha = 0.75) : AvgSubgraphs<K>() {
-            this->alpha = alpha;
+        VarSubgraphs() : AvgSubgraphs<K>() {
         }
 
         VarSubgraphs(uint16_t dim, uint64_t mincard) : AvgSubgraphs<K>(dim, mincard) {}
 
         void processItr(Querier *q, PairItr *itr, Subgraphs<double>::TYPE typ,
-                std::shared_ptr<Embeddings<double>> E);
+                std::shared_ptr<Embeddings<double>> E, bool removeLiterals = false);
 
         double l3(Querier *q, uint32_t subgraphid, K *emb, uint16_t dim) {
             double distance = 0.0;

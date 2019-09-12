@@ -20,9 +20,69 @@
 #include <thread>
 #include <regex>
 
-TridentServer::TridentServer(KB &kb, string htmlfiles, int nthreads) : kb(kb),
+TridentServer::TridentServer(KB &kb,
+        ProgramArgs &vm,
+        string htmlfiles, int nthreads) :
+    kb(kb), vm(vm),
     dirhtmlfiles(htmlfiles),
     isActive(false), nthreads(nthreads) {
+        annIndex = NULL;
+
+        //query patterns
+        Pattern *po_query = new Pattern();
+        po_query->addVar(0, "x");
+        po_query->idx(1);
+        Pattern *sp_query = new Pattern();
+        sp_query->addVar(2, "x");
+        sp_query->idx(0);
+
+        Pattern *po_sg = new Pattern();
+        po_sg->addVar(0, "x");
+        po_sg->idx(1);
+        Pattern *sp_sg = new Pattern();
+        sp_sg->addVar(2, "x");
+        sp_sg->idx(0);
+
+        std::vector<Filter*> filters;
+        std::vector<std::string> projections;
+        projections.push_back("x");
+        std::vector<Pattern*> popo;
+        popo.push_back(po_query);
+        popo.push_back(po_sg);
+        q_popo = std::unique_ptr<Query>(new Query(popo, filters, projections));
+        std::vector<Pattern*> sppo;
+        sppo.push_back(sp_query);
+        sppo.push_back(po_sg);
+        q_sppo = std::unique_ptr<Query>(new Query(sppo, filters, projections));
+        std::vector<Pattern*> spsp;
+        spsp.push_back(sp_query);
+        spsp.push_back(sp_sg);
+        q_spsp = std::unique_ptr<Query>(new Query(spsp, filters, projections));
+        std::vector<Pattern*> posp;
+        posp.push_back(po_query);
+        posp.push_back(sp_sg);
+        q_posp = std::unique_ptr<Query>(new Query(posp, filters, projections));
+
+        if (vm["embDir"].as<std::string>() != ""
+                && vm["subFile"].as<std::string>() != "") {
+            sh = std::unique_ptr<SubgraphHandler>(new SubgraphHandler());
+            //Load the embeddings
+            LOG(INFOL) << "Loading the embeddings ...";
+            sh->loadEmbeddings(vm["embDir"].as<std::string>());
+            //Load the subgraphs
+            LOG(INFOL) << "Loading the subgraphs ...";
+            std::string subFile = vm["subFile"].as<std::string>();
+            std::string subAlgo = vm["subAlgo"].as<std::string>();
+            sh->loadSubgraphs(subFile, subAlgo);
+
+            LOG(INFOL) << "Loading the FAISS index file ...";
+            if (vm.count("faissFile") &&
+                    vm["faissFile"].as<std::string>() != "") {
+                std::string faissFile = vm["faissFile"].as<std::string>();
+                annIndex = faiss::read_index(faissFile.c_str());
+            }
+        }
+        buffer = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE + 1]);
     }
 
 void TridentServer::startThread(int port) {
@@ -106,6 +166,159 @@ string TridentServer::lookup(string sId, TridentLayer &db) {
     unsigned st;
     db.lookupById(id, start, end, type, st);
     return string(start, end - start);
+}
+
+void TridentServer::execLinkPrediction(string query,
+        int64_t subgraphThreshold,
+        bool excludeZeroP,
+        string algo,
+        JSON &response) {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    JSON jquery;
+    JSON::read(query, jquery);
+    std::string subject = jquery.getValue("subject");
+    std::string predicate = jquery.getValue("predicate");
+    std::string object = jquery.getValue("object");
+
+    uint64_t r, t;
+    bool respRel = kb.getKB()->getDictMgmt()->getNumberRel(predicate.c_str(),
+            predicate.size(), &r);
+    if (!respRel) {
+        response.put("status", "error");
+        response.put("errordesc", "The ID for the relation was not found!");
+        return;
+    }
+
+    Subgraphs<double>::TYPE typeQuery;
+    bool resp = false;
+    if (object == "?") {
+        typeQuery = Subgraphs<double>::TYPE::SP;
+        resp = kb.getKB()->getDictMgmt()->getNumber(subject.c_str(),
+                subject.size(), &t);
+    } else {
+        typeQuery = Subgraphs<double>::TYPE::PO;
+        resp = kb.getKB()->getDictMgmt()->getNumber(object.c_str(),
+                object.size(), &t);
+    }
+
+    if (!resp) {
+        response.put("status", "error");
+        response.put("errordesc", "The ID for the entity was not found!");
+        return;
+    }
+
+    if (algo == ""  || algo == "subgraphs") {
+        //Get subgraphs for a given subquery
+        DIST distType = L1;
+        std::string embAlgo = vm["embAlgo"].as<std::string>();
+        std::string subAlgo = vm["subAlgo"].as<std::string>();
+        DIST secondDist = (DIST) vm["secondDist"].as<int>();
+
+        std::vector<uint64_t> subgraphs;
+        std::vector<double> confidence;
+
+        LOG(INFOL) << "Select relevant subgraphs ...";
+        sh->selectRelevantSubGraphs(distType, kb.getQuerier(), embAlgo,
+                typeQuery, r, t, subgraphs, confidence, subgraphThreshold,
+                subAlgo, secondDist);
+
+        LOG(INFOL) << "Compute conditional probabilities ...";
+        JSON results;
+        for(size_t i = 0; i < subgraphs.size(); ++i) {
+            JSON row;
+            row.put("confidence", confidence[i]);
+
+            auto meta = sh->getSubgraphMetadata(subgraphs[i]);
+            std::string name;
+            Query* q;
+            if (meta.t == Subgraphs<double>::TYPE::PO) {
+                name = "PO ";
+                //Setup the query
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    q = q_popo.get();
+                } else {
+                    q = q_sppo.get();
+                }
+                Pattern *pq = q->getPatterns()[0];
+                pq->predicate(r);
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    pq->object(t);
+                } else {
+                    pq->subject(t);
+                }
+                Pattern *pp = q->getPatterns()[1];
+                pp->predicate(meta.rel);
+                pp->object(meta.ent);
+            } else {
+                name = "SP ";
+                //Setup the query
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    q = q_posp.get();
+                } else {
+                    q = q_spsp.get();
+                }
+                Pattern *pq = q->getPatterns()[0];
+                pq->predicate(r);
+                if (typeQuery == Subgraphs<double>::TYPE::PO) {
+                    pq->object(t);
+                } else {
+                    pq->subject(t);
+                }
+                Pattern *pp = q->getPatterns()[1];
+                pp->predicate(meta.rel);
+                pp->subject(meta.ent);
+            }
+
+            //Prepare the query
+            TridentQueryPlan plan(kb.getQuerier());
+            plan.create(*q, SIMPLE);
+            TupleIterator *root = plan.getIterator();
+            size_t count = 0;
+            while (root->hasNext()) {
+                root->next();
+                count++;
+            }
+            plan.releaseIterator(root);
+            double condProb = (double)count / meta.size;
+            if (excludeZeroP && condProb == 0)
+                continue;
+
+            row.put("prob", condProb);
+
+            int sizebuffer = 0;
+            kb.getKB()->getDictMgmt()->getTextRel(meta.rel,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer) + " ";
+            kb.getKB()->getDictMgmt()->getText(meta.ent,
+                    buffer.get(), sizebuffer);
+            name += std::string(buffer.get(), sizebuffer);
+
+            row.put("name", name);
+            row.put("cardinality", meta.size);
+            results.push_back(row);
+        }
+        response.add_child("subgraphs", results);
+    } else { //Assume we are invoking FAISS
+        int dim = sh->getE()->getDim();
+        std::unique_ptr<double[]> dBuffer(new double[dim]);
+        std::unique_ptr<float[]> fBuffer(new float[dim]);
+
+        //TODO: prepare the query
+
+        size_t k = 10; //Get the top-k entities
+        std::unique_ptr<float[]> distances(new float[k]);
+        std::unique_ptr<long long[]> idxs = std::unique_ptr<long long[]>(
+                new long long[k]);
+        annIndex->search(1, fBuffer.get(), k, distances.get(), idxs.get());
+
+        //TODO: Process the results
+
+    }
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    response.put("runtime_ms", (long)std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    response.put("status", "ok");
 }
 
 void TridentServer::execSPARQLQuery(string sparqlquery,
@@ -270,6 +483,25 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             JSON::write(buf, pt);
             page = buf.str();
             isjson = true;
+        } else if (path == "/predict") {
+            string form = req.substr(req.find("application/x-www-form-urlencoded"));
+            string query = _getValueParam(form, "query");
+            query = HttpClient::unescape(query);
+            string stopk = _getValueParam(form, "subgraphThreshold");
+            string excludezero = _getValueParam(form, "excludeZeroP");
+            std::cout << excludezero << std::endl;
+            int64_t topk = vm["subgraphThreshold"].as<long>();
+            if (stopk != "") {
+                topk = std::stoi(stopk);
+            }
+            string algo = _getValueParam(form, "algo");
+
+            JSON pt;
+            execLinkPrediction(query, topk, excludezero == "true", algo, pt);
+            std::ostringstream buf;
+            JSON::write(buf, pt);
+            page = buf.str();
+            isjson = true;
         } else {
             page = "Error!";
         }
@@ -294,21 +526,8 @@ void TridentServer::processRequest(std::string req, std::string &res) {
         res+= to_string(page.size()) + "\r\n\r\n" + page;
     }
 
-    /*boost::asio::async_write(socket, boost::asio::buffer(res),
-      boost::asio::transfer_all(),
-      boost::bind(&Server::writeHandler,
-      shared_from_this(),
-      boost::asio::placeholders::error,
-      boost::asio::placeholders::bytes_transferred));*/
-
     setInactive();
 }
-
-/*void TridentServer::Server::writeHandler(const boost::system::error_code &err,
-  std::size_t bytes) {
-  socket.close();
-  inter->connect();
-  };*/
 
 string TridentServer::getDefaultPage() {
     return getPage("/index.html");

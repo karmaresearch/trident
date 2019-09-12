@@ -5,12 +5,23 @@
 
 #include <trident/utils/json.h>
 #include <trident/utils/httpserver.h>
+#include <trident/ml/subgraphhandler.h>
+#include <trident/sparql/query.h>
+#include <trident/sparql/plan.h>
 
 #include <layers/TridentLayer.hpp>
+#include <kognac/progargs.h>
 
 #include <cts/infra/QueryGraph.hpp>
 #include <cts/parser/SPARQLParser.hpp>
 #include <rts/runtime/QueryDict.hpp>
+
+#include <faiss/Index.h>
+#include <faiss/IndexPQ.h>
+#include <faiss/IndexIVFPQ.h>
+#include <faiss/IndexFlat.h>
+#include <faiss/IndexIVFFlat.h>
+#include <faiss/index_io.h>
 
 #include <map>
 
@@ -19,6 +30,16 @@ using namespace std;
 class TridentServer {
     protected:
         TridentLayer kb;
+        std::unique_ptr<SubgraphHandler> sh;
+        ProgramArgs &vm;
+        faiss::Index *annIndex;
+
+        std::unique_ptr<Query> q_popo;
+        std::unique_ptr<Query> q_sppo;
+        std::unique_ptr<Query> q_spsp;
+        std::unique_ptr<Query> q_posp;
+
+        std::unique_ptr<char[]> buffer;
 
     private:
         string dirhtmlfiles;
@@ -43,7 +64,8 @@ class TridentServer {
 
     public:
         //OK
-        TridentServer(KB &kb, string htmlfiles, int nthreads = 1);
+        TridentServer(KB &kb, ProgramArgs &vm,
+                string htmlfiles, int nthreads = 1);
 
         //OK
         void start(int port);
@@ -82,6 +104,12 @@ class TridentServer {
 
         //OK
         static string lookup(string sId, TridentLayer &db);
+
+        //OK
+        void execLinkPrediction(string query,
+                int64_t subgraphThreshold,
+                bool excludeZeroP,
+                string algo, JSON &response);
 
         //OK
         static void execSPARQLQuery(string sparqlquery,
