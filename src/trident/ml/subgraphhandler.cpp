@@ -1203,6 +1203,7 @@ void SubgraphHandler::evaluate(KB &kb,
     uint64_t offset = testTriples.size() / 100;
     if (offset == 0) offset = 1;
 
+    double totalTime = 0.0;
     for(uint64_t i = 0; i < testTriples.size(); i+=3) {
         uint64_t h, t, r;
         h = testTriples[i];
@@ -1262,6 +1263,7 @@ void SubgraphHandler::evaluate(KB &kb,
         selectRelevantSubGraphs(distType, q.get(), embAlgo, Subgraphs<double>::TYPE::PO,
                 r, t, relevantSubgraphsH, relevantSubgraphsHDistances,threshold, subAlgo, secondDist);
         duration = std::chrono::system_clock::now() - start;
+        totalTime += duration.count() * 1000;
         LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (HEAD)= " << duration.count() * 1000 << " ms";
 
         ANSWER_METHOD ansMethod = UNION;
@@ -1279,6 +1281,7 @@ void SubgraphHandler::evaluate(KB &kb,
             foundH = isAnswerInSubGraphs(h, relevantSubgraphsH, q.get());
             duration = std::chrono::system_clock::now() - start;
             LOG(DEBUGL) << "Time to check the HEAD answer = " << duration.count() * 1000 << " ms";
+            totalTime += duration.count() * 1000;
             //totalSizeH = numberInstancesInSubgraphs(q.get(), relevantSubgraphsH);
         } else {
             vector<int64_t>::iterator it = find(entitiesH.begin(), entitiesH.end(), h);
@@ -1299,6 +1302,7 @@ void SubgraphHandler::evaluate(KB &kb,
                 r, h, relevantSubgraphsT, relevantSubgraphsTDistances,threshold, subAlgo, secondDist);
         duration = std::chrono::system_clock::now() - start;
         LOG(DEBUGL) << "Time to sort " << threshold << " subgraphs based on distance (TAIL)= " << duration.count() * 1000 << " ms";
+        totalTime += duration.count() * 1000;
         int64_t foundT = -1;
         uint64_t totalSizeT = 0;
         vector<int64_t> entitiesT;
@@ -1308,6 +1312,7 @@ void SubgraphHandler::evaluate(KB &kb,
             foundT = isAnswerInSubGraphs(t, relevantSubgraphsT, q.get());
             duration = std::chrono::system_clock::now() - start;
             LOG(DEBUGL) << "Time to check the TAIL answer = " << duration.count() * 1000 << " ms";
+            totalTime += duration.count() * 1000;
             // Following code would not give union of all entities but is faster
             //totalSizeT = numberInstancesInSubgraphs(q.get(), relevantSubgraphsT);
         } else {
@@ -1413,6 +1418,7 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Percent Reduction (T): " << percentReductionT;
     LOG(INFOL) << "Mean rank (H): " << (double) subgraphRanksHead / hitsHead;
     LOG(INFOL) << "Mean rank (T): " << (double) subgraphRanksTail / hitsTail;
+    LOG(INFOL) << "Total time to search:" << totalTime << " ms";
 
     if (logWriter) {
         logWriter->close();

@@ -55,8 +55,8 @@ class FaissWrapper{
             uint64_t rel,
             SubgraphHandler &sh,
             vector<int64_t>& actualAnswers,
-            int& k
-            );
+            int& k,
+            double& searchTime);
 
         std::shared_ptr<Embeddings<double>> getR() {
             return R;

@@ -96,7 +96,8 @@ void FaissWrapper::nearestNeighbours(
     uint64_t rel,
     SubgraphHandler &sh,
     vector<int64_t>& actualAnswers,
-    int& k
+    int& k,
+    double & searchTime
     )
 {
     uint16_t dim = E->getDim();
@@ -140,6 +141,7 @@ void FaissWrapper::nearestNeighbours(
     for (int jj = 0; jj < k; ++jj) {
         actualAnswers.push_back(nns[jj]);
     }
+    searchTime = duration.count() * 1000;
 }
 
 void FaissWrapper::evaluate(
@@ -199,6 +201,7 @@ void FaissWrapper::evaluate(
     uint64_t hitsTail = 0;
     int kHead = -1;
     int kTail = -1;
+    double totalTime = 0.0;
     for (int i = 0; i < testTriples.size(); i += 3) {
         uint64_t h = testTriples[i];
         uint64_t r = testTriples[i+1];
@@ -206,6 +209,7 @@ void FaissWrapper::evaluate(
 
         int iq = i/3;
         // Head queries
+        double searchTimeH;
         vector<int64_t> actualAnswersH;
         nearestNeighbours(
             q.get(),
@@ -220,7 +224,10 @@ void FaissWrapper::evaluate(
             r,
             sh,
             actualAnswersH,
-            kHead);
+            kHead,
+            searchTimeH);
+
+        totalTime += searchTimeH;
         for (int j = 0; j < kHead; ++j) {
             if (h == actualAnswersH[j]) {
                 hitsHead++;
@@ -230,6 +237,7 @@ void FaissWrapper::evaluate(
 
         // Tail queries
         vector<int64_t> actualAnswersT;
+        double searchTimeT;
         nearestNeighbours(
             q.get(),
             iq,
@@ -243,7 +251,10 @@ void FaissWrapper::evaluate(
             r,
             sh,
             actualAnswersT,
-            kTail);
+            kTail,
+            searchTimeT);
+
+        totalTime += searchTimeT;
         for (int j = 0; j < kTail; ++j) {
             if (t == actualAnswersT[j]) {
                 hitsTail++;
@@ -255,6 +266,7 @@ void FaissWrapper::evaluate(
     float hitRateT = ((float)hitsTail / (float)(nq))*100;
     LOG(INFOL) << "Hit@" << kHead << " (H): " << hitRateH;
     LOG(INFOL) << "Hit@" << kTail << " (T): " << hitRateT;
+    LOG(INFOL) << "Total time " << totalTime << " ms";
     LOG(INFOL) << "# of total subgraphs : " << sh.getNumberOfSubgraphs();
     return;
 }
