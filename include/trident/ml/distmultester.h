@@ -10,6 +10,10 @@ class DistMulTester : public Tester<K> {
                std::shared_ptr<Embeddings<K>> R) : Tester<K>(E, R) {
         }
 
+        DistMulTester(std::shared_ptr<Embeddings<K>> E,
+               std::shared_ptr<Embeddings<K>> R, Querier* q) : Tester<K>(E, R, q) {
+        }
+
         double closeness(K *v1, uint64_t entity, uint16_t dim) {
             double res = 0;
             Embeddings<K> *pE = (this->E).get();

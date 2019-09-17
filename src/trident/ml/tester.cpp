@@ -60,7 +60,7 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
         HoleTester<double> tester(E,R, kb.query());
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
     } else if (algo == "distmul"){
-        DistMulTester<double> tester(E, R);
+        DistMulTester<double> tester(E, R, kb.query());
         auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
     } else {
         LOG(ERRORL) << "Not yet supported";

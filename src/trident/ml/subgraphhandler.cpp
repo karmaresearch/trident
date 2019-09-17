@@ -3,6 +3,7 @@
 #include <trident/ml/tester.h>
 #include <trident/ml/transetester.h>
 #include <trident/ml/holetester.h>
+#include <trident/ml/distmultester.h>
 #include <trident/ml/batch.h>
 #include <cmath>
 #include <kognac/utils.h>
@@ -452,6 +453,12 @@ void SubgraphHandler::selectRelevantSubGraphs(DIST dist,
         } else {
             add(emb.get(), embe, embr, dim);
         }
+    } else if (embeddingAlgo == "distmul") {
+        dim = dime;
+        emb = std::unique_ptr<double>(new double[dim]);
+        // For DistMul, both TYPE::PO and TYPE::SO
+        // will have the same calculation (element wise multiplication of arrays)
+        mul(emb.get(), embe, embr, dim);
     } else if (embeddingAlgo == "hole") {
         // TODO: Combine based on ccorr
         // temporary code same as transe
@@ -1374,6 +1381,7 @@ void SubgraphHandler::evaluate(KB &kb,
         }
     }
 
+    LOG(INFOL) << "Total time to search:" << totalTime << " ms";
     LOG(INFOL) << "# Figurative entities: " << nEntitiesWithoutLiterals;
     double woLiteralsnormalComparisonsH = nEntitiesWithoutLiterals * hitsHead;
     double woLiteralsnormalComparisonsT = nEntitiesWithoutLiterals * hitsTail;
@@ -1418,7 +1426,6 @@ void SubgraphHandler::evaluate(KB &kb,
     LOG(INFOL) << "Percent Reduction (T): " << percentReductionT;
     LOG(INFOL) << "Mean rank (H): " << (double) subgraphRanksHead / hitsHead;
     LOG(INFOL) << "Mean rank (T): " << (double) subgraphRanksTail / hitsTail;
-    LOG(INFOL) << "Total time to search:" << totalTime << " ms";
 
     if (logWriter) {
         logWriter->close();
@@ -1808,6 +1815,22 @@ void SubgraphHandler::add(double *dest, double *v1, double *v2, uint16_t dim) {
 void SubgraphHandler::sub(double *dest, double *v1, double *v2, uint16_t dim) {
     for(uint16_t i = 0; i < dim; ++i) {
         dest[i] = v1[i] - v2[i];
+    }
+}
+
+void SubgraphHandler::mul(double *dest, double *v1, double *v2, uint16_t dim) {
+    for(uint16_t i = 0; i < dim; ++i) {
+        dest[i] = v1[i] * v2[i];
+    }
+}
+
+void SubgraphHandler::div(double *dest, double *v1, double *v2, uint16_t dim) {
+    for(uint16_t i = 0; i < dim; ++i) {
+        if (v2[i] == 0.0 ) {
+            dest[i] = v1[i];
+            continue;
+        }
+        dest[i] = v1[i] / v2[i];
     }
 }
 
