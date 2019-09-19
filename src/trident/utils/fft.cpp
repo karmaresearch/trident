@@ -58,6 +58,8 @@ void fft_complex_inverse(kiss_fft_cpx *in, kiss_fft_cpx *out, int n) {
     // LOG(INFOL) << "IFFT: in[n-1].real = " << in[n-1].r << ", in[n-1].imag = " << in[n-1].i;
     kiss_fft_cfg config = get_complex_inverse(n);
     kiss_fft(config, in, out);
+
+    // Mimic numpy, which has inverse transforms scaled by 1/n.
     for (int i = 0; i < n; i++) {
         out[i].r /= n;
         out[i].i /= n;

@@ -27,6 +27,8 @@ class HoleTester : public Tester<K> {
             K* p = pR->get(pred);
             std::vector<std::vector<double>> ER;
             // for all entities, compute CCORR(p, e)
+	    // Note: for optimization: we only have to do this once per predicate? Now we do it for
+	    // every test triple. --Ceriel
             for (int s = 0;  s < pE->getN(); ++s) {
                 vector<double> out;
                 ccorr(p, pE->get(s), dims, out);
@@ -54,6 +56,7 @@ class HoleTester : public Tester<K> {
                     break;
                 }
             }
+	    // Why not just ccorr(p, pE->get(obj), dimo, ERO)??? --Ceriel
 
             assert(ERO.size() == dimo);
 
