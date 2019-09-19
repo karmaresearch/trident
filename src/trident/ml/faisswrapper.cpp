@@ -201,7 +201,8 @@ void FaissWrapper::evaluate(
     uint64_t hitsTail = 0;
     int kHead = -1;
     int kTail = -1;
-    double totalTime = 0.0;
+    double totalTimeH = 0.0;
+    double totalTimeT = 0.0;
     for (int i = 0; i < testTriples.size(); i += 3) {
         uint64_t h = testTriples[i];
         uint64_t r = testTriples[i+1];
@@ -227,7 +228,7 @@ void FaissWrapper::evaluate(
             kHead,
             searchTimeH);
 
-        totalTime += searchTimeH;
+        totalTimeH += searchTimeH;
         for (int j = 0; j < kHead; ++j) {
             if (h == actualAnswersH[j]) {
                 hitsHead++;
@@ -254,7 +255,7 @@ void FaissWrapper::evaluate(
             kTail,
             searchTimeT);
 
-        totalTime += searchTimeT;
+        totalTimeT += searchTimeT;
         for (int j = 0; j < kTail; ++j) {
             if (t == actualAnswersT[j]) {
                 hitsTail++;
@@ -264,9 +265,11 @@ void FaissWrapper::evaluate(
     }
     float hitRateH = ((float)hitsHead / (float)(nq))*100;
     float hitRateT = ((float)hitsTail / (float)(nq))*100;
+    LOG(INFOL) << "# of queries: " << nq;
     LOG(INFOL) << "Hit@" << kHead << " (H): " << hitRateH;
     LOG(INFOL) << "Hit@" << kTail << " (T): " << hitRateT;
-    LOG(INFOL) << "Total time " << totalTime << " ms";
+    LOG(INFOL) << "Total time(H) " << totalTimeH << " ms";
+    LOG(INFOL) << "Total time(T) " << totalTimeT << " ms";
     LOG(INFOL) << "# of total subgraphs : " << sh.getNumberOfSubgraphs();
     return;
 }

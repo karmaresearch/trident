@@ -140,6 +140,9 @@ class SubgraphHandler {
 
         static void sub(double *dest, double *v1, double *v2, uint16_t dim);
 
+        static void mul(double *dest, double *v1, double *v2, uint16_t dim);
+
+        static void div(double *dest, double *v1, double *v2, uint16_t dim);
     public:
         SubgraphHandler() {}
 
