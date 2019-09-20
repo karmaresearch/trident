@@ -214,6 +214,14 @@ void AvgSubgraphs<double>::calculateEmbeddings(Querier *q,
     LOG(DEBUGL) << " SP subgraphs : " << getNSubgraphs() - opsSubs;
 }
 
+inline string my_transform(vector<double> vec, int dim) {
+    std::stringstream ss;
+    for (auto element : vec) {
+        ss << std::to_string(element) << ", ";
+    }
+    return ss.str();
+}
+
 template<>
 void VarSubgraphs<double>::processItr(Querier *q,
         PairItr *itr,
@@ -273,6 +281,10 @@ void VarSubgraphs<double>::processItr(Querier *q,
                     params.push_back(mean);
                     variances.push_back(var);
                 }
+                string avgEmbeddingsStr = my_transform(params, dim);
+                string varEmbeddingsStr = my_transform(variances, dim);
+                LOG(DEBUGL) << avgEmbeddingsStr;
+                LOG(DEBUGL) << varEmbeddingsStr;
                 //Add metadata about the subgraph
                 addSubgraph(typ, prevo, prevp, count);
             }
