@@ -235,8 +235,9 @@ class Embeddings {
           }*/
 
         void init(const uint16_t nthreads, const bool normalization) {
-            K min = -6.0 / sqrt(n + dim);
-            K max = 6.0 / sqrt(n + dim);
+	    K bnd = sqrt(6.0) / sqrt(n + dim);
+            K min = -bnd;
+            K max = bnd;
             if (nthreads > 1) {
                 uint64_t batchPerThread = n / nthreads;
                 std::vector<std::thread> threads;
