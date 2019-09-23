@@ -66,6 +66,7 @@ class TrainWorkflow {
             std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 	    uint64_t oldViolations = std::numeric_limits<uint64_t>::max();
             for (uint32_t epoch = 0; epoch < epochs; ++epoch) {
+		// tr.init(); No.
                 std::chrono::time_point<std::chrono::system_clock> start=std::chrono::system_clock::now();
                 //Init code
                 if (batcher.getFeedback()) {
@@ -215,7 +216,7 @@ class TrainWorkflow {
         TrainWorkflow(KB &kb, BatchCreator &b, Learner &l, uint32_t epochs) : kb(kb),
         batcher(b), tr(l), epochs(epochs) {}
 
-        static void launchLearning(KB &kb, LearnParams &p) {
+        static void launchLearning(KB &kb, LearnParams &p, string algo) {
             std::unique_ptr<GradTracer> debugger;
             if (p.filetrace != "") {
                 debugger = std::unique_ptr<GradTracer>(new GradTracer(p.ne, 1000, p.dim));
@@ -239,7 +240,7 @@ class TrainWorkflow {
 
             Learner tr(kb, p);
             LOG(INFOL) << "Setting up " << tr.getName() << " ...";
-            tr.setup(p.nthreads);
+            tr.setup(p.nthreads, algo);
             LOG(INFOL) << "Launching the training of " << tr.getName() << " ...";
             TrainWorkflow<Learner, Tester> w(kb, batcher, tr, p.epochs);
             w.train(p.nthreads,

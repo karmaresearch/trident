@@ -142,7 +142,14 @@ class Learner {
             }
 
 
-        void setup(const uint16_t nthreads);
+	void init() {
+	    if (adagrad) {
+		memset(pe2.get(), 0, sizeof(double) * (uint64_t)dim * ne);
+		memset(pr2.get(), 0, sizeof(double) * (uint64_t)dim * nr);
+	    }
+	}
+
+        void setup(const uint16_t nthreads, string algo);
 
         void setup(const uint16_t nthreads,
                 std::shared_ptr<Embeddings<double>> E,

@@ -81,16 +81,16 @@ void Learner::setup(const uint16_t nthreads,
     this->pr2 = std::move(pr);
 }
 
-void Learner::setup(const uint16_t nthreads) {
+void Learner::setup(const uint16_t nthreads, string algo) {
     LOG(DEBUGL) << "Creating E " << ne << " " << dim;
     std::shared_ptr<Embeddings<double>> E = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(ne, dim));
     //Initialize it
     LOG(DEBUGL) << "Init E " << nthreads;
-    E->init(nthreads, true);
+    E->init(nthreads, true, algo);
     LOG(DEBUGL) << "Creating R " << nr << " " << dim;
     std::shared_ptr<Embeddings<double>> R = std::shared_ptr<Embeddings<double>>(new Embeddings<double>(nr, dim));
     LOG(DEBUGL) << "Init R " << nthreads;
-    R->init(nthreads, false);
+    R->init(nthreads, false, algo);
     LOG(DEBUGL) << "done";
 
     std::unique_ptr<double> lpe2;
@@ -189,6 +189,7 @@ void Learner::update_gradients(BatchIO &io,
             double *emb = E->get(i.id);
             auto n = i.n;
             if (n > 0) {
+		// LOG(INFOL) << "Update E " << i.id << ", emb[0] was " << emb[0] << ", dimensions[0] = " << i.dimensions[0] << ", n = " << n;
                 double sum = 0.0; //used for normalization
                 for(uint16_t j = 0; j < dim; ++j) {
                     emb[j] -= learningrate * i.dimensions[j] / n;
@@ -199,6 +200,7 @@ void Learner::update_gradients(BatchIO &io,
                 for(uint16_t j = 0; j < dim; ++j) {
                     emb[j] = emb[j] / sum;
                 }
+		// LOG(INFOL) << "Update E " << i.id << ", emb[0] becomes " << emb[0];
                 E->incrUpdates(i.id);
             }
         }

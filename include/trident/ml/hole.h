@@ -12,12 +12,18 @@ class HoleLearner : public PairwiseLearner {
 
        bool shouldUpdate(uint32_t idx);
 
-       /*
+       void update(BatchIO &io,
+	       double *sp, double *pp, double *op,
+	       double *sn, double *on,
+	       double violatedScorePos, double violatedScoreNeg,
+	       uint64_t subject, uint64_t predicate, uint64_t object,
+	       std::unordered_map<uint64_t, EntityGradient> &gradientsE,
+	       std::unordered_map<uint64_t, EntityGradient> &gradientsR);
+
     protected:
        void update_gradients(BatchIO &io,
 	       std::vector<EntityGradient> &ge,
 	       std::vector<EntityGradient> &gr);
-	*/
 
     public:
         HoleLearner(KB &kb, LearnParams &p) :

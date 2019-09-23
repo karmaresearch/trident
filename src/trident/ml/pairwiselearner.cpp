@@ -32,6 +32,7 @@ void PairwiseLearner::gen_random(
             if (!q->exists(s, p, o)) {
                 break;
             }
+	    input[i] = UINT64_MAX;
         }
     }
 }
@@ -44,7 +45,7 @@ void PairwiseLearner::process_batch(BatchIO &io, const uint32_t epoch,
     uint32_t sizebatch = io.field1.size();
     oneg.resize(sizebatch);
     sneg.resize(sizebatch);
-    gen_random(io.q, io, sneg, true, 10);
-    gen_random(io.q, io, oneg, false, 10);
+    gen_random(io.q, io, sneg, true, 100);
+    gen_random(io.q, io, oneg, false, 100);
     process_batch_withnegs(io, oneg, sneg);
 }

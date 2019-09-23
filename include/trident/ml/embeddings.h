@@ -48,7 +48,7 @@ class Embeddings {
 
         static void init_seq(K* begin,
                 K*end, uint16_t dim, K min, K max,
-                const bool normalization) {
+                const bool normalization, const std::string algo) {
             std::random_device rd;
             std::mt19937 gen(rd());
             std::uniform_real_distribution<> dis(min, max);
@@ -64,7 +64,13 @@ class Embeddings {
                     sum += *begin * *begin;
                     if (((count + 1) % dim) == 0) {
                         //Normalize the previous row
-                        sum = sqrt(sum);
+			if (algo == "hole") {
+			    if (sum < 1) {
+				sum = 1;
+			    }
+			} else {
+			    sum = sqrt(sum);
+			}
                         for(uint16_t i = 0; i < dim; ++i) {
                             *(begin - i) /= sum;
                         }
@@ -234,7 +240,7 @@ class Embeddings {
           return updatesLastEpoch[idx];
           }*/
 
-        void init(const uint16_t nthreads, const bool normalization) {
+        void init(const uint16_t nthreads, const bool normalization, const std::string algo) {
 	    K bnd = sqrt(6.0) / sqrt(n + dim);
             K min = -bnd;
             K max = bnd;
@@ -248,7 +254,7 @@ class Embeddings {
                     K* tmpend = (begin + offset) < end ? begin + offset : end;
                     threads.push_back(std::thread(Embeddings::init_seq,
                                 begin, tmpend,
-                                dim, min, max, normalization));
+                                dim, min, max, normalization, algo));
                     begin += offset;
                 }
                 for(uint16_t i = 0; i < threads.size(); ++i) {
@@ -256,7 +262,7 @@ class Embeddings {
                 }
             } else {
                 init_seq(getRaw(), getRaw() + ((size_t) n) * dim, dim, min, max,
-                        normalization);
+                        normalization, algo);
             }
         }
 
@@ -287,6 +293,15 @@ class Embeddings {
                 LOG(DEBUGL) << "Dumping on disk " << nbytes << " bytes " << n << " " << dim << " " << sizeof(K);
                 dest.write((char*)mraw.data(), nbytes);
                 dest.close();
+#if 0
+		for (int i = 0; i < n; i++) {
+		    double *v = (double *) this->get(i);
+		    LOG(DEBUGL) << "" << i << ": ";
+		    for (int j = 0; j < dim; j++) {
+			LOG(DEBUGL) << "\t" << v[j];
+		    }
+		}
+#endif
             } else {
                 //Flush the content to file
                 LOG(DEBUGL) << "Flushing the content to disk ...";

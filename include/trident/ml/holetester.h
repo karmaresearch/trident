@@ -15,9 +15,10 @@ class HoleTester : public Tester<K> {
                std::shared_ptr<Embeddings<K>> R) : Tester<K>(E, R) {
         }
 
-        // v1 already contains scores
+        // v1 already contains scores.
+	// but the scores are the wrong way around. --Ceriel
         double closeness(K *v1, uint64_t entity, uint16_t dim) {
-            return v1[entity];
+            return -v1[entity];
         }
 
         void predictO(uint64_t sub, uint16_t dims, uint64_t pred, uint16_t dimp, K* o) {
@@ -37,10 +38,11 @@ class HoleTester : public Tester<K> {
 
             // o[j]'s contain the scores for all entities
             for (int j = 0; j < ER.size(); ++j){
-                o[j] = 0.0;
+		K newo = 0.0;
                 for (uint16_t i = 0; i < dims; ++i) {
-                    o[j] += ER[j][i] * s[i];
+                    newo += ER[j][i] * s[i];
                 }
+		o[j] = newo;
             }
         }
 
@@ -62,12 +64,13 @@ class HoleTester : public Tester<K> {
 
             // s[i]'s contain scores of all entities
             for (int i = 0; i < pE->getN(); ++i) {
-                s[i] = 0.0;
+                K news = 0.0;
                 for (int d = 0; d < dimo; ++d) {
-                    s[i] += pE->get(i)[d] * ERO[d];
+                    news += pE->get(i)[d] * ERO[d];
                 }
+		s[i] = news;
             }
-     }
+	 }
 };
 
 #endif

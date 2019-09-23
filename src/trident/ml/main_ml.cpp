@@ -111,11 +111,11 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         p.nr = kb.getDictMgmt()->getNRels();
 
         if (algo == "transe") {
-            TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
+            TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p, algo);
         } else if (algo == "hole") {
-            TrainWorkflow<HoleLearner,HoleTester<double>>::launchLearning(kb, p);
+            TrainWorkflow<HoleLearner,HoleTester<double>>::launchLearning(kb, p, algo);
         } else if (algo == "distmul") {
-            TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p);
+            TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p, algo);
         } else {
             LOG(ERRORL) << "Task not recognized";
         }
