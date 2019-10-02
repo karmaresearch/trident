@@ -56,9 +56,9 @@ HttpClient::URL HttpClient::parse(std::string url) {
     std::string::const_iterator protI = search(url.begin(), url.end(),
             protEnd.begin(), protEnd.end());
     output.protocol.reserve(distance(url.cbegin(), protI));
-    transform(url.cbegin(), protI,
+    std::transform(url.cbegin(), protI,
             back_inserter(output.protocol),
-            std::ptr_fun<int,int>(tolower));
+            ::tolower);
     if( protI == url.end() )
         return output;
 
@@ -70,14 +70,14 @@ HttpClient::URL HttpClient::parse(std::string url) {
         output.host.reserve(distance(protI, portI));
         transform(protI, portI,
                 back_inserter(output.host),
-                std::ptr_fun<int,int>(tolower)); // host is icase
+                ::tolower); // host is icase
         //Parse the port number
         pathI  = find(protI, url.cend(), '/');
         std::string sport;
         sport.reserve(distance(portI, pathI));
         transform(portI, pathI,
                 back_inserter(sport),
-                std::ptr_fun<int,int>(tolower));
+                ::tolower);
         output.port = std::stoi(sport);
 
     } else {
@@ -85,7 +85,7 @@ HttpClient::URL HttpClient::parse(std::string url) {
         output.host.reserve(distance(protI, pathI));
         transform(protI, pathI,
                 back_inserter(output.host),
-                std::ptr_fun<int,int>(tolower)); // host is icase
+                ::tolower); // host is icase
     }
 
     //path
