@@ -128,6 +128,24 @@ bool Root::get(tTerm *key, const int sizeKey, nTerm *value) {
     return node->get(key, sizeKey, value);
 }
 
+void Root::put(tTerm *key, const int sizeKey, nTerm value) {
+    if (readOnly) {
+        LOG(ERRORL) << "Put is requested on a read-only tree";
+        throw 10;
+    }
+
+    Node *n = rootNode->put(key, sizeKey, value);
+    if (n != NULL) {
+        IntermediateNode *newRoot = cache->newIntermediateNode(rootNode, n);
+        newRoot->setId(context->getNewNodeID());
+        newRoot->setParent(NULL);
+        rootNode->setParent(newRoot);
+        n->setParent(newRoot);
+        cache->registerNode(n);
+        rootNode = newRoot;
+    }
+}
+
 void Root::put(nTerm key, int64_t coordinates) {
     if (readOnly) {
         LOG(ERRORL) << "Put is requested on a read-only tree";

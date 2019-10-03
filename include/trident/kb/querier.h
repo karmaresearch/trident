@@ -109,6 +109,8 @@ class Querier {
                 int64_t v2,
                 const bool setConstraints);
 
+        PairItr *summaryDiff(const int perm, DiffIndex::TypeUpdate tp, PairItr *finalItr);
+
     public:
 
         struct Counters {
@@ -134,6 +136,10 @@ class Querier {
         TermItr *getKBTermList(const int perm, const bool enforcePerm);
 
         DDLEXPORT PairItr *getTermList(const int perm);
+
+        DDLEXPORT PairItr *summaryAddDiff();
+
+        DDLEXPORT PairItr *summaryRmDiff();
 
         bool existKey(int perm, int64_t key);
 

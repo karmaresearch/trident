@@ -80,6 +80,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "info"
             && cmd != "add"
             && cmd != "rm"
+            && cmd != "merge"
 #ifdef ANALYTICS
             && cmd != "analytics"
 #endif

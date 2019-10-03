@@ -106,6 +106,11 @@ class KB {
 
         void loadDict(KBConfig *config);
 
+        void createNewDict(std::string dir);
+
+        void createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr,
+                std::string dir, std::string diffDir);
+
     public:
         DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
                 bool dictEnabled, KBConfig &config) : KB(path, readOnly, reasoning,
@@ -122,6 +127,8 @@ class KB {
         DictMgmt *getDictMgmt() {
             return dictManager;
         }
+
+        DDLEXPORT void mergeUpdates();
 
         void closeMainDict();
 

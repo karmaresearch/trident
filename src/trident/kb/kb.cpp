@@ -609,3 +609,148 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
 std::vector<const char*> KB::openAllFiles(int perm) {
     return files[perm]->loadAllFiles();
 }
+
+void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
+
+    std::vector<uint64_t> all_s;
+    std::vector<uint64_t> all_p;
+    std::vector<uint64_t> all_o;
+
+    while (itr->hasNext()) {
+        itr->next();
+        all_s.push_back(itr->getKey());
+        all_p.push_back(itr->getValue1());
+        all_o.push_back(itr->getValue2());
+    }
+
+    if (all_s.size() == 0) {
+        return;
+    }
+
+    Utils::create_directories(dir);
+
+    //Write the type of file
+    string flagup;
+    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
+        flagup = dir + DIR_SEP + std::string("ADD");
+    } else {
+        flagup = dir + DIR_SEP +  std::string("DEL");
+    }
+    ofstream ofs(flagup);
+    ofs.close();
+}
+
+void KB::mergeUpdates() {
+
+    std::string diffDir = path + DIR_SEP + std::string("_newdiff");
+    std::string oldDiffDir = path + DIR_SEP + std::string("_diff");
+
+    // Count number of ADDITIONs and DELETEs.
+    int addCount = 0;
+    int rmCount = 0;
+    for (size_t i = 0; i < diffIndices.size(); ++i) {
+        if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
+            addCount++;
+        } else {
+            rmCount++;
+        }
+    }
+
+    if (addCount <= 1 && rmCount <= 1) {
+        // No merging needed.
+        return;
+    }
+
+    // Note: if the first original diff is an addition, the addition goes first, otherwise the removal
+    // goes first.
+    std::string addName = diffIndices[0]->getType() == DiffIndex::TypeUpdate::ADDITION_df ? "0" : "1";
+    std::string rmName = diffIndices[0]->getType() == DiffIndex::TypeUpdate::ADDITION_df ? "1" : "0";
+    std::string addDir = diffDir + DIR_SEP + addName;
+    std::string rmDir  = diffDir + DIR_SEP + rmName;
+
+    Querier *q = query();
+    if (addCount >= 1) {
+        PairItr *addItr = q->summaryAddDiff();
+        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
+        q->releaseItr(addItr);
+    }
+    if (rmCount >= 1) {
+        PairItr *rmItr = q->summaryRmDiff();
+        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
+        q->releaseItr(rmItr);
+    }
+
+    delete q;
+
+    if (dictUpdates.size() != 0) {
+        Utils::create_directories(addDir);
+        createNewDict(addDir);
+    }
+
+    if (std::rename(oldDiffDir.c_str(), (oldDiffDir + std::string(".old")).c_str()) != 0) {
+        LOG(ERRORL) << "Error renaming " << oldDiffDir;
+        throw 10;
+    }
+    if (std::rename(diffDir.c_str(), oldDiffDir.c_str()) != 0) {
+        LOG(ERRORL) << "Error renaming " << diffDir;
+        // Try to rename the old one back
+        std::rename((oldDiffDir + std::string(".old")).c_str(), oldDiffDir.c_str());
+        // Utils::remove_all(diffDir);
+        throw 10;
+    }
+    Utils::remove_all(oldDiffDir + std::string(".old"));
+}
+
+void KB::createNewDict(std::string dir) {
+    string dictdir = dir + "/dict";
+    Utils::create_directories(dictdir);
+
+    // Init data structures
+    Stats stats;
+    std::unique_ptr<StringBuffer> sb = std::unique_ptr<StringBuffer>(
+                                           new StringBuffer(dictdir, false, 10, 4096*SB_BLOCK_SIZE,
+                                                   &stats));
+    PropertyMap conf;
+    conf.setBool(TEXT_KEYS, true);
+    conf.setBool(TEXT_VALUES, false);
+    string t2idir = dictdir + "/t2id";
+    Utils::create_directories(t2idir);
+    std::unique_ptr<Root> dict = std::unique_ptr<Root>(new Root(t2idir, sb.get(),
+                                 false, conf));
+    string i2tdir = dictdir + "/id2t";
+    Utils::create_directories(i2tdir);
+    conf.setBool(TEXT_KEYS, false);
+    conf.setBool(TEXT_VALUES, true);
+    std::unique_ptr<Root> invdict = std::unique_ptr<Root>(new Root(i2tdir,
+                                    sb.get(), false, conf));
+
+    uint64_t maxid = 0;
+    uint64_t count = 0;
+    for (int i = 0; i < dictUpdates.size(); ++i) {
+        TreeItr *itr = dictUpdates[i].invdict->itr();
+        while (itr->hasNext()) {
+            int64_t coord;
+            nTerm key = itr->next(coord);
+            int size;
+            char value[MAX_TERM_SIZE+1];
+            dictUpdates[i].sb->get(coord, value, size);
+            value[size] = 0;
+            coord = sb->getSize();
+            dict->put((tTerm*) value, size, key);
+            invdict->put(key, coord);
+            if (key > maxid) {
+                maxid = key;
+            }
+            count++;
+        }
+    }
+
+    ofstream ofs;
+    ofs.open(dictdir + "/stats");
+    char data[8];
+    Utils::encode_long(data, count);
+    ofs.write(data, 8);
+    Utils::encode_long(data, maxid + 1);
+    ofs.write(data, 8);
+    ofs.close();
+}

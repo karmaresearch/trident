@@ -464,6 +464,10 @@ int main(int argc, const char** argv) {
         string updatedir = vm["update"].as<string>();
         Updater up;
         up.creatediffupdate(DiffIndex::TypeUpdate::DELETE_df, kbDir, updatedir);
+    } else if (cmd == "merge") {
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        kb.mergeUpdates();
     } else if (cmd == "analytics") {
 #ifdef ANALYTICS
         KBConfig config;
