@@ -108,7 +108,7 @@ class KB {
 
         void createNewDict(std::string dir);
 
-        void createSingleUpdate(Querier *q, DiffIndex::TypeUpdate type, PairItr *itr,
+        void createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr,
                 std::string dir, std::string diffDir);
 
     public:
