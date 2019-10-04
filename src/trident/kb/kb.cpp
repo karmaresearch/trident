@@ -610,7 +610,7 @@ std::vector<const char*> KB::openAllFiles(int perm) {
     return files[perm]->loadAllFiles();
 }
 
-void KB::createSingleUpdate(Querier *q, DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
+void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
 
     std::vector<uint64_t> all_s;
     std::vector<uint64_t> all_p;
@@ -629,7 +629,16 @@ void KB::createSingleUpdate(Querier *q, DiffIndex::TypeUpdate type, PairItr *itr
 
     Utils::create_directories(dir);
 
+    // Create query with empty diffs
+    std::vector<std::unique_ptr<DiffIndex>> diffs;
+
+    Querier *q = new Querier(tree, dictManager, files, totalNumberTriples,
+            totalNumberTerms, nindices, ntables, nFirstTables,
+            sampleKB, diffs);
+
     DiffIndex3::createDiffIndex(type, dir, diffDir, all_s, all_p, all_o, true, q, true);
+
+    delete q;
 
     //Write the type of file
     string flagup;
@@ -643,6 +652,8 @@ void KB::createSingleUpdate(Querier *q, DiffIndex::TypeUpdate type, PairItr *itr
 }
 
 void KB::mergeUpdates() {
+
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     std::string diffDir = path + DIR_SEP + std::string("_newdiff");
     std::string oldDiffDir = path + DIR_SEP + std::string("_diff");
@@ -673,12 +684,12 @@ void KB::mergeUpdates() {
     Querier *q = query();
     if (addCount >= 1) {
         PairItr *addItr = q->summaryAddDiff();
-        createSingleUpdate(q, DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
+        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
         q->releaseItr(addItr);
     }
     if (rmCount >= 1) {
         PairItr *rmItr = q->summaryRmDiff();
-        createSingleUpdate(q, DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
+        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
         q->releaseItr(rmItr);
     }
 
@@ -689,20 +700,26 @@ void KB::mergeUpdates() {
         createNewDict(addDir);
     }
 
-    /*
-    if (std::rename(oldDiffDir.c_str(), (oldDiffDir + std::string(".old")).c_str()) != 0) {
+    std::string old = oldDiffDir + std::string(".old");
+
+    if (Utils::exists(old)) {
+        Utils::remove_all(old);
+    }
+
+    if (std::rename(oldDiffDir.c_str(), old.c_str()) != 0) {
         LOG(ERRORL) << "Error renaming " << oldDiffDir;
         throw 10;
     }
     if (std::rename(diffDir.c_str(), oldDiffDir.c_str()) != 0) {
         LOG(ERRORL) << "Error renaming " << diffDir;
         // Try to rename the old one back
-        std::rename((oldDiffDir + std::string(".old")).c_str(), oldDiffDir.c_str());
+        std::rename(old.c_str(), oldDiffDir.c_str());
         // Utils::remove_all(diffDir);
         throw 10;
     }
-    Utils::remove_all(oldDiffDir + std::string(".old"));
-    */
+    // Utils::remove_all(old);
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(INFOL) << "Total merge time = " << sec.count() * 1000 << " ms.";
 }
 
 void KB::createNewDict(std::string dir) {
