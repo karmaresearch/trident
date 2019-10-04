@@ -610,7 +610,7 @@ std::vector<const char*> KB::openAllFiles(int perm) {
     return files[perm]->loadAllFiles();
 }
 
-void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
+void KB::createSingleUpdate(Querier *q, DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
 
     std::vector<uint64_t> all_s;
     std::vector<uint64_t> all_p;
@@ -628,6 +628,8 @@ void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::strin
     }
 
     Utils::create_directories(dir);
+
+    DiffIndex3::createDiffIndex(type, dir, diffDir, all_s, all_p, all_o, true, q, true);
 
     //Write the type of file
     string flagup;
@@ -671,12 +673,12 @@ void KB::mergeUpdates() {
     Querier *q = query();
     if (addCount >= 1) {
         PairItr *addItr = q->summaryAddDiff();
-        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
+        createSingleUpdate(q, DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
         q->releaseItr(addItr);
     }
     if (rmCount >= 1) {
         PairItr *rmItr = q->summaryRmDiff();
-        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
+        createSingleUpdate(q, DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
         q->releaseItr(rmItr);
     }
 
@@ -687,6 +689,7 @@ void KB::mergeUpdates() {
         createNewDict(addDir);
     }
 
+    /*
     if (std::rename(oldDiffDir.c_str(), (oldDiffDir + std::string(".old")).c_str()) != 0) {
         LOG(ERRORL) << "Error renaming " << oldDiffDir;
         throw 10;
@@ -699,10 +702,11 @@ void KB::mergeUpdates() {
         throw 10;
     }
     Utils::remove_all(oldDiffDir + std::string(".old"));
+    */
 }
 
 void KB::createNewDict(std::string dir) {
-    string dictdir = dir + "/dict";
+    std::string dictdir = dir + DIR_SEP + std::string("dict");
     Utils::create_directories(dictdir);
 
     // Init data structures
@@ -726,6 +730,7 @@ void KB::createNewDict(std::string dir) {
 
     uint64_t maxid = 0;
     uint64_t count = 0;
+    LOG(DEBUGL) << "dictUpdates count = " << dictUpdates.size();
     for (int i = 0; i < dictUpdates.size(); ++i) {
         TreeItr *itr = dictUpdates[i].invdict->itr();
         while (itr->hasNext()) {
@@ -737,6 +742,7 @@ void KB::createNewDict(std::string dir) {
             value[size] = 0;
             coord = sb->getSize();
             dict->put((tTerm*) value, size, key);
+            LOG(TRACEL) << "Adding " << value << " to dict";
             invdict->put(key, coord);
             if (key > maxid) {
                 maxid = key;

@@ -109,7 +109,7 @@ class Querier {
                 int64_t v2,
                 const bool setConstraints);
 
-        PairItr *summaryDiff(const int perm, DiffIndex::TypeUpdate tp, PairItr *finalItr);
+        PairItr *summaryDiff(const int perm, DiffIndex::TypeUpdate tp);
 
     public:
 

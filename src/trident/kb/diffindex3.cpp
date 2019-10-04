@@ -419,6 +419,8 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
         raw_1[i] = i;
     }
 
+    LOG(DEBUGL) << "createDiffIndex, size = " << all_s.size();
+
     /**** If flag is activated, dump all update in a file (useful for debugging) ****/
     if (dumpRawFormat) {
         Utils::create_directories(outputdir);

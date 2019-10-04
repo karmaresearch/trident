@@ -670,28 +670,13 @@ PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el
 PairItr *Querier::getTermList(const int perm) {
     PairItr *finalItr = getKBTermList(perm, false);
 
-    return summaryDiff(perm, DiffIndex::TypeUpdate::ADDITION_df, finalItr);
-}
-
-PairItr *Querier::summaryAddDiff() {
-    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df, NULL);
-}
-
-PairItr *Querier::summaryRmDiff() {
-    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df, NULL);
-}
-
-PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp, PairItr *finalItr) {
-
     //Add differential updates
     for (size_t i = 0; i < diffIndices.size(); ++i) {
         if (diffIndices[i]->getNUniqueKeys(perm) > 0) {
-            if (diffIndices[i]->getType() == tp) {
+            if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
                 DiffTermItr *itr = factory10.get();
                 diffIndices[i]->getTermListItr(perm, itr);
-                if (finalItr == NULL) {
-                    finalItr = itr;
-                } else if (finalItr->getTypeItr() != COMPOSITETERM_ITR) {
+                if (finalItr->getTypeItr() != COMPOSITETERM_ITR) {
                     CompositeTermItr *newitr = factory9.get();
                     newitr->init(); //Initialize a compositetermitr
                     newitr->add(finalItr);
@@ -701,13 +686,61 @@ PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp, PairItr 
                     ((CompositeTermItr*)finalItr)->add(itr);
                 }
             } else {
-                if (finalItr == NULL) {
-                    continue;
-                }
                 DiffTermItr *itr = factory10.get();
                 diffIndices[i]->getTermListItr(IDX_SPO, itr);
                 RmCompositeTermItr *newitr = factory15.get();
                 newitr->init(finalItr, itr);
+                finalItr = newitr;
+            }
+        }
+    }
+
+    return finalItr;
+}
+
+PairItr *Querier::summaryAddDiff() {
+    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+}
+
+PairItr *Querier::summaryRmDiff() {
+    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+}
+
+PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp) {
+
+    PairItr *finalItr = NULL;
+
+    //Add differential updates
+    for (size_t i = 0; i < diffIndices.size(); ++i) {
+        if (diffIndices[i]->getNUniqueKeys(perm) > 0) {
+            LOG(DEBUGL) << "diffIndices " << i;
+            if (diffIndices[i]->getType() == tp) {
+                DiffScanItr *itr = factory11.get();
+                itr->setQuerier(this);
+                PairItr *it = ((DiffIndex3*)diffIndices[i].get())->getScan(perm, itr);
+                LOG(DEBUGL) << "Adding iterator, hasNext = " << it->hasNext();
+                if (finalItr == NULL) {
+                    finalItr = it;
+                } else if (finalItr->getTypeItr() != COMPOSITESCAN_ITR) {
+                    CompositeScanItr *newitr = factory12.get();
+                    newitr->setQuerier(this);
+                    newitr->init(perm); //Initialize a compositescanitr
+                    newitr->addChild(finalItr);
+                    newitr->addChild(it);
+                    LOG(DEBUGL) << "CompositeScanItr, hasNext = " << newitr->hasNext();
+                    finalItr = newitr;
+                } else {
+                    ((CompositeScanItr*)finalItr)->addChild(itr);
+                }
+            } else {
+                if (finalItr == NULL) {
+                    continue;
+                }
+                DiffScanItr *itr = factory11.get();
+                itr->setQuerier(this);
+                PairItr *it = ((DiffIndex3*)diffIndices[i].get())->getScan(perm, itr);
+                RmItr *newitr = factory14.get();
+                newitr->init(finalItr, it, 0);
                 finalItr = newitr;
             }
         }
