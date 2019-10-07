@@ -610,7 +610,7 @@ std::vector<const char*> KB::openAllFiles(int perm) {
     return files[perm]->loadAllFiles();
 }
 
-void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir) {
+void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir, Querier *q) {
 
     std::vector<uint64_t> all_s;
     std::vector<uint64_t> all_p;
@@ -627,18 +627,62 @@ void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::strin
         return;
     }
 
-    Utils::create_directories(dir);
+    // Filter: the only deletes that should be left are in the db.
+    if (type == DiffIndex::TypeUpdate::DELETE_df) {
+        std::vector<uint64_t> del_s;
+        std::vector<uint64_t> del_p;
+        std::vector<uint64_t> del_o;
 
-    // Create query with empty diffs
-    std::vector<std::unique_ptr<DiffIndex>> diffs;
+        PairItr *kbitr = q->get(IDX_SPO, -1, -1, -1);
+        if (kbitr->hasNext()) {
+            kbitr->next();
+        } else {
+            q->releaseItr(kbitr);
+            kbitr = NULL;
+        }
 
-    Querier *q = new Querier(tree, dictManager, files, totalNumberTriples,
-            totalNumberTerms, nindices, ntables, nFirstTables,
-            sampleKB, diffs);
+        size_t i = 0;
+        while (i != all_s.size()) {
+            //move kbitr to the good position
+            int cmpResult;
+            while (kbitr && (cmpResult = cmp(kbitr, all_s[i], all_p[i], all_o[i])) < 0) {
+                if (kbitr->hasNext()) {
+                    kbitr->next();
+                } else {
+                    q->releaseItr(kbitr);
+                    kbitr = NULL;
+                }
+            }
+            if (kbitr) {
+                //do the check
+                if (cmpResult == 0) {
+                    del_s.push_back(all_s[i]);
+                    del_p.push_back(all_p[i]);
+                    del_o.push_back(all_o[i]);
+                    //Must move also the original iterator
+                    if (kbitr->hasNext()) {
+                        kbitr->next();
+                    } else {
+                        break;
+                    }
+                }
+                i++;
+            } else {
+                break;
+            }
+        }
+        if (kbitr)
+            q->releaseItr(kbitr);
 
-    DiffIndex3::createDiffIndex(type, dir, diffDir, all_s, all_p, all_o, true, q, true);
-
-    delete q;
+        if (del_s.size() == 0) {
+            return;
+        }
+        Utils::create_directories(dir);
+        DiffIndex3::createDiffIndex(type, dir, diffDir, del_s, del_p, del_o, true, q, true);
+    } else {
+        Utils::create_directories(dir);
+        DiffIndex3::createDiffIndex(type, dir, diffDir, all_s, all_p, all_o, true, q, true);
+    }
 
     //Write the type of file
     string flagup;
@@ -650,6 +694,29 @@ void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::strin
     ofstream ofs(flagup);
     ofs.close();
 }
+
+int KB::cmp(PairItr *itr, uint64_t s, uint64_t p, uint64_t o) {
+    if (itr->getKey() < s) {
+        return -1;
+    } else if (itr->getKey() == s) {
+        if (itr->getValue1() < p) {
+            return -1;
+        } else if (itr->getValue1() == p) {
+            if (itr->getValue2() < o) {
+                return -1;
+            } else if (itr->getValue2() == o) {
+                return 0;
+            } else {
+                return 1;
+            }
+        } else {
+            return 1;
+        }
+    } else {
+        return 1;
+    }
+}
+
 
 void KB::mergeUpdates() {
 
@@ -674,30 +741,32 @@ void KB::mergeUpdates() {
         return;
     }
 
-    // Note: if the first original diff is an addition, the addition goes first, otherwise the removal
-    // goes first.
-    std::string addName = diffIndices[0]->getType() == DiffIndex::TypeUpdate::ADDITION_df ? "0" : "1";
-    std::string rmName = diffIndices[0]->getType() == DiffIndex::TypeUpdate::ADDITION_df ? "1" : "0";
-    std::string addDir = diffDir + DIR_SEP + addName;
-    std::string rmDir  = diffDir + DIR_SEP + rmName;
-
     Querier *q = query();
+    // Create the single updates with respect to a querier that does not have the diffIndices.
+    // Create querier with empty diffs
+    std::vector<std::unique_ptr<DiffIndex>> diffs;
+
+    Querier *q1 = new Querier(tree, dictManager, files, totalNumberTriples,
+        totalNumberTerms, nindices, ntables, nFirstTables,
+        sampleKB, diffs);
+
     if (addCount >= 1) {
         PairItr *addItr = q->summaryAddDiff();
-        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, addDir, diffDir);
+
+        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, diffDir + DIR_SEP + "0", diffDir, q1);
         q->releaseItr(addItr);
     }
     if (rmCount >= 1) {
         PairItr *rmItr = q->summaryRmDiff();
-        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, rmDir, diffDir);
+        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, diffDir + DIR_SEP + (addCount != 0 ? "1" : "0"), diffDir, q1);
         q->releaseItr(rmItr);
     }
 
+    delete q1;
     delete q;
 
     if (dictUpdates.size() != 0) {
-        Utils::create_directories(addDir);
-        createNewDict(addDir);
+        createNewDict(diffDir + DIR_SEP + "0");
     }
 
     std::string old = oldDiffDir + std::string(".old");

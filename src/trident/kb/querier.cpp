@@ -699,11 +699,31 @@ PairItr *Querier::getTermList(const int perm) {
 }
 
 PairItr *Querier::summaryAddDiff() {
-    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+    PairItr *p = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+    if (p == NULL) {
+        return p;
+    }
+    PairItr *m = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+    if (m == NULL) {
+        return p;
+    }
+    RmItr *newitr = factory14.get();
+    newitr->init(p, m, 0);
+    return newitr;
 }
 
 PairItr *Querier::summaryRmDiff() {
-    return summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+    PairItr *m = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+    if (m == NULL) {
+        return m;
+    }
+    PairItr *p = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+    if (p == NULL) {
+        return m;
+    }
+    RmItr *newitr = factory14.get();
+    newitr->init(m, p, 0);
+    return newitr;
 }
 
 PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp) {

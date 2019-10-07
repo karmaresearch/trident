@@ -109,7 +109,9 @@ class KB {
         void createNewDict(std::string dir);
 
         void createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr,
-                std::string dir, std::string diffDir);
+                std::string dir, std::string diffDir, Querier *q);
+
+        int cmp(PairItr *itr, uint64_t s, uint64_t p, uint64_t o);
 
     public:
         DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
