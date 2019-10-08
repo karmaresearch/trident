@@ -581,7 +581,7 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
     if (Utils::exists(inputdir + DIR_SEP + "dict")) {
         //Load the dictionary
         DictMgmt::Dict ud;
-        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + DIR_SEP + "dict", true, 1, 1, ud.stats.get()));
+        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + DIR_SEP + "dict", true, 1, 16 * 1024 * 1024, ud.stats.get()));
         PropertyMap p;
         p.setBool(TEXT_KEYS, true);
         p.setBool(TEXT_VALUES, false);
