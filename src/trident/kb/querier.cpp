@@ -953,7 +953,7 @@ PairItr *Querier::get(const int idx, const int64_t s, const int64_t p, const int
     if (!diffIndices.empty()) {
 
 #ifdef MT
-        LOG(WARNL) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
+        LOG(DEBUGL) << "The program is compiled with support to multithread, but additional indices are run sequentially.";
 #endif
 
         std::vector<PairItr*> iterators;
