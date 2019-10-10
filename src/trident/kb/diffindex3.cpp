@@ -507,6 +507,8 @@ void DiffIndex3::createDiffIndex(DiffIndex::TypeUpdate update,
     }
     string p_diffdir = diffdir + "/p";
     Utils::create_directories(p_diffdir);
+    // sec = std::chrono::system_clock::now() - start;
+    // LOG(DEBUGL) << "After create directories: " << sec.count() * 1000;
     DiffIndex3::sortIndex(p_outputdir, p_diffdir, IDX_POS, IDX_PSO,
                           idx1, all_p, all_o, all_s, map, q, ufp.get(), true);
 
@@ -1267,6 +1269,8 @@ uint64_t DiffIndex3::storeTablesOnBuffer(const int64_t key,
         int64_t * counters2,
         UpdateStats *statsFirstTerms) {
 
+    // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+
     statsFirstTerms->setKey(key, tmp1.size());
     int64_t unique1 = statsFirstTerms->getCount1();
     int64_t unique2 = statsFirstTerms->getCount2();
@@ -1343,6 +1347,9 @@ uint64_t DiffIndex3::storeTablesOnBuffer(const int64_t key,
         }
     }
 
+    // std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    // LOG(DEBUGL) << "Actual store took " << sec.count() * 1000;
+
     uint32_t pos1 = block1.begin;
     uint32_t pos2 = block2.begin;
     mappedFile1->setLastBlockSize(buffer1 - block1.buffer);
@@ -1374,7 +1381,7 @@ size_t DiffIndex3::sortIndex(string outputdir,
         std::sort(idx1.begin(), idx1.end(), _Sorter(firstcolumn));
     }
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
-    LOG(DEBUGL) << "Sort by first column " << sec.count() * 1000;
+    LOG(DEBUGL) << "Sort by first column " << sec.count() * 1000 << ", idx1.size() = " << idx1.size();
 
     //Init the tree and tmp arrays
     std::vector<uint64_t> tmp1;
@@ -1384,8 +1391,9 @@ size_t DiffIndex3::sortIndex(string outputdir,
     tmp2.reserve(idx1.size());
 
     string file1;
-    const size_t initialsize = min(idx1.size() * sizeof(uint64_t),
-                                   (size_t) 128 * 1024 * 1024);
+    const size_t alignment = MemoryMappedFile::alignment();
+    const size_t sz = ((idx1.size() * 2 * sizeof(uint64_t) + alignment - 1) / alignment) * alignment;
+    const size_t initialsize = min(sz, (size_t) 64 * 1024 * 1024);
     LOG(DEBUGL) << "Initial size: " << initialsize;
     if (idx1.size() < THRESHOLD_USEGLOBALFILES) { //If the update is small, then I store it in a single global file
         file1 = globaloutputdir + "/p0";
