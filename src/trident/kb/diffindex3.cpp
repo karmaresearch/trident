@@ -1239,7 +1239,7 @@ bool DiffIndex3::shouldUseColumns(const std::vector<uint64_t> &table) {
         const int idx = rand() % table.size();
         const int64_t key = table[idx] >> 32;
         countrepet++;
-        for (int j = idx; j < idx + 5 && idx < table.size(); ++j) {
+        for (int j = idx + 1; j < idx + 5 && j < table.size(); ++j) {
             const int64_t ckey = table[j] >> 32;
             if (key == ckey) {
                 countrepet++;
@@ -1247,9 +1247,8 @@ bool DiffIndex3::shouldUseColumns(const std::vector<uint64_t> &table) {
                 break;
             }
         }
-
     }
-    if (countrepet / 5 > 3) {
+    if (countrepet / 5 >= 3) {
         return true;
     } else {
         return false;
@@ -1381,6 +1380,8 @@ size_t DiffIndex3::sortIndex(string outputdir,
     std::vector<uint64_t> tmp1;
     std::vector<uint64_t> tmp2;
 
+    tmp1.reserve(idx1.size());
+    tmp2.reserve(idx1.size());
 
     string file1;
     const size_t initialsize = min(idx1.size() * sizeof(uint64_t),
@@ -1467,6 +1468,7 @@ size_t DiffIndex3::sortIndex(string outputdir,
         if (sort) {
             std::sort(tmp1.begin(), tmp1.end());
             std::sort(tmp2.begin(), tmp2.end());
+            nsorts++;
         }
         nvalid += storeTablesOnBuffer(prevkey, tmp1, tmp2, perm1, perm2,
                                       mappedFile1, mappedFile2,
