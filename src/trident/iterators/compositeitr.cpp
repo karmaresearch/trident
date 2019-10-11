@@ -68,6 +68,12 @@ bool CompositeItr::hasNext() {
     return hn;
 }
 
+bool _composite_itr_sorter(PairItr *i1, PairItr *i2) {
+    return i1->getValue1() > i2->getValue1() ||
+           (i1->getValue1() == i2->getValue1() &&
+            i1->getValue2() > i2->getValue2());
+}
+
 void CompositeItr::next() {
     if (!hnc) {
         hasNext();
@@ -81,8 +87,19 @@ void CompositeItr::next() {
                     children[i]->next();
                 }
             }
+            rearrangeChildren();
+        } else {
+            // Only shifted the last child, so move it into place.
+            for (int i = lastIdx; i > 0; i--) {
+                if (_composite_itr_sorter(children[i], children[i-1])) {
+                    PairItr *box = children[i];
+                    children[i] = children[i-1];
+                    children[i-1] = box;
+                } else {
+                    break;
+                }
+            }
         }
-        rearrangeChildren();
     }
 
     v1 = children[lastIdx]->getValue1();
@@ -114,12 +131,6 @@ void CompositeItr::ignoreSecondColumn() {
 
 DiffIndex *CompositeItr::getCurrentDiff() {
     return currentdiff;
-}
-
-bool _composite_itr_sorter(PairItr *i1, PairItr *i2) {
-    return i1->getValue1() > i2->getValue1() ||
-           (i1->getValue1() == i2->getValue1() &&
-            i1->getValue2() > i2->getValue2());
 }
 
 void CompositeItr::rearrangeChildren() {

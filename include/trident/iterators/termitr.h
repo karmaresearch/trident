@@ -35,6 +35,7 @@ class TermItr: public PairItr {
         TableStorage *tables;
         size_t currentfile, nfiles;
         int64_t currentMark;
+        int64_t cachedCount;
         const char *buffer;
         const char *endbuffer;
         uint64_t size;

@@ -113,6 +113,21 @@ public:
         return getCardinality();
     }
 
+    void moveToKey(int64_t target) {
+        int64_t key;
+        while (hasNext() && (key = activechildren.back()->getKey()) < target) {
+            for (int i = activechildren.size() - 1; i >= 0; i--) {
+                if (activechildren[i]->getKey() == key) {
+                    if (activechildren[i]->hasNext()) {
+                        activechildren[i]->next();
+                    } else {
+                        activechildren.erase(activechildren.begin() + i);
+                    }
+                }
+            }
+	    }
+    }
+
     void next() {
         const int64_t key = activechildren.back()->getKey();
         setKey(key);
