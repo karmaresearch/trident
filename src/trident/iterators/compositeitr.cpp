@@ -80,13 +80,17 @@ void CompositeItr::next() {
     }
 
     if (!decreasedKey) {
+        bool mustReArrange = false;
         children[lastIdx]->next();
         if (!isSorted || ignseccol) {
             for (int i = lastIdx - 1; i >= 0; i--) {
                 if (!isSorted || v1 == children[i]->getValue1()) {
                     children[i]->next();
+                    mustReArrange = true;
                 }
             }
+        }
+        if (mustReArrange) {
             rearrangeChildren();
         } else {
             // Only shifted the last child, so move it into place.
