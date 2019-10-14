@@ -79,6 +79,21 @@ public:
     }
 
     int64_t getCount() {
+        if (hnc) {
+            // Does not work when hasNext() is called, because then the underlying iterators
+            // may have been shifted already.
+            throw 10;
+        }
+        if (currentCount == -1) {
+            if (nextCount != -1) {
+                currentCount = nextCount;
+            }
+            else if (rmitr->getKey() != mainitr->getKey()) {
+                currentCount = mainitr->getCount();
+            } else {
+                currentCount = mainitr->getCount() - rmitr->getCount();
+            }
+        }
         return currentCount;
     }
 
@@ -86,15 +101,18 @@ public:
         if (hnc)
             return hn;
 
+        nextCount = -1;
         hn = false;
         if (mainitr->hasNext()) {
             mainitr->next();
             while (true) {
+                if (rmitr->hasNext() && rmitr->getTypeItr() == COMPOSITETERM_ITR) {
+                    ((CompositeTermItr *) rmitr)->moveToKey(mainitr->getKey());
+                }
                 while (rmitr->getKey() < mainitr->getKey() && rmitr->hasNext()) {
                     rmitr->next();
                 }
                 if (rmitr->getKey() != mainitr->getKey()) {
-                    nextCount = mainitr->getCount();
                     hn = true;
                     break;
                 } else {
@@ -111,7 +129,7 @@ public:
                             break;
                         }
                     } else {
-                        nextCount = mainitr->getCount() - rmitr->getCount();
+                        nextCount = maincount - rmcount;
                         hn = true;
                         break;
                     }
@@ -135,7 +153,7 @@ public:
             return;
         }
         setKey(mainitr->getKey());
-        currentCount = nextCount;
+        currentCount = -1;
         hnc = false;
     }
 
@@ -143,11 +161,12 @@ public:
 	initializeConstraints();
         this->mainitr = mainitr;
         this->rmitr = rmitr;
-        this->currentCount = 0;
         if (rmitr->hasNext())
             rmitr->next();
         hnc = false;
         hn = false;
+        currentCount = -1;
+        nextCount = -1;
     }
 };
 
