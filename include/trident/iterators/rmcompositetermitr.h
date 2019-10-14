@@ -106,9 +106,6 @@ public:
         if (mainitr->hasNext()) {
             mainitr->next();
             while (true) {
-                if (rmitr->hasNext() && rmitr->getTypeItr() == COMPOSITETERM_ITR) {
-                    ((CompositeTermItr *) rmitr)->moveToKey(mainitr->getKey());
-                }
                 while (rmitr->getKey() < mainitr->getKey() && rmitr->hasNext()) {
                     rmitr->next();
                 }
