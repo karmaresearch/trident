@@ -248,41 +248,34 @@ ENDIF()
 
 #Create Python library
 IF(PYTHON)
-    include(FindPkgConfig)
-    set(Python_ADDITIONAL_VERSIONS 3.5)
-    pkg_check_modules(PY3 REQUIRED QUIET python3)
-    find_package(PythonLibs REQUIRED)
-    IF(PY3_FOUND)
-	INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
-	LINK_DIRECTORIES(${PYTHON_LIBRARY})
-	message("Python include path = ${PYTHON_INCLUDE_DIRS}")
+    #include(FindPkgConfig)
+    #set(Python_ADDITIONAL_VERSIONS 3.5)
+    #pkg_check_modules(PY3 REQUIRED QUIET python3)
+    #find_package(PythonLibs REQUIRED)
+
+    find_package (Python3 COMPONENTS Interpreter Development)
+    IF(Python3_FOUND)
+	    INCLUDE_DIRECTORIES(${Python3_INCLUDE_DIRS})
+        #message("Python include path = ${Python3_INCLUDE_DIRS}")
     ENDIF()
     #NumPY
-    if(NOT PYTHON_EXECUTABLE)
-        if(NumPy_FIND_QUIETLY)
-            find_package(PythonInterp 3 QUIET)
-        else()
-            find_package(PythonInterp 3)
-            set(__numpy_out 1)
-        endif()
-    endif()
-    if (PYTHON_EXECUTABLE)
+    if (Python3_EXECUTABLE)
         # Find out the include path
         execute_process(
-            COMMAND "${PYTHON_EXECUTABLE}" -c
+            COMMAND "${Python3_EXECUTABLE}" -c
             "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
             OUTPUT_VARIABLE __numpy_path)
         # And the version
         execute_process(
-            COMMAND "${PYTHON_EXECUTABLE}" -c
+            COMMAND "${Python3_EXECUTABLE}" -c
             "from __future__ import print_function\ntry: import numpy; print(numpy.__version__, end='')\nexcept:pass\n"
             OUTPUT_VARIABLE __numpy_version)
     elseif(__numpy_out)
         message(STATUS "Python executable not found.")
-    endif(PYTHON_EXECUTABLE)
-    find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
-        HINTS "${__numpy_path}" "${PYTHON_INCLUDE_PATH}" NO_DEFAULT_PATH)
+    endif(Python3_EXECUTABLE)
 
+    find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
+        HINTS "${__numpy_path}" "${Python3_INCLUDE_DIRS}" NO_DEFAULT_PATH)
     if(PYTHON_NUMPY_INCLUDE_DIR)
         set(PYTHON_NUMPY_FOUND 1 CACHE INTERNAL "Python numpy found")
         include_directories(${PYTHON_NUMPY_INCLUDE_DIR} SYSTEM)
@@ -296,7 +289,7 @@ IF(PYTHON)
     add_library(tridentp SHARED ${tridentp_SRC}) #Python library
     set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
     set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana ${PY3_LIBRARIES})
+    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana ${Python3_LIBRARIES})
 ENDIF()
 
 if(JAVA)
