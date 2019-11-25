@@ -212,6 +212,7 @@ void TridentServer::processRequest(std::string req, std::string &res) {
     string page;
     string message = "";
     bool isjson = false;
+    bool isfile = false;
 
     if (Utils::starts_with(req, "POST")) {
         int pos = req.find("HTTP");
@@ -282,15 +283,38 @@ void TridentServer::processRequest(std::string req, std::string &res) {
         if (path.size() > 1) {
             page = getPage(path);
         }
+        isfile = true;
     }
 
     if (page == "") {
         //return the main page
         page = getDefaultPage();
-    }
-    if (isjson) {
-        res = "HTTP/1.1 200 OK\r\nContent-Type: application/json\nContent-Length: ";
+
+        res = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Type:";
+        res+= to_string(page.size()) + "\r\n\r\n" + page;
+
+    } else if (isjson) {
+        res = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ";
         res += to_string(page.size()) + "\r\n\r\n" + page;
+    } else if (isfile) {
+        // Try to actually get the correct MIME type
+        res = "HTTP/1.1 200 OK\r\n";
+
+        // Extremely bad matching of types, just works for the basic css and js files
+        string type = "text/plain";
+        int foundjs = req.find(".js");
+        if (foundjs != -1) {
+            type = "text/javascript";
+        }
+        int foundcss = req.find(".css");
+        if (foundcss != -1) {
+            type = "text/css";
+        }
+
+        res+= "Content-Type: ";
+        res += type + "\r\n";
+        res += "Content-Length: ";
+        res+= to_string(page.size()) + "\r\n\r\n" + page;
     } else {
         res = "HTTP/1.1 200 OK\r\nContent-Length: ";
         res+= to_string(page.size()) + "\r\n\r\n" + page;
