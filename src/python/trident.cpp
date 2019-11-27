@@ -761,6 +761,52 @@ static PyObject * db_search_id(PyObject *self, PyObject *args) {
     return obj;
 }
 
+static PyObject * db_join_e2e(PyObject *self, PyObject *args) {
+    long lh_idx, lh_key, lh_firstval;
+    long rh_idx, rh_key, rh_firstval;
+    if (!PyArg_ParseTuple(args, "llllll", &lh_idx, &lh_key, &lh_firstval,
+                &rh_idx, &rh_key, &rh_firstval)) {
+        return NULL;
+    }
+    Querier *q = ((trident_Db*)self)->q;
+    PyObject *obj = PyList_New(0);
+    PairItr *itr_lh = q->getPermuted(lh_idx, lh_key, lh_firstval, -1, true);
+    PairItr *itr_rh = q->getPermuted(rh_idx, rh_key, rh_firstval, -1, true);
+    bool move_l = true;
+    bool move_r = true;
+    while (true) {
+        if (move_l) {
+            if (itr_lh->hasNext()) {
+                itr_lh->next();
+            } else {
+                break;
+            }
+            move_l = false;
+        }
+        if (move_r) {
+            if (itr_rh->hasNext()) {
+                itr_rh->next();
+            } else {
+                break;
+            }
+            move_r = false;
+        }
+        if (itr_lh->getValue2() == itr_rh->getValue2()) {
+            PyObject *value = PyLong_FromLong(itr_lh->getValue2());
+            PyList_Append(obj, value);
+            Py_DECREF(value);
+            move_l = move_r = true;
+        } else if (itr_lh->getValue2() < itr_rh->getValue2()) {
+            move_l = true;
+        } else {
+            move_r = true;
+        }
+    }
+    q->releaseItr(itr_lh);
+    q->releaseItr(itr_rh);
+    return obj;
+}
+
 static void db_dealloc(trident_Db* self) {
     if (self->q)
         delete self->q;
@@ -804,6 +850,7 @@ static PyMethodDef Db_methods[] = {
     {"lookup_str", db_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
     {"lookup_relstr", db_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
     {"search_id", db_search_id, METH_VARARGS, "Search for the IDs of terms" },
+    {"join_e2e", db_join_e2e, METH_VARARGS, "Return the subset of entities of a pattern like <?x p1 o1> is also in another patter <?x p2 o2>. The first three argumenta are the index to use for the first pattern, the key, and second value. Then, the last three arguments refer to the second pattern." },
     {"load", (PyCFunction) db_loadFromFiles, METH_VARARGS | METH_KEYWORDS, "Load a graph from a set of files." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
