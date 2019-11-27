@@ -513,20 +513,21 @@ static PyObject *db_all(PyObject *self, PyObject *args) {
 
     int perm = IDX_SPO;
     if (permutation) {
-        if (strcmp(permutation, "SPO")) {
+        if (strcmp(permutation, "SPO") == 0) {
             perm = IDX_SPO;
-        } else if (strcmp(permutation, "SOP")) {
+        } else if (strcmp(permutation, "SOP") == 0) {
             perm = IDX_SOP;
-        } else if (strcmp(permutation, "OPS")) {
+        } else if (strcmp(permutation, "OPS") == 0) {
             perm = IDX_OPS;
-        } else if (strcmp(permutation, "OSP")) {
+        } else if (strcmp(permutation, "OSP") == 0) {
             perm = IDX_OSP;
-        } else if (strcmp(permutation, "POS")) {
+        } else if (strcmp(permutation, "POS") == 0) {
             perm = IDX_POS;
-        } else if (strcmp(permutation, "PSO")) {
+        } else if (strcmp(permutation, "PSO") == 0) {
             perm = IDX_PSO;
         } else {
             //Should throw an exception ...
+            throw 10;
         }
     }
 
