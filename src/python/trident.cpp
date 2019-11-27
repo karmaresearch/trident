@@ -507,14 +507,34 @@ static PyObject *db_outdegree(PyObject *self, PyObject *args) {
 
 static PyObject *db_all(PyObject *self, PyObject *args) {
     int text = 0;
-    if (!PyArg_ParseTuple(args, "|b", &text))
+    const char *permutation;
+    if (!PyArg_ParseTuple(args, "|zb", &permutation, &text))
         return NULL;
+
+    int perm = IDX_SPO;
+    if (permutation) {
+        if (strcmp(permutation, "SPO")) {
+            perm = IDX_SPO;
+        } else if (strcmp(permutation, "SOP")) {
+            perm = IDX_SOP;
+        } else if (strcmp(permutation, "OPS")) {
+            perm = IDX_OPS;
+        } else if (strcmp(permutation, "OSP")) {
+            perm = IDX_OSP;
+        } else if (strcmp(permutation, "POS")) {
+            perm = IDX_POS;
+        } else if (strcmp(permutation, "PSO")) {
+            perm = IDX_PSO;
+        } else {
+            //Should throw an exception ...
+        }
+    }
 
     char term[MAX_TERM_SIZE];
     Querier *q = ((trident_Db*)self)->q;
     DictMgmt *dict =  ((trident_Db*)self)->kb->getDictMgmt();
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_SPO, -1, -1, -1, true);
+    PairItr *itr = q->getPermuted(perm, -1, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
         int64_t s = itr->getKey();
