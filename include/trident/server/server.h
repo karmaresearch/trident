@@ -33,12 +33,6 @@ class TridentServer {
 
         void startThread(int port);
 
-        static void parseQuery(bool &success,
-                SPARQLParser &parser,
-                std::unique_ptr<QueryGraph> &queryGraph,
-                QueryDict &queryDict,
-                TridentLayer &db);
-
         void processRequest(std::string req, std::string &resp);
 
     public:
@@ -83,15 +77,5 @@ class TridentServer {
         //OK
         static string lookup(string sId, TridentLayer &db);
 
-        //OK
-        static void execSPARQLQuery(string sparqlquery,
-                bool explain,
-                int64_t nterms,
-                TridentLayer &db,
-                bool printstdout,
-                bool jsonoutput,
-                JSON *jsonvars,
-                JSON *jsonresults,
-                JSON *jsonstats);
 };
 #endif

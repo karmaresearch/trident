@@ -30,6 +30,9 @@
 #include <trident/tree/stringbuffer.h>
 #include <trident/loader.h>
 
+#include <trident/sparql/sparql.h>
+#include <trident/utils/json.h>
+
 #include <kognac/logs.h>
 #include <kognac/utils.h>
 
@@ -62,6 +65,7 @@ static int db_init(trident_Db *self, PyObject *args, PyObject *kwds) {
         std::vector<string> locUpdates;
         self->kb = new KB(path, true, false, true, config, locUpdates);
         self->q = self->kb->query();
+        self->db = std::unique_ptr<TridentLayer>(new TridentLayer(*(self->kb)));
     }
     return 0;
 }
@@ -807,6 +811,40 @@ static PyObject * db_join_e2e(PyObject *self, PyObject *args) {
     return obj;
 }
 
+static PyObject * db_sparql(PyObject *self, PyObject *args) {
+    const char *query = NULL;
+    if (!PyArg_ParseTuple(args, "s", &query))
+        return NULL;
+
+    KB *kb = ((trident_Db*)self)->kb;
+    JSON vars;
+    JSON bindings;
+    JSON stats;
+    SPARQLUtils::execSPARQLQuery(
+            std::string(query),
+            false,
+            kb->getNTerms(),
+            *((trident_Db*)self)->db.get(),
+            false,
+            true,
+            &vars,
+            &bindings,
+            &stats);
+    JSON head;
+    head.add_child("vars", vars);
+    JSON pt;
+    pt.add_child("head", head);
+    JSON results;
+    results.add_child("bindings", bindings);
+    pt.add_child("results", results);
+    pt.add_child("stats", stats);
+
+    std::ostringstream buf;
+    JSON::write(buf, pt);
+    std::string out = buf.str();
+    return PyUnicode_FromStringAndSize(out.c_str(), out.size());
+}
+
 static void db_dealloc(trident_Db* self) {
     if (self->q)
         delete self->q;
@@ -821,6 +859,7 @@ static void db_dealloc(trident_Db* self) {
 }
 
 static PyMethodDef Db_methods[] = {
+    {"sparql", db_sparql, METH_VARARGS, "Execute SPARQL query." },
     {"s", db_alls, METH_VARARGS, "Get all subjects given the p and o. Returns a Python list." },
     {"s_itr", db_alls_fast, METH_VARARGS, "Get all subjects given the p and o. Returns an itr." },
     {"s_aggr", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
