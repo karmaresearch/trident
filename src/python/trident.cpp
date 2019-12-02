@@ -30,6 +30,9 @@
 #include <trident/tree/stringbuffer.h>
 #include <trident/loader.h>
 
+#include <trident/sparql/sparql.h>
+#include <trident/utils/json.h>
+
 #include <kognac/logs.h>
 #include <kognac/utils.h>
 
@@ -62,6 +65,7 @@ static int db_init(trident_Db *self, PyObject *args, PyObject *kwds) {
         std::vector<string> locUpdates;
         self->kb = new KB(path, true, false, true, config, locUpdates);
         self->q = self->kb->query();
+        self->db = std::unique_ptr<TridentLayer>(new TridentLayer(*(self->kb)));
     }
     return 0;
 }
@@ -507,14 +511,35 @@ static PyObject *db_outdegree(PyObject *self, PyObject *args) {
 
 static PyObject *db_all(PyObject *self, PyObject *args) {
     int text = 0;
-    if (!PyArg_ParseTuple(args, "|b", &text))
+    const char *permutation;
+    if (!PyArg_ParseTuple(args, "|zb", &permutation, &text))
         return NULL;
+
+    int perm = IDX_SPO;
+    if (permutation) {
+        if (strcmp(permutation, "SPO") == 0) {
+            perm = IDX_SPO;
+        } else if (strcmp(permutation, "SOP") == 0) {
+            perm = IDX_SOP;
+        } else if (strcmp(permutation, "OPS") == 0) {
+            perm = IDX_OPS;
+        } else if (strcmp(permutation, "OSP") == 0) {
+            perm = IDX_OSP;
+        } else if (strcmp(permutation, "POS") == 0) {
+            perm = IDX_POS;
+        } else if (strcmp(permutation, "PSO") == 0) {
+            perm = IDX_PSO;
+        } else {
+            //Should throw an exception ...
+            throw 10;
+        }
+    }
 
     char term[MAX_TERM_SIZE];
     Querier *q = ((trident_Db*)self)->q;
     DictMgmt *dict =  ((trident_Db*)self)->kb->getDictMgmt();
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_SPO, -1, -1, -1, true);
+    PairItr *itr = q->getPermuted(perm, -1, -1, -1, true);
     while (itr->hasNext()) {
         itr->next();
         int64_t s = itr->getKey();
@@ -740,6 +765,86 @@ static PyObject * db_search_id(PyObject *self, PyObject *args) {
     return obj;
 }
 
+static PyObject * db_join_e2e(PyObject *self, PyObject *args) {
+    long lh_idx, lh_key, lh_firstval;
+    long rh_idx, rh_key, rh_firstval;
+    if (!PyArg_ParseTuple(args, "llllll", &lh_idx, &lh_key, &lh_firstval,
+                &rh_idx, &rh_key, &rh_firstval)) {
+        return NULL;
+    }
+    Querier *q = ((trident_Db*)self)->q;
+    PyObject *obj = PyList_New(0);
+    PairItr *itr_lh = q->getPermuted(lh_idx, lh_key, lh_firstval, -1, true);
+    PairItr *itr_rh = q->getPermuted(rh_idx, rh_key, rh_firstval, -1, true);
+    bool move_l = true;
+    bool move_r = true;
+    while (true) {
+        if (move_l) {
+            if (itr_lh->hasNext()) {
+                itr_lh->next();
+            } else {
+                break;
+            }
+            move_l = false;
+        }
+        if (move_r) {
+            if (itr_rh->hasNext()) {
+                itr_rh->next();
+            } else {
+                break;
+            }
+            move_r = false;
+        }
+        if (itr_lh->getValue2() == itr_rh->getValue2()) {
+            PyObject *value = PyLong_FromLong(itr_lh->getValue2());
+            PyList_Append(obj, value);
+            Py_DECREF(value);
+            move_l = move_r = true;
+        } else if (itr_lh->getValue2() < itr_rh->getValue2()) {
+            move_l = true;
+        } else {
+            move_r = true;
+        }
+    }
+    q->releaseItr(itr_lh);
+    q->releaseItr(itr_rh);
+    return obj;
+}
+
+static PyObject * db_sparql(PyObject *self, PyObject *args) {
+    const char *query = NULL;
+    if (!PyArg_ParseTuple(args, "s", &query))
+        return NULL;
+
+    KB *kb = ((trident_Db*)self)->kb;
+    JSON vars;
+    JSON bindings;
+    JSON stats;
+    SPARQLUtils::execSPARQLQuery(
+            std::string(query),
+            false,
+            kb->getNTerms(),
+            *((trident_Db*)self)->db.get(),
+            false,
+            true,
+            &vars,
+            &bindings,
+            &stats);
+    JSON head;
+    head.add_child("vars", vars);
+    JSON pt;
+    pt.add_child("head", head);
+    JSON results;
+    results.add_child("bindings", bindings);
+    pt.add_child("results", results);
+    pt.add_child("stats", stats);
+
+    std::ostringstream buf;
+    JSON::write(buf, pt);
+    std::string out = buf.str();
+    return PyUnicode_FromStringAndSize(out.c_str(), out.size());
+}
+
 static void db_dealloc(trident_Db* self) {
     if (self->q)
         delete self->q;
@@ -754,6 +859,7 @@ static void db_dealloc(trident_Db* self) {
 }
 
 static PyMethodDef Db_methods[] = {
+    {"sparql", db_sparql, METH_VARARGS, "Execute SPARQL query." },
     {"s", db_alls, METH_VARARGS, "Get all subjects given the p and o. Returns a Python list." },
     {"s_itr", db_alls_fast, METH_VARARGS, "Get all subjects given the p and o. Returns an itr." },
     {"s_aggr", db_alls_aggr, METH_VARARGS, "Get all subjects given o" },
@@ -783,6 +889,7 @@ static PyMethodDef Db_methods[] = {
     {"lookup_str", db_lookup_str, METH_VARARGS, "Lookup for the textual version of an entity ID" },
     {"lookup_relstr", db_lookup_relstr, METH_VARARGS, "Lookup for the textual version of a relation ID" },
     {"search_id", db_search_id, METH_VARARGS, "Search for the IDs of terms" },
+    {"join_e2e", db_join_e2e, METH_VARARGS, "Return the subset of entities of a pattern like <?x p1 o1> is also in another patter <?x p2 o2>. The first three argumenta are the index to use for the first pattern, the key, and second value. Then, the last three arguments refer to the second pattern." },
     {"load", (PyCFunction) db_loadFromFiles, METH_VARARGS | METH_KEYWORDS, "Load a graph from a set of files." },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };

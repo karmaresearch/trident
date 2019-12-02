@@ -383,9 +383,9 @@ void StringBuffer::uncompressBlock(int b) {
     if (b == sizeCompressedBlocks.size() - 1) {
         sizeUncompressed = uncompressedSize % SB_BLOCK_SIZE;
     }
-    int bytesUncompressed = LZ4_decompress_fast(uncompressSupportBuffer,
+    int bytesUncompressed = LZ4_decompress_safe(uncompressSupportBuffer,
                             uncompressedBuffer,
-                            sizeUncompressed);
+                            length, sizeUncompressed);
     stats->incrNReadIndexBlocks();
     stats->addNReadIndexBytes(length);
     if (bytesUncompressed < 0) {
