@@ -1,5 +1,6 @@
 #include <trident/server/server.h>
 #include <trident/utils/httpclient.h>
+#include <trident/sparql/sparql.h>
 
 #include <cts/parser/SPARQLLexer.hpp>
 #include <cts/semana/SemanticAnalysis.hpp>
@@ -109,7 +110,7 @@ void TridentServer::processRequest(std::string req, std::string &res) {
             JSON bindings;
             JSON stats;
             bool jsonoutput = printresults != string("false");
-            TridentServer::execSPARQLQuery(sparqlquery,
+            SPARQLUtils::execSPARQLQuery(sparqlquery,
                     false,
                     kb.getNTerms(),
                     kb,
