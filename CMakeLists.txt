@@ -36,9 +36,10 @@ IF(SPARQL)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DSPARQL=1")
 ENDIF()
 IF(PYTHON)
-    message("PYTHON forces the enabling of ML and ANALYTICS")
+    message("PYTHON forces the enabling of ML, SPARQL and ANALYTICS")
     set(ML "1")
     set(ANALYTICS "1")
+    set(SPARQL "1")
 ENDIF()
 if(ANALYTICS)
     set(COMPILE_FLAGS "${COMPILE_FLAGS} -DANALYTICS=1")
@@ -52,9 +53,9 @@ ENDIF()
 
 #Set compiler options
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
-set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
+    set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
+    set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
 endif()
 
 #Set to release mode if nothing is specified
@@ -121,18 +122,33 @@ ENDIF()
 
 #LZ4
 # find_library(lz4 lz4)
-# find_path (lz4h lz4.h)
-# IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
+# find_path(lz4h lz4.h)
+# IF (${lz4h} STREQUAL "lz4h-NOTFOUND")
 #     message("Could not find LZ4. I'm going to use the version from kognac")
-    message("using the lz4 version from kognac")
-    set(LZ4_LIB "${KOGNAC_LIB}/external/lz4/lib")
-    include_directories(${LZ4_LIB})
-    LINK_DIRECTORIES(${LZ4_LIB})
+    message("I'm going to use LZ4 the version from kognac")
+    include_directories(${KOGNAC_LIB}/external/lz4/lib/)
+    LINK_DIRECTORIES(${KOGNAC_LIB}/external/lz4/lib)
     add_library(lz4 STATIC IMPORTED)
-    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION "${LZ4_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION ${KOGNAC_LIB}/external/lz4/lib/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX})
 # ELSE()
 # include_directories(lz4h)
-# message("-- Found LZ4")
+#    message("-- Found LZ4")
+# ENDIF()
+
+#LZ4
+# find_library(lz4 lz4)
+# find_path (lz4h lz4.h)
+# IF ((${lz4h} STREQUAL "lz4h-NOTFOUND"))
+    #     message("Could not find LZ4. I'm going to use the version from kognac")
+    #     message("using the lz4 version from kognac")
+    # set(LZ4_LIB "${KOGNAC_LIB}/external/lz4/lib")
+    # include_directories(${LZ4_LIB})
+    # LINK_DIRECTORIES(${LZ4_LIB})
+    # add_library(lz4 STATIC IMPORTED)
+    # set_property(TARGET lz4 PROPERTY IMPORTED_LOCATION "${LZ4_LIB}/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    # ELSE()
+    # include_directories(lz4h)
+    # message("-- Found LZ4")
 # ENDIF()
 
 #Create the core library
@@ -248,41 +264,34 @@ ENDIF()
 
 #Create Python library
 IF(PYTHON)
-    include(FindPkgConfig)
-    set(Python_ADDITIONAL_VERSIONS 3.5)
-    pkg_check_modules(PY3 REQUIRED QUIET python3)
-    find_package(PythonLibs REQUIRED)
-    IF(PY3_FOUND)
-	INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
-	LINK_DIRECTORIES(${PYTHON_LIBRARY})
-	message("Python include path = ${PYTHON_INCLUDE_DIRS}")
+    #include(FindPkgConfig)
+    #set(Python_ADDITIONAL_VERSIONS 3.5)
+    #pkg_check_modules(PY3 REQUIRED QUIET python3)
+    #find_package(PythonLibs REQUIRED)
+
+    find_package (Python3 COMPONENTS Interpreter Development)
+    IF(Python3_FOUND)
+        INCLUDE_DIRECTORIES(${Python3_INCLUDE_DIRS})
+        #message("Python include path = ${Python3_INCLUDE_DIRS}")
     ENDIF()
     #NumPY
-    if(NOT PYTHON_EXECUTABLE)
-        if(NumPy_FIND_QUIETLY)
-            find_package(PythonInterp 3 QUIET)
-        else()
-            find_package(PythonInterp 3)
-            set(__numpy_out 1)
-        endif()
-    endif()
-    if (PYTHON_EXECUTABLE)
+    if (Python3_EXECUTABLE)
         # Find out the include path
         execute_process(
-            COMMAND "${PYTHON_EXECUTABLE}" -c
+            COMMAND "${Python3_EXECUTABLE}" -c
             "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
             OUTPUT_VARIABLE __numpy_path)
         # And the version
         execute_process(
-            COMMAND "${PYTHON_EXECUTABLE}" -c
+            COMMAND "${Python3_EXECUTABLE}" -c
             "from __future__ import print_function\ntry: import numpy; print(numpy.__version__, end='')\nexcept:pass\n"
             OUTPUT_VARIABLE __numpy_version)
     elseif(__numpy_out)
         message(STATUS "Python executable not found.")
-    endif(PYTHON_EXECUTABLE)
-    find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
-        HINTS "${__numpy_path}" "${PYTHON_INCLUDE_PATH}" NO_DEFAULT_PATH)
+    endif(Python3_EXECUTABLE)
 
+    find_path(PYTHON_NUMPY_INCLUDE_DIR numpy/arrayobject.h
+        HINTS "${__numpy_path}" "${Python3_INCLUDE_DIRS}" NO_DEFAULT_PATH)
     if(PYTHON_NUMPY_INCLUDE_DIR)
         set(PYTHON_NUMPY_FOUND 1 CACHE INTERNAL "Python numpy found")
         include_directories(${PYTHON_NUMPY_INCLUDE_DIR} SYSTEM)
@@ -296,7 +305,7 @@ IF(PYTHON)
     add_library(tridentp SHARED ${tridentp_SRC}) #Python library
     set_target_properties(tridentp PROPERTIES OUTPUT_NAME "trident" PREFIX "" SUFFIX ".so")
     set_target_properties(tridentp PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
-    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana ${PY3_LIBRARIES})
+    TARGET_LINK_LIBRARIES(tridentp trident-core trident-ml trident-ana trident-sparql ${Python3_LIBRARIES})
 ENDIF()
 
 if(JAVA)
@@ -307,4 +316,3 @@ if(JAVA)
     add_jar(jtrident ${javaSRC} trident-java trident-core trident-sparql kognac-core GENERATE_NATIVE_HEADERS headers DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/src/trident/java/native/)
     add_dependencies(jtrident trident-java)
 ENDIF()
-
