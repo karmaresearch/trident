@@ -29,6 +29,8 @@
 #include <functional>
 #include <array>
 
+
+/* Not used ...
 struct __PermSorter_sorter {
     char *rawinput;
     const int o1;
@@ -57,6 +59,7 @@ struct __PermSorter_sorter {
         return false;
     }
 };
+*/
 
 typedef std::array<unsigned char, 15> __PermSorter_triple;
 
@@ -449,7 +452,7 @@ void PermSorter::sortChunks(string inputdir,
 
     LOG(DEBUGL) << "Start sortChunks";
     //calculate the number of elements
-    int64_t mem = Utils::getSystemMemory() * 0.4; //it's low because merge sort requires doubles the amount...
+    int64_t mem = Utils::getSystemMemory() * 0.4; //it's low because merge sort requires double the amount...
     int nperms = additionalPermutations.size() + 1;
     int64_t nelements = mem / (15 * nperms);
     int64_t elementsMainMem = max((int64_t)parallelProcesses,
