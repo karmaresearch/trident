@@ -268,6 +268,17 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
     /***** LOAD *****/
     ParamsLoad p;
+
+    int nHardwareThreads = std::thread::hardware_concurrency();
+    if (nHardwareThreads == 0) {
+        nHardwareThreads = 8;
+    }
+    int defaultConcurrentReaders = 2;
+
+    if (nHardwareThreads % defaultConcurrentReaders != 0) {
+        defaultConcurrentReaders = 1;
+    }
+
     ProgramArgs::GroupArgs& load_options = *vm.newGroup("Options for <load>");
     load_options.add<string>("","inputformat", "rdf", "Input format. Can be either 'rdf' or 'snap'. Default is 'rdf'.", false);
     load_options.add<string>("","comprinput", "", "Path to a file that contains a list of compressed triples.", false);
@@ -278,7 +289,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     load_options.add<string>("","tmpdir", "", "Path to store the temporary files used during loading. Default is the output directory.", false);
     load_options.add<string>("d","dictMethod", p.dictMethod, "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.", false);
     load_options.add<string>("","popMethod", "hash", "Method to use to identify the popular terms. Can be either 'sample' or 'hash'. Default is 'hash'", false);
-    load_options.add<int>("","maxThreads", p.parallelThreads, "Sets the maximum number of threads to use during the compression. Default is '8'", false);
+    load_options.add<int>("","maxThreads", nHardwareThreads,"Sets the maximum number of threads to use during the compression. Default is the number of hardware threads", false);
     load_options.add<int>("","readThreads", p.maxReadingThreads, "Sets the number of concurrent threads that reads the raw input. Default is '2'", false);
     load_options.add<int>("","ndicts", p.dictionaries, "Sets the number dictionary partitions. Default is '1'", false);
     load_options.add<bool>("","skipTables", p.canSkipTables, "Skip storage of some tables. Default is 'false'", false);
