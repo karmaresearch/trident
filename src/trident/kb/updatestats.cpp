@@ -58,9 +58,6 @@ void UpdateStats_add::setKey(const int64_t key, const size_t sizetable) {
         nkeys++;
         isNew = true;
     } else {
-        if (existingkeys->hasNext() && existingkeys->getTypeItr() == COMPOSITETERM_ITR) {
-            ((CompositeTermItr *) existingkeys)->moveToKey(key);
-        }
         while (currentkey < key && existingkeys->hasNext()) {
             existingkeys->next();
             currentkey = existingkeys->getKey();
@@ -161,9 +158,6 @@ void UpdateStats_add::addFirst2(const int64_t v, const int64_t count) {
 
 void UpdateStats_rm::setKey(const int64_t key, const size_t sizetable) {
     bool isNew = false;
-    if (existingkeys->getTypeItr() == COMPOSITETERM_ITR) {
-        ((CompositeTermItr *) existingkeys)->moveToKey(key);
-    }
     while (currentkey < key && existingkeys->hasNext()) {
         existingkeys->next();
         currentkey = existingkeys->getKey();

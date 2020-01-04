@@ -31,6 +31,7 @@ class CompositeTermItr : public PairItr {
 private:
     std::vector<PairItr*> children;
     std::vector<PairItr*> activechildren;
+    bool hnc, nc;
     int64_t currentCount;
 
     static bool _sorter(PairItr *i1, PairItr *i2) {
@@ -71,7 +72,16 @@ public:
     }
 
     int64_t getCount() {
-        return currentCount;
+        if (hnc) {
+            throw 10;
+        }
+        int64_t count = 0;
+        for (int i = activechildren.size() - 1; i >= 0; i--) {
+            if (activechildren[i]->getKey() == getKey()) {
+                count += activechildren[i]->getCount();
+            }
+        }
+        return count;
     }
 
     void add(PairItr *itr) {
@@ -80,6 +90,7 @@ public:
         if (itr->hasNext()) {
             itr->next();
             activechildren.push_back(itr);
+            nc = true;
         }
         if (activechildren.size() > 1) {
             sort(activechildren.begin(), activechildren.end(), _sorter);
@@ -91,10 +102,36 @@ public:
     }
 
     bool hasNext() {
-        return !activechildren.empty();
+        if (! hnc) {
+            hnc = true;
+            nc = false;
+            if (activechildren.empty()) {
+                return nc;
+            }
+            const int64_t oldkey = activechildren.back()->getKey();
+            for (int i = activechildren.size() - 1; i >= 0; i--) {
+                if (activechildren[i]->getKey() == oldkey) {
+                    if (activechildren[i]->hasNext()) {
+                        activechildren[i]->next();
+                    } else {
+                        activechildren.erase(activechildren.begin() + i);
+                    }
+                }
+            }
+            if (! activechildren.empty()) {
+                if (activechildren.size() > 1) {
+                    sort(activechildren.begin(), activechildren.end(), _sorter);
+                }
+                nc = true;
+            }
+        }
+        return nc;
     }
 
     uint64_t getCardinality() {
+        if (hnc) {
+            throw 10;
+        }
         uint64_t card = 0;
         for (size_t i = 0; i < activechildren.size(); ++i) {
             int typeItr = activechildren[i]->getTypeItr();
@@ -113,46 +150,20 @@ public:
         return getCardinality();
     }
 
-    void moveToKey(int64_t target) {
-        int64_t key;
-        while (hasNext() && (key = activechildren.back()->getKey()) < target) {
-            for (int i = activechildren.size() - 1; i >= 0; i--) {
-                if (activechildren[i]->getKey() == key) {
-                    if (activechildren[i]->hasNext()) {
-                        activechildren[i]->next();
-                    } else {
-                        activechildren.erase(activechildren.begin() + i);
-                    }
-                }
-            }
-	    }
-    }
-
     void next() {
-        const int64_t key = activechildren.back()->getKey();
-        setKey(key);
-        currentCount = 0;
-        //Move also all other iterators with the same key
-        for (int i = activechildren.size() - 1; i >= 0; i--) {
-            if (activechildren[i]->getKey() == key) {
-                currentCount += activechildren[i]->getCount();
-                if (activechildren[i]->hasNext()) {
-                    activechildren[i]->next();
-                } else {
-                    activechildren.erase(activechildren.begin() + i);
-                }
-            }
+        if (! hnc && ! hasNext()) {
+            return;
         }
-
-        if (children.size() > 1) {
-            sort(activechildren.begin(), activechildren.end(), _sorter);
-        }
+        setKey(activechildren.back()->getKey());
+        hnc = false;
     }
 
     void init() {
-	initializeConstraints();
+        initializeConstraints();
         children.clear();
         activechildren.clear();
+        nc = false;
+        hnc = true; // because add() shifts added iterators.
     }
 };
 
