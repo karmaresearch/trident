@@ -1040,7 +1040,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     }
     bool first = true;
 
-    if (parallelProcesses > 6) {
+    if (parallelProcesses > 1) {
         LOG(DEBUGL) << "Parallel insert";
         std::mutex m_buffers;
         std::condition_variable cond_buffers;
@@ -1050,6 +1050,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         std::condition_variable cond_exchange;
         std::list<std::pair<int64_t*, int>> exchangeBuffers;
 
+        // this is 3 * 16M * 8 = 384M of buffer, for each index.
         const int sizebuffer = 4 * 1000000 * 4;
         for (int i = 0; i < 3; ++i) { //Create three buffers
             buffers.push_back(new int64_t[sizebuffer]);
@@ -2220,7 +2221,7 @@ void Loader::parallel_createIndices(
     if (!aggrIndices) {
         ParamSortAndInsert params;
         params.nindices = nperms;
-        params.parallelProcesses = parallelProcesses;
+        params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
         params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
         params.inputSorted = true;
@@ -2277,7 +2278,7 @@ void Loader::parallel_createIndices(
     } else {
         ParamSortAndInsert params;
         params.nindices = nperms;
-        params.parallelProcesses = parallelProcesses;
+        params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
         params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
         params.inputSorted = true;
@@ -2320,7 +2321,7 @@ void Loader::parallel_createIndices(
     }
 
     ParamSortAndInsert params;
-    params.parallelProcesses = parallelProcesses;
+    params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
     params.maxReadingThreads = maxReadingThreads;
     params.permutation = 0;
     params.nindices = nperms;
@@ -2354,7 +2355,7 @@ void Loader::parallel_createIndices(
     if (aggrIndices) {
         ParamSortAndInsert params;
         params.nindices = 2;
-        params.parallelProcesses = parallelProcesses;
+        params.parallelProcesses = parallelProcesses >= 2 ? parallelProcesses / 2 : 1;
         params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
         params.inputSorted = false;
