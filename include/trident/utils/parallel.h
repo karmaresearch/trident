@@ -116,6 +116,7 @@ class ParallelTasks {
                         nthreads = std::max((unsigned int)1, std::thread::hardware_concurrency() / 2);
                     }
                 }
+                LOG(DEBUGL) << "Parallel sort sets nthreads to " << nthreads;
                 auto len = std::distance(begin, end);
                 if (len <= 1024 || nthreads < 2) {
                     std::sort(begin, end);

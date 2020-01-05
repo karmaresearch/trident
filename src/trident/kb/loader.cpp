@@ -281,7 +281,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     int64_t processedtriples = 0;
     while (buffer.b != NULL) {
         //Read the file
-	const char *pivotbuffer = buffer.b;
+        const char *pivotbuffer = buffer.b;
         const char *input = NULL;
         size_t sizeinput = 0;
         if (buffer.gzipped) {
@@ -862,9 +862,11 @@ void Loader::sortPermutation(string inputDir,
         int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
         bool isFinished = false;
         int iter = 0;
+        int round = 0;
 
         LOG(DEBUGL) << "Start loop";
         while (!isFinished) {
+            LOG(DEBUGL) << "Start round " << round++;
             //Load in parallel all the triples from disk to the main memory
             std::vector<int64_t> counts(parallelProcesses);
             for (int i = 0; i < parallelProcesses; ++i) {
@@ -954,6 +956,26 @@ void Loader::sortPermutation(string inputDir,
     //Do the merge-sort from the files on disk
 
 }
+
+/*void Loader::sortPermTest(string inputDir,
+        int maxReadingThreads,
+        int parallelProcesses,
+        bool initialSort,
+        int64_t estimatedSize,
+        int64_t elementsMainMem,
+        int filesToMerge,
+        bool readFirstByte,
+        std::vector<std::pair<string, char>> &additionalPermutations) {
+    sortPermutation<L_Triple>(inputDir,
+            maxReadingThreads,
+            parallelProcesses,
+            initialSort,
+            estimatedSize,
+            elementsMainMem,
+            filesToMerge,
+            readFirstByte,
+            additionalPermutations);
+}*/
 
 void Loader::sortAndInsert(ParamSortAndInsert params) {
     int permutation = params.permutation;

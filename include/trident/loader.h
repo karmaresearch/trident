@@ -498,6 +498,17 @@ class Loader {
                     bool readFirstByte,
                     std::vector<std::pair<string, char>> &additionalPermutations);
 
+        //Used for debugging
+/*        static void sortPermTest(string inputDir,
+                int maxReadingThreads,
+                int parallelProcesses,
+                bool initialSort,
+                int64_t estimatedSize,
+                int64_t elementsMainMem,
+                int filesToMerge,
+                bool readFirstByte,
+                std::vector<std::pair<string, char>> &additionalPermutations);*/
+
         template<class K>
             static void sortPermutation_seq(const int idReader,
                     MultiDiskLZ4Reader *reader,
