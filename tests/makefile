@@ -7,7 +7,7 @@ CLIBS=-L$(KOGNAC_BUILDDIR) -L$(TRIDENT_BUILDDIR) -L../snap/snap-core -L$(KOGNAC_
 CPLUS=g++
 
 test_insert6:
-	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testInsert6 -std=c++0x -g -O0 test_insert6.cpp -lpthread
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testInsert6 -std=c++0x -O3 test_insert6.cpp -lpthread
 
 test_sorting4:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testSorting4 -std=c++0x -g -O0 test_sorting4.cpp -lpthread

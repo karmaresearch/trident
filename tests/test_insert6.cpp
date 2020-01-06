@@ -13,97 +13,165 @@
 
 using namespace std;
 
+struct L_CompressedTriple {
+    char buffer[15];
+
+    static L_CompressedTriple maxEl;
+
+    void setS(const uint64_t s) {
+        const char *ss = (const char *)(&s);
+        buffer[0] = ss[0];
+        buffer[1] = ss[1];
+        buffer[2] = ss[2];
+        buffer[3] = ss[3];
+        buffer[4] = ss[4];
+    }
+
+    void setP(const uint64_t p) {
+        const char *ss = (const char *)(&p);
+        buffer[5] = ss[0];
+        buffer[6] = ss[1];
+        buffer[7] = ss[2];
+        buffer[8] = ss[3];
+        buffer[9] = ss[4];
+    }
+
+    void setO(const uint64_t o) {
+        const char *ss = (const char *)(&o);
+        buffer[10] = ss[0];
+        buffer[11] = ss[1];
+        buffer[12] = ss[2];
+        buffer[13] = ss[3];
+        buffer[14] = ss[4];
+    }
+
+    static L_CompressedTriple max() {
+        L_CompressedTriple t;
+        memset(t.buffer, 0xFF, 15);
+        return t;
+    };
+
+    static L_CompressedTriple getMaxEl() {
+        return maxEl;
+    }
+
+    uint64_t getS() const {
+        return *((uint64_t*) buffer) & 0xFFFFFFFFFFl;
+    }
+
+    uint64_t getP() const {
+        return *((uint64_t*) (buffer + 5)) & 0xFFFFFFFFFFl;
+    }
+
+    uint64_t getO() const {
+        return *((uint64_t*) (buffer + 10)) & 0xFFFFFFFFFFl;
+    }
+
+    uint64_t getCount() const {
+        return 1;
+    }
+
+    void writeTo(LZ4Writer &writer) {
+        writer.writeRawArray(buffer, 15);
+    }
+
+    void writeTo(ofstream &writer) {
+        writer.write(buffer, 15);
+    }
+
+    void readFrom(LZ4Reader *reader) {
+        reader->parseRawArray(buffer, 15);
+    }
+
+    void readFrom(ifstream *reader) {
+        reader->read(buffer, 15);
+    }
+
+    bool greater(const L_CompressedTriple &t) const {
+        if (getS() > t.getS()) {
+            return true;
+        } else if (getS() == t.getS()) {
+            if (getP() > t.getP()) {
+                return true;
+            } else if (getP() == t.getP()) {
+                return getO() > t.getO();
+            }
+        }
+
+        return false;
+    }
+};
+
+L_CompressedTriple L_CompressedTriple::maxEl = L_CompressedTriple::max();
+
+void mergesegments(std::string inputDir) {
+    LOG(INFOL) << "Start merging " << inputDir;
+    auto inputmerge = Utils::getFiles(inputDir, true);
+    //NoLZ4FileMerger<L_CompressedTriple> merger(inputmerge, true, false);
+    FastFileMerger<8, L_CompressedTriple> merger(inputmerge, true, false);
+    long c = 0;
+    long counter = 0;
+    while (!merger.isEmpty()) {
+        L_CompressedTriple t = merger.get();
+        c += t.getS() + t.getP() + t.getO();
+        counter += 1;
+        if (counter % 1000000 == 0)
+            LOG(INFOL) << "Processed " << counter;
+    }
+    LOG(INFOL) << "Stop merging " << inputDir << " counter=" << counter;
+}
+
+void createTriples(std::string inputDir, int nfiles, long triplesPerFile) {
+    for(int i = 0; i < 6; ++i) {
+        std::string permDir = inputDir + "/p" + std::to_string(i);
+        Utils::create_directories(permDir);
+        long startidx = 10000000000l;
+        for(int j = 0; j < nfiles; ++j) {
+            long startcounter = startidx + j;
+            std::string filepath = permDir + "/input-" + std::to_string(j) + ".0";
+            LZ4Writer writer(filepath);
+            //ofstream writer(filepath, std::ifstream::binary);
+            for(long m = 0; m < triplesPerFile; ++m) {
+                L_CompressedTriple t;
+                t.setS(startcounter);
+                t.setP(startcounter);
+                t.setO(startcounter);
+                t.writeTo(writer);
+                startcounter += nfiles;
+            }
+            //writer.close();
+        }
+    }
+}
+
 int main(int argc, const char** argv) {
     int maxReadingThreads = 2;
     int parallelProcesses = 8;
-    int nindices = 1;
+    int nindices = 6;
     int partsPerFiles = parallelProcesses / maxReadingThreads;
     uint64_t ntriples = 3500000000l;
     uint64_t estimatedSize = ntriples * 32;
     uint64_t max = ntriples / parallelProcesses;
-    std::string inputDir = "/Users/jacopo/Desktop/test2";
+
+    int n = 1;
+    if(*(char *)&n != 1) {
+        LOG(ERRORL) << "Some features of Trident rely on little endianness. "
+            "Change machine ...sorry";
+    }
+
+    std::string inputDir = "/Users/jacopo/Desktop/test3";
+    //Create random triples
+    //createTriples(inputDir, 8, 43000000);
+
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-
-
-    //Init params
-    string tmpDir = p.tmpDir;
-    const string kbDir = p.kbDir;
-    int dictionaries = p.dictionaries;
-    string dictMethod = p.dictMethod;
-    int nindices = p.nindices;
-    bool createIndicesInBlocks = false;
-    bool aggrIndices = false;
-    bool canSkipTables = false;
-    bool sample = true;
-    double sampleRate = 0.01;
-    bool storePlainList = p.storePlainList;
-    string remoteLocation = p.remoteLocation;
-    int64_t limitSpace = p.limitSpace;
-    int parallelProcesses = p.parallelThreads;
-    int maxReadingThreads = p.maxReadingThreads;
-    string graphTransformation = p.graphTransformation;
-    bool flatTree = p.flatTree;
-    //End init params
-
-    LOG(DEBUGL) << "Insert the triples in the indices...";
-    string *sTreeWriters = new string[nindices];
-    TreeWriter **treeWriters = new TreeWriter*[nindices];
+    std::thread threads[6];
+    for(int i = 0; i < nindices; ++i) {
+        std::string permdir = inputDir + "/p" + std::to_string(i);
+        threads[i] = std::thread(std::bind(&mergesegments, permdir));
+    }
     for (int i = 0; i < nindices; ++i) {
-        sTreeWriters[i] = tmpDir + DIR_SEP + string("tmpTree" ) + to_string(i);
-        treeWriters[i] = new TreeWriter(sTreeWriters[i]);
+        threads[i].join();
     }
-
-    //Use aggregated indices
-    string aggr1Dir = tmpDir + DIR_SEP + string("aggr1");
-    string aggr2Dir = tmpDir + DIR_SEP + string("aggr2");
-    if (aggrIndices && nindices > 1) {
-        Utils::create_directories(aggr1Dir);
-        if (nindices > 3)
-            Utils::create_directories(aggr2Dir);
-    }
-
-    //if sample is requested, create a subdir
-    string sampleDir = tmpDir + DIR_SEP + string("sampledir");
-    SimpleTripleWriter *sampleWriter = NULL;
-    if (sample) {
-        Utils::create_directories(sampleDir);
-        sampleWriter = new SimpleTripleWriter(sampleDir, "input", false);
-    }
-
-    //Create n threads where the triples are sorted and inserted in the knowledge base
-    Inserter *ins = kb.insert();
-    LOG(DEBUGL) << "Start sortAndInsert";
-
-    if (nindices != 6) {
-        LOG(ERRORL) << "Support only 6 indices (for now)";
-        throw 1;
-    }
-
-    string outputDirs[6];
-    for (int i = 0; i < 6; ++i) {
-        outputDirs[i] = kbDir + DIR_SEP + "p" + to_string(i);
-    }
-
-    loadKB_handleGraphTransformations(kb, graphTransformation, permDirs,
-            nindices, ins, relsOwnIDs, kbDir, storeDicts);
-
-    createIndices(parallelProcesses, maxReadingThreads,
-            ins, createIndicesInBlocks,
-            aggrIndices,canSkipTables, storePlainList,
-            permDirs, outputDirs, aggr1Dir, aggr2Dir, treeWriters, sampleWriter,
-            sampleRate,
-            remoteLocation,
-            limitSpace,
-            totalCount,
-            nindices);
-
-    if (nindices != 6)
-        nindices = 6; //restore
-
-    for (int i = 0; i < nindices; ++i) {
-        treeWriters[i]->finish();
-    }
-
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(INFOL) << "Time (sec) " << sec.count();
 }

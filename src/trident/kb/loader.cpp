@@ -958,24 +958,24 @@ void Loader::sortPermutation(string inputDir,
 }
 
 /*void Loader::sortPermTest(string inputDir,
-        int maxReadingThreads,
-        int parallelProcesses,
-        bool initialSort,
-        int64_t estimatedSize,
-        int64_t elementsMainMem,
-        int filesToMerge,
-        bool readFirstByte,
-        std::vector<std::pair<string, char>> &additionalPermutations) {
-    sortPermutation<L_Triple>(inputDir,
-            maxReadingThreads,
-            parallelProcesses,
-            initialSort,
-            estimatedSize,
-            elementsMainMem,
-            filesToMerge,
-            readFirstByte,
-            additionalPermutations);
-}*/
+  int maxReadingThreads,
+  int parallelProcesses,
+  bool initialSort,
+  int64_t estimatedSize,
+  int64_t elementsMainMem,
+  int filesToMerge,
+  bool readFirstByte,
+  std::vector<std::pair<string, char>> &additionalPermutations) {
+  sortPermutation<L_Triple>(inputDir,
+  maxReadingThreads,
+  parallelProcesses,
+  initialSort,
+  estimatedSize,
+  elementsMainMem,
+  filesToMerge,
+  readFirstByte,
+  additionalPermutations);
+  }*/
 
 void Loader::sortAndInsert(ParamSortAndInsert params) {
     int permutation = params.permutation;
@@ -1035,7 +1035,8 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     FileMerger<Triple> merger(inputmerge, true, deletePreviousExt);
     LZ4Writer *plainWriter = NULL;
     if (storeRaw) {
-        std::string file = ins->getPathPermutationStorage(permutation) + std::string("raw");
+        std::string file = ins->getPathPermutationStorage(permutation) +
+            std::string("raw");
         plainWriter = new LZ4Writer(file);
     }
     bool first = true;
