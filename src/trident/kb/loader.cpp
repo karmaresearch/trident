@@ -954,7 +954,61 @@ void Loader::sortPermutation(string inputDir,
     }
 
     //Do the merge-sort from the files on disk
-
+    LOG(DEBUGL) << "Starting merging of disk segments ...";
+    do {
+        std::vector<string> sortedFiles = Utils::getFiles(inputDir, true);
+        if (sortedFiles.size() <= 4) {
+            break;
+        }
+        //Pick up to four files and merge them together
+        int i = 0;
+        while (i < sortedFiles.size()) {
+            int nfilesToMerge = 4;
+            if (i + nfilesToMerge > sortedFiles.size()) {
+                nfilesToMerge = sortedFiles.size() - i;
+            }
+            //Do the merge
+            std::vector<string> filesToMerge;
+            for(int j = i; j < i + nfilesToMerge; ++j) {
+                filesToMerge.push_back(sortedFiles[j]);
+            }
+            std::string outputFile = inputDir + "/merged-" + to_string(i);
+            LZ4Writer writer(outputFile);
+            LOG(DEBUGL) << "Merging " << nfilesToMerge << " into " << outputFile;
+            if (nfilesToMerge == 1) {
+                FastFileMerger<1, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else if (nfilesToMerge == 2) {
+                FastFileMerger<2, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else if (nfilesToMerge == 3) {
+                FastFileMerger<3, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else {
+                if (nfilesToMerge > 4) {
+                    LOG(ERRORL) << "This should not have happened " << nfilesToMerge;
+                    throw 10;
+                }
+                FastFileMerger<4, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            }
+            i += nfilesToMerge;
+            LOG(DEBUGL) << "Stop merging of " << nfilesToMerge << " files";
+        }
+    } while (true);
+    LOG(DEBUGL) << "Stop merging disk fragments";
 }
 
 /*void Loader::sortPermTest(string inputDir,
