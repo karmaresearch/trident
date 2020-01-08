@@ -955,6 +955,7 @@ void Loader::sortPermutation(string inputDir,
 
     //Do the merge-sort from the files on disk
     LOG(DEBUGL) << "Starting merging of disk segments ...";
+    int globalCounter = 0;
     do {
         std::vector<string> sortedFiles = Utils::getFiles(inputDir, true);
         if (sortedFiles.size() <= 4) {
@@ -972,7 +973,7 @@ void Loader::sortPermutation(string inputDir,
             for(int j = i; j < i + nfilesToMerge; ++j) {
                 filesToMerge.push_back(sortedFiles[j]);
             }
-            std::string outputFile = inputDir + "/merged-" + to_string(i);
+            std::string outputFile = inputDir + "/merged-" + to_string(globalCounter++) + ".0";
             LZ4Writer writer(outputFile);
             LOG(DEBUGL) << "Merging " << nfilesToMerge << " into " << outputFile;
             if (nfilesToMerge == 1) {
