@@ -749,7 +749,7 @@ void Loader::dumpPermutation(std::vector<K> &input,
     LOG(DEBUGL) << "Finished dumping";
 }
 
-template<class K>
+/*template<class K>
 void Loader::sortPermutation_seq(
         const int idReader,
         MultiDiskLZ4Reader *reader,
@@ -787,9 +787,9 @@ void Loader::sortPermutation_seq(
         currentIdx++;
     }
     LOG(DEBUGL) << "Finished";
-}
+}*/
 
-template<class K>
+/*template<class K>
 void Loader::sortPermutation(string inputDir,
         int maxReadingThreads,
         int parallelProcesses,
@@ -800,7 +800,6 @@ void Loader::sortPermutation(string inputDir,
         bool readFirstByte,
         std::vector<std::pair<string, char>> &additionalPermutations) {
 
-    /*** SORT THE ORIGINAL FILES IN BLOCKS OF N RECORDS ***/
     if (initialSorting) {
         vector<string> unsortedFiles = Utils::getFiles(inputDir);
         MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
@@ -952,13 +951,16 @@ void Loader::sortPermutation(string inputDir,
         delete[] readers;
         delete[] threads;
     }
+}*/
 
+void Loader::mergeDiskFragments(ParamsMergeDiskFragments params) {
+    string inputDir = params.inputDir;
     //Do the merge-sort from the files on disk
     LOG(DEBUGL) << "Starting merging of disk segments ...";
     int globalCounter = 0;
     do {
         std::vector<string> sortedFiles = Utils::getFiles(inputDir, true);
-        if (sortedFiles.size() <= 4) {
+        if (sortedFiles.size() <= 2) {
             break;
         }
         //Pick up to four files and merge them together
@@ -1012,32 +1014,9 @@ void Loader::sortPermutation(string inputDir,
     LOG(DEBUGL) << "Stop merging disk fragments";
 }
 
-/*void Loader::sortPermTest(string inputDir,
-  int maxReadingThreads,
-  int parallelProcesses,
-  bool initialSort,
-  int64_t estimatedSize,
-  int64_t elementsMainMem,
-  int filesToMerge,
-  bool readFirstByte,
-  std::vector<std::pair<string, char>> &additionalPermutations) {
-  sortPermutation<L_Triple>(inputDir,
-  maxReadingThreads,
-  parallelProcesses,
-  initialSort,
-  estimatedSize,
-  elementsMainMem,
-  filesToMerge,
-  readFirstByte,
-  additionalPermutations);
-  }*/
-
-void Loader::sortAndInsert(ParamSortAndInsert params) {
+void Loader::insert(ParamInsert params) {
     int permutation = params.permutation;
-    int nindices = params.nindices;
     int parallelProcesses = params.parallelProcesses;
-    int maxReadingThreads = params.maxReadingThreads;
-    bool inputSorted = params.inputSorted;
     string inputDir = params.inputDir;
     string *POSoutputDir = params.POSoutputDir;
     TreeWriter *treeWriter = params.treeWriter;
@@ -1048,9 +1027,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     SimpleTripleWriter *sampleWriter = params.sampleWriter;
     double sampleRate = params.sampleRate;
     bool printstats = params.printstats;
-    //SinkPtr logPtr = params.logPtr;
     bool removeInput = params.removeInput;
-    int64_t estimatedSize = params.estimatedSize;
     bool deletePreviousExt = params.deletePreviousExt;
 
     SimpleTripleWriter *posWriter = NULL;
@@ -1058,25 +1035,6 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         posWriter = new SimpleTripleWriter(*POSoutputDir, "inputAggr-" +
                 to_string(permutation), true);
     }
-
-    //Sort the triples and store them into files.
-    LOG(DEBUGL) << "Start sorting...";
-    //Calculate the maximum amount of main memory I can use
-    int64_t mem = Utils::getSystemMemory() * 0.7 / nindices;
-    int64_t nelements = mem / sizeof(L_Triple);
-    LOG(DEBUGL) << "Triples I can store in main memory: " << nelements <<
-        " size triple " << sizeof(L_Triple);
-    std::vector<std::pair<string, char>> additionalPermutations; //This parameter is unused here. I use it somewhere else
-    if (!aggregated) {
-        sortPermutation<L_Triple>(inputDir, maxReadingThreads, parallelProcesses,
-                !inputSorted, estimatedSize, nelements, 16, false,
-                additionalPermutations);
-    } else {
-        sortPermutation<L_TripleCount>(inputDir, maxReadingThreads, parallelProcesses,
-                !inputSorted, estimatedSize, nelements, 16, true,
-                additionalPermutations);
-    }
-    LOG(DEBUGL) << "...completed.";
 
     LOG(DEBUGL) << "Start inserting...";
     int64_t ps, pp, po; //Previous values. Used to remove duplicates.
@@ -2186,29 +2144,6 @@ void Loader::moveData(string remoteLocation, string inputDir, int64_t limitSpace
     }
 }
 
-/*void Loader::sortChunks(string inputdir,
-  int maxReadingThreads,
-  int parallelProcesses,
-  int64_t estimatedSize,
-  std::vector<std::pair<string, char>> &additionalPermutations) {
-
-//calculate the number of elements
-int64_t mem = Utils::getSystemMemory() * 0.7;
-int64_t nelements = mem / sizeof(L_Triple);
-int64_t elementsMainMem = max((int64_t)parallelProcesses,
-min(nelements, (int64_t)(estimatedSize * 1.2)));
-
-Loader::sortPermutation<L_Triple>(inputdir,
-maxReadingThreads,
-parallelProcesses,
-true,
-estimatedSize,
-elementsMainMem,
-16,
-false,
-additionalPermutations);
-}*/
-
 void Loader::parallel_createIndices(
         int parallelProcesses,
         int maxReadingThreads,
@@ -2230,7 +2165,8 @@ void Loader::parallel_createIndices(
         int nindices) {
 
     if (aggrIndices && nindices != 6) {
-        LOG(ERRORL) << "Inconsistency on the input parameters. AggrIndices=true but set less than 6 permutations...";
+        LOG(ERRORL) << "Inconsistency on the input parameters. "
+            "AggrIndices=true but set less than 6 permutations...";
         throw 10;
     }
 
@@ -2271,25 +2207,44 @@ void Loader::parallel_createIndices(
                 outputdirs);
     }
 
-    int nperms = aggrIndices ? 4 : 6;
+    //Merge the sorted segments on disk
+    std::vector<std::thread> threads;
+    ParamsMergeDiskFragments mp;
+    if (!aggrIndices) {
+        threads.resize(5);
+        for(int i = 1; i < 6; ++i) {
+            mp.inputDir = permDirs[i];
+            threads[i-1] = std::thread(&Loader::mergeDiskFragments, mp);
+        }
+    } else {
+        threads.resize(3);
+        mp.inputDir = permDirs[1];
+        threads[0] = std::thread(&Loader::mergeDiskFragments, mp);
+        mp.inputDir = permDirs[3];
+        threads[1] = std::thread(&Loader::mergeDiskFragments, mp);
+        mp.inputDir = permDirs[4];
+        threads[2] = std::thread(&Loader::mergeDiskFragments, mp);
+    }
+    mp.inputDir = permDirs[0];
+    mergeDiskFragments(mp);
+    for(int i = 0; i < threads.size(); ++i) {
+        threads[i].join();
+    }
+
+    const int nperms = aggrIndices ? 4 : 6;
     std::thread ts[3];
     std::thread at1, at2;
     if (!aggrIndices) {
-        ParamSortAndInsert params;
-        params.nindices = nperms;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
-        params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
-        params.inputSorted = true;
         params.storeRaw = false;
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.aggregated = false;
-        //params.logPtr = NULL;
         params.removeInput = true;
         params.printstats = printStats;
         params.POSoutputDir = NULL;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = true;
 
         params.permutation = 1;
@@ -2298,7 +2253,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = false;
 
         ts[0] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
 
         params.permutation = 3;
         params.inputDir = permDirs[3];
@@ -2306,7 +2261,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = canSkipTables;
 
         ts[1] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
 
         params.permutation = 4;
         params.inputDir = permDirs[4];
@@ -2314,7 +2269,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = canSkipTables;
 
         ts[2] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
 
         //Start two more threads
         params.permutation = 2;
@@ -2322,30 +2277,25 @@ void Loader::parallel_createIndices(
         params.treeWriter = treeWriters[2];
         params.canSkipTables = false;
 
-        at1 = std::thread(std::bind(&Loader::sortAndInsert, params));
+        at1 = std::thread(std::bind(&Loader::insert, params));
 
         params.permutation = 5;
         params.inputDir = permDirs[5];
         params.treeWriter = treeWriters[5];
         params.canSkipTables = canSkipTables;
 
-        at2 = std::thread(std::bind(&Loader::sortAndInsert, params));
+        at2 = std::thread(std::bind(&Loader::insert, params));
 
     } else {
-        ParamSortAndInsert params;
-        params.nindices = nperms;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
-        params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
-        params.inputSorted = true;
         params.storeRaw = false;
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.aggregated = false;
-        //params.logPtr = NULL;
         params.removeInput = true;
         params.printstats = printStats;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = true;
 
         params.permutation = 1;
@@ -2355,7 +2305,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = false;
 
         ts[0] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
 
         params.permutation = 3;
         params.inputDir = permDirs[2];
@@ -2364,7 +2314,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = canSkipTables;
 
         ts[1] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
 
         params.permutation = 4;
         params.inputDir = permDirs[3];
@@ -2373,15 +2323,12 @@ void Loader::parallel_createIndices(
         params.canSkipTables = canSkipTables;
 
         ts[2] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
+                std::bind(&Loader::insert, params));
     }
 
-    ParamSortAndInsert params;
+    ParamInsert params;
     params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
-    params.maxReadingThreads = maxReadingThreads;
     params.permutation = 0;
-    params.nindices = nperms;
-    params.inputSorted = true;
     params.inputDir = permDirs[0];
     params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
     params.treeWriter = treeWriters[0];
@@ -2392,12 +2339,10 @@ void Loader::parallel_createIndices(
     params.sampleWriter = sampleWriter;
     params.sampleRate = sampleRate;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
     params.removeInput = true;
-    params.estimatedSize = estimatedSize;
     params.deletePreviousExt = true;
 
-    sortAndInsert(params);
+    insert(params);
     for (int i = 0; i < 3; ++i) {
         ts[i].join();
     }
@@ -2407,22 +2352,27 @@ void Loader::parallel_createIndices(
         at2.join();
     }
 
-    //Aggregated
+    //Second phase: Aggregated
     if (aggrIndices) {
-        ParamSortAndInsert params;
-        params.nindices = 2;
+        //TODO: sort
+        throw 10;
+
+        ParamsMergeDiskFragments mp;
+        mp.inputDir = permDirs[2];
+        std::thread th = std::thread(&Loader::mergeDiskFragments, mp);
+        mp.inputDir = permDirs[5];
+        mergeDiskFragments(mp);
+        th.join();
+
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses >= 2 ? parallelProcesses / 2 : 1;
-        params.maxReadingThreads = maxReadingThreads;
         params.ins = ins;
-        params.inputSorted = false;
         params.storeRaw = false;
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
-        //params.logPtr = NULL;
         params.removeInput = true;
         params.aggregated = true;
         params.printstats = printStats;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = true;
 
         params.permutation = 2;
@@ -2432,7 +2382,7 @@ void Loader::parallel_createIndices(
         params.canSkipTables = false;
 
         std::thread t[2];
-        t[0] = std::thread(std::bind(&Loader::sortAndInsert, params));
+        t[0] = std::thread(std::bind(&Loader::insert, params));
 
         params.permutation = 5;
         params.inputDir = aggr2Dir;
@@ -2440,7 +2390,7 @@ void Loader::parallel_createIndices(
         params.POSoutputDir = NULL;
         params.canSkipTables = canSkipTables;
 
-        t[1] = std::thread(std::bind(&Loader::sortAndInsert, params));
+        t[1] = std::thread(std::bind(&Loader::insert, params));
         t[0].join();
         t[1].join();
     }
@@ -2465,14 +2415,14 @@ void Loader::seq_createIndices(
         int64_t limitSpace,
         int64_t estimatedSize) {
 
-    LOG(DEBUGL) << "SortAndIndex one-by-one";
+    throw 10; //First I need to re-add the code that does disk-merge
 
-    ParamSortAndInsert params;
+    //LOG(DEBUGL) << "SortAndIndex one-by-one";
+    LOG(DEBUGL) << "Create partitions one-by-one";
+
+    ParamInsert params;
     params.parallelProcesses = parallelProcesses;
-    params.maxReadingThreads = maxReadingThreads;
     params.permutation = 0;
-    params.nindices = 1;
-    params.inputSorted = false;
     params.inputDir = permDirs[0];
     params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
     params.treeWriter = treeWriters[0];
@@ -2483,12 +2433,10 @@ void Loader::seq_createIndices(
     params.sampleWriter = sampleWriter;
     params.sampleRate = sampleRate;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
     params.removeInput = false;
-    params.estimatedSize = estimatedSize;
     params.deletePreviousExt = false;
 
-    sortAndInsert(params);
+    insert(params);
 
     string lastInput = permDirs[0];
     generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
@@ -2499,8 +2447,6 @@ void Loader::seq_createIndices(
     LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 1;
-    params.nindices = 1;
-    params.inputSorted = false;
     params.inputDir = permDirs[1];
     params.POSoutputDir = aggrIndices ? &aggr1Dir : NULL;
     params.treeWriter = treeWriters[1];
@@ -2511,10 +2457,9 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
     params.removeInput = false;
 
-    sortAndInsert(params);
+    insert(params);
 
     lastInput = permDirs[1];
     generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
@@ -2526,8 +2471,6 @@ void Loader::seq_createIndices(
     LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 3;
-    params.nindices = 1;
-    params.inputSorted = false;
     params.inputDir = aggrIndices ? permDirs[2] : permDirs[3];
     params.POSoutputDir = (string*) NULL;
     params.treeWriter = treeWriters[3];
@@ -2538,10 +2481,9 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
     params.removeInput = false;
 
-    sortAndInsert(params);
+    insert(params);
 
     lastInput = aggrIndices ? permDirs[2] : permDirs[3];
     generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
@@ -2553,8 +2495,6 @@ void Loader::seq_createIndices(
     LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
 
     params.permutation = 4;
-    params.nindices = 1;
-    params.inputSorted = false;
     params.inputDir = aggrIndices ? permDirs[3] : permDirs[4];
     params.POSoutputDir = (string*) NULL;
     params.treeWriter = treeWriters[4];
@@ -2565,10 +2505,9 @@ void Loader::seq_createIndices(
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
     params.removeInput = false;
 
-    sortAndInsert(params);
+    insert(params);
 
     ins->stopInserts(4);
     moveData(remotePath, outputDirs[4], limitSpace);
@@ -2581,12 +2520,9 @@ void Loader::seq_createIndices(
                 lastInput, 2, 0, 1, parallelProcesses,
                 maxReadingThreads);
 
-        ParamSortAndInsert params;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
         params.permutation = 2;
-        params.nindices = 1;
-        params.inputSorted = false;
         params.inputDir = permDirs[2];
         params.POSoutputDir = (string*) NULL;
         params.treeWriter = treeWriters[2];
@@ -2597,21 +2533,16 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        //params.logPtr = logPtr;
         params.removeInput = false;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
 
-        sortAndInsert(params);
+        insert(params);
         LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
     } else {
 
-        ParamSortAndInsert params;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
         params.permutation = 2;
-        params.nindices = 1;
-        params.inputSorted = false;
         params.inputDir = aggr1Dir;
         params.POSoutputDir = (string*) NULL;
         params.treeWriter = treeWriters[2];
@@ -2622,12 +2553,10 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        //params.logPtr = logPtr;
         params.removeInput = true;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
 
-        sortAndInsert(params);
+        insert(params);
         LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
     }
     Utils::remove_all(lastInput);
@@ -2639,12 +2568,9 @@ void Loader::seq_createIndices(
                 maxReadingThreads);
         Utils::remove_all(lastInput);
 
-        ParamSortAndInsert params;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
         params.permutation = 5;
-        params.nindices = 1;
-        params.inputSorted = false;
         params.inputDir = permDirs[5];
         params.POSoutputDir = (string*) NULL;
         params.treeWriter = treeWriters[5];
@@ -2655,23 +2581,18 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        //params.logPtr = logPtr;
         params.removeInput = false;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
 
-        sortAndInsert(params);
+        insert(params);
         LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
 
         lastInput = permDirs[5];
         Utils::remove_all(lastInput);
     } else {
-        ParamSortAndInsert params;
+        ParamInsert params;
         params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
         params.permutation = 5;
-        params.nindices = 1;
-        params.inputSorted = false;
         params.inputDir = aggr2Dir;
         params.POSoutputDir = (string*) NULL;
         params.treeWriter = treeWriters[5];
@@ -2682,12 +2603,10 @@ void Loader::seq_createIndices(
         params.sampleWriter = NULL;
         params.sampleRate = 0.0;
         params.printstats = printStats;
-        //params.logPtr = logPtr;
         params.removeInput = true;
-        params.estimatedSize = estimatedSize;
         params.deletePreviousExt = false;
 
-        sortAndInsert(params);
+        insert(params);
         LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
     }
 }

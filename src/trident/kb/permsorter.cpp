@@ -29,38 +29,6 @@
 #include <functional>
 #include <array>
 
-
-/* Not used ...
-struct __PermSorter_sorter {
-    char *rawinput;
-    const int o1;
-    const int o2;
-    const int o3;
-
-    __PermSorter_sorter(char *rawinput, const int o1, const int o2,
-            const int o3) : rawinput(rawinput), o1(o1), o2(o2), o3(o3) {
-    }
-
-    bool operator()(int64_t a, int64_t b) const {
-        char *start_a = rawinput + a * 15;
-        char *start_b = rawinput + b * 15;
-        int ret = memcmp(start_a + o1, start_b + o1, 5);
-        if (ret < 0) {
-            return true;
-        } else if (ret == 0) {
-            ret = memcmp(start_a + o2, start_b + o2, 5);
-            if (ret < 0) {
-                return true;
-            } else if (ret == 0) {
-                ret = memcmp(start_a + o3, start_b + o3, 5);
-                return ret < 0;
-            }
-        }
-        return false;
-    }
-};
-*/
-
 typedef std::array<unsigned char, 15> __PermSorter_triple;
 
 bool __PermSorter_triple_sorter(const __PermSorter_triple &a,

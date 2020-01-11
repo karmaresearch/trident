@@ -200,14 +200,14 @@ class BufferCoordinates {
     }
 };
 
+struct ParamsMergeDiskFragments {
+    string inputDir;
+};
+
 class SimpleTripleWriter;
-struct ParamSortAndInsert {
-    ParamSortAndInsert() {}
+struct ParamInsert {
     int permutation;
-    int nindices;
     int parallelProcesses;
-    int maxReadingThreads;
-    bool inputSorted;
     string inputDir;
     string *POSoutputDir;
     TreeWriter *treeWriter;
@@ -218,9 +218,7 @@ struct ParamSortAndInsert {
     SimpleTripleWriter *sampleWriter;
     double sampleRate;
     bool printstats;
-    //SinkPtr logPtr;
     bool removeInput;
-    int64_t estimatedSize;
     bool deletePreviousExt;
 };
 
@@ -487,7 +485,7 @@ class Loader {
                 int parallelProcesses,
                 int maxReadingThreads);
 
-        template<class K>
+/*        template<class K>
             static void sortPermutation(string inputDir,
                     int maxReadingThreads,
                     int parallelProcesses,
@@ -496,26 +494,15 @@ class Loader {
                     int64_t elementsMainMem,
                     int filesToMerge,
                     bool readFirstByte,
-                    std::vector<std::pair<string, char>> &additionalPermutations);
+                    std::vector<std::pair<string, char>> &additionalPermutations);*/
 
-        //Used for debugging
-/*        static void sortPermTest(string inputDir,
-                int maxReadingThreads,
-                int parallelProcesses,
-                bool initialSort,
-                int64_t estimatedSize,
-                int64_t elementsMainMem,
-                int filesToMerge,
-                bool readFirstByte,
-                std::vector<std::pair<string, char>> &additionalPermutations);*/
-
-        template<class K>
+/*        template<class K>
             static void sortPermutation_seq(const int idReader,
                     MultiDiskLZ4Reader *reader,
                     int64_t start,
                     K *output,
                     int64_t maxInserts,
-                    int64_t *count);
+                    int64_t *count);*/
 
         template<class K>
             static void dumpPermutation(std::vector<K> &input,
@@ -525,7 +512,9 @@ class Loader {
                     string out,
                     char sorter);
 
-        static void sortAndInsert(ParamSortAndInsert params);
+        static void mergeDiskFragments(ParamsMergeDiskFragments params);
+
+        static void insert(ParamInsert params);
 
         static void insertDictionary(const int part, DictMgmt *dict,
                 string dictFileInput,
