@@ -58,6 +58,21 @@ class PermSorter {
         static void sortPermutation(char *start,
                 char *end, int nthreads);
 
+        static void sortChunks2_load(const int idReader,
+                MultiDiskLZ4Reader *reader,
+                char *rawTriples,
+                int64_t startIdx,
+                int64_t endIdx,
+                int64_t *count);
+
+        static void sortChunks2_fill(
+                MultiDiskLZ4Reader **readers,
+                size_t maxInserts,
+                std::vector<int64_t> &counts,
+                int maxReadingThreads,
+                int parallelProcesses,
+                char *rawTriples);
+
     public:
         static void sortChunks(string inputdir,
                 int maxReadingThreads,
