@@ -489,19 +489,133 @@ void PermSorter::sortChunks2_fill(
     //Fill the remaining values with the highest possible triples so that
     //they are sorted at the end
     for(int i = 0; i < counts.size(); ++i) {
-            char *start = rawTriples + (i * maxInserts * 15) + counts[curPart] * 15;
-            char *endp = rawTriples + (i+1) * maxInserts * 15;
-            if (start < endp) {
-                memset(start, 1, endp - start);
-            }
+        char *start = rawTriples + (i * maxInserts * 15) + counts[curPart] * 15;
+        char *endp = rawTriples + (i+1) * maxInserts * 15;
+        if (start < endp) {
+            memset(start, 1, endp - start);
+        }
     }
 }
 
-void PermSorter::sortChunks2(string inputdir,
+void PermSorter::sortChunks2_permute(
+        char *start,
+        char *end,
+        int currentPerm,
+        int nextPerm) {
+    if (currentPerm == IDX_SPO && nextPerm == IDX_SOP) {
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[5]; //copy p in tmp
+            tmp[1] = start[6];
+            tmp[2] = start[7];
+            tmp[3] = start[8];
+            tmp[4] = start[9];
+            start[5] = start[10]; //copy o in p
+            start[6] = start[11];
+            start[7] = start[12];
+            start[8] = start[13];
+            start[9] = start[14];
+            start[10] = tmp[0]; //copy p in o
+            start[11] = tmp[1];
+            start[12] = tmp[2];
+            start[13] = tmp[3];
+            start[14] = tmp[4];
+            start += 15;
+        }
+    } else if (currentPerm == IDX_SOP && nextPerm == IDX_OSP) {
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[0]; //copy s in tmp
+            tmp[1] = start[1];
+            tmp[2] = start[2];
+            tmp[3] = start[3];
+            tmp[4] = start[4];
+            start[0] = start[5]; //copy o in s
+            start[1] = start[6];
+            start[2] = start[7];
+            start[3] = start[8];
+            start[4] = start[9];
+            start[5] = tmp[0]; //copy p in o
+            start[6] = tmp[1];
+            start[7] = tmp[2];
+            start[8] = tmp[3];
+            start[9] = tmp[4];
+            start += 15;
+        }
+    } else if (currentPerm == IDX_OSP && nextPerm == IDX_OPS) {
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[5]; //copy s in tmp
+            tmp[1] = start[6];
+            tmp[2] = start[7];
+            tmp[3] = start[8];
+            tmp[4] = start[9];
+            start[5] = start[10]; //copy p in s
+            start[6] = start[11];
+            start[7] = start[12];
+            start[8] = start[13];
+            start[9] = start[14];
+            start[10] = tmp[0]; //copy tmp in p
+            start[11] = tmp[1];
+            start[12] = tmp[2];
+            start[13] = tmp[3];
+            start[14] = tmp[4];
+            start += 15;
+        }
+    } else if (currentPerm == IDX_OPS && nextPerm == IDX_POS) {
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[0]; //copy o in tmp
+            tmp[1] = start[1];
+            tmp[2] = start[2];
+            tmp[3] = start[3];
+            tmp[4] = start[4];
+            start[0] = start[5]; //copy p in o
+            start[1] = start[6];
+            start[2] = start[7];
+            start[3] = start[8];
+            start[4] = start[9];
+            start[5] = tmp[0]; //copy tmp in p
+            start[6] = tmp[1];
+            start[7] = tmp[2];
+            start[8] = tmp[3];
+            start[9] = tmp[4];
+            start += 15;
+        }
+    } else if (currentPerm == IDX_POS && nextPerm == IDX_PSO) {
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[5]; //copy s in tmp
+            tmp[1] = start[6];
+            tmp[2] = start[7];
+            tmp[3] = start[8];
+            tmp[4] = start[9];
+            start[5] = start[10]; //copy p in s
+            start[6] = start[11];
+            start[7] = start[12];
+            start[8] = start[13];
+            start[9] = start[14];
+            start[10] = tmp[0]; //copy tmp in p
+            start[11] = tmp[1];
+            start[12] = tmp[2];
+            start[13] = tmp[3];
+            start[14] = tmp[4];
+            start += 15;
+        }
+    } else {
+        LOG(ERRORL) << "Conversion from " << currentPerm << " to " << nextPerm << " is not supported";
+        throw 10;
+    }
+}
+
+void PermSorter::sortChunks2(
+        std::vector<std::pair<string, char>> &permutations,
         int maxReadingThreads,
         int parallelProcesses,
-        int64_t estimatedSize,
-        bool outputSPO) {
+        int64_t estimatedSize) {
+    std::string inputdir = permutations[0].first;
+    int currentPerm = permutations[0].second;
+
     LOG(DEBUGL) << "Start sortChunks2";
     const int64_t mem = Utils::getSystemMemory() * 0.8;
     const size_t max_nelements = mem / 15;
@@ -598,18 +712,6 @@ void PermSorter::sortChunks2(string inputdir,
         size_t nloadedtriples = 0;
         for(auto c : counts) nloadedtriples += c;
         LOG(DEBUGL) << "Start dumping the inmemory array of " << nloadedtriples;
-        /*char *start = rawTriples.get();
-        char *end = start + nloadedtriples * 15;
-        string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
-        LZ4Writer writer(outputFile);
-        while (start != end) {
-            Triple t;
-            t.s = PermSorter::readTermFromBuffer(start);
-            t.p = PermSorter::readTermFromBuffer(start + 5);
-            t.o = PermSorter::readTermFromBuffer(start + 10);
-            t.writeTo(&writer);
-            start+=15;
-        }*/
         string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
         PermSorter::dumpPermutation(rawTriples.get(),
                 nloadedtriples,
@@ -617,6 +719,35 @@ void PermSorter::sortChunks2(string inputdir,
                 maxReadingThreads,
                 outputFile);
         LOG(DEBUGL) << "Stop dumping the inmemory array";
+
+        for(int i = 1; i < permutations.size(); ++i) {
+            //There are other permutations to process.
+            int permID = permutations[i].second;
+
+            //Rewrite the permutation
+            PermSorter::sortChunks2_permute(
+                    rawTriples.get(),
+                    rawTriples.get() + nloadedtriples * 15,
+                    currentPerm,
+                    permID);
+
+            //Sort it
+            LOG(DEBUGL) << "Start sorting the inmemory array. perm=" << permID;
+            PermSorter::sortPermutation(rawTriples.get(),
+                    rawTriples.get() + nloadedtriples * 15, parallelProcesses);
+            LOG(DEBUGL) << "Stop sorting the inmemory array";
+
+            //Dump it
+            std::string currentDir = permutations[i].first;
+            LOG(DEBUGL) << "Start dumping the inmemory array of " << nloadedtriples;
+            outputFile = currentDir + DIR_SEP + string("sortedchunk-") + to_string(round);
+            PermSorter::dumpPermutation(rawTriples.get(),
+                    nloadedtriples,
+                    parallelProcesses,
+                    maxReadingThreads,
+                    outputFile);
+            LOG(DEBUGL) << "Stop dumping the inmemory array";
+        }
 
         round++;
     }

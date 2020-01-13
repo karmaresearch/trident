@@ -750,206 +750,206 @@ void Loader::dumpPermutation(std::vector<K> &input,
 }
 
 /*template<class K>
-void Loader::sortPermutation_seq(
-        const int idReader,
-        MultiDiskLZ4Reader *reader,
-        int64_t start,
-        K *output,
-        int64_t maxInserts,
-        int64_t *count) {
+  void Loader::sortPermutation_seq(
+  const int idReader,
+  MultiDiskLZ4Reader *reader,
+  int64_t start,
+  K *output,
+  int64_t maxInserts,
+  int64_t *count) {
 
-    int64_t i = 0;
-    int64_t currentIdx = start;
-    while (!reader->isEOF(idReader) && i < maxInserts) {
-        //int64_t t1 = reader->readLong(idReader);
-        //int64_t t2 = reader->readLong(idReader);
-        //int64_t t3 = reader->readLong(idReader);
-        //output[currentIdx].first = t1;
-        //output[currentIdx].second = t2;
-        //output[currentIdx].third = t3;
-        K t;
-        t.readFrom(idReader, reader);
-        output[currentIdx] = t;
+  int64_t i = 0;
+  int64_t currentIdx = start;
+  while (!reader->isEOF(idReader) && i < maxInserts) {
+//int64_t t1 = reader->readLong(idReader);
+//int64_t t2 = reader->readLong(idReader);
+//int64_t t3 = reader->readLong(idReader);
+//output[currentIdx].first = t1;
+//output[currentIdx].second = t2;
+//output[currentIdx].third = t3;
+K t;
+t.readFrom(idReader, reader);
+output[currentIdx] = t;
 
-        currentIdx++;
-        i++;
-        if (i % 100000000 == 0) {
-            LOG(DEBUGL) << "Processed " << i << " triples";
-        }
-    }
-    *count = i;
-    while (i < maxInserts) {
-        output[currentIdx] = K::max();
-        //output[currentIdx].first = UINT64_MAX;
-        //output[currentIdx].second = UINT64_MAX;
-        //output[currentIdx].third = UINT64_MAX;
-        i++;
-        currentIdx++;
-    }
-    LOG(DEBUGL) << "Finished";
+currentIdx++;
+i++;
+if (i % 100000000 == 0) {
+LOG(DEBUGL) << "Processed " << i << " triples";
+}
+}
+ *count = i;
+ while (i < maxInserts) {
+ output[currentIdx] = K::max();
+//output[currentIdx].first = UINT64_MAX;
+//output[currentIdx].second = UINT64_MAX;
+//output[currentIdx].third = UINT64_MAX;
+i++;
+currentIdx++;
+}
+LOG(DEBUGL) << "Finished";
 }*/
 
 /*template<class K>
-void Loader::sortPermutation(string inputDir,
-        int maxReadingThreads,
-        int parallelProcesses,
-        bool initialSorting,
-        int64_t estimatedSize,
-        int64_t elementsMainMem,
-        int filesToMerge,
-        bool readFirstByte,
-        std::vector<std::pair<string, char>> &additionalPermutations) {
+  void Loader::sortPermutation(string inputDir,
+  int maxReadingThreads,
+  int parallelProcesses,
+  bool initialSorting,
+  int64_t estimatedSize,
+  int64_t elementsMainMem,
+  int filesToMerge,
+  bool readFirstByte,
+  std::vector<std::pair<string, char>> &additionalPermutations) {
 
-    if (initialSorting) {
-        vector<string> unsortedFiles = Utils::getFiles(inputDir);
-        MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
-        std::vector<std::vector<string>> inputsReaders(parallelProcesses);
-        int currentPart = 0;
-        for(int i = 0; i < unsortedFiles.size(); ++i) {
-            if (Utils::exists(unsortedFiles[i])) {
-                inputsReaders[currentPart].push_back(unsortedFiles[i]);
-                currentPart = (currentPart + 1) % parallelProcesses;
-            }
+  if (initialSorting) {
+  vector<string> unsortedFiles = Utils::getFiles(inputDir);
+  MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
+  std::vector<std::vector<string>> inputsReaders(parallelProcesses);
+  int currentPart = 0;
+  for(int i = 0; i < unsortedFiles.size(); ++i) {
+  if (Utils::exists(unsortedFiles[i])) {
+  inputsReaders[currentPart].push_back(unsortedFiles[i]);
+  currentPart = (currentPart + 1) % parallelProcesses;
+  }
+  }
+  auto itr = inputsReaders.begin();
+  int filesPerReader = parallelProcesses / maxReadingThreads;
+  for(int i = 0; i < maxReadingThreads; ++i) {
+  readers[i] = new MultiDiskLZ4Reader(filesPerReader,
+  3, 4);
+  readers[i]->start();
+  for(int j = 0; j < filesPerReader; ++j) {
+  if (itr->empty()) {
+  LOG(DEBUGL) << "Part " << j << " is empty";
+  } else {
+  LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
+  }
+  if (itr != inputsReaders.end()) {
+  readers[i]->addInput(j, *itr);
+  itr++;
+  } else {
+  std::vector<string> emptyset;
+  readers[i]->addInput(j, emptyset);
+  }
+  }
+  }
+//Should I read a first byte?
+if (readFirstByte) {
+for(int i = 0; i < maxReadingThreads; ++i) {
+for(int j = 0; j < filesPerReader; ++j) {
+if (!readers[i]->isEOF(j)) {
+char b = readers[i]->readByte(j);
+if (b != 1) {
+//Strange...
+throw 10;
+}
+}
+}
+}
+}
+std::thread *threads = new std::thread[parallelProcesses];
+
+elementsMainMem = max((int64_t)parallelProcesses,
+min(elementsMainMem, (int64_t)(estimatedSize * 1.2)));
+LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
+std::vector<K> triples(elementsMainMem);
+LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << ". done";
+
+K *rawTriples = NULL;
+if (triples.size() > 0) {
+rawTriples = &(triples[0]);
+}
+int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
+bool isFinished = false;
+int iter = 0;
+int round = 0;
+
+LOG(DEBUGL) << "Start loop";
+while (!isFinished) {
+    LOG(DEBUGL) << "Start round " << round++;
+    //Load in parallel all the triples from disk to the main memory
+    std::vector<int64_t> counts(parallelProcesses);
+    for (int i = 0; i < parallelProcesses; ++i) {
+        MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
+        int idReader = i / maxReadingThreads;
+        threads[i] = std::thread(
+                std::bind(&sortPermutation_seq<K>, idReader, reader,
+                    i * maxInserts, rawTriples,
+                    maxInserts, &(counts[i])));
+    }
+    for (int i = 0; i < parallelProcesses; ++i) {
+        threads[i].join();
+    }
+
+    LOG(DEBUGL) << "Fill the empty holes with new data";
+    int curPart = 0;
+    std::vector<std::pair<int, int>> openedStreams;
+    for(int i = 0; i < parallelProcesses; ++i) {
+        int idxReader = i % maxReadingThreads;
+        int idxPart = i / maxReadingThreads;
+        if (!readers[idxReader]->isEOF(idxPart)) {
+            openedStreams.push_back(make_pair(idxReader, idxPart));
         }
-        auto itr = inputsReaders.begin();
-        int filesPerReader = parallelProcesses / maxReadingThreads;
-        for(int i = 0; i < maxReadingThreads; ++i) {
-            readers[i] = new MultiDiskLZ4Reader(filesPerReader,
-                    3, 4);
-            readers[i]->start();
-            for(int j = 0; j < filesPerReader; ++j) {
-                if (itr->empty()) {
-                    LOG(DEBUGL) << "Part " << j << " is empty";
-                } else {
-                    LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
-                }
-                if (itr != inputsReaders.end()) {
-                    readers[i]->addInput(j, *itr);
-                    itr++;
-                } else {
-                    std::vector<string> emptyset;
-                    readers[i]->addInput(j, emptyset);
-                }
-            }
-        }
-        //Should I read a first byte?
-        if (readFirstByte) {
-            for(int i = 0; i < maxReadingThreads; ++i) {
-                for(int j = 0; j < filesPerReader; ++j) {
-                    if (!readers[i]->isEOF(j)) {
-                        char b = readers[i]->readByte(j);
-                        if (b != 1) {
-                            //Strange...
-                            throw 10;
-                        }
-                    }
-                }
-            }
-        }
-        std::thread *threads = new std::thread[parallelProcesses];
-
-        elementsMainMem = max((int64_t)parallelProcesses,
-                min(elementsMainMem, (int64_t)(estimatedSize * 1.2)));
-        LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
-        std::vector<K> triples(elementsMainMem);
-        LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << ". done";
-
-        K *rawTriples = NULL;
-        if (triples.size() > 0) {
-            rawTriples = &(triples[0]);
-        }
-        int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
-        bool isFinished = false;
-        int iter = 0;
-        int round = 0;
-
-        LOG(DEBUGL) << "Start loop";
-        while (!isFinished) {
-            LOG(DEBUGL) << "Start round " << round++;
-            //Load in parallel all the triples from disk to the main memory
-            std::vector<int64_t> counts(parallelProcesses);
-            for (int i = 0; i < parallelProcesses; ++i) {
-                MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
-                int idReader = i / maxReadingThreads;
-                threads[i] = std::thread(
-                        std::bind(&sortPermutation_seq<K>, idReader, reader,
-                            i * maxInserts, rawTriples,
-                            maxInserts, &(counts[i])));
-            }
-            for (int i = 0; i < parallelProcesses; ++i) {
-                threads[i].join();
-            }
-
-            LOG(DEBUGL) << "Fill the empty holes with new data";
-            int curPart = 0;
-            std::vector<std::pair<int, int>> openedStreams;
-            for(int i = 0; i < parallelProcesses; ++i) {
-                int idxReader = i % maxReadingThreads;
-                int idxPart = i / maxReadingThreads;
-                if (!readers[idxReader]->isEOF(idxPart)) {
-                    openedStreams.push_back(make_pair(idxReader, idxPart));
-                }
-            }
-            while (curPart < parallelProcesses && !openedStreams.empty()) {
-                if (counts[curPart] < maxInserts) {
-                    int idxCurPair = 0;
-                    while (idxCurPair < openedStreams.size() &&
-                            counts[curPart] < maxInserts) {
-                        auto pair = openedStreams[idxCurPair];
-                        K t;
-                        t.readFrom(pair.second, readers[pair.first]);
-                        rawTriples[curPart * maxInserts + counts[curPart]] = t;
-                        if (readers[pair.first]->isEOF(pair.second)) {
-                            openedStreams.erase(openedStreams.begin() + idxCurPair);
-                            if (idxCurPair == openedStreams.size()) {
-                                idxCurPair = 0;
-                            }
-                        } else {
-                            idxCurPair = (idxCurPair + 1) % openedStreams.size();
-                        }
-                        counts[curPart]++;
+    }
+    while (curPart < parallelProcesses && !openedStreams.empty()) {
+        if (counts[curPart] < maxInserts) {
+            int idxCurPair = 0;
+            while (idxCurPair < openedStreams.size() &&
+                    counts[curPart] < maxInserts) {
+                auto pair = openedStreams[idxCurPair];
+                K t;
+                t.readFrom(pair.second, readers[pair.first]);
+                rawTriples[curPart * maxInserts + counts[curPart]] = t;
+                if (readers[pair.first]->isEOF(pair.second)) {
+                    openedStreams.erase(openedStreams.begin() + idxCurPair);
+                    if (idxCurPair == openedStreams.size()) {
+                        idxCurPair = 0;
                     }
                 } else {
-                    curPart++;
+                    idxCurPair = (idxCurPair + 1) % openedStreams.size();
                 }
+                counts[curPart]++;
             }
-            LOG(DEBUGL) << "Finished filling holes";
-
-            //Sort and dump the results to disk
-            int64_t maxValue = maxInserts * parallelProcesses;
-            string outputFile = inputDir + DIR_SEP + string("sorted-") + to_string(iter++);
-            dumpPermutation(triples,
-                    parallelProcesses,
-                    maxReadingThreads,
-                    maxValue, outputFile, IDX_SPO);
-            for (auto perm : additionalPermutations) {
-                outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
-                dumpPermutation(triples,
-                        parallelProcesses,
-                        maxReadingThreads,
-                        maxValue, outputFile, perm.second);
-            }
-
-            //Are all files read?
-            int i = 0;
-            for(; i < parallelProcesses; ++i) {
-                if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
-                    break;
-                }
-            }
-            isFinished = i == parallelProcesses;
-            if (!isFinished) {
-                LOG(DEBUGL) << "One round is not enough";
-            }
+        } else {
+            curPart++;
         }
+    }
+    LOG(DEBUGL) << "Finished filling holes";
 
-        for(int i = 0; i < maxReadingThreads; ++i) {
-            delete readers[i];
+    //Sort and dump the results to disk
+    int64_t maxValue = maxInserts * parallelProcesses;
+    string outputFile = inputDir + DIR_SEP + string("sorted-") + to_string(iter++);
+    dumpPermutation(triples,
+            parallelProcesses,
+            maxReadingThreads,
+            maxValue, outputFile, IDX_SPO);
+    for (auto perm : additionalPermutations) {
+        outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
+        dumpPermutation(triples,
+                parallelProcesses,
+                maxReadingThreads,
+                maxValue, outputFile, perm.second);
+    }
+
+    //Are all files read?
+    int i = 0;
+    for(; i < parallelProcesses; ++i) {
+        if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
+            break;
         }
-        for(auto inputFile : unsortedFiles)
-            Utils::remove(inputFile);
-        delete[] readers;
-        delete[] threads;
+    }
+    isFinished = i == parallelProcesses;
+    if (!isFinished) {
+        LOG(DEBUGL) << "One round is not enough";
+    }
+}
+
+for(int i = 0; i < maxReadingThreads; ++i) {
+    delete readers[i];
+}
+for(auto inputFile : unsortedFiles)
+    Utils::remove(inputFile);
+    delete[] readers;
+    delete[] threads;
     }
 }*/
 
@@ -2416,6 +2416,26 @@ void Loader::seq_createIndices(
         int64_t estimatedSize) {
 
     LOG(DEBUGL) << "Create partitions one-by-one";
+    std::vector<std::pair<string, char>> permutations;
+    if (!aggrIndices) {
+        permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+        permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+        permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+        permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+        permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+        permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
+    } else {
+        permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+        permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+        permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+        permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+    }
+    PermSorter::sortChunks2(permutations, maxReadingThreads,
+            parallelProcesses,
+            estimatedSize);
+    for(auto &p : permutations) {
+        mergeDiskFragments(ParamsMergeDiskFragments(p.first));
+    }
 
     ParamInsert params;
     params.parallelProcesses = parallelProcesses;
@@ -2433,9 +2453,6 @@ void Loader::seq_createIndices(
     params.removeInput = false;
     params.deletePreviousExt = false;
 
-    PermSorter::sortChunks2(permDirs[0], maxReadingThreads, parallelProcesses,
-                estimatedSize, true);
-    mergeDiskFragments(ParamsMergeDiskFragments(permDirs[0]));
     insert(params);
 
     string lastInput = permDirs[0];

@@ -73,6 +73,12 @@ class PermSorter {
                 int parallelProcesses,
                 char *rawTriples);
 
+        static void sortChunks2_permute(
+                char *start,
+                char *end,
+                int currentPerm,
+                int nextPerm);
+
     public:
         static void sortChunks(string inputdir,
                 int maxReadingThreads,
@@ -91,11 +97,11 @@ class PermSorter {
                 bool outputSPO,
                 std::vector<std::pair<string, char>> &additionalPermutations);
 
-        static void sortChunks2(string inputdir,
+        static void sortChunks2(
+                std::vector<std::pair<string, char>> &inputs,
                 int maxReadingThreads,
                 int parallelProcesses,
-                int64_t estimatedSize,
-                bool outputSPO);
+                int64_t estimatedSize);
 
         static int64_t readTermFromBuffer(char *buffer);
 };
