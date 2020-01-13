@@ -598,7 +598,7 @@ void PermSorter::sortChunks2(string inputdir,
         size_t nloadedtriples = 0;
         for(auto c : counts) nloadedtriples += c;
         LOG(DEBUGL) << "Start dumping the inmemory array of " << nloadedtriples;
-        char *start = rawTriples.get();
+        /*char *start = rawTriples.get();
         char *end = start + nloadedtriples * 15;
         string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
         LZ4Writer writer(outputFile);
@@ -609,7 +609,13 @@ void PermSorter::sortChunks2(string inputdir,
             t.o = PermSorter::readTermFromBuffer(start + 10);
             t.writeTo(&writer);
             start+=15;
-        }
+        }*/
+        string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
+        PermSorter::dumpPermutation(rawTriples.get(),
+                nloadedtriples,
+                parallelProcesses,
+                maxReadingThreads,
+                outputFile);
         LOG(DEBUGL) << "Stop dumping the inmemory array";
 
         round++;
