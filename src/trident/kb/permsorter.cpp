@@ -725,11 +725,13 @@ void PermSorter::sortChunks2(
             int permID = permutations[i].second;
 
             //Rewrite the permutation
+            LOG(DEBUGL) << "Start permuting ...";
             PermSorter::sortChunks2_permute(
                     rawTriples.get(),
                     rawTriples.get() + nloadedtriples * 15,
                     currentPerm,
                     permID);
+            LOG(DEBUGL) << "Stop permuting";
 
             //Sort it
             LOG(DEBUGL) << "Start sorting the inmemory array. perm=" << permID;
