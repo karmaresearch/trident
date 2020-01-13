@@ -420,27 +420,31 @@ void PermSorter::sortChunks2(string inputdir,
     const int64_t mem = Utils::getSystemMemory() * 0.8;
     const int64_t nelements = mem / 15;
 
-    LOG(DEBUGL) << "Creating a vector of " << nelements << " ...";
-    std::unique_ptr<char[]> rawTriples = std::unique_ptr<char[]>(new char[nelements * 15]);
+    size_t nbytes = nelements * 15;
+    LOG(DEBUGL) << "Creating a vector of " << nelements << " (" << nbytes << " bytes) ...";
+    std::unique_ptr<char[]> rawTriples = std::unique_ptr<char[]>(new char[nbytes]);
     char *current = rawTriples.get();
     LOG(DEBUGL) << "Done creating a vector of " << nelements;
 
     int round = 0;
     std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
+    LOG(DEBUGL) << "Got " << unsortedFiles.size() << "files from directory " << inputdir;
     int nextFileToProcess = 0;
-    bool isFinished = nextFileToProcess < unsortedFiles.size();
+    bool isFinished = nextFileToProcess == unsortedFiles.size();
     std::unique_ptr<LZ4Reader> reader;
 
     while (!isFinished) {
         LOG(DEBUGL) << "Loading round " << round;
+        current = rawTriples.get();
+
         //Load the array
         LOG(DEBUGL) << "Start loading the inmemory array ...";
         for(size_t i = 0; i < nelements; ++i) {
             if (reader == NULL || reader->isEof()) {
                 if (nextFileToProcess == unsortedFiles.size())
                     break;
+                LOG(DEBUGL) << "Opening file " << nextFileToProcess << " of " << unsortedFiles.size() << ": " << unsortedFiles[nextFileToProcess];
                 reader = std::unique_ptr<LZ4Reader>(new LZ4Reader(unsortedFiles[nextFileToProcess]));
-                current = rawTriples.get();
                 nextFileToProcess++;
             }
             int64_t first = reader->parseLong();
@@ -450,6 +454,8 @@ void PermSorter::sortChunks2(string inputdir,
             PermSorter::writeTermInBuffer(current + 5, second);
             PermSorter::writeTermInBuffer(current + 10, third);
             current += 15;
+            if (i % 1000000000 == 0)
+                LOG(DEBUGL) << "Loaded " << i << " elements";
         }
         LOG(DEBUGL) << "Stop loading the inmemory array";
 
