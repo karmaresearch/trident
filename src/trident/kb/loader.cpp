@@ -2415,9 +2415,6 @@ void Loader::seq_createIndices(
         int64_t limitSpace,
         int64_t estimatedSize) {
 
-    throw 10; //First I need to re-add the code that does disk-merge
-
-    //LOG(DEBUGL) << "SortAndIndex one-by-one";
     LOG(DEBUGL) << "Create partitions one-by-one";
 
     ParamInsert params;
@@ -2436,6 +2433,9 @@ void Loader::seq_createIndices(
     params.removeInput = false;
     params.deletePreviousExt = false;
 
+    PermSorter::sortChunks2(permDirs[0], maxReadingThreads, parallelProcesses,
+                estimatedSize, true);
+    mergeDiskFragments(ParamsMergeDiskFragments(permDirs[0]));
     insert(params);
 
     string lastInput = permDirs[0];

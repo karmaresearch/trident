@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _PERM_SORTER_H
@@ -63,8 +63,24 @@ class PermSorter {
                 int maxReadingThreads,
                 int parallelProcesses,
                 int64_t estimatedSize,
+                bool outputSPO) {
+            std::vector<std::pair<string, char>> additionalPermutations;
+            sortChunks(inputdir, maxReadingThreads, parallelProcesses,
+                    estimatedSize, outputSPO, additionalPermutations);
+        }
+
+        static void sortChunks(string inputdir,
+                int maxReadingThreads,
+                int parallelProcesses,
+                int64_t estimatedSize,
                 bool outputSPO,
                 std::vector<std::pair<string, char>> &additionalPermutations);
+
+        static void sortChunks2(string inputdir,
+                int maxReadingThreads,
+                int parallelProcesses,
+                int64_t estimatedSize,
+                bool outputSPO);
 
         static int64_t readTermFromBuffer(char *buffer);
 };

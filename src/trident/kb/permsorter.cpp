@@ -411,6 +411,76 @@ struct _Offset {
     char third;
 };
 
+void PermSorter::sortChunks2(string inputdir,
+        int maxReadingThreads,
+        int parallelProcesses,
+        int64_t estimatedSize,
+        bool outputSPO) {
+    LOG(DEBUGL) << "Start sortChunks2";
+    const int64_t mem = Utils::getSystemMemory() * 0.8;
+    const int64_t nelements = mem / 15;
+
+    LOG(DEBUGL) << "Creating a vector of " << nelements << " ...";
+    std::unique_ptr<char[]> rawTriples = std::unique_ptr<char[]>(new char[nelements * 15]);
+    char *current = rawTriples.get();
+    LOG(DEBUGL) << "Done creating a vector of " << nelements;
+
+    int round = 0;
+    std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
+    int nextFileToProcess = 0;
+    bool isFinished = nextFileToProcess < unsortedFiles.size();
+    std::unique_ptr<LZ4Reader> reader;
+
+    while (!isFinished) {
+        LOG(DEBUGL) << "Loading round " << round;
+        //Load the array
+        LOG(DEBUGL) << "Start loading the inmemory array ...";
+        for(size_t i = 0; i < nelements; ++i) {
+            if (reader == NULL || reader->isEof()) {
+                if (nextFileToProcess == unsortedFiles.size())
+                    break;
+                reader = std::unique_ptr<LZ4Reader>(new LZ4Reader(unsortedFiles[nextFileToProcess]));
+                current = rawTriples.get();
+                nextFileToProcess++;
+            }
+            int64_t first = reader->parseLong();
+            int64_t second = reader->parseLong();
+            int64_t third = reader->parseLong();
+            PermSorter::writeTermInBuffer(current, first);
+            PermSorter::writeTermInBuffer(current + 5, second);
+            PermSorter::writeTermInBuffer(current + 10, third);
+            current += 15;
+        }
+        LOG(DEBUGL) << "Stop loading the inmemory array";
+
+        //Sort it
+        LOG(DEBUGL) << "Start sorting the inmemory array";
+        PermSorter::sortPermutation(rawTriples.get(), current, parallelProcesses);
+        LOG(DEBUGL) << "Stop sorting the inmemory array";
+
+        //Dump it
+        LOG(DEBUGL) << "Start dumping the inmemory array";
+        char *start = rawTriples.get();
+        string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
+        LZ4Writer writer(outputFile);
+        while (start != current) {
+            Triple t;
+            t.s = PermSorter::readTermFromBuffer(start);
+            t.p = PermSorter::readTermFromBuffer(start + 5);
+            t.o = PermSorter::readTermFromBuffer(start + 10);
+            t.writeTo(&writer);
+            start+=15;
+        }
+        LOG(DEBUGL) << "Stop dumping the inmemory array";
+
+
+        round++;
+        isFinished = reader == NULL && nextFileToProcess == unsortedFiles.size();
+    }
+
+    LOG(DEBUGL) << "Stop sortChunks2";
+}
+
 void PermSorter::sortChunks(string inputdir,
         int maxReadingThreads,
         int parallelProcesses,

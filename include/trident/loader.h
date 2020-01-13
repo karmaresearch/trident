@@ -201,6 +201,8 @@ class BufferCoordinates {
 };
 
 struct ParamsMergeDiskFragments {
+    ParamsMergeDiskFragments() {}
+    ParamsMergeDiskFragments(string i) : inputDir(i) {}
     string inputDir;
 };
 
