@@ -28,11 +28,27 @@ int main(int argc, const char** argv) {
             "Change machine ...sorry";
     }
 
-    std::string inputDir = "/Users/jacopo/Desktop/test3";
+    std::string inputDir = "/Users/jacopo/Desktop/test3/";
+    std::vector<std::string> permDirs(6);
+    permDirs[0] = inputDir + "permtmp-0";
+    permDirs[1] = inputDir + "permtmp-1";
+    permDirs[2] = inputDir + "permtmp-2";
+    permDirs[3] = inputDir + "permtmp-3";
+    permDirs[4] = inputDir + "permtmp-4";
+    permDirs[5] = inputDir + "permtmp-5";
+    std::vector<std::pair<string, char>> permutations;
+    permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+    permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+    permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+    permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+    permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+    permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    PermSorter::sortChunks2(inputDir, maxReadingThreads, parallelProcesses,
-            estimatedSize, true);
+    PermSorter::sortChunks2(permutations, maxReadingThreads,
+            parallelProcesses,
+            estimatedSize);
+
     Loader::mergeDiskFragments(ParamsMergeDiskFragments(inputDir));
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     LOG(INFOL) << "Time (sec) " << sec.count();
