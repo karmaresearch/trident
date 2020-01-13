@@ -435,6 +435,7 @@ void PermSorter::sortChunks2_load(const int idReader,
             LOG(DEBUGL) << "Processed " << i << " triples";
         }
     }
+    *count = i;
 }
 
 void PermSorter::sortChunks2_fill(
@@ -594,9 +595,9 @@ void PermSorter::sortChunks2(string inputdir,
         LOG(DEBUGL) << "Stop sorting the inmemory array";
 
         //Dump it
-        LOG(DEBUGL) << "Start dumping the inmemory array";
         size_t nloadedtriples = 0;
         for(auto c : counts) nloadedtriples += c;
+        LOG(DEBUGL) << "Start dumping the inmemory array of " << nloadedtriples;
         char *start = rawTriples.get();
         char *end = start + nloadedtriples * 15;
         string outputFile = inputdir + DIR_SEP + string("sortedchunk-") + to_string(round);
