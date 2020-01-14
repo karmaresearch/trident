@@ -749,6 +749,7 @@ void PermSorter::sortChunks2(
                     maxReadingThreads,
                     outputFile);
             LOG(DEBUGL) << "Stop dumping the inmemory array";
+            currentPerm = permID;
         }
 
         round++;
