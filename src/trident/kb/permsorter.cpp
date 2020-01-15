@@ -30,17 +30,30 @@
 #include <array>
 
 typedef std::array<unsigned char, 15> __PermSorter_triple;
+typedef std::array<unsigned char, 20> __PermSorter_tripleCount;
 
 bool __PermSorter_triple_sorter(const __PermSorter_triple &a,
         const __PermSorter_triple &b) {
     return a < b;
 }
 
-void PermSorter::sortPermutation(char *start, char *end, int nthreads) {
-    __PermSorter_triple *sstart = (__PermSorter_triple*) start;
-    __PermSorter_triple *send = (__PermSorter_triple*) end;
+bool __PermSorter_tripleCount_sorter(const __PermSorter_tripleCount &a,
+        const __PermSorter_tripleCount &b) {
+    return a < b;
+}
+
+void PermSorter::sortPermutation(char *start, char *end, int nthreads,
+        bool includeCount) {
     std::chrono::system_clock::time_point starttime = std::chrono::system_clock::now();
-    ParallelTasks::sort_int(sstart, send, &__PermSorter_triple_sorter, nthreads);
+    if (includeCount) {
+        __PermSorter_tripleCount *sstart = (__PermSorter_tripleCount*) start;
+        __PermSorter_tripleCount *send = (__PermSorter_tripleCount*) end;
+        ParallelTasks::sort_int(sstart, send, &__PermSorter_tripleCount_sorter, nthreads);
+    } else {
+        __PermSorter_triple *sstart = (__PermSorter_triple*) start;
+        __PermSorter_triple *send = (__PermSorter_triple*) end;
+        ParallelTasks::sort_int(sstart, send, &__PermSorter_triple_sorter, nthreads);
+    }
     std::chrono::duration<double> duration = std::chrono::system_clock::now() - starttime;
     LOG(DEBUGL) << "Time sorting: " << duration.count() << "s.";
 }
@@ -67,30 +80,44 @@ void PermSorter::dumpPermutation_seq(
         char *start,
         char *end,
         MultiDiskLZ4Writer *writer,
-        int currentPart) {
-    while (start < end) {
-        Triple t;
-        t.s = PermSorter::readTermFromBuffer(start);
-        t.p = PermSorter::readTermFromBuffer(start + 5);
-        t.o = PermSorter::readTermFromBuffer(start + 10);
-        t.writeTo(currentPart, writer);
-        start+=15;
+        int currentPart,
+        bool includeCount) {
+    if (includeCount) {
+        while (start < end) {
+            Triple t;
+            t.s = PermSorter::readTermFromBuffer(start);
+            t.p = PermSorter::readTermFromBuffer(start + 5);
+            t.o = PermSorter::readTermFromBuffer(start + 10);
+            t.count = PermSorter::readTermFromBuffer(start + 15);
+            t.writeTo(currentPart, writer);
+            start+=20;
+        }
+    } else {
+        while (start < end) {
+            Triple t;
+            t.s = PermSorter::readTermFromBuffer(start);
+            t.p = PermSorter::readTermFromBuffer(start + 5);
+            t.o = PermSorter::readTermFromBuffer(start + 10);
+            t.writeTo(currentPart, writer);
+            start+=15;
+        }
     }
     writer->setTerminated(currentPart);
 }
 
-bool PermSorter::isMax(char *input, int64_t idx) {
-    char *start = input + idx * 15;
-    for(int i = 0; i < 15; ++i) {
-        if (~(start[i]))
-            return false;
-    }
-    return true;
-}
+/*bool PermSorter::isMax(char *input, int64_t idx) {
+  char *start = input + idx * 15;
+  for(int i = 0; i < 15; ++i) {
+  if (~(start[i]))
+  return false;
+  }
+  return true;
+  }*/
 
 void PermSorter::dumpPermutation(char *input, int64_t end,
         int parallelProcesses,
         int maxReadingThreads,
+        bool includeCount,
         string out) {
     //Set up the multidiskwriters...
     MultiDiskLZ4Writer **writers = new MultiDiskLZ4Writer*[maxReadingThreads];
@@ -107,13 +134,14 @@ void PermSorter::dumpPermutation(char *input, int64_t end,
 
     //Find out the total size of the written elements
     int64_t realSize = end;
-    while (realSize > 0) {
-        if (PermSorter::isMax(input, realSize - 1)) {
-            realSize--;
-        } else {
-            break;
-        }
-    }
+    /*while (realSize > 0) {
+      if (PermSorter::isMax(input, realSize - 1)) {
+      realSize--;
+      } else {
+      break;
+      }
+      }*/
+    const size_t sizeTriple = includeCount ? 20 : 15;
 
     std::thread *threads = new std::thread[parallelProcesses];
     int64_t chunkSize = max((int64_t)1, (realSize / parallelProcesses));
@@ -131,10 +159,11 @@ void PermSorter::dumpPermutation(char *input, int64_t end,
         int currentPart = i % partsPerWriter;
         if (nextEnd > currentEnd) {
             threads[i] = std::thread(PermSorter::dumpPermutation_seq,
-                    input + currentEnd * 15,
-                    input + nextEnd * 15,
+                    input + currentEnd * sizeTriple,
+                    input + nextEnd * sizeTriple,
                     currentWriter,
-                    currentPart);
+                    currentPart,
+                    includeCount);
         } else {
             currentWriter->setTerminated(currentPart);
         }
@@ -416,7 +445,8 @@ void PermSorter::sortChunks2_load(const int idReader,
         char *rawTriples,
         int64_t startIdx,
         int64_t endIdx,
-        int64_t *count) {
+        int64_t *count,
+        bool includeCount) {
     char *start = rawTriples + startIdx;
     char *end = rawTriples + endIdx;
     char *current = start;
@@ -429,7 +459,13 @@ void PermSorter::sortChunks2_load(const int idReader,
         PermSorter::writeTermInBuffer(current, first);
         PermSorter::writeTermInBuffer(current + 5, second);
         PermSorter::writeTermInBuffer(current + 10, third);
-        current += 15;
+        if (includeCount) {
+            int64_t count = reader->readLong(idReader);
+            PermSorter::writeTermInBuffer(current + 15, count);
+            current += 20;
+        } else {
+            current += 15;
+        }
         i++;
         if (i % 1000000000 == 0) {
             LOG(DEBUGL) << "Processed " << i << " triples";
@@ -444,8 +480,10 @@ void PermSorter::sortChunks2_fill(
         std::vector<int64_t> &counts,
         int maxReadingThreads,
         int parallelProcesses,
+        bool includeCount,
         char *rawTriples) {
     int curPart = 0;
+    const size_t sizeTriple = includeCount ? 20 : 15;
     std::vector<std::pair<int, int>> openedStreams;
     for(int i = 0; i < parallelProcesses; ++i) {
         int idxReader = i % maxReadingThreads;
@@ -458,7 +496,7 @@ void PermSorter::sortChunks2_fill(
         if (counts[curPart] < maxInserts) {
             int idxCurPair = 0;
 
-            const int64_t startp = curPart * maxInserts * 15;
+            const int64_t startp = curPart * maxInserts * sizeTriple;
             char *start = rawTriples + startp;
             while (idxCurPair < openedStreams.size() &&
                     counts[curPart] < maxInserts) {
@@ -467,10 +505,15 @@ void PermSorter::sortChunks2_fill(
                 const int64_t second = readers[pair.first]->readLong(pair.second);
                 const int64_t third = readers[pair.first]->readLong(pair.second);
 
-                const int64_t starto = counts[curPart] * 15;
+                const int64_t starto = counts[curPart] * sizeTriple;
                 PermSorter::writeTermInBuffer(start + starto, first);
                 PermSorter::writeTermInBuffer(start + starto + 5, second);
                 PermSorter::writeTermInBuffer(start + starto + 10, third);
+
+                if (includeCount) {
+                    const int64_t count = readers[pair.first]->readLong(pair.second);
+                    PermSorter::writeTermInBuffer(start + starto + 15, count);
+                }
 
                 if (readers[pair.first]->isEOF(pair.second)) {
                     openedStreams.erase(openedStreams.begin() + idxCurPair);
@@ -489,8 +532,9 @@ void PermSorter::sortChunks2_fill(
     //Fill the remaining values with the highest possible triples so that
     //they are sorted at the end
     for(int i = 0; i < counts.size(); ++i) {
-        char *start = rawTriples + (i * maxInserts * 15) + counts[curPart] * 15;
-        char *endp = rawTriples + (i+1) * maxInserts * 15;
+        char *start = rawTriples + (i * maxInserts * sizeTriple)
+            + counts[curPart] * sizeTriple;
+        char *endp = rawTriples + (i+1) * maxInserts * sizeTriple;
         if (start < endp) {
             memset(start, 1, endp - start);
         }
@@ -500,6 +544,7 @@ void PermSorter::sortChunks2_fill(
 void PermSorter::sortChunks2_permute(
         char *start,
         char *end,
+        const size_t sizeTriple,
         int currentPerm,
         int nextPerm) {
     if (currentPerm == IDX_SPO && nextPerm == IDX_SOP) {
@@ -520,7 +565,7 @@ void PermSorter::sortChunks2_permute(
             start[12] = tmp[2];
             start[13] = tmp[3];
             start[14] = tmp[4];
-            start += 15;
+            start += sizeTriple;
         }
     } else if (currentPerm == IDX_SOP && nextPerm == IDX_OSP) {
         while (start < end) {
@@ -540,7 +585,7 @@ void PermSorter::sortChunks2_permute(
             start[7] = tmp[2];
             start[8] = tmp[3];
             start[9] = tmp[4];
-            start += 15;
+            start += sizeTriple;
         }
     } else if (currentPerm == IDX_OSP && nextPerm == IDX_OPS) {
         while (start < end) {
@@ -560,7 +605,7 @@ void PermSorter::sortChunks2_permute(
             start[12] = tmp[2];
             start[13] = tmp[3];
             start[14] = tmp[4];
-            start += 15;
+            start += sizeTriple;
         }
     } else if (currentPerm == IDX_OPS && nextPerm == IDX_POS) {
         while (start < end) {
@@ -580,7 +625,7 @@ void PermSorter::sortChunks2_permute(
             start[7] = tmp[2];
             start[8] = tmp[3];
             start[9] = tmp[4];
-            start += 15;
+            start += sizeTriple;
         }
     } else if (currentPerm == IDX_POS && nextPerm == IDX_PSO) {
         while (start < end) {
@@ -600,7 +645,7 @@ void PermSorter::sortChunks2_permute(
             start[12] = tmp[2];
             start[13] = tmp[3];
             start[14] = tmp[4];
-            start += 15;
+            start += sizeTriple;
         }
     } else {
         LOG(ERRORL) << "Conversion from " << currentPerm << " to " << nextPerm << " is not supported";
@@ -612,17 +657,20 @@ void PermSorter::sortChunks2(
         std::vector<std::pair<string, char>> &permutations,
         int maxReadingThreads,
         int parallelProcesses,
-        int64_t estimatedSize) {
+        int64_t estimatedSize,
+        bool includeCount) {
     std::string inputdir = permutations[0].first;
     int currentPerm = permutations[0].second;
 
+    const size_t sizeTriple = includeCount ? 20 : 15;
+
     LOG(DEBUGL) << "Start sortChunks2";
     const int64_t mem = Utils::getSystemMemory() * 0.8;
-    const size_t max_nelements = mem / 15;
+    const size_t max_nelements = mem / sizeTriple;
 
     size_t nelements = max((size_t)parallelProcesses,
             min(max_nelements, (size_t)(estimatedSize * 1.1)));
-    const size_t nbytes = nelements * 15;
+    const size_t nbytes = nelements * sizeTriple;
     int64_t maxInserts = max((int64_t)1, (int64_t)(nelements / parallelProcesses));
 
     LOG(DEBUGL) << "Creating a vector of " << nelements << " (" << nbytes << " bytes) ...";
@@ -686,9 +734,9 @@ void PermSorter::sortChunks2(
             threads[i] = std::thread(
                     std::bind(&sortChunks2_load, idReader, reader,
                         rawTriples.get(),
-                        (i * 15 * maxInserts),
-                        ((i+1) * 15 * maxInserts),
-                        &(counts[i])));
+                        (i * sizeTriple * maxInserts),
+                        ((i+1) * sizeTriple * maxInserts),
+                        &(counts[i]), includeCount));
         }
         for (int i = 0; i < parallelProcesses; ++i) {
             threads[i].join();
@@ -698,14 +746,14 @@ void PermSorter::sortChunks2(
         //Fill the holes in the array
         LOG(DEBUGL) << "Start filling the holes";
         sortChunks2_fill(readers, maxInserts, counts, maxReadingThreads,
-                parallelProcesses,
+                parallelProcesses, includeCount,
                 rawTriples.get());
         LOG(DEBUGL) << "Stop filling the holes";
 
         //Sort it
         LOG(DEBUGL) << "Start sorting the inmemory array";
         PermSorter::sortPermutation(rawTriples.get(),
-                rawTriples.get() + nbytes, parallelProcesses);
+                rawTriples.get() + nbytes, parallelProcesses, includeCount);
         LOG(DEBUGL) << "Stop sorting the inmemory array";
 
         //Dump it
@@ -717,6 +765,7 @@ void PermSorter::sortChunks2(
                 nloadedtriples,
                 parallelProcesses,
                 maxReadingThreads,
+                includeCount,
                 outputFile);
         LOG(DEBUGL) << "Stop dumping the inmemory array";
 
@@ -728,7 +777,8 @@ void PermSorter::sortChunks2(
             LOG(DEBUGL) << "Start permuting ...";
             PermSorter::sortChunks2_permute(
                     rawTriples.get(),
-                    rawTriples.get() + nloadedtriples * 15,
+                    rawTriples.get() + nloadedtriples * sizeTriple,
+                    sizeTriple,
                     currentPerm,
                     permID);
             LOG(DEBUGL) << "Stop permuting";
@@ -736,7 +786,8 @@ void PermSorter::sortChunks2(
             //Sort it
             LOG(DEBUGL) << "Start sorting the inmemory array. perm=" << permID;
             PermSorter::sortPermutation(rawTriples.get(),
-                    rawTriples.get() + nloadedtriples * 15, parallelProcesses);
+                    rawTriples.get() + nloadedtriples * sizeTriple, parallelProcesses,
+                    includeCount);
             LOG(DEBUGL) << "Stop sorting the inmemory array";
 
             //Dump it
@@ -747,6 +798,7 @@ void PermSorter::sortChunks2(
                     nloadedtriples,
                     parallelProcesses,
                     maxReadingThreads,
+                    includeCount,
                     outputFile);
             LOG(DEBUGL) << "Stop dumping the inmemory array";
             currentPerm = permID;
@@ -765,234 +817,234 @@ void PermSorter::sortChunks2(
     LOG(DEBUGL) << "Stop sortChunks2";
 }
 
-void PermSorter::sortChunks(string inputdir,
-        int maxReadingThreads,
-        int parallelProcesses,
-        int64_t estimatedSize,
-        bool outputSPO,
-        std::vector<std::pair<string, char>> &additionalPermutations) {
+/*void PermSorter::sortChunks(string inputdir,
+  int maxReadingThreads,
+  int parallelProcesses,
+  int64_t estimatedSize,
+  bool outputSPO,
+  std::vector<std::pair<string, char>> &additionalPermutations) {
 
-    LOG(DEBUGL) << "Start sortChunks";
-    //calculate the number of elements
-    int64_t mem = Utils::getSystemMemory() * 0.4; //it's low because merge sort requires double the amount...
-    int nperms = additionalPermutations.size() + 1;
-    int64_t nelements = mem / (15 * nperms);
-    int64_t elementsMainMem = max((int64_t)parallelProcesses,
-            min(nelements, (int64_t)(estimatedSize * 1.2)));
-    //Make sure elementsMainMem is a multiple of parallelProcesses
-    elementsMainMem += parallelProcesses - (elementsMainMem % parallelProcesses);
+  LOG(DEBUGL) << "Start sortChunks";
+//calculate the number of elements
+int64_t mem = Utils::getSystemMemory() * 0.4; //it's low because merge sort requires double the amount...
+int nperms = additionalPermutations.size() + 1;
+int64_t nelements = mem / (15 * nperms);
+int64_t elementsMainMem = max((int64_t)parallelProcesses,
+min(nelements, (int64_t)(estimatedSize * 1.2)));
+//Make sure elementsMainMem is a multiple of parallelProcesses
+elementsMainMem += parallelProcesses - (elementsMainMem % parallelProcesses);
 
-    /*** SORT THE ORIGINAL FILES IN BLOCKS OF N RECORDS ***/
-    vector<string> unsortedFiles = Utils::getFiles(inputdir);
-    MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
-    std::vector<std::vector<string>> inputsReaders(parallelProcesses);
-    int currentPart = 0;
-    for(int i = 0; i < unsortedFiles.size(); ++i) {
-        if (Utils::exists(unsortedFiles[i])) {
-            inputsReaders[currentPart].push_back(unsortedFiles[i]);
-            currentPart = (currentPart + 1) % parallelProcesses;
-        }
+//SORT THE ORIGINAL FILES IN BLOCKS OF N RECORDS
+vector<string> unsortedFiles = Utils::getFiles(inputdir);
+MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
+std::vector<std::vector<string>> inputsReaders(parallelProcesses);
+int currentPart = 0;
+for(int i = 0; i < unsortedFiles.size(); ++i) {
+if (Utils::exists(unsortedFiles[i])) {
+inputsReaders[currentPart].push_back(unsortedFiles[i]);
+currentPart = (currentPart + 1) % parallelProcesses;
+}
+}
+auto itr = inputsReaders.begin();
+int filesPerReader = parallelProcesses / maxReadingThreads;
+for(int i = 0; i < maxReadingThreads; ++i) {
+readers[i] = new MultiDiskLZ4Reader(filesPerReader,
+3, 4);
+readers[i]->start();
+for(int j = 0; j < filesPerReader; ++j) {
+if (itr->empty()) {
+LOG(DEBUGL) << "Part " << j << " is empty";
+} else {
+LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
+}
+if (itr != inputsReaders.end()) {
+readers[i]->addInput(j, *itr);
+itr++;
+} else {
+std::vector<string> emptyset;
+readers[i]->addInput(j, emptyset);
+}
+}
+}
+std::thread *threads = new std::thread[parallelProcesses];
+LOG(DEBUGL) << "Creating vectors of "
+<< elementsMainMem << " elements. Each el is 15 bytes";
+
+std::vector<std::unique_ptr<char[]>> rawTriples;
+rawTriples.push_back(std::unique_ptr<char[]>(new char[elementsMainMem * 15]));
+for(int i = 0; i < additionalPermutations.size(); ++i) {
+rawTriples.push_back(std::unique_ptr<char[]>(new char[elementsMainMem * 15]));
+}
+
+LOG(DEBUGL) << "Creating vectors of " << elementsMainMem << ". done";
+int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
+bool isFinished = false;
+int iter = 0;
+
+while (!isFinished) {
+LOG(DEBUGL) << "Load in parallel all the triples from disk to the main memory";
+std::vector<int64_t> counts(parallelProcesses);
+for (int i = 0; i < parallelProcesses; ++i) {
+MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
+int idReader = i / maxReadingThreads;
+threads[i] = std::thread(
+std::bind(&sortChunks_seq, idReader, reader,
+        &rawTriples,
+        (i * 15 * maxInserts),
+        ((i+1) * 15 * maxInserts),
+        &(counts[i]),
+        additionalPermutations,
+        outputSPO));
+}
+for (int i = 0; i < parallelProcesses; ++i) {
+    threads[i].join();
+}
+
+LOG(DEBUGL) << "Fill the empty holes with new data";
+int curPart = 0;
+std::vector<std::pair<int, int>> openedStreams;
+for(int i = 0; i < parallelProcesses; ++i) {
+    int idxReader = i % maxReadingThreads;
+    int idxPart = i / maxReadingThreads;
+    if (!readers[idxReader]->isEOF(idxPart)) {
+        openedStreams.push_back(make_pair(idxReader, idxPart));
     }
-    auto itr = inputsReaders.begin();
-    int filesPerReader = parallelProcesses / maxReadingThreads;
-    for(int i = 0; i < maxReadingThreads; ++i) {
-        readers[i] = new MultiDiskLZ4Reader(filesPerReader,
-                3, 4);
-        readers[i]->start();
-        for(int j = 0; j < filesPerReader; ++j) {
-            if (itr->empty()) {
-                LOG(DEBUGL) << "Part " << j << " is empty";
+}
+std::vector<_Offset> offsets;
+for(auto p : additionalPermutations) {
+    _Offset o;
+    switch (p.second) {
+        case IDX_SOP:
+            o.first = 0;
+            o.second = 10;
+            o.third = 5;
+            break;
+        case IDX_OPS:
+            o.first = 10;
+            o.second = 5;
+            o.third = 0;
+            break;
+        case IDX_OSP:
+            o.first = 5;
+            o.second = 10;
+            o.third = 0;
+            break;
+        case IDX_POS:
+            o.first = 10;
+            o.second = 0;
+            o.third = 5;
+            break;
+        case IDX_PSO:
+            o.first = 5;
+            o.second = 0;
+            o.third = 10;
+            break;
+        default:
+            throw 10;
+    }
+    offsets.push_back(o);
+}
+while (curPart < parallelProcesses && !openedStreams.empty()) {
+    if (counts[curPart] < maxInserts) {
+        int idxCurPair = 0;
+
+        const int64_t startp = curPart * maxInserts * 15;
+        char *start = rawTriples[0].get() + startp;
+        while (idxCurPair < openedStreams.size() &&
+                counts[curPart] < maxInserts) {
+            auto pair = openedStreams[idxCurPair];
+            const int64_t first = readers[pair.first]->readLong(pair.second);
+            const int64_t second = readers[pair.first]->readLong(pair.second);
+            const int64_t third = readers[pair.first]->readLong(pair.second);
+
+            const int64_t starto = counts[curPart] * 15;
+            if (outputSPO) {
+                PermSorter::writeTermInBuffer(start + starto, first);
+                PermSorter::writeTermInBuffer(start + starto + 5, second);
+                PermSorter::writeTermInBuffer(start + starto + 10, third);
             } else {
-                LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
+                PermSorter::writeTermInBuffer(start + starto, first);
+                PermSorter::writeTermInBuffer(start + starto + 5, third);
+                PermSorter::writeTermInBuffer(start + starto + 10, second);
             }
-            if (itr != inputsReaders.end()) {
-                readers[i]->addInput(j, *itr);
-                itr++;
-            } else {
-                std::vector<string> emptyset;
-                readers[i]->addInput(j, emptyset);
+
+            //Copy the triples also in the other permutations
+            for(int i = 0; i < additionalPermutations.size(); ++i) {
+                char *startperm = rawTriples[i + 1].get() + startp;
+                const _Offset o = offsets[i];
+                PermSorter::writeTermInBuffer(startperm + starto + o.first, first);
+                PermSorter::writeTermInBuffer(startperm + starto + o.second, second);
+                PermSorter::writeTermInBuffer(startperm + starto + o.third, third);
             }
-        }
-    }
-    std::thread *threads = new std::thread[parallelProcesses];
-    LOG(DEBUGL) << "Creating vectors of "
-        << elementsMainMem << " elements. Each el is 15 bytes";
 
-    std::vector<std::unique_ptr<char[]>> rawTriples;
-    rawTriples.push_back(std::unique_ptr<char[]>(new char[elementsMainMem * 15]));
-    for(int i = 0; i < additionalPermutations.size(); ++i) {
-        rawTriples.push_back(std::unique_ptr<char[]>(new char[elementsMainMem * 15]));
-    }
-
-    LOG(DEBUGL) << "Creating vectors of " << elementsMainMem << ". done";
-    int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
-    bool isFinished = false;
-    int iter = 0;
-
-    while (!isFinished) {
-        LOG(DEBUGL) << "Load in parallel all the triples from disk to the main memory";
-        std::vector<int64_t> counts(parallelProcesses);
-        for (int i = 0; i < parallelProcesses; ++i) {
-            MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
-            int idReader = i / maxReadingThreads;
-            threads[i] = std::thread(
-                    std::bind(&sortChunks_seq, idReader, reader,
-                        &rawTriples,
-                        (i * 15 * maxInserts),
-                        ((i+1) * 15 * maxInserts),
-                        &(counts[i]),
-                        additionalPermutations,
-                        outputSPO));
-        }
-        for (int i = 0; i < parallelProcesses; ++i) {
-            threads[i].join();
-        }
-
-        LOG(DEBUGL) << "Fill the empty holes with new data";
-        int curPart = 0;
-        std::vector<std::pair<int, int>> openedStreams;
-        for(int i = 0; i < parallelProcesses; ++i) {
-            int idxReader = i % maxReadingThreads;
-            int idxPart = i / maxReadingThreads;
-            if (!readers[idxReader]->isEOF(idxPart)) {
-                openedStreams.push_back(make_pair(idxReader, idxPart));
-            }
-        }
-        std::vector<_Offset> offsets;
-        for(auto p : additionalPermutations) {
-            _Offset o;
-            switch (p.second) {
-                case IDX_SOP:
-                    o.first = 0;
-                    o.second = 10;
-                    o.third = 5;
-                    break;
-                case IDX_OPS:
-                    o.first = 10;
-                    o.second = 5;
-                    o.third = 0;
-                    break;
-                case IDX_OSP:
-                    o.first = 5;
-                    o.second = 10;
-                    o.third = 0;
-                    break;
-                case IDX_POS:
-                    o.first = 10;
-                    o.second = 0;
-                    o.third = 5;
-                    break;
-                case IDX_PSO:
-                    o.first = 5;
-                    o.second = 0;
-                    o.third = 10;
-                    break;
-                default:
-                    throw 10;
-            }
-            offsets.push_back(o);
-        }
-        while (curPart < parallelProcesses && !openedStreams.empty()) {
-            if (counts[curPart] < maxInserts) {
-                int idxCurPair = 0;
-
-                const int64_t startp = curPart * maxInserts * 15;
-                char *start = rawTriples[0].get() + startp;
-                while (idxCurPair < openedStreams.size() &&
-                        counts[curPart] < maxInserts) {
-                    auto pair = openedStreams[idxCurPair];
-                    const int64_t first = readers[pair.first]->readLong(pair.second);
-                    const int64_t second = readers[pair.first]->readLong(pair.second);
-                    const int64_t third = readers[pair.first]->readLong(pair.second);
-
-                    const int64_t starto = counts[curPart] * 15;
-                    if (outputSPO) {
-                        PermSorter::writeTermInBuffer(start + starto, first);
-                        PermSorter::writeTermInBuffer(start + starto + 5, second);
-                        PermSorter::writeTermInBuffer(start + starto + 10, third);
-                    } else {
-                        PermSorter::writeTermInBuffer(start + starto, first);
-                        PermSorter::writeTermInBuffer(start + starto + 5, third);
-                        PermSorter::writeTermInBuffer(start + starto + 10, second);
-                    }
-
-                    //Copy the triples also in the other permutations
-                    for(int i = 0; i < additionalPermutations.size(); ++i) {
-                        char *startperm = rawTriples[i + 1].get() + startp;
-                        const _Offset o = offsets[i];
-                        PermSorter::writeTermInBuffer(startperm + starto + o.first, first);
-                        PermSorter::writeTermInBuffer(startperm + starto + o.second, second);
-                        PermSorter::writeTermInBuffer(startperm + starto + o.third, third);
-                    }
-
-                    if (readers[pair.first]->isEOF(pair.second)) {
-                        openedStreams.erase(openedStreams.begin() + idxCurPair);
-                        if (idxCurPair == openedStreams.size()) {
-                            idxCurPair = 0;
-                        }
-                    } else {
-                        idxCurPair = (idxCurPair + 1) % openedStreams.size();
-                    }
-                    counts[curPart]++;
+            if (readers[pair.first]->isEOF(pair.second)) {
+                openedStreams.erase(openedStreams.begin() + idxCurPair);
+                if (idxCurPair == openedStreams.size()) {
+                    idxCurPair = 0;
                 }
             } else {
-                curPart++;
+                idxCurPair = (idxCurPair + 1) % openedStreams.size();
             }
+            counts[curPart]++;
         }
-        LOG(DEBUGL) << "Finished filling holes";
-
-        LOG(DEBUGL) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
-        int nthreads = max(1, (int)(parallelProcesses / 6));
-        std::thread *threads = new std::thread[additionalPermutations.size()];
-        for(int i = 0; i < additionalPermutations.size(); ++i) {
-            threads[i] = std::thread(
-                    std::bind(&PermSorter::sortPermutation,
-                        rawTriples[i+1].get(), rawTriples[i+1].get() + 15 * maxInserts * parallelProcesses, nthreads));
-        }
-        PermSorter::sortPermutation(rawTriples[0].get(), rawTriples[0].get() + 15 * maxInserts * parallelProcesses, nthreads);
-        for(int i = 0; i < additionalPermutations.size(); ++i) {
-            threads[i].join();
-        }
-        delete[] threads;
-        LOG(DEBUGL) << "End sorting";
-
-        LOG(DEBUGL) << "Start dumping";
-        int64_t maxValue = maxInserts * parallelProcesses;
-        int j = 1;
-        for(auto perm : additionalPermutations) {
-            string outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
-            PermSorter::dumpPermutation(rawTriples[j++].get(),
-                    maxValue,
-                    parallelProcesses,
-                    maxReadingThreads,
-                    outputFile);
-        }
-        string outputFile = inputdir + DIR_SEP + string("sorted-") + to_string(iter++);
-        PermSorter::dumpPermutation(rawTriples[0].get(),
-                maxValue,
-                parallelProcesses,
-                maxReadingThreads,
-                outputFile);
-        LOG(DEBUGL) << "End dumping";
-
-        //Are all files read?
-        int i = 0;
-        for(; i < parallelProcesses; ++i) {
-            if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
-                break;
-            }
-        }
-        isFinished = i == parallelProcesses;
-        if (!isFinished) {
-            LOG(DEBUGL) << "One round is not enough";
-        }
+    } else {
+        curPart++;
     }
+}
+LOG(DEBUGL) << "Finished filling holes";
 
-    for(int i = 0; i < maxReadingThreads; ++i) {
-        delete readers[i];
+LOG(DEBUGL) << "Start sorting. Processes per permutation=" << max(1, (int)(parallelProcesses / nperms));
+int nthreads = max(1, (int)(parallelProcesses / 6));
+std::thread *threads = new std::thread[additionalPermutations.size()];
+for(int i = 0; i < additionalPermutations.size(); ++i) {
+    threads[i] = std::thread(
+            std::bind(&PermSorter::sortPermutation,
+                rawTriples[i+1].get(), rawTriples[i+1].get() + 15 * maxInserts * parallelProcesses, nthreads));
+}
+PermSorter::sortPermutation(rawTriples[0].get(), rawTriples[0].get() + 15 * maxInserts * parallelProcesses, nthreads);
+for(int i = 0; i < additionalPermutations.size(); ++i) {
+    threads[i].join();
+}
+delete[] threads;
+LOG(DEBUGL) << "End sorting";
+
+LOG(DEBUGL) << "Start dumping";
+int64_t maxValue = maxInserts * parallelProcesses;
+int j = 1;
+for(auto perm : additionalPermutations) {
+    string outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
+    PermSorter::dumpPermutation(rawTriples[j++].get(),
+            maxValue,
+            parallelProcesses,
+            maxReadingThreads,
+            outputFile);
+}
+string outputFile = inputdir + DIR_SEP + string("sorted-") + to_string(iter++);
+PermSorter::dumpPermutation(rawTriples[0].get(),
+        maxValue,
+        parallelProcesses,
+        maxReadingThreads,
+        outputFile);
+LOG(DEBUGL) << "End dumping";
+
+//Are all files read?
+int i = 0;
+for(; i < parallelProcesses; ++i) {
+    if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
+        break;
     }
-    for(auto inputFile : unsortedFiles)
-        Utils::remove(inputFile);
+}
+isFinished = i == parallelProcesses;
+if (!isFinished) {
+    LOG(DEBUGL) << "One round is not enough";
+}
+}
+
+for(int i = 0; i < maxReadingThreads; ++i) {
+    delete readers[i];
+}
+for(auto inputFile : unsortedFiles)
+    Utils::remove(inputFile);
     delete[] readers;
     delete[] threads;
-}
+    }*/

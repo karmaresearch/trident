@@ -46,24 +46,27 @@ class PermSorter {
                 char *start,
                 char *end,
                 MultiDiskLZ4Writer *currentWriter,
-                int currentPart);
+                int currentPart,
+                bool includeCount);
 
         static void dumpPermutation(char *input, int64_t end,
                 int parallelProcesses,
                 int maxReadingThreads,
+                bool includeCount,
                 string outputFile);
 
-        static bool isMax(char *input, int64_t idx);
+        //static bool isMax(char *input, int64_t idx);
 
         static void sortPermutation(char *start,
-                char *end, int nthreads);
+                char *end, int nthreads, bool includeCount);
 
         static void sortChunks2_load(const int idReader,
                 MultiDiskLZ4Reader *reader,
                 char *rawTriples,
                 int64_t startIdx,
                 int64_t endIdx,
-                int64_t *count);
+                int64_t *count,
+                bool includeCount);
 
         static void sortChunks2_fill(
                 MultiDiskLZ4Reader **readers,
@@ -71,16 +74,18 @@ class PermSorter {
                 std::vector<int64_t> &counts,
                 int maxReadingThreads,
                 int parallelProcesses,
+                bool includeCount,
                 char *rawTriples);
 
         static void sortChunks2_permute(
                 char *start,
                 char *end,
+                const size_t sizeTriple,
                 int currentPerm,
                 int nextPerm);
 
     public:
-        static void sortChunks(string inputdir,
+        /*static void sortChunks(string inputdir,
                 int maxReadingThreads,
                 int parallelProcesses,
                 int64_t estimatedSize,
@@ -95,13 +100,29 @@ class PermSorter {
                 int parallelProcesses,
                 int64_t estimatedSize,
                 bool outputSPO,
-                std::vector<std::pair<string, char>> &additionalPermutations);
+                std::vector<std::pair<string, char>> &additionalPermutations);*/
 
         static void sortChunks2(
                 std::vector<std::pair<string, char>> &inputs,
                 int maxReadingThreads,
                 int parallelProcesses,
-                int64_t estimatedSize);
+                int64_t estimatedSize,
+                bool includeCount);
+
+        static void sortChunks2(
+                std::string input,
+                int permutation,
+                int maxReadingThreads,
+                int parallelProcesses,
+                int64_t estimatedSize,
+                bool includeCount) {
+            std::vector<std::pair<string, char>> permutations;
+            permutations.push_back(std::make_pair(input, permutation));
+            sortChunks2(permutations, maxReadingThreads, parallelProcesses,
+                    estimatedSize, includeCount);
+
+        }
+
 
         static int64_t readTermFromBuffer(char *buffer);
 };

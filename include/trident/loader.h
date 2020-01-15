@@ -241,11 +241,11 @@ class L_Triple {
             return false;
         }
 
-        static bool sLess_sop(const L_Triple &t1, const L_Triple &t2);
+        /*static bool sLess_sop(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_osp(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_ops(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_pos(const L_Triple &t1, const L_Triple &t2);
-        static bool sLess_pso(const L_Triple &t1, const L_Triple &t2);
+        static bool sLess_pso(const L_Triple &t1, const L_Triple &t2);*/
 
         virtual void readFrom(int part, MultiDiskLZ4Reader *reader) {
             first = reader->readLong(part);
@@ -287,7 +287,7 @@ class L_Triple {
         virtual ~L_Triple() {}
 };
 
-class L_TripleCount : public L_Triple {
+/*class L_TripleCount : public L_Triple {
     uint64_t count;
 
     public:
@@ -348,7 +348,7 @@ class L_TripleCount : public L_Triple {
     }
 
     ~L_TripleCount() {}
-};
+};*/
 
 struct ParamsMergeCoordinates {
     string *coordinates;
@@ -556,7 +556,7 @@ class Loader {
                 nTerm highestNumber,
                 DictMgmt *dict);
 
-        void seq_createIndices(
+/*        void seq_createIndices(
                 int parallelProcesses,
                 int maxReadingThreads,
                 Inserter *ins,
@@ -593,7 +593,7 @@ class Loader {
                 string remotePath,
                 int64_t limitSpace,
                 int64_t estimatedSize,
-                int nindices);
+                int nindices);*/
 
         void createIndices(
                 int parallelProcesses,
