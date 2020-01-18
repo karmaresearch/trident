@@ -2451,7 +2451,7 @@ void Loader::createIndices(
         int64_t estimatedSize,
         int nindices) {
 
-    LOG(DEBUGL) << "Create partitions";
+    LOG(DEBUGL) << "start createIndices";
     std::vector<std::pair<string, char>> permutations;
     if (!createIndicesInBlocks) {
         if (!aggrIndices) {
@@ -2463,8 +2463,8 @@ void Loader::createIndices(
             permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
         } else {
             permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
-            permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
-            permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+            permutations.push_back(std::make_pair(permDirs[2], IDX_SOP));
+            permutations.push_back(std::make_pair(permDirs[3], IDX_OSP));
             permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
         }
     } else {

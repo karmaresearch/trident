@@ -33,6 +33,12 @@ class PermSorter {
     private:
         static void writeTermInBuffer(char *buffer, const int64_t n);
 
+        static void write8TermInBuffer(char *buffer, const int64_t n);
+
+        static int64_t readTermFromBuffer(char *buffer);
+
+        static int64_t read8TermFromBuffer(char *buffer);
+
         static void sortChunks_seq(const int idReader,
                 MultiDiskLZ4Reader *reader,
                 std::vector<std::unique_ptr<char[]>> *rawTriples,
@@ -123,8 +129,5 @@ class PermSorter {
                     estimatedSize, includeCount);
 
         }
-
-
-        static int64_t readTermFromBuffer(char *buffer);
 };
 #endif
