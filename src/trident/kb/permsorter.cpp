@@ -703,12 +703,14 @@ void PermSorter::sortChunks2_permute(
 
 void PermSorter::sortChunks2(
         std::vector<std::pair<string, char>> &permutations,
-        int maxReadingThreads,
-        int parallelProcesses,
+        int ionthreads,
+        int nthreads,
         int64_t estimatedSize,
         bool includeCount) {
     std::string inputdir = permutations[0].first;
     int currentPerm = permutations[0].second;
+    std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
+    const size_t threadsToUse = min((int)unsortedFiles.size(), (int) nthreads);
 
     const size_t sizeTriple = includeCount ? 23 : 15;
 
@@ -716,11 +718,11 @@ void PermSorter::sortChunks2(
     const int64_t mem = Utils::getSystemMemory() * 0.8;
     const size_t max_nelements = mem / sizeTriple;
 
-    size_t nelements = max((size_t)parallelProcesses,
+    size_t nelements = max((size_t)threadsToUse,
             min(max_nelements, (size_t)(estimatedSize)));
     const size_t nbytes = nelements * sizeTriple;
-    int64_t maxInserts = max((int64_t)1, (int64_t)(nelements / parallelProcesses));
-    int64_t remaining = max((int64_t)0, (int64_t)(nelements - maxInserts * parallelProcesses));
+    int64_t maxInserts = max((int64_t)1, (int64_t)(nelements / threadsToUse));
+    int64_t remaining = max((int64_t)0, (int64_t)(nelements - maxInserts * threadsToUse));
     int64_t lastMaxInserts  = maxInserts + remaining;
 
     LOG(DEBUGL) << "Creating a vector of " << nelements << " (" << nbytes << " bytes) ...";
@@ -728,17 +730,17 @@ void PermSorter::sortChunks2(
     LOG(DEBUGL) << "Done creating a vector of " << nelements;
 
     //Set up the readers
-    std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
-    std::vector<std::vector<string>> inputsReaders(parallelProcesses);
+    std::vector<std::vector<string>> inputsReaders(threadsToUse);
     int currentPart = 0;
     for(int i = 0; i < unsortedFiles.size(); ++i) {
         inputsReaders[currentPart].push_back(unsortedFiles[i]);
-        currentPart = (currentPart + 1) % parallelProcesses;
+        currentPart = (currentPart + 1) % threadsToUse;
     }
     auto itr = inputsReaders.begin();
-    int filesPerReader = parallelProcesses / maxReadingThreads;
-    MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
-    for(int i = 0; i < maxReadingThreads; ++i) {
+    const size_t ioThreadsToUse = threadsToUse < nthreads ? 1 : ionthreads;
+    int filesPerReader = threadsToUse / ioThreadsToUse;
+    MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[ioThreadsToUse];
+    for(int i = 0; i < ioThreadsToUse; ++i) {
         readers[i] = new MultiDiskLZ4Reader(filesPerReader, 3, 4);
         readers[i]->start();
         for(int j = 0; j < filesPerReader; ++j) {
@@ -758,7 +760,7 @@ void PermSorter::sortChunks2(
     }
 
     if (includeCount) {
-        for(int i = 0; i < maxReadingThreads; ++i) {
+        for(int i = 0; i < ioThreadsToUse; ++i) {
             for(int idReader = 0; idReader < filesPerReader; ++idReader) {
                 if (!readers[i]->isEOF(idReader)) {
                     char b = readers[i]->readByte(idReader);
@@ -773,15 +775,15 @@ void PermSorter::sortChunks2(
 
     int round = 0;
     LOG(DEBUGL) << "Got " << unsortedFiles.size() << " files from directory " << inputdir;
-    std::vector<std::thread> threads(parallelProcesses);
+    std::vector<std::thread> threads(threadsToUse);
     while (true) {
         LOG(DEBUGL) << "Loading round " << round;
 
         //Check if I have finished sorting all the input data
         bool moreData = false;
-        for(int i = 0; i < parallelProcesses; ++i) {
-            int idReader = i / maxReadingThreads;
-            if (!readers[i % maxReadingThreads]->isEOF(idReader)) {
+        for(int i = 0; i < threadsToUse; ++i) {
+            int idReader = i / ioThreadsToUse;
+            if (!readers[i % ioThreadsToUse]->isEOF(idReader)) {
                 moreData = true;
                 break;
             }
@@ -791,13 +793,13 @@ void PermSorter::sortChunks2(
 
         //Load the array
         LOG(DEBUGL) << "Start loading the inmemory array ...";
-        std::vector<int64_t> counts(parallelProcesses);
-        for (int i = 0; i < parallelProcesses; ++i) {
-            MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
-            int idReader = i / maxReadingThreads;
+        std::vector<int64_t> counts(threadsToUse);
+        for (int i = 0; i < threadsToUse; ++i) {
+            MultiDiskLZ4Reader *reader = readers[i % ioThreadsToUse];
+            int idReader = i / ioThreadsToUse;
             size_t start = (i * sizeTriple * maxInserts);
             size_t end;
-            if (i == parallelProcesses - 1) {
+            if (i == threadsToUse - 1) {
                 end = start + lastMaxInserts * sizeTriple;
             } else {
                 end = start + maxInserts * sizeTriple;
@@ -809,22 +811,22 @@ void PermSorter::sortChunks2(
                         end,
                         &(counts[i]), includeCount));
         }
-        for (int i = 0; i < parallelProcesses; ++i) {
+        for (int i = 0; i < threads.size(); ++i) {
             threads[i].join();
         }
         LOG(DEBUGL) << "Stop loading the inmemory array";
 
         //Fill the holes in the array
         LOG(DEBUGL) << "Start filling the holes";
-        sortChunks2_fill(readers, maxInserts, lastMaxInserts, counts, maxReadingThreads,
-                parallelProcesses, includeCount,
+        sortChunks2_fill(readers, maxInserts, lastMaxInserts, counts, ioThreadsToUse,
+                threadsToUse, includeCount,
                 rawTriples.get());
         LOG(DEBUGL) << "Stop filling the holes";
 
         //Sort it
         LOG(DEBUGL) << "Start sorting the inmemory array";
         PermSorter::sortPermutation(rawTriples.get(),
-                rawTriples.get() + nbytes, parallelProcesses, includeCount);
+                rawTriples.get() + nbytes, threadsToUse, includeCount);
         LOG(DEBUGL) << "Stop sorting the inmemory array";
 
         //Dump it
@@ -835,8 +837,8 @@ void PermSorter::sortChunks2(
 
         PermSorter::dumpPermutation(rawTriples.get(),
                 nloadedtriples,
-                parallelProcesses,
-                maxReadingThreads,
+                threadsToUse,
+                ioThreadsToUse,
                 includeCount,
                 outputFile);
         LOG(DEBUGL) << "Stop dumping the inmemory array";
@@ -858,7 +860,7 @@ void PermSorter::sortChunks2(
             //Sort it
             LOG(DEBUGL) << "Start sorting the inmemory array. perm=" << permID;
             PermSorter::sortPermutation(rawTriples.get(),
-                    rawTriples.get() + nloadedtriples * sizeTriple, parallelProcesses,
+                    rawTriples.get() + nloadedtriples * sizeTriple, threadsToUse,
                     includeCount);
             LOG(DEBUGL) << "Stop sorting the inmemory array";
 
@@ -868,8 +870,8 @@ void PermSorter::sortChunks2(
             outputFile = currentDir + DIR_SEP + string("sortedchunk-") + to_string(round);
             PermSorter::dumpPermutation(rawTriples.get(),
                     nloadedtriples,
-                    parallelProcesses,
-                    maxReadingThreads,
+                    threadsToUse,
+                    ioThreadsToUse,
                     includeCount,
                     outputFile);
             LOG(DEBUGL) << "Stop dumping the inmemory array";
@@ -879,7 +881,7 @@ void PermSorter::sortChunks2(
         round++;
     }
 
-    for(int i = 0; i < maxReadingThreads; ++i) {
+    for(int i = 0; i < ioThreadsToUse; ++i) {
         delete readers[i];
     }
     delete[] readers;
