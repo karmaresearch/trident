@@ -71,6 +71,7 @@ class PermSorter {
         static void sortChunks2_fill(
                 MultiDiskLZ4Reader **readers,
                 size_t maxInserts,
+                size_t lastMaxInserts,
                 std::vector<int64_t> &counts,
                 int maxReadingThreads,
                 int parallelProcesses,

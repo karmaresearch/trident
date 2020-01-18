@@ -477,6 +477,7 @@ void PermSorter::sortChunks2_load(const int idReader,
 void PermSorter::sortChunks2_fill(
         MultiDiskLZ4Reader **readers,
         size_t maxInserts,
+        size_t lastMaxInserts,
         std::vector<int64_t> &counts,
         int maxReadingThreads,
         int parallelProcesses,
@@ -498,8 +499,14 @@ void PermSorter::sortChunks2_fill(
 
             const int64_t startp = curPart * maxInserts * sizeTriple;
             char *start = rawTriples + startp;
+            size_t limit;
+            if (curPart < parallelProcesses - 1) {
+                limit = maxInserts;
+            } else {
+                limit = lastMaxInserts;
+            }
             while (idxCurPair < openedStreams.size() &&
-                    counts[curPart] < maxInserts) {
+                    counts[curPart] < limit) {
                 auto pair = openedStreams[idxCurPair];
                 const int64_t first = readers[pair.first]->readLong(pair.second);
                 const int64_t second = readers[pair.first]->readLong(pair.second);
@@ -669,9 +676,11 @@ void PermSorter::sortChunks2(
     const size_t max_nelements = mem / sizeTriple;
 
     size_t nelements = max((size_t)parallelProcesses,
-            min(max_nelements, (size_t)(estimatedSize * 1.1)));
+            min(max_nelements, (size_t)(estimatedSize)));
     const size_t nbytes = nelements * sizeTriple;
     int64_t maxInserts = max((int64_t)1, (int64_t)(nelements / parallelProcesses));
+    int64_t remaining = max((int64_t)0, (int64_t)(nelements - maxInserts * parallelProcesses));
+    int64_t lastMaxInserts  = maxInserts + remaining;
 
     LOG(DEBUGL) << "Creating a vector of " << nelements << " (" << nbytes << " bytes) ...";
     std::unique_ptr<char[]> rawTriples = std::unique_ptr<char[]>(new char[nbytes]);
@@ -731,11 +740,18 @@ void PermSorter::sortChunks2(
         for (int i = 0; i < parallelProcesses; ++i) {
             MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
             int idReader = i / maxReadingThreads;
+            size_t start = (i * sizeTriple * maxInserts);
+            size_t end;
+            if (i == parallelProcesses - 1) {
+                end = start + lastMaxInserts * sizeTriple;
+            } else {
+                end = start + maxInserts * sizeTriple;
+            }
             threads[i] = std::thread(
                     std::bind(&sortChunks2_load, idReader, reader,
                         rawTriples.get(),
-                        (i * sizeTriple * maxInserts),
-                        ((i+1) * sizeTriple * maxInserts),
+                        start,
+                        end,
                         &(counts[i]), includeCount));
         }
         for (int i = 0; i < parallelProcesses; ++i) {
@@ -745,7 +761,7 @@ void PermSorter::sortChunks2(
 
         //Fill the holes in the array
         LOG(DEBUGL) << "Start filling the holes";
-        sortChunks2_fill(readers, maxInserts, counts, maxReadingThreads,
+        sortChunks2_fill(readers, maxInserts, lastMaxInserts, counts, maxReadingThreads,
                 parallelProcesses, includeCount,
                 rawTriples.get());
         LOG(DEBUGL) << "Stop filling the holes";

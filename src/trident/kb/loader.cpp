@@ -2497,7 +2497,7 @@ void Loader::createIndices(
     insert(params);
 
     string lastInput = permDirs[0];
-    if (!createIndicesInBlocks) {
+    if (createIndicesInBlocks) {
         generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
                 maxReadingThreads);
         PermSorter::sortChunks2(permDirs[1], IDX_OPS, maxReadingThreads,
@@ -2527,7 +2527,7 @@ void Loader::createIndices(
     insert(params);
 
     lastInput = permDirs[1];
-    if (!createIndicesInBlocks) {
+    if (createIndicesInBlocks) {
         generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
                 lastInput, 2, 0, 1, parallelProcesses,
                 maxReadingThreads);
@@ -2561,7 +2561,7 @@ void Loader::createIndices(
     insert(params);
 
     lastInput = aggrIndices ? permDirs[2] : permDirs[3];
-    if (!createIndicesInBlocks) {
+    if (createIndicesInBlocks) {
         generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
                 lastInput, 1, 0, 2, parallelProcesses,
                 maxReadingThreads);
@@ -2601,7 +2601,7 @@ void Loader::createIndices(
     lastInput = aggrIndices ? permDirs[3] : permDirs[4];
 
     if (!aggrIndices) {
-        if (!createIndicesInBlocks) {
+        if (createIndicesInBlocks) {
             generateNewPermutation(permDirs[2],
                     lastInput, 2, 0, 1, parallelProcesses,
                     maxReadingThreads);
@@ -2664,7 +2664,7 @@ void Loader::createIndices(
 
     if (!aggrIndices) {
         lastInput = permDirs[2];
-        if (!createIndicesInBlocks) {
+        if (createIndicesInBlocks) {
             generateNewPermutation(permDirs[5],
                     lastInput, 0, 2, 1, parallelProcesses,
                     maxReadingThreads);
