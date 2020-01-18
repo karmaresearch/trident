@@ -708,7 +708,6 @@ void PermSorter::sortChunks2(
         int64_t estimatedSize,
         bool includeCount) {
     std::string inputdir = permutations[0].first;
-    int currentPerm = permutations[0].second;
     std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
     const size_t threadsToUse = min((int)unsortedFiles.size(), (int) nthreads);
 
@@ -778,6 +777,7 @@ void PermSorter::sortChunks2(
     std::vector<std::thread> threads(threadsToUse);
     while (true) {
         LOG(DEBUGL) << "Loading round " << round;
+        int currentPerm = permutations[0].second;
 
         //Check if I have finished sorting all the input data
         bool moreData = false;
