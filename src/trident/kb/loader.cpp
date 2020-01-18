@@ -1156,6 +1156,7 @@ void Loader::insert(ParamInsert params) {
 
     } else {
         LOG(DEBUGL) << "Sequential insert";
+        int countrandom = 0;
         while (!merger.isEmpty()) {
             Triple t = merger.get();
             countInput++;
@@ -1180,10 +1181,11 @@ void Loader::insert(ParamInsert params) {
                 }
 
                 if (sampleWriter != NULL) {
-                    if (first || rand() < randThreshold) {
+                    if (first || countrandom < randThreshold) {
                         sampleWriter->write(t.s, t.p, t.o);
                         first = false;
                     }
+                    countrandom = (countrandom + 1) % 100;
                 }
             }
         }
