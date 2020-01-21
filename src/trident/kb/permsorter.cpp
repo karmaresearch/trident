@@ -582,7 +582,7 @@ void PermSorter::sortChunks2_fill(
 
         char *end_p = rawTriples + (i * maxInserts * sizeTriple)
             + counts[i] * sizeTriple;
-        char *beg_n = rawTriples + (i+1) * limit * sizeTriple;
+        char *beg_n = rawTriples + (i * maxInserts + limit) * sizeTriple;
         if (end_p < beg_n) {
             memset(end_p, 1, beg_n-end_p);
         }
