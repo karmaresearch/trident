@@ -714,7 +714,7 @@ void PermSorter::sortChunks2(
     const size_t sizeTriple = includeCount ? 23 : 15;
 
     LOG(DEBUGL) << "Start sortChunks2";
-    const int64_t mem = Utils::getSystemMemory() * 0.8;
+    const int64_t mem = Utils::getSystemMemory() * 0.6;
     const size_t max_nelements = mem / sizeTriple;
 
     size_t nelements = max((size_t)threadsToUse,
