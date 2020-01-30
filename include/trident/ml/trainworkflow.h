@@ -144,7 +144,7 @@ class TrainWorkflow {
                     tr.store_model(pathmodel, compresstorage, nstorethreads);
                 }
 
-                if ((epoch+1) % evalits == 0) {
+                if ((epoch + 1) % evalits == 0) {
                     if (Utils::exists(pathvalid)) {
                         //Load the loading data into a vector
                         std::vector<uint64_t> testset;

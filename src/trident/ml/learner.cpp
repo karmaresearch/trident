@@ -123,6 +123,23 @@ void Learner::store_model(string path,
     Utils::create_directories(path);
     LOG(DEBUGL) << "Serializing R ...";
     R->store(path + "/R", compressstorage, nthreads);
+
+    if (!kb.areRelIDsSeparated()) {
+        LOG(DEBUGL) << "Serializing map predicates->IDs ...";
+        std::string outpath = path + "/R.map";
+        std::ofstream ofs(outpath);
+        auto querier = kb.query();
+        auto itr = querier->getTermList(IDX_POS);
+        while (itr->hasNext()) {
+            itr->next();
+            auto key = itr->getKey();
+            ofs << std::to_string(key) << std::endl;
+        }
+        querier->releaseItr(itr);
+        delete querier;
+        ofs.close();
+    }
+
     LOG(DEBUGL) << "Serializing E ...";
     E->store(path + "/E", compressstorage, nthreads);
     LOG(DEBUGL) << "Serialization done";

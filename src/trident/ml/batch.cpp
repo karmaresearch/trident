@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <random>
+#include <unordered_map>
 
 BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         uint16_t nthreads,
@@ -70,6 +71,22 @@ void BatchCreator::createInputForBatch(bool createTraining,
         ofs.open(this->kbdir + "/_batch" + std::to_string(this->usedIndex),
                 ios::out | ios::app | ios::binary);
     }
+
+    std::unordered_map<uint64_t, uint64_t> mapPredicates;
+    if (!kb.areRelIDsSeparated()) {
+        size_t i = 0;
+        auto querier = kb.query();
+        auto itr = querier->getTermList(IDX_POS);
+        while (itr->hasNext()) {
+            itr->next();
+            auto pname = itr->getKey();
+            mapPredicates.insert(std::make_pair(pname, i));
+            i++;
+        }
+        querier->releaseItr(itr);
+        delete querier;
+    }
+
     while (itr->hasNext()) {
         itr->next();
         if (this->usedIndex == IDX_SPO) {
@@ -96,6 +113,10 @@ void BatchCreator::createInputForBatch(bool createTraining,
             o = itr->getKey();
             p = itr->getValue1();
             s = itr->getValue2();
+        }
+
+        if (!kb.areRelIDsSeparated()) {
+            p = mapPredicates[p];
         }
 
         const char *cs = (const char*)&s;

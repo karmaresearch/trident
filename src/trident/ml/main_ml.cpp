@@ -28,10 +28,10 @@ bool _parseParams(std::string raw, std::map<std::string,std::string> &out) {
 
 void launchML(KB &kb, string op, string algo, string paramsLearn,
         string paramsPredict) {
-    if (!kb.areRelIDsSeparated()) {
-        LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
-        return;
-    }
+    /*if (!kb.areRelIDsSeparated()) {
+      LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
+      return;
+      }*/
 
     if (op == "learn") {
         LearnParams p;
@@ -107,7 +107,15 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
             p.regeneratebatch = TridentUtils::lexical_cast<bool>(mapparams["regeneratebatch"]);
         }
         p.ne = kb.getNTerms();
-        p.nr = kb.getDictMgmt()->getNRels();
+        if (kb.areRelIDsSeparated()) {
+            p.nr = kb.getDictMgmt()->getNRels();
+        } else {
+            auto querier = kb.query();
+            auto itr = querier->getTermList(IDX_POS);
+            p.nr = itr->getCardinality();
+            querier->releaseItr(itr);
+            delete querier;
+        }
 
         if (algo == "transe") {
             TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
