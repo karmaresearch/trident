@@ -281,7 +281,7 @@ void Loader::createPermsAndDictsFromFiles_seq(DiskReader *reader,
     int64_t processedtriples = 0;
     while (buffer.b != NULL) {
         //Read the file
-	const char *pivotbuffer = buffer.b;
+        const char *pivotbuffer = buffer.b;
         const char *input = NULL;
         size_t sizeinput = 0;
         if (buffer.gzipped) {
@@ -749,218 +749,274 @@ void Loader::dumpPermutation(std::vector<K> &input,
     LOG(DEBUGL) << "Finished dumping";
 }
 
-template<class K>
-void Loader::sortPermutation_seq(
-        const int idReader,
-        MultiDiskLZ4Reader *reader,
-        int64_t start,
-        K *output,
-        int64_t maxInserts,
-        int64_t *count) {
+/*template<class K>
+  void Loader::sortPermutation_seq(
+  const int idReader,
+  MultiDiskLZ4Reader *reader,
+  int64_t start,
+  K *output,
+  int64_t maxInserts,
+  int64_t *count) {
 
-    int64_t i = 0;
-    int64_t currentIdx = start;
-    while (!reader->isEOF(idReader) && i < maxInserts) {
-        //int64_t t1 = reader->readLong(idReader);
-        //int64_t t2 = reader->readLong(idReader);
-        //int64_t t3 = reader->readLong(idReader);
-        //output[currentIdx].first = t1;
-        //output[currentIdx].second = t2;
-        //output[currentIdx].third = t3;
-        K t;
-        t.readFrom(idReader, reader);
-        output[currentIdx] = t;
+  int64_t i = 0;
+  int64_t currentIdx = start;
+  while (!reader->isEOF(idReader) && i < maxInserts) {
+//int64_t t1 = reader->readLong(idReader);
+//int64_t t2 = reader->readLong(idReader);
+//int64_t t3 = reader->readLong(idReader);
+//output[currentIdx].first = t1;
+//output[currentIdx].second = t2;
+//output[currentIdx].third = t3;
+K t;
+t.readFrom(idReader, reader);
+output[currentIdx] = t;
 
-        currentIdx++;
-        i++;
-        if (i % 100000000 == 0) {
-            LOG(DEBUGL) << "Processed " << i << " triples";
+currentIdx++;
+i++;
+if (i % 100000000 == 0) {
+LOG(DEBUGL) << "Processed " << i << " triples";
+}
+}
+ *count = i;
+ while (i < maxInserts) {
+ output[currentIdx] = K::max();
+//output[currentIdx].first = UINT64_MAX;
+//output[currentIdx].second = UINT64_MAX;
+//output[currentIdx].third = UINT64_MAX;
+i++;
+currentIdx++;
+}
+LOG(DEBUGL) << "Finished";
+}*/
+
+/*template<class K>
+  void Loader::sortPermutation(string inputDir,
+  int maxReadingThreads,
+  int parallelProcesses,
+  bool initialSorting,
+  int64_t estimatedSize,
+  int64_t elementsMainMem,
+  int filesToMerge,
+  bool readFirstByte,
+  std::vector<std::pair<string, char>> &additionalPermutations) {
+
+  if (initialSorting) {
+  vector<string> unsortedFiles = Utils::getFiles(inputDir);
+  MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
+  std::vector<std::vector<string>> inputsReaders(parallelProcesses);
+  int currentPart = 0;
+  for(int i = 0; i < unsortedFiles.size(); ++i) {
+  if (Utils::exists(unsortedFiles[i])) {
+  inputsReaders[currentPart].push_back(unsortedFiles[i]);
+  currentPart = (currentPart + 1) % parallelProcesses;
+  }
+  }
+  auto itr = inputsReaders.begin();
+  int filesPerReader = parallelProcesses / maxReadingThreads;
+  for(int i = 0; i < maxReadingThreads; ++i) {
+  readers[i] = new MultiDiskLZ4Reader(filesPerReader,
+  3, 4);
+  readers[i]->start();
+  for(int j = 0; j < filesPerReader; ++j) {
+  if (itr->empty()) {
+  LOG(DEBUGL) << "Part " << j << " is empty";
+  } else {
+  LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
+  }
+  if (itr != inputsReaders.end()) {
+  readers[i]->addInput(j, *itr);
+  itr++;
+  } else {
+  std::vector<string> emptyset;
+  readers[i]->addInput(j, emptyset);
+  }
+  }
+  }
+//Should I read a first byte?
+if (readFirstByte) {
+for(int i = 0; i < maxReadingThreads; ++i) {
+for(int j = 0; j < filesPerReader; ++j) {
+if (!readers[i]->isEOF(j)) {
+char b = readers[i]->readByte(j);
+if (b != 1) {
+//Strange...
+throw 10;
+}
+}
+}
+}
+}
+std::thread *threads = new std::thread[parallelProcesses];
+
+elementsMainMem = max((int64_t)parallelProcesses,
+min(elementsMainMem, (int64_t)(estimatedSize * 1.2)));
+LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
+std::vector<K> triples(elementsMainMem);
+LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << ". done";
+
+K *rawTriples = NULL;
+if (triples.size() > 0) {
+rawTriples = &(triples[0]);
+}
+int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
+bool isFinished = false;
+int iter = 0;
+int round = 0;
+
+LOG(DEBUGL) << "Start loop";
+while (!isFinished) {
+    LOG(DEBUGL) << "Start round " << round++;
+    //Load in parallel all the triples from disk to the main memory
+    std::vector<int64_t> counts(parallelProcesses);
+    for (int i = 0; i < parallelProcesses; ++i) {
+        MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
+        int idReader = i / maxReadingThreads;
+        threads[i] = std::thread(
+                std::bind(&sortPermutation_seq<K>, idReader, reader,
+                    i * maxInserts, rawTriples,
+                    maxInserts, &(counts[i])));
+    }
+    for (int i = 0; i < parallelProcesses; ++i) {
+        threads[i].join();
+    }
+
+    LOG(DEBUGL) << "Fill the empty holes with new data";
+    int curPart = 0;
+    std::vector<std::pair<int, int>> openedStreams;
+    for(int i = 0; i < parallelProcesses; ++i) {
+        int idxReader = i % maxReadingThreads;
+        int idxPart = i / maxReadingThreads;
+        if (!readers[idxReader]->isEOF(idxPart)) {
+            openedStreams.push_back(make_pair(idxReader, idxPart));
         }
     }
-    *count = i;
-    while (i < maxInserts) {
-        output[currentIdx] = K::max();
-        //output[currentIdx].first = UINT64_MAX;
-        //output[currentIdx].second = UINT64_MAX;
-        //output[currentIdx].third = UINT64_MAX;
-        i++;
-        currentIdx++;
+    while (curPart < parallelProcesses && !openedStreams.empty()) {
+        if (counts[curPart] < maxInserts) {
+            int idxCurPair = 0;
+            while (idxCurPair < openedStreams.size() &&
+                    counts[curPart] < maxInserts) {
+                auto pair = openedStreams[idxCurPair];
+                K t;
+                t.readFrom(pair.second, readers[pair.first]);
+                rawTriples[curPart * maxInserts + counts[curPart]] = t;
+                if (readers[pair.first]->isEOF(pair.second)) {
+                    openedStreams.erase(openedStreams.begin() + idxCurPair);
+                    if (idxCurPair == openedStreams.size()) {
+                        idxCurPair = 0;
+                    }
+                } else {
+                    idxCurPair = (idxCurPair + 1) % openedStreams.size();
+                }
+                counts[curPart]++;
+            }
+        } else {
+            curPart++;
+        }
     }
-    LOG(DEBUGL) << "Finished";
+    LOG(DEBUGL) << "Finished filling holes";
+
+    //Sort and dump the results to disk
+    int64_t maxValue = maxInserts * parallelProcesses;
+    string outputFile = inputDir + DIR_SEP + string("sorted-") + to_string(iter++);
+    dumpPermutation(triples,
+            parallelProcesses,
+            maxReadingThreads,
+            maxValue, outputFile, IDX_SPO);
+    for (auto perm : additionalPermutations) {
+        outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
+        dumpPermutation(triples,
+                parallelProcesses,
+                maxReadingThreads,
+                maxValue, outputFile, perm.second);
+    }
+
+    //Are all files read?
+    int i = 0;
+    for(; i < parallelProcesses; ++i) {
+        if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
+            break;
+        }
+    }
+    isFinished = i == parallelProcesses;
+    if (!isFinished) {
+        LOG(DEBUGL) << "One round is not enough";
+    }
 }
 
-template<class K>
-void Loader::sortPermutation(string inputDir,
-        int maxReadingThreads,
-        int parallelProcesses,
-        bool initialSorting,
-        int64_t estimatedSize,
-        int64_t elementsMainMem,
-        int filesToMerge,
-        bool readFirstByte,
-        std::vector<std::pair<string, char>> &additionalPermutations) {
-
-    /*** SORT THE ORIGINAL FILES IN BLOCKS OF N RECORDS ***/
-    if (initialSorting) {
-        vector<string> unsortedFiles = Utils::getFiles(inputDir);
-        MultiDiskLZ4Reader **readers = new MultiDiskLZ4Reader*[maxReadingThreads];
-        std::vector<std::vector<string>> inputsReaders(parallelProcesses);
-        int currentPart = 0;
-        for(int i = 0; i < unsortedFiles.size(); ++i) {
-            if (Utils::exists(unsortedFiles[i])) {
-                inputsReaders[currentPart].push_back(unsortedFiles[i]);
-                currentPart = (currentPart + 1) % parallelProcesses;
-            }
-        }
-        auto itr = inputsReaders.begin();
-        int filesPerReader = parallelProcesses / maxReadingThreads;
-        for(int i = 0; i < maxReadingThreads; ++i) {
-            readers[i] = new MultiDiskLZ4Reader(filesPerReader,
-                    3, 4);
-            readers[i]->start();
-            for(int j = 0; j < filesPerReader; ++j) {
-                if (itr->empty()) {
-                    LOG(DEBUGL) << "Part " << j << " is empty";
-                } else {
-                    LOG(DEBUGL) << "Part " << i << " " << j << " " << itr->at(0);
-                }
-                if (itr != inputsReaders.end()) {
-                    readers[i]->addInput(j, *itr);
-                    itr++;
-                } else {
-                    std::vector<string> emptyset;
-                    readers[i]->addInput(j, emptyset);
-                }
-            }
-        }
-        //Should I read a first byte?
-        if (readFirstByte) {
-            for(int i = 0; i < maxReadingThreads; ++i) {
-                for(int j = 0; j < filesPerReader; ++j) {
-                    if (!readers[i]->isEOF(j)) {
-                        char b = readers[i]->readByte(j);
-                        if (b != 1) {
-                            //Strange...
-                            throw 10;
-                        }
-                    }
-                }
-            }
-        }
-        std::thread *threads = new std::thread[parallelProcesses];
-
-        elementsMainMem = max((int64_t)parallelProcesses,
-                min(elementsMainMem, (int64_t)(estimatedSize * 1.2)));
-        LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << " " << sizeof(L_Triple);
-        std::vector<K> triples(elementsMainMem);
-        LOG(DEBUGL) << "Creating a vector of " << elementsMainMem << ". done";
-
-        K *rawTriples = NULL;
-        if (triples.size() > 0) {
-            rawTriples = &(triples[0]);
-        }
-        int64_t maxInserts = max((int64_t)1, (int64_t)(elementsMainMem / parallelProcesses));
-        bool isFinished = false;
-        int iter = 0;
-
-        LOG(DEBUGL) << "Start loop";
-        while (!isFinished) {
-            //Load in parallel all the triples from disk to the main memory
-            std::vector<int64_t> counts(parallelProcesses);
-            for (int i = 0; i < parallelProcesses; ++i) {
-                MultiDiskLZ4Reader *reader = readers[i % maxReadingThreads];
-                int idReader = i / maxReadingThreads;
-                threads[i] = std::thread(
-                        std::bind(&sortPermutation_seq<K>, idReader, reader,
-                            i * maxInserts, rawTriples,
-                            maxInserts, &(counts[i])));
-            }
-            for (int i = 0; i < parallelProcesses; ++i) {
-                threads[i].join();
-            }
-
-            LOG(DEBUGL) << "Fill the empty holes with new data";
-            int curPart = 0;
-            std::vector<std::pair<int, int>> openedStreams;
-            for(int i = 0; i < parallelProcesses; ++i) {
-                int idxReader = i % maxReadingThreads;
-                int idxPart = i / maxReadingThreads;
-                if (!readers[idxReader]->isEOF(idxPart)) {
-                    openedStreams.push_back(make_pair(idxReader, idxPart));
-                }
-            }
-            while (curPart < parallelProcesses && !openedStreams.empty()) {
-                if (counts[curPart] < maxInserts) {
-                    int idxCurPair = 0;
-                    while (idxCurPair < openedStreams.size() &&
-                            counts[curPart] < maxInserts) {
-                        auto pair = openedStreams[idxCurPair];
-                        K t;
-                        t.readFrom(pair.second, readers[pair.first]);
-                        rawTriples[curPart * maxInserts + counts[curPart]] = t;
-                        if (readers[pair.first]->isEOF(pair.second)) {
-                            openedStreams.erase(openedStreams.begin() + idxCurPair);
-                            if (idxCurPair == openedStreams.size()) {
-                                idxCurPair = 0;
-                            }
-                        } else {
-                            idxCurPair = (idxCurPair + 1) % openedStreams.size();
-                        }
-                        counts[curPart]++;
-                    }
-                } else {
-                    curPart++;
-                }
-            }
-            LOG(DEBUGL) << "Finished filling holes";
-
-            //Sort and dump the results to disk
-            int64_t maxValue = maxInserts * parallelProcesses;
-            string outputFile = inputDir + DIR_SEP + string("sorted-") + to_string(iter++);
-            dumpPermutation(triples,
-                    parallelProcesses,
-                    maxReadingThreads,
-                    maxValue, outputFile, IDX_SPO);
-            for (auto perm : additionalPermutations) {
-                outputFile = perm.first + DIR_SEP + string("sorted-") + to_string(iter++);
-                dumpPermutation(triples,
-                        parallelProcesses,
-                        maxReadingThreads,
-                        maxValue, outputFile, perm.second);
-            }
-
-            //Are all files read?
-            int i = 0;
-            for(; i < parallelProcesses; ++i) {
-                if (!readers[i % maxReadingThreads]->isEOF(i / maxReadingThreads)) {
-                    break;
-                }
-            }
-            isFinished = i == parallelProcesses;
-            if (!isFinished) {
-                LOG(DEBUGL) << "One round is not enough";
-            }
-        }
-
-        for(int i = 0; i < maxReadingThreads; ++i) {
-            delete readers[i];
-        }
-        for(auto inputFile : unsortedFiles)
-            Utils::remove(inputFile);
-        delete[] readers;
-        delete[] threads;
+for(int i = 0; i < maxReadingThreads; ++i) {
+    delete readers[i];
+}
+for(auto inputFile : unsortedFiles)
+    Utils::remove(inputFile);
+    delete[] readers;
+    delete[] threads;
     }
+}*/
 
+void Loader::mergeDiskFragments(ParamsMergeDiskFragments params) {
+    string inputDir = params.inputDir;
     //Do the merge-sort from the files on disk
-
+    LOG(DEBUGL) << "Starting merging of disk segments ...";
+    int globalCounter = 0;
+    do {
+        std::vector<string> sortedFiles = Utils::getFiles(inputDir, true);
+        if (sortedFiles.size() <= 2) {
+            break;
+        }
+        //Pick up to four files and merge them together
+        int i = 0;
+        while (i < sortedFiles.size()) {
+            int nfilesToMerge = 4;
+            if (i + nfilesToMerge > sortedFiles.size()) {
+                nfilesToMerge = sortedFiles.size() - i;
+            }
+            //Do the merge
+            std::vector<string> filesToMerge;
+            for(int j = i; j < i + nfilesToMerge; ++j) {
+                filesToMerge.push_back(sortedFiles[j]);
+            }
+            std::string outputFile = inputDir + "/merged-" + to_string(globalCounter++) + ".0";
+            LZ4Writer writer(outputFile);
+            LOG(DEBUGL) << "Merging " << nfilesToMerge << " into " << outputFile;
+            if (nfilesToMerge == 1) {
+                FastFileMerger<1, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else if (nfilesToMerge == 2) {
+                FastFileMerger<2, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else if (nfilesToMerge == 3) {
+                FastFileMerger<3, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            } else {
+                if (nfilesToMerge > 4) {
+                    LOG(ERRORL) << "This should not have happened " << nfilesToMerge;
+                    throw 10;
+                }
+                FastFileMerger<4, Triple> merger(filesToMerge, true, true);
+                while (!merger.isEmpty()) {
+                    Triple t = merger.get();
+                    t.writeTo(&writer);
+                }
+            }
+            i += nfilesToMerge;
+            LOG(DEBUGL) << "Stop merging of " << nfilesToMerge << " files";
+        }
+    } while (true);
+    LOG(DEBUGL) << "Stop merging disk fragments";
 }
 
-void Loader::sortAndInsert(ParamSortAndInsert params) {
+void Loader::insert(ParamInsert params) {
     int permutation = params.permutation;
-    int nindices = params.nindices;
     int parallelProcesses = params.parallelProcesses;
-    int maxReadingThreads = params.maxReadingThreads;
-    bool inputSorted = params.inputSorted;
     string inputDir = params.inputDir;
     string *POSoutputDir = params.POSoutputDir;
     TreeWriter *treeWriter = params.treeWriter;
@@ -971,9 +1027,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     SimpleTripleWriter *sampleWriter = params.sampleWriter;
     double sampleRate = params.sampleRate;
     bool printstats = params.printstats;
-    //SinkPtr logPtr = params.logPtr;
     bool removeInput = params.removeInput;
-    int64_t estimatedSize = params.estimatedSize;
     bool deletePreviousExt = params.deletePreviousExt;
 
     SimpleTripleWriter *posWriter = NULL;
@@ -981,25 +1035,6 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         posWriter = new SimpleTripleWriter(*POSoutputDir, "inputAggr-" +
                 to_string(permutation), true);
     }
-
-    //Sort the triples and store them into files.
-    LOG(DEBUGL) << "Start sorting...";
-    //Calculate the maximum amount of main memory I can use
-    int64_t mem = Utils::getSystemMemory() * 0.7 / nindices;
-    int64_t nelements = mem / sizeof(L_Triple);
-    LOG(DEBUGL) << "Triples I can store in main memory: " << nelements <<
-        " size triple " << sizeof(L_Triple);
-    std::vector<std::pair<string, char>> additionalPermutations; //This parameter is unused here. I use it somewhere else
-    if (!aggregated) {
-        sortPermutation<L_Triple>(inputDir, maxReadingThreads, parallelProcesses,
-                !inputSorted, estimatedSize, nelements, 16, false,
-                additionalPermutations);
-    } else {
-        sortPermutation<L_TripleCount>(inputDir, maxReadingThreads, parallelProcesses,
-                !inputSorted, estimatedSize, nelements, 16, true,
-                additionalPermutations);
-    }
-    LOG(DEBUGL) << "...completed.";
 
     LOG(DEBUGL) << "Start inserting...";
     int64_t ps, pp, po; //Previous values. Used to remove duplicates.
@@ -1013,12 +1048,13 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
     FileMerger<Triple> merger(inputmerge, true, deletePreviousExt);
     LZ4Writer *plainWriter = NULL;
     if (storeRaw) {
-        std::string file = ins->getPathPermutationStorage(permutation) + std::string("raw");
+        std::string file = ins->getPathPermutationStorage(permutation) +
+            std::string("raw");
         plainWriter = new LZ4Writer(file);
     }
     bool first = true;
 
-    if (parallelProcesses > 6) {
+    if (parallelProcesses > 1) {
         LOG(DEBUGL) << "Parallel insert";
         std::mutex m_buffers;
         std::condition_variable cond_buffers;
@@ -1028,6 +1064,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
         std::condition_variable cond_exchange;
         std::list<std::pair<int64_t*, int>> exchangeBuffers;
 
+        // this is 3 * 16M * 8 = 384M of buffer, for each index.
         const int sizebuffer = 4 * 1000000 * 4;
         for (int i = 0; i < 3; ++i) { //Create three buffers
             buffers.push_back(new int64_t[sizebuffer]);
@@ -1119,6 +1156,7 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
 
     } else {
         LOG(DEBUGL) << "Sequential insert";
+        int countrandom = 0;
         while (!merger.isEmpty()) {
             Triple t = merger.get();
             countInput++;
@@ -1143,10 +1181,11 @@ void Loader::sortAndInsert(ParamSortAndInsert params) {
                 }
 
                 if (sampleWriter != NULL) {
-                    if (first || rand() < randThreshold) {
+                    if (first || countrandom < randThreshold) {
                         sampleWriter->write(t.s, t.p, t.o);
                         first = false;
                     }
+                    countrandom = (countrandom + 1) % 100;
                 }
             }
         }
@@ -2107,510 +2146,256 @@ void Loader::moveData(string remoteLocation, string inputDir, int64_t limitSpace
     }
 }
 
-/*void Loader::sortChunks(string inputdir,
-  int maxReadingThreads,
+/*void Loader::parallel_createIndices(
   int parallelProcesses,
+  int maxReadingThreads,
+  Inserter *ins,
+  const bool createIndicesInBlocks,
+  const bool aggrIndices,
+  const bool canSkipTables,
+  const bool storePlainList,
+  string *permDirs,
+  string *outputDirs,
+  string aggr1Dir,
+  string aggr2Dir,
+  TreeWriter **treeWriters,
+  SimpleTripleWriter *sampleWriter,
+  double sampleRate,
+  string remotePath,
+  int64_t limitSpace,
   int64_t estimatedSize,
-  std::vector<std::pair<string, char>> &additionalPermutations) {
+  int nindices) {
 
-//calculate the number of elements
-int64_t mem = Utils::getSystemMemory() * 0.7;
-int64_t nelements = mem / sizeof(L_Triple);
-int64_t elementsMainMem = max((int64_t)parallelProcesses,
-min(nelements, (int64_t)(estimatedSize * 1.2)));
+  if (aggrIndices && nindices != 6) {
+  LOG(ERRORL) << "Inconsistency on the input parameters. "
+  "AggrIndices=true but set less than 6 permutations...";
+  throw 10;
+  }
 
-Loader::sortPermutation<L_Triple>(inputdir,
+//Sort chunks of the triple in main memory
+std::vector<std::pair<string, char>> outputdirs;
+if (nindices == 1) {
+PermSorter::sortChunks(permDirs[3],
 maxReadingThreads,
 parallelProcesses,
-true,
 estimatedSize,
-elementsMainMem,
-16,
 false,
-additionalPermutations);
-}*/
-
-void Loader::parallel_createIndices(
-        int parallelProcesses,
-        int maxReadingThreads,
-        Inserter *ins,
-        const bool createIndicesInBlocks,
-        const bool aggrIndices,
-        const bool canSkipTables,
-        const bool storePlainList,
-        string *permDirs,
-        string *outputDirs,
-        string aggr1Dir,
-        string aggr2Dir,
-        TreeWriter **treeWriters,
-        SimpleTripleWriter *sampleWriter,
-        double sampleRate,
-        string remotePath,
-        int64_t limitSpace,
-        int64_t estimatedSize,
-        int nindices) {
-
-    if (aggrIndices && nindices != 6) {
-        LOG(ERRORL) << "Inconsistency on the input parameters. AggrIndices=true but set less than 6 permutations...";
-        throw 10;
-    }
-
-    //Sort chunks of the triple in main memory
-    std::vector<std::pair<string, char>> outputdirs;
-    if (nindices == 1) {
-        PermSorter::sortChunks(permDirs[3],
-                maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                false,
-                outputdirs);
-    } else if (nindices == 2) {
-        outputdirs.push_back(make_pair(permDirs[4], IDX_OSP));
-        PermSorter::sortChunks(permDirs[3],
-                maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                false,
-                outputdirs);
-    } else {
-        if (aggrIndices) {
-            outputdirs.push_back(make_pair(permDirs[2], IDX_SOP));
-            outputdirs.push_back(make_pair(permDirs[1], IDX_OPS));
-            outputdirs.push_back(make_pair(permDirs[3], IDX_OSP));
-        } else {
-            outputdirs.push_back(make_pair(permDirs[3], IDX_SOP));
-            outputdirs.push_back(make_pair(permDirs[1], IDX_OPS));
-            outputdirs.push_back(make_pair(permDirs[4], IDX_OSP));
-            outputdirs.push_back(make_pair(permDirs[2], IDX_POS));
-            outputdirs.push_back(make_pair(permDirs[5], IDX_PSO));
-        }
-        PermSorter::sortChunks(permDirs[0],
-                maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                true,
-                outputdirs);
-    }
-
-    int nperms = aggrIndices ? 4 : 6;
-    std::thread ts[3];
-    std::thread at1, at2;
-    if (!aggrIndices) {
-        ParamSortAndInsert params;
-        params.nindices = nperms;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.ins = ins;
-        params.inputSorted = true;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.aggregated = false;
-        //params.logPtr = NULL;
-        params.removeInput = true;
-        params.printstats = printStats;
-        params.POSoutputDir = NULL;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = true;
-
-        params.permutation = 1;
-        params.inputDir = permDirs[1];
-        params.treeWriter = treeWriters[1];
-        params.canSkipTables = false;
-
-        ts[0] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 3;
-        params.inputDir = permDirs[3];
-        params.treeWriter = treeWriters[3];
-        params.canSkipTables = canSkipTables;
-
-        ts[1] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 4;
-        params.inputDir = permDirs[4];
-        params.treeWriter = treeWriters[4];
-        params.canSkipTables = canSkipTables;
-
-        ts[2] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-
-        //Start two more threads
-        params.permutation = 2;
-        params.inputDir = permDirs[2];
-        params.treeWriter = treeWriters[2];
-        params.canSkipTables = false;
-
-        at1 = std::thread(std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 5;
-        params.inputDir = permDirs[5];
-        params.treeWriter = treeWriters[5];
-        params.canSkipTables = canSkipTables;
-
-        at2 = std::thread(std::bind(&Loader::sortAndInsert, params));
-
-    } else {
-        ParamSortAndInsert params;
-        params.nindices = nperms;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.ins = ins;
-        params.inputSorted = true;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.aggregated = false;
-        //params.logPtr = NULL;
-        params.removeInput = true;
-        params.printstats = printStats;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = true;
-
-        params.permutation = 1;
-        params.inputDir = permDirs[1];
-        params.treeWriter = treeWriters[1];
-        params.POSoutputDir = &aggr1Dir;
-        params.canSkipTables = false;
-
-        ts[0] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 3;
-        params.inputDir = permDirs[2];
-        params.treeWriter = treeWriters[3];
-        params.POSoutputDir = NULL;
-        params.canSkipTables = canSkipTables;
-
-        ts[1] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 4;
-        params.inputDir = permDirs[3];
-        params.treeWriter = treeWriters[4];
-        params.POSoutputDir = NULL;
-        params.canSkipTables = canSkipTables;
-
-        ts[2] = std::thread(
-                std::bind(&Loader::sortAndInsert, params));
-    }
-
-    ParamSortAndInsert params;
-    params.parallelProcesses = parallelProcesses;
-    params.maxReadingThreads = maxReadingThreads;
-    params.permutation = 0;
-    params.nindices = nperms;
-    params.inputSorted = true;
-    params.inputDir = permDirs[0];
-    params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
-    params.treeWriter = treeWriters[0];
-    params.ins = ins;
-    params.aggregated = false;
-    params.canSkipTables = false;
-    params.storeRaw = storePlainList;
-    params.sampleWriter = sampleWriter;
-    params.sampleRate = sampleRate;
-    params.printstats = printStats;
-    //params.logPtr = logPtr;
-    params.removeInput = true;
-    params.estimatedSize = estimatedSize;
-    params.deletePreviousExt = true;
-
-    sortAndInsert(params);
-    for (int i = 0; i < 3; ++i) {
-        ts[i].join();
-    }
-
-    if (!aggrIndices) {
-        at1.join();
-        at2.join();
-    }
-
-    //Aggregated
-    if (aggrIndices) {
-        ParamSortAndInsert params;
-        params.nindices = 2;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.ins = ins;
-        params.inputSorted = false;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        //params.logPtr = NULL;
-        params.removeInput = true;
-        params.aggregated = true;
-        params.printstats = printStats;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = true;
-
-        params.permutation = 2;
-        params.inputDir = aggr1Dir;
-        params.treeWriter = treeWriters[2];
-        params.POSoutputDir = NULL;
-        params.canSkipTables = false;
-
-        std::thread t[2];
-        t[0] = std::thread(std::bind(&Loader::sortAndInsert, params));
-
-        params.permutation = 5;
-        params.inputDir = aggr2Dir;
-        params.treeWriter = treeWriters[5];
-        params.POSoutputDir = NULL;
-        params.canSkipTables = canSkipTables;
-
-        t[1] = std::thread(std::bind(&Loader::sortAndInsert, params));
-        t[0].join();
-        t[1].join();
-    }
+outputdirs);
+} else if (nindices == 2) {
+outputdirs.push_back(make_pair(permDirs[4], IDX_OSP));
+PermSorter::sortChunks(permDirs[3],
+maxReadingThreads,
+parallelProcesses,
+estimatedSize,
+false,
+outputdirs);
+} else {
+if (aggrIndices) {
+outputdirs.push_back(make_pair(permDirs[2], IDX_SOP));
+outputdirs.push_back(make_pair(permDirs[1], IDX_OPS));
+outputdirs.push_back(make_pair(permDirs[3], IDX_OSP));
+} else {
+outputdirs.push_back(make_pair(permDirs[3], IDX_SOP));
+outputdirs.push_back(make_pair(permDirs[1], IDX_OPS));
+outputdirs.push_back(make_pair(permDirs[4], IDX_OSP));
+outputdirs.push_back(make_pair(permDirs[2], IDX_POS));
+outputdirs.push_back(make_pair(permDirs[5], IDX_PSO));
+}
+PermSorter::sortChunks(permDirs[0],
+maxReadingThreads,
+parallelProcesses,
+estimatedSize,
+true,
+outputdirs);
 }
 
-void Loader::seq_createIndices(
-        int parallelProcesses,
-        int maxReadingThreads,
-        Inserter *ins,
-        const bool createIndicesInBlocks,
-        const bool aggrIndices,
-        const bool canSkipTables,
-        const bool storePlainList,
-        string *permDirs,
-        string *outputDirs,
-        string aggr1Dir,
-        string aggr2Dir,
-        TreeWriter **treeWriters,
-        SimpleTripleWriter *sampleWriter,
-        double sampleRate,
-        string remotePath,
-        int64_t limitSpace,
-        int64_t estimatedSize) {
+//Merge the sorted segments on disk
+std::vector<std::thread> threads;
+ParamsMergeDiskFragments mp;
+if (!aggrIndices) {
+threads.resize(5);
+for(int i = 1; i < 6; ++i) {
+mp.inputDir = permDirs[i];
+threads[i-1] = std::thread(&Loader::mergeDiskFragments, mp);
+}
+} else {
+    threads.resize(3);
+    mp.inputDir = permDirs[1];
+    threads[0] = std::thread(&Loader::mergeDiskFragments, mp);
+    mp.inputDir = permDirs[3];
+    threads[1] = std::thread(&Loader::mergeDiskFragments, mp);
+    mp.inputDir = permDirs[4];
+    threads[2] = std::thread(&Loader::mergeDiskFragments, mp);
+}
+mp.inputDir = permDirs[0];
+mergeDiskFragments(mp);
+for(int i = 0; i < threads.size(); ++i) {
+    threads[i].join();
+}
 
-    LOG(DEBUGL) << "SortAndIndex one-by-one";
-
-    ParamSortAndInsert params;
-    params.parallelProcesses = parallelProcesses;
-    params.maxReadingThreads = maxReadingThreads;
-    params.permutation = 0;
-    params.nindices = 1;
-    params.inputSorted = false;
-    params.inputDir = permDirs[0];
-    params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
-    params.treeWriter = treeWriters[0];
+const int nperms = aggrIndices ? 4 : 6;
+std::thread ts[3];
+std::thread at1, at2;
+if (!aggrIndices) {
+    ParamInsert params;
+    params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
     params.ins = ins;
+    params.storeRaw = false;
+    params.sampleWriter = NULL;
+    params.sampleRate = 0.0;
     params.aggregated = false;
-    params.canSkipTables = false;
-    params.storeRaw = storePlainList;
-    params.sampleWriter = sampleWriter;
-    params.sampleRate = sampleRate;
+    params.removeInput = true;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
-    params.removeInput = false;
-    params.estimatedSize = estimatedSize;
-    params.deletePreviousExt = false;
-
-    sortAndInsert(params);
-
-    string lastInput = permDirs[0];
-    generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
-            maxReadingThreads);
-    Utils::remove_all(lastInput);
-    ins->stopInserts(0);
-    moveData(remotePath, outputDirs[0], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    params.POSoutputDir = NULL;
+    params.deletePreviousExt = true;
 
     params.permutation = 1;
-    params.nindices = 1;
-    params.inputSorted = false;
     params.inputDir = permDirs[1];
-    params.POSoutputDir = aggrIndices ? &aggr1Dir : NULL;
     params.treeWriter = treeWriters[1];
-    params.ins = ins;
-    params.aggregated = false;
     params.canSkipTables = false;
-    params.storeRaw = false;
-    params.sampleWriter = NULL;
-    params.sampleRate = 0.0;
-    params.printstats = printStats;
-    //params.logPtr = logPtr;
-    params.removeInput = false;
 
-    sortAndInsert(params);
-
-    lastInput = permDirs[1];
-    generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
-            lastInput, 2, 0, 1, parallelProcesses,
-            maxReadingThreads);
-    Utils::remove_all(lastInput);
-    ins->stopInserts(1);
-    moveData(remotePath, outputDirs[1], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    ts[0] = std::thread(
+            std::bind(&Loader::insert, params));
 
     params.permutation = 3;
-    params.nindices = 1;
-    params.inputSorted = false;
-    params.inputDir = aggrIndices ? permDirs[2] : permDirs[3];
-    params.POSoutputDir = (string*) NULL;
+    params.inputDir = permDirs[3];
     params.treeWriter = treeWriters[3];
-    params.ins = ins;
-    params.aggregated = false;
     params.canSkipTables = canSkipTables;
-    params.storeRaw = false;
-    params.sampleWriter = NULL;
-    params.sampleRate = 0.0;
-    params.printstats = printStats;
-    //params.logPtr = logPtr;
-    params.removeInput = false;
 
-    sortAndInsert(params);
-
-    lastInput = aggrIndices ? permDirs[2] : permDirs[3];
-    generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
-            lastInput, 1, 0, 2, parallelProcesses,
-            maxReadingThreads);
-    Utils::remove_all(lastInput);
-    ins->stopInserts(3);
-    moveData(remotePath, outputDirs[3], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    ts[1] = std::thread(
+            std::bind(&Loader::insert, params));
 
     params.permutation = 4;
-    params.nindices = 1;
-    params.inputSorted = false;
-    params.inputDir = aggrIndices ? permDirs[3] : permDirs[4];
-    params.POSoutputDir = (string*) NULL;
+    params.inputDir = permDirs[4];
     params.treeWriter = treeWriters[4];
-    params.ins = ins;
-    params.aggregated = false;
     params.canSkipTables = canSkipTables;
+
+    ts[2] = std::thread(
+            std::bind(&Loader::insert, params));
+
+    //Start two more threads
+    params.permutation = 2;
+    params.inputDir = permDirs[2];
+    params.treeWriter = treeWriters[2];
+    params.canSkipTables = false;
+
+    at1 = std::thread(std::bind(&Loader::insert, params));
+
+    params.permutation = 5;
+    params.inputDir = permDirs[5];
+    params.treeWriter = treeWriters[5];
+    params.canSkipTables = canSkipTables;
+
+    at2 = std::thread(std::bind(&Loader::insert, params));
+
+} else {
+    ParamInsert params;
+    params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
+    params.ins = ins;
     params.storeRaw = false;
     params.sampleWriter = NULL;
     params.sampleRate = 0.0;
+    params.aggregated = false;
+    params.removeInput = true;
     params.printstats = printStats;
-    //params.logPtr = logPtr;
-    params.removeInput = false;
+    params.deletePreviousExt = true;
 
-    sortAndInsert(params);
+    params.permutation = 1;
+    params.inputDir = permDirs[1];
+    params.treeWriter = treeWriters[1];
+    params.POSoutputDir = &aggr1Dir;
+    params.canSkipTables = false;
 
-    ins->stopInserts(4);
-    moveData(remotePath, outputDirs[4], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    ts[0] = std::thread(
+            std::bind(&Loader::insert, params));
 
-    lastInput = aggrIndices ? permDirs[3] : permDirs[4];
+    params.permutation = 3;
+    params.inputDir = permDirs[2];
+    params.treeWriter = treeWriters[3];
+    params.POSoutputDir = NULL;
+    params.canSkipTables = canSkipTables;
 
-    if (!aggrIndices) {
-        generateNewPermutation(permDirs[2],
-                lastInput, 2, 0, 1, parallelProcesses,
-                maxReadingThreads);
+    ts[1] = std::thread(
+            std::bind(&Loader::insert, params));
 
-        ParamSortAndInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.permutation = 2;
-        params.nindices = 1;
-        params.inputSorted = false;
-        params.inputDir = permDirs[2];
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[2];
-        params.ins = ins;
-        params.aggregated = false;
-        params.canSkipTables = false;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        //params.logPtr = logPtr;
-        params.removeInput = false;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = false;
+    params.permutation = 4;
+    params.inputDir = permDirs[3];
+    params.treeWriter = treeWriters[4];
+    params.POSoutputDir = NULL;
+    params.canSkipTables = canSkipTables;
 
-        sortAndInsert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-    } else {
+    ts[2] = std::thread(
+            std::bind(&Loader::insert, params));
+}
 
-        ParamSortAndInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.permutation = 2;
-        params.nindices = 1;
-        params.inputSorted = false;
-        params.inputDir = aggr1Dir;
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[2];
-        params.ins = ins;
-        params.aggregated = true;
-        params.canSkipTables = false;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        //params.logPtr = logPtr;
-        params.removeInput = true;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = false;
+ParamInsert params;
+params.parallelProcesses = parallelProcesses >= nperms ? parallelProcesses / nperms : 1;
+params.permutation = 0;
+params.inputDir = permDirs[0];
+params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
+params.treeWriter = treeWriters[0];
+params.ins = ins;
+params.aggregated = false;
+params.canSkipTables = false;
+params.storeRaw = storePlainList;
+params.sampleWriter = sampleWriter;
+params.sampleRate = sampleRate;
+params.printstats = printStats;
+params.removeInput = true;
+params.deletePreviousExt = true;
 
-        sortAndInsert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-    }
-    Utils::remove_all(lastInput);
+insert(params);
+for (int i = 0; i < 3; ++i) {
+    ts[i].join();
+}
 
-    if (!aggrIndices) {
-        lastInput = permDirs[2];
-        generateNewPermutation(permDirs[5],
-                lastInput, 0, 2, 1, parallelProcesses,
-                maxReadingThreads);
-        Utils::remove_all(lastInput);
+if (!aggrIndices) {
+    at1.join();
+    at2.join();
+}
 
-        ParamSortAndInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.permutation = 5;
-        params.nindices = 1;
-        params.inputSorted = false;
-        params.inputDir = permDirs[5];
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[5];
-        params.ins = ins;
-        params.aggregated = false;
-        params.canSkipTables = canSkipTables;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        //params.logPtr = logPtr;
-        params.removeInput = false;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = false;
+//Second phase: Aggregated
+if (aggrIndices) {
+    //TODO: sort
+    throw 10;
 
-        sortAndInsert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    ParamsMergeDiskFragments mp;
+    mp.inputDir = permDirs[2];
+    std::thread th = std::thread(&Loader::mergeDiskFragments, mp);
+    mp.inputDir = permDirs[5];
+    mergeDiskFragments(mp);
+    th.join();
 
-        lastInput = permDirs[5];
-        Utils::remove_all(lastInput);
-    } else {
-        ParamSortAndInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.maxReadingThreads = maxReadingThreads;
-        params.permutation = 5;
-        params.nindices = 1;
-        params.inputSorted = false;
-        params.inputDir = aggr2Dir;
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[5];
-        params.ins = ins;
-        params.aggregated = true;
-        params.canSkipTables = canSkipTables;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        //params.logPtr = logPtr;
-        params.removeInput = true;
-        params.estimatedSize = estimatedSize;
-        params.deletePreviousExt = false;
+    ParamInsert params;
+    params.parallelProcesses = parallelProcesses >= 2 ? parallelProcesses / 2 : 1;
+    params.ins = ins;
+    params.storeRaw = false;
+    params.sampleWriter = NULL;
+    params.sampleRate = 0.0;
+    params.removeInput = true;
+    params.aggregated = true;
+    params.printstats = printStats;
+    params.deletePreviousExt = true;
 
-        sortAndInsert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-    }
+    params.permutation = 2;
+    params.inputDir = aggr1Dir;
+    params.treeWriter = treeWriters[2];
+    params.POSoutputDir = NULL;
+    params.canSkipTables = false;
+
+    std::thread t[2];
+    t[0] = std::thread(std::bind(&Loader::insert, params));
+
+    params.permutation = 5;
+    params.inputDir = aggr2Dir;
+    params.treeWriter = treeWriters[5];
+    params.POSoutputDir = NULL;
+    params.canSkipTables = canSkipTables;
+
+    t[1] = std::thread(std::bind(&Loader::insert, params));
+    t[0].join();
+    t[1].join();
+}
 }
 
 void Loader::createIndices(
@@ -2644,6 +2429,305 @@ void Loader::createIndices(
                 storePlainList, permDirs, outputDirs, aggr1Dir, aggr2Dir,
                 treeWriters, sampleWriter, sampleRate, remotePath,
                 limitSpace, estimatedSize, nindices);
+    }
+}*/
+
+
+void Loader::createIndices(
+        int parallelProcesses,
+        int maxReadingThreads,
+        Inserter *ins,
+        const bool createIndicesInBlocks,
+        const bool aggrIndices,
+        const bool canSkipTables,
+        const bool storePlainList,
+        string *permDirs,
+        string *outputDirs,
+        string aggr1Dir,
+        string aggr2Dir,
+        TreeWriter **treeWriters,
+        SimpleTripleWriter *sampleWriter,
+        double sampleRate,
+        string remotePath,
+        int64_t limitSpace,
+        int64_t estimatedSize,
+        int nindices) {
+
+    LOG(DEBUGL) << "start createIndices";
+    std::vector<std::pair<string, char>> permutations;
+    if (!createIndicesInBlocks) {
+        if (!aggrIndices) {
+            permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+            permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+            permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+            permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+            permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+            permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
+        } else {
+            permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+            permutations.push_back(std::make_pair(permDirs[2], IDX_SOP));
+            permutations.push_back(std::make_pair(permDirs[3], IDX_OSP));
+            permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+        }
+    } else {
+        permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
+    }
+    PermSorter::sortChunks2(permutations, maxReadingThreads,
+            parallelProcesses,
+            estimatedSize,
+            false);
+    for(auto &p : permutations) {
+        mergeDiskFragments(ParamsMergeDiskFragments(p.first));
+    }
+
+    ParamInsert params;
+    params.parallelProcesses = parallelProcesses;
+    params.permutation = 0;
+    params.inputDir = permDirs[0];
+    params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
+    params.treeWriter = treeWriters[0];
+    params.ins = ins;
+    params.aggregated = false;
+    params.canSkipTables = false;
+    params.storeRaw = storePlainList;
+    params.sampleWriter = sampleWriter;
+    params.sampleRate = sampleRate;
+    params.printstats = printStats;
+    params.removeInput = false;
+    params.deletePreviousExt = false;
+
+    insert(params);
+
+    string lastInput = permDirs[0];
+    if (createIndicesInBlocks) {
+        generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
+                maxReadingThreads);
+        PermSorter::sortChunks2(permDirs[1], IDX_OPS, maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                false);
+        mergeDiskFragments(ParamsMergeDiskFragments(permDirs[1]));
+    }
+    Utils::remove_all(lastInput);
+    ins->stopInserts(0);
+    moveData(remotePath, outputDirs[0], limitSpace);
+    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+    params.permutation = 1;
+    params.inputDir = permDirs[1];
+    params.POSoutputDir = aggrIndices ? &aggr1Dir : NULL;
+    params.treeWriter = treeWriters[1];
+    params.ins = ins;
+    params.aggregated = false;
+    params.canSkipTables = false;
+    params.storeRaw = false;
+    params.sampleWriter = NULL;
+    params.sampleRate = 0.0;
+    params.printstats = printStats;
+    params.removeInput = false;
+
+    insert(params);
+
+    lastInput = permDirs[1];
+    if (createIndicesInBlocks) {
+        generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
+                lastInput, 2, 0, 1, parallelProcesses,
+                maxReadingThreads);
+        PermSorter::sortChunks2(aggrIndices ? permDirs[2] : permDirs[3],
+                IDX_SOP, maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                false);
+        mergeDiskFragments(
+                ParamsMergeDiskFragments(
+                    aggrIndices ? permDirs[2] : permDirs[3]));
+    }
+    Utils::remove_all(lastInput);
+    ins->stopInserts(1);
+    moveData(remotePath, outputDirs[1], limitSpace);
+    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+    params.permutation = 3;
+    params.inputDir = aggrIndices ? permDirs[2] : permDirs[3];
+    params.POSoutputDir = (string*) NULL;
+    params.treeWriter = treeWriters[3];
+    params.ins = ins;
+    params.aggregated = false;
+    params.canSkipTables = canSkipTables;
+    params.storeRaw = false;
+    params.sampleWriter = NULL;
+    params.sampleRate = 0.0;
+    params.printstats = printStats;
+    params.removeInput = false;
+
+    insert(params);
+
+    lastInput = aggrIndices ? permDirs[2] : permDirs[3];
+    if (createIndicesInBlocks) {
+        generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
+                lastInput, 1, 0, 2, parallelProcesses,
+                maxReadingThreads);
+        PermSorter::sortChunks2(aggrIndices ? permDirs[3] : permDirs[4],
+                IDX_OSP, maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                false);
+        mergeDiskFragments(
+                ParamsMergeDiskFragments(
+                    aggrIndices ? permDirs[3] : permDirs[4]));
+    }
+    Utils::remove_all(lastInput);
+    ins->stopInserts(3);
+    moveData(remotePath, outputDirs[3], limitSpace);
+    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+    params.permutation = 4;
+    params.inputDir = aggrIndices ? permDirs[3] : permDirs[4];
+    params.POSoutputDir = (string*) NULL;
+    params.treeWriter = treeWriters[4];
+    params.ins = ins;
+    params.aggregated = false;
+    params.canSkipTables = canSkipTables;
+    params.storeRaw = false;
+    params.sampleWriter = NULL;
+    params.sampleRate = 0.0;
+    params.printstats = printStats;
+    params.removeInput = false;
+
+    insert(params);
+
+    ins->stopInserts(4);
+    moveData(remotePath, outputDirs[4], limitSpace);
+    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+    lastInput = aggrIndices ? permDirs[3] : permDirs[4];
+
+    if (!aggrIndices) {
+        if (createIndicesInBlocks) {
+            generateNewPermutation(permDirs[2],
+                    lastInput, 2, 0, 1, parallelProcesses,
+                    maxReadingThreads);
+            PermSorter::sortChunks2(permDirs[2],
+                    IDX_POS, maxReadingThreads,
+                    parallelProcesses,
+                    estimatedSize,
+                    false);
+            mergeDiskFragments(
+                    ParamsMergeDiskFragments(permDirs[2]));
+        }
+
+        ParamInsert params;
+        params.parallelProcesses = parallelProcesses;
+        params.permutation = 2;
+        params.inputDir = permDirs[2];
+        params.POSoutputDir = (string*) NULL;
+        params.treeWriter = treeWriters[2];
+        params.ins = ins;
+        params.aggregated = false;
+        params.canSkipTables = false;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = false;
+        params.deletePreviousExt = false;
+
+        insert(params);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    } else {
+        ParamInsert params;
+        params.parallelProcesses = parallelProcesses;
+        params.permutation = 2;
+        params.inputDir = aggr1Dir;
+        params.POSoutputDir = (string*) NULL;
+        params.treeWriter = treeWriters[2];
+        params.ins = ins;
+        params.aggregated = true;
+        params.canSkipTables = false;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = true;
+        params.deletePreviousExt = false;
+
+        PermSorter::sortChunks2(aggr1Dir,
+                IDX_POS, maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                true);
+        mergeDiskFragments(
+                ParamsMergeDiskFragments(aggr1Dir));
+
+        insert(params);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+    }
+    Utils::remove_all(lastInput);
+
+    if (!aggrIndices) {
+        lastInput = permDirs[2];
+        if (createIndicesInBlocks) {
+            generateNewPermutation(permDirs[5],
+                    lastInput, 0, 2, 1, parallelProcesses,
+                    maxReadingThreads);
+            PermSorter::sortChunks2(permDirs[5],
+                    IDX_PSO, maxReadingThreads,
+                    parallelProcesses,
+                    estimatedSize,
+                    false);
+            mergeDiskFragments(
+                    ParamsMergeDiskFragments(permDirs[5]));
+        }
+        Utils::remove_all(lastInput);
+
+        ParamInsert params;
+        params.parallelProcesses = parallelProcesses;
+        params.permutation = 5;
+        params.inputDir = permDirs[5];
+        params.POSoutputDir = (string*) NULL;
+        params.treeWriter = treeWriters[5];
+        params.ins = ins;
+        params.aggregated = false;
+        params.canSkipTables = canSkipTables;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = false;
+        params.deletePreviousExt = false;
+
+        insert(params);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+        lastInput = permDirs[5];
+        Utils::remove_all(lastInput);
+    } else {
+        ParamInsert params;
+        params.parallelProcesses = parallelProcesses;
+        params.permutation = 5;
+        params.inputDir = aggr2Dir;
+        params.POSoutputDir = (string*) NULL;
+        params.treeWriter = treeWriters[5];
+        params.ins = ins;
+        params.aggregated = true;
+        params.canSkipTables = canSkipTables;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = true;
+        params.deletePreviousExt = false;
+
+        PermSorter::sortChunks2(aggr2Dir,
+                IDX_PSO, maxReadingThreads,
+                parallelProcesses,
+                estimatedSize,
+                true);
+        mergeDiskFragments(
+                ParamsMergeDiskFragments(aggr2Dir));
+
+        insert(params);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
     }
 }
 
@@ -2964,67 +3048,67 @@ bool CoordinatesMerger::getFirst(TreeEl *el, ifstream *buffer) {
     return false;
 }
 
-bool L_Triple::sLess_sop(const L_Triple &t1, const L_Triple &t2) {
-    if (t1.first < t2.first) {
-        return true;
-    } else if (t1.first == t2.first) {
-        if (t1.third < t2.third) {
-            return true;
-        } else if (t1.third == t2.third) {
-            return t1.second < t2.second;
-        }
-    }
-    return false;
-}
+/*bool L_Triple::sLess_sop(const L_Triple &t1, const L_Triple &t2) {
+  if (t1.first < t2.first) {
+  return true;
+  } else if (t1.first == t2.first) {
+  if (t1.third < t2.third) {
+  return true;
+  } else if (t1.third == t2.third) {
+  return t1.second < t2.second;
+  }
+  }
+  return false;
+  }
 
-bool L_Triple::sLess_ops(const L_Triple &t1, const L_Triple &t2) {
-    if (t1.third < t2.third) {
-        return true;
-    } else if (t1.third == t2.third) {
-        if (t1.second < t2.second) {
-            return true;
-        } else if (t1.second == t2.second) {
-            return t1.first < t2.first;
-        }
-    }
-    return false;
-}
+  bool L_Triple::sLess_ops(const L_Triple &t1, const L_Triple &t2) {
+  if (t1.third < t2.third) {
+  return true;
+  } else if (t1.third == t2.third) {
+  if (t1.second < t2.second) {
+  return true;
+  } else if (t1.second == t2.second) {
+  return t1.first < t2.first;
+  }
+  }
+  return false;
+  }
 
-bool L_Triple::sLess_osp(const L_Triple &t1, const L_Triple &t2) {
-    if (t1.third < t2.third) {
-        return true;
-    } else if (t1.third == t2.third) {
-        if (t1.first < t2.first) {
-            return true;
-        } else if (t1.first == t2.first) {
-            return t1.second < t2.second;
-        }
-    }
-    return false;
-}
+  bool L_Triple::sLess_osp(const L_Triple &t1, const L_Triple &t2) {
+  if (t1.third < t2.third) {
+  return true;
+  } else if (t1.third == t2.third) {
+  if (t1.first < t2.first) {
+  return true;
+  } else if (t1.first == t2.first) {
+  return t1.second < t2.second;
+  }
+  }
+  return false;
+  }
 
-bool L_Triple::sLess_pos(const L_Triple &t1, const L_Triple &t2) {
-    if (t1.second < t2.second) {
-        return true;
-    } else if (t1.second == t2.second) {
-        if (t1.third < t2.third) {
-            return true;
-        } else if (t1.third == t2.third) {
-            return t1.first < t2.first;
-        }
-    }
-    return false;
-}
+  bool L_Triple::sLess_pos(const L_Triple &t1, const L_Triple &t2) {
+  if (t1.second < t2.second) {
+  return true;
+  } else if (t1.second == t2.second) {
+  if (t1.third < t2.third) {
+  return true;
+  } else if (t1.third == t2.third) {
+  return t1.first < t2.first;
+  }
+  }
+  return false;
+  }
 
-bool L_Triple::sLess_pso(const L_Triple &t1, const L_Triple &t2) {
-    if (t1.second < t2.second) {
-        return true;
-    } else if (t1.second == t2.second) {
-        if (t1.first < t2.first) {
-            return true;
-        } else if (t1.first == t2.first) {
-            return t1.third < t2.third;
-        }
-    }
-    return false;
-}
+  bool L_Triple::sLess_pso(const L_Triple &t1, const L_Triple &t2) {
+  if (t1.second < t2.second) {
+  return true;
+  } else if (t1.second == t2.second) {
+  if (t1.first < t2.first) {
+  return true;
+  } else if (t1.first == t2.first) {
+  return t1.third < t2.third;
+  }
+  }
+  return false;
+  }*/

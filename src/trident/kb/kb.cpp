@@ -581,7 +581,7 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
     if (Utils::exists(inputdir + DIR_SEP + "dict")) {
         //Load the dictionary
         DictMgmt::Dict ud;
-        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + DIR_SEP + "dict", true, 1, 1, ud.stats.get()));
+        ud.sb = std::shared_ptr<StringBuffer>(new StringBuffer(inputdir + DIR_SEP + "dict", true, 1, 64 * 1024 * 1024, ud.stats.get()));
         PropertyMap p;
         p.setBool(TEXT_KEYS, true);
         p.setBool(TEXT_VALUES, false);
@@ -608,4 +608,241 @@ void KB::addDiffIndex(string inputdir, const char **globalbuffers, Querier *q) {
 
 std::vector<const char*> KB::openAllFiles(int perm) {
     return files[perm]->loadAllFiles();
+}
+
+void KB::createSingleUpdate(DiffIndex::TypeUpdate type, PairItr *itr, std::string dir, std::string diffDir, Querier *q) {
+
+    std::vector<uint64_t> all_s;
+    std::vector<uint64_t> all_p;
+    std::vector<uint64_t> all_o;
+
+    while (itr->hasNext()) {
+        itr->next();
+        all_s.push_back(itr->getKey());
+        all_p.push_back(itr->getValue1());
+        all_o.push_back(itr->getValue2());
+    }
+
+    if (all_s.size() == 0) {
+        return;
+    }
+
+    // Filter: the only deletes that should be left are in the db.
+    if (type == DiffIndex::TypeUpdate::DELETE_df) {
+        std::vector<uint64_t> del_s;
+        std::vector<uint64_t> del_p;
+        std::vector<uint64_t> del_o;
+
+        PairItr *kbitr = q->get(IDX_SPO, -1, -1, -1);
+        if (kbitr->hasNext()) {
+            kbitr->next();
+        } else {
+            q->releaseItr(kbitr);
+            kbitr = NULL;
+        }
+
+        size_t i = 0;
+        while (i != all_s.size()) {
+            //move kbitr to the good position
+            int cmpResult;
+            while (kbitr && (cmpResult = cmp(kbitr, all_s[i], all_p[i], all_o[i])) < 0) {
+                if (kbitr->hasNext()) {
+                    kbitr->next();
+                } else {
+                    q->releaseItr(kbitr);
+                    kbitr = NULL;
+                }
+            }
+            if (kbitr) {
+                //do the check
+                if (cmpResult == 0) {
+                    del_s.push_back(all_s[i]);
+                    del_p.push_back(all_p[i]);
+                    del_o.push_back(all_o[i]);
+                    //Must move also the original iterator
+                    if (kbitr->hasNext()) {
+                        kbitr->next();
+                    } else {
+                        break;
+                    }
+                }
+                i++;
+            } else {
+                break;
+            }
+        }
+        if (kbitr)
+            q->releaseItr(kbitr);
+
+        if (del_s.size() == 0) {
+            return;
+        }
+        Utils::create_directories(dir);
+        DiffIndex3::createDiffIndex(type, dir, diffDir, del_s, del_p, del_o, true, q, true);
+    } else {
+        Utils::create_directories(dir);
+        DiffIndex3::createDiffIndex(type, dir, diffDir, all_s, all_p, all_o, true, q, true);
+    }
+
+    //Write the type of file
+    string flagup;
+    if (type == DiffIndex::TypeUpdate::ADDITION_df) {
+        flagup = dir + DIR_SEP + std::string("ADD");
+    } else {
+        flagup = dir + DIR_SEP +  std::string("DEL");
+    }
+    ofstream ofs(flagup);
+    ofs.close();
+}
+
+int KB::cmp(PairItr *itr, uint64_t s, uint64_t p, uint64_t o) {
+    if (itr->getKey() < s) {
+        return -1;
+    } else if (itr->getKey() == s) {
+        if (itr->getValue1() < p) {
+            return -1;
+        } else if (itr->getValue1() == p) {
+            if (itr->getValue2() < o) {
+                return -1;
+            } else if (itr->getValue2() == o) {
+                return 0;
+            } else {
+                return 1;
+            }
+        } else {
+            return 1;
+        }
+    } else {
+        return 1;
+    }
+}
+
+
+void KB::mergeUpdates() {
+
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+
+    std::string diffDir = path + DIR_SEP + std::string("_newdiff");
+    std::string oldDiffDir = path + DIR_SEP + std::string("_diff");
+
+    // Count number of ADDITIONs and DELETEs.
+    int addCount = 0;
+    int rmCount = 0;
+    for (size_t i = 0; i < diffIndices.size(); ++i) {
+        if (diffIndices[i]->getType() == DiffIndex::TypeUpdate::ADDITION_df) {
+            addCount++;
+        } else {
+            rmCount++;
+        }
+    }
+
+    if (addCount <= 1 && rmCount <= 1) {
+        // No merging needed.
+        return;
+    }
+
+    Querier *q = query();
+    // Create the single updates with respect to a querier that does not have the diffIndices.
+    // Create querier with empty diffs
+    std::vector<std::unique_ptr<DiffIndex>> diffs;
+
+    Querier *q1 = new Querier(tree, dictManager, files, totalNumberTriples,
+        totalNumberTerms, nindices, ntables, nFirstTables,
+        sampleKB, diffs);
+
+    if (addCount >= 1) {
+        PairItr *addItr = q->summaryAddDiff();
+
+        createSingleUpdate(DiffIndex::TypeUpdate::ADDITION_df, addItr, diffDir + DIR_SEP + "0", diffDir, q1);
+        q->releaseItr(addItr);
+    }
+    if (rmCount >= 1) {
+        PairItr *rmItr = q->summaryRmDiff();
+        createSingleUpdate(DiffIndex::TypeUpdate::DELETE_df, rmItr, diffDir + DIR_SEP + (addCount != 0 ? "1" : "0"), diffDir, q1);
+        q->releaseItr(rmItr);
+    }
+
+    delete q1;
+    delete q;
+
+    if (dictUpdates.size() != 0) {
+        createNewDict(diffDir + DIR_SEP + "0");
+    }
+
+    std::string old = oldDiffDir + std::string(".old");
+
+    if (Utils::exists(old)) {
+        Utils::remove_all(old);
+    }
+
+    if (std::rename(oldDiffDir.c_str(), old.c_str()) != 0) {
+        LOG(ERRORL) << "Error renaming " << oldDiffDir;
+        throw 10;
+    }
+    if (std::rename(diffDir.c_str(), oldDiffDir.c_str()) != 0) {
+        LOG(ERRORL) << "Error renaming " << diffDir;
+        // Try to rename the old one back
+        std::rename(old.c_str(), oldDiffDir.c_str());
+        // Utils::remove_all(diffDir);
+        throw 10;
+    }
+    // Utils::remove_all(old);
+    std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
+    LOG(INFOL) << "Total merge time = " << sec.count() * 1000 << " ms.";
+}
+
+void KB::createNewDict(std::string dir) {
+    std::string dictdir = dir + DIR_SEP + std::string("dict");
+    Utils::create_directories(dictdir);
+
+    // Init data structures
+    Stats stats;
+    std::unique_ptr<StringBuffer> sb = std::unique_ptr<StringBuffer>(
+                                           new StringBuffer(dictdir, false, 10, 4096*SB_BLOCK_SIZE,
+                                                   &stats));
+    PropertyMap conf;
+    conf.setBool(TEXT_KEYS, true);
+    conf.setBool(TEXT_VALUES, false);
+    string t2idir = dictdir + "/t2id";
+    Utils::create_directories(t2idir);
+    std::unique_ptr<Root> dict = std::unique_ptr<Root>(new Root(t2idir, sb.get(),
+                                 false, conf));
+    string i2tdir = dictdir + "/id2t";
+    Utils::create_directories(i2tdir);
+    conf.setBool(TEXT_KEYS, false);
+    conf.setBool(TEXT_VALUES, true);
+    std::unique_ptr<Root> invdict = std::unique_ptr<Root>(new Root(i2tdir,
+                                    sb.get(), false, conf));
+
+    uint64_t maxid = 0;
+    uint64_t count = 0;
+    LOG(DEBUGL) << "dictUpdates count = " << dictUpdates.size();
+    for (int i = 0; i < dictUpdates.size(); ++i) {
+        TreeItr *itr = dictUpdates[i].invdict->itr();
+        while (itr->hasNext()) {
+            int64_t coord;
+            nTerm key = itr->next(coord);
+            int size;
+            char value[MAX_TERM_SIZE+1];
+            dictUpdates[i].sb->get(coord, value, size);
+            value[size] = 0;
+            coord = sb->getSize();
+            dict->put((tTerm*) value, size, key);
+            LOG(TRACEL) << "Adding " << value << " to dict";
+            invdict->put(key, coord);
+            if (key > maxid) {
+                maxid = key;
+            }
+            count++;
+        }
+    }
+
+    ofstream ofs;
+    ofs.open(dictdir + "/stats");
+    char data[8];
+    Utils::encode_long(data, count);
+    ofs.write(data, 8);
+    Utils::encode_long(data, maxid + 1);
+    ofs.write(data, 8);
+    ofs.close();
 }

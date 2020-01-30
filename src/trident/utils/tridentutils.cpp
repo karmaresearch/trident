@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <thread>
 #include <condition_variable>
@@ -198,9 +199,15 @@ uint64_t TridentUtils::spaceLeft(std::string location) {
 #endif
 }
 
+#define TO_MB(x)	(((x) + 512 * 1024)/(1024*1024))
+
 void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
         std::mutex *mtx,  bool *isFinished) {
     //Monitor CPU usage, memory usage and disk I/O
+    uint64_t prev_diskread = 0;
+    uint64_t prev_diskwrite = 0;
+    uint64_t prev_phy_diskread = 0;
+    uint64_t prev_phy_diskwrite = 0;
     while (true) {
         std::unique_lock<std::mutex> lck(*mtx);
         cv->wait_for(lck,std::chrono::seconds(seconds));
@@ -208,15 +215,35 @@ void TridentUtils::monitorPerformance(int seconds, std::condition_variable *cv,
             break;
         lck.unlock();
 
-        uint64_t mem = TridentUtils::getVmRSS();
-        double cpu = TridentUtils::getCPUUsage();
+        uint64_t mem = TridentUtils::getVmRSS()/1024;
+        int cpu = TridentUtils::getCPUUsage() + 0.49;
         uint64_t diskread = TridentUtils::diskread();
         uint64_t diskwrite = TridentUtils::diskwrite();
         uint64_t phy_diskread = TridentUtils::phy_diskread();
         uint64_t phy_diskwrite = TridentUtils::phy_diskwrite();
-        LOG(INFOL) << "STATS:\tvmrss_kb=" << mem << "\tcpu_perc=" << cpu
-            << "\tdiskread_bytes=" << diskread << "\tdiskwrite_bytes="
-            << diskwrite << "\tphydiskread_bytes=" << phy_diskread
-            << "\tphydiskwrite_bytes=" << phy_diskwrite;
+	ostringstream ss;
+        ss << "STATS:\tvmrss_MB= " 
+	    << std::setw(6)
+	    << mem
+	    << "\tcpu_perc= "
+	    << std::setw(3)
+	    << cpu
+            << "\tdiskread_MB= " 
+	    << std::setw(5) 
+	    << TO_MB(diskread - prev_diskread)
+	    << "\tdiskwrite_MB="
+	    << std::setw(5)
+	    << TO_MB(diskwrite - prev_diskwrite)
+	    << "\tphydiskread_MB= "
+	    << std::setw(5)
+	    << TO_MB(phy_diskread - prev_phy_diskread)
+            << "\tphydiskwrite_MB= "
+	    << std::setw(5)
+	    << TO_MB(phy_diskwrite - prev_phy_diskwrite);
+	LOG(INFOL) << ss.str();
+	prev_diskread = diskread;
+	prev_diskwrite = diskwrite;
+	prev_phy_diskread = phy_diskread;
+	prev_phy_diskwrite = phy_diskwrite;
     }
 }

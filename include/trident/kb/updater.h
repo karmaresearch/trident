@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef UPDATER_H_
@@ -37,96 +37,96 @@ class PairItr;
 class KB;
 class DictMgmt;
 class Updater {
-private:
+    private:
 
-    struct Triple {
-        uint64_t s;
-        uint64_t p;
-        uint64_t o;
+        struct Triple {
+            uint64_t s;
+            uint64_t p;
+            uint64_t o;
 
-        static bool sorter(const Triple &t1, const Triple &t2) {
-            if (t1.s < t2.s) {
-                return true;
-            } else if (t1.s == t2.s) {
-                if (t1.p < t2.p) {
+            static bool sorter(const Triple &t1, const Triple &t2) {
+                if (t1.s < t2.s) {
                     return true;
-                } else if (t1.p == t2.p) {
-                    return t1.o < t2.o;
+                } else if (t1.s == t2.s) {
+                    if (t1.p < t2.p) {
+                        return true;
+                    } else if (t1.p == t2.p) {
+                        return t1.o < t2.o;
+                    }
                 }
+                return false;
             }
-            return false;
+
+            static bool equal(const Triple &t1, const Triple &t2) {
+                return t1.s == t2.s && t1.p == t2.p && t1.o == t2.o;
+            }
+
+        };
+
+        struct TextualTriple {
+            const char *s;
+            int lens;
+            uint64_t nums;
+            const char *p;
+            uint64_t nump;
+            int lenp;
+            const char *o;
+            uint64_t numo;
+            int leno;
+        };
+
+        void compressUpdate(DiffIndex::TypeUpdate type,
+                string updatedir,
+                std::vector<uint64_t> &all_s,
+                std::vector<uint64_t> &all_p,
+                std::vector<uint64_t> &all_o,
+                KB *kb,
+                Querier *q,
+                ByteArrayToNumberMap &tmpdict,
+                StringCollection &tmpdictsupport);
+
+        void parseUpdate(std::string update,
+                StringCollection &support,
+                std::vector<TextualTriple> &output);
+
+        static void match(DiffIndex::TypeUpdate type,
+                std::vector<uint64_t> &outputs,
+                std::vector<uint64_t> &outputp,
+                std::vector<uint64_t> &outputo,
+                Querier *q,
+                std::vector<Triple> &input);
+
+        static bool lessThan(const char *s1, int len1, const char *s2, int len2) {
+            int len = len1 < len2 ? len1 : len2;
+            int c = strncmp(s1, s2, len);
+            if (c != 0) {
+                return c < 0;
+            }
+            return len1 < len2;
         }
 
-        static bool equal(const Triple &t1, const Triple &t2) {
-            return t1.s == t2.s && t1.p == t2.p && t1.o == t2.o;
+        static bool sortByS(const TextualTriple &t1, const TextualTriple &t2) {
+            // return std::string(t1.s, t1.lens) < std::string(t2.s, t2.lens);
+            return lessThan(t1.s, t1.lens, t2.s, t2.lens);
         }
 
-    };
+        static bool sortByP(const TextualTriple &t1, const TextualTriple &t2) {
+            // return std::string(t1.p, t1.lenp) < std::string(t2.p, t2.lenp);
+            return lessThan(t1.p, t1.lenp, t2.p, t2.lenp);
+        }
 
-    struct TextualTriple {
-        const char *s;
-        int lens;
-        uint64_t nums;
-        const char *p;
-        uint64_t nump;
-        int lenp;
-        const char *o;
-        uint64_t numo;
-        int leno;
-    };
+        static bool sortByO(const TextualTriple &t1, const TextualTriple &t2) {
+            // return std::string(t1.o, t1.leno) < std::string(t2.o, t2.leno);
+            return lessThan(t1.o, t1.leno, t2.o, t2.leno);
+        }
 
-    void compressUpdate(DiffIndex::TypeUpdate type,
-                        string updatedir,
-                        std::vector<uint64_t> &all_s,
-                        std::vector<uint64_t> &all_p,
-                        std::vector<uint64_t> &all_o,
-                        KB *kb,
-                        Querier *q,
-                        ByteArrayToNumberMap &tmpdict,
-                        StringCollection &tmpdictsupport);
+        static int cmp(PairItr *itr, const Triple &t);
 
-    void parseUpdate(std::string update,
-                     StringCollection &support,
-                     std::vector<TextualTriple> &output);
+        static void writeDict(DictMgmt *dictmgmt, string updatedir, ByteArrayToNumberMap &dict);
 
-    static void match(DiffIndex::TypeUpdate type,
-                      std::vector<uint64_t> &outputs,
-                      std::vector<uint64_t> &outputp,
-                      std::vector<uint64_t> &outputo,
-                      Querier *q,
-                      std::vector<Triple> &input);
+    public:
+        LIBEXP void creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir, std::string updatedir);
 
-    static bool lessThan(const char *s1, int len1, const char *s2, int len2) {
-	int len = len1 < len2 ? len1 : len2;
-	int c = strncmp(s1, s2, len);
-	if (c != 0) {
-	    return c < 0;
-	}
-	return len1 < len2;
-    }
-
-    static bool sortByS(const TextualTriple &t1, const TextualTriple &t2) {
-        // return std::string(t1.s, t1.lens) < std::string(t2.s, t2.lens);
-	return lessThan(t1.s, t1.lens, t2.s, t2.lens);
-    }
-
-    static bool sortByP(const TextualTriple &t1, const TextualTriple &t2) {
-        // return std::string(t1.p, t1.lenp) < std::string(t2.p, t2.lenp);
-	return lessThan(t1.p, t1.lenp, t2.p, t2.lenp);
-    }
-
-    static bool sortByO(const TextualTriple &t1, const TextualTriple &t2) {
-        // return std::string(t1.o, t1.leno) < std::string(t2.o, t2.leno);
-	return lessThan(t1.o, t1.leno, t2.o, t2.leno);
-    }
-
-    static int cmp(PairItr *itr, const Triple &t);
-
-    static void writeDict(DictMgmt *dictmgmt, string updatedir, ByteArrayToNumberMap &dict);
-
-public:
-    LIBEXP void creatediffupdate(DiffIndex::TypeUpdate type, std::string kbdir, std::string updatedir);
-
-    LIBEXP static std::string getPathForUpdate(std::string kbdir);
+        LIBEXP static std::string getPathForUpdate(std::string kbdir);
 };
 #endif

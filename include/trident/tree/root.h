@@ -93,6 +93,8 @@ class Root {
 
         void put(nTerm key, int64_t coordinates);
 
+        void put(tTerm *key, const int sizeKey, nTerm value);
+
         void append(nTerm key, int64_t coordinates);
 
         virtual TreeItr *itr();

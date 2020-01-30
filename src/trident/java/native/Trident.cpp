@@ -6,6 +6,7 @@
 #include <trident/utils/json.h>
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
+#include <trident/sparql/sparql.h>
 #include <kognac/logs.h>
 
 jlong getId(std::string nameField, JNIEnv *env, jobject &jobj) {
@@ -56,7 +57,7 @@ extern "C" {
 
             JSON stats;
             const char *query = jenv->GetStringUTFChars(jquery, 0);
-            TridentServer::execSPARQLQuery(query,
+            SPARQLUtils::execSPARQLQuery(query,
                     false,
                     nterms,
                     *db,
