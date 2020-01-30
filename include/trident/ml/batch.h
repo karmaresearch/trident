@@ -126,9 +126,9 @@ class BatchCreator {
             return batchsize;
         }
 
-        static string getValidPath(string kbdir);
+        static string getValidPath(string kbdir, int usedIndex);
 
-        static string getTestPath(string kbdir);
+        static string getTestPath(string kbdir, int usedIndex);
 
         static void loadTriples(string path, std::vector<uint64_t> &output);
 };

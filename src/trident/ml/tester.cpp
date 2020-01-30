@@ -37,17 +37,15 @@ void Predictor::launchPrediction(KB &kb, string algo, PredictParams &p) {
     std::vector<uint64_t> testset;
     string pathtest;
     if (p.nametestset == "valid") {
-        pathtest = BatchCreator::getValidPath(kb.getPath());
+        pathtest = BatchCreator::getValidPath(kb.getPath(), 2);
     } else {
-        pathtest = BatchCreator::getTestPath(kb.getPath());
+        pathtest = BatchCreator::getTestPath(kb.getPath(), 2);
     }
-    LOG(INFOL) << "UNM: " << pathtest;
     BatchCreator::loadTriples(pathtest, testset);
 
     if (algo == "transe") {
         if (p.binary == "true") {
             TranseBinaryTester<double> tester(E, R, kb.query());
-            LOG(INFOL) << "finally here : ****** ";
             auto result = tester.test(p.nametestset, testset, p.nthreads, 0);
         } else {
             TranseTester<double> tester(E,R, kb.query());

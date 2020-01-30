@@ -524,9 +524,9 @@ void SubgraphHandler::evaluate(KB &kb,
         //The test set can be extracted from the database
         string pathtest;
         if (nameTest == "valid") {
-            pathtest = BatchCreator::getValidPath(kb.getPath());
+            pathtest = BatchCreator::getValidPath(kb.getPath(), 2);
         } else {
-            pathtest = BatchCreator::getTestPath(kb.getPath());
+            pathtest = BatchCreator::getTestPath(kb.getPath(), 2);
         }
         BatchCreator::loadTriples(pathtest, testTriples);
     }
@@ -847,9 +847,9 @@ void SubgraphHandler::findAnswers(KB &kb,
         //The test set can be extracted from the database
         string pathtest;
         if (nameTest == "valid") {
-            pathtest = BatchCreator::getValidPath(kb.getPath());
+            pathtest = BatchCreator::getValidPath(kb.getPath(), 2);
         } else {
-            pathtest = BatchCreator::getTestPath(kb.getPath());
+            pathtest = BatchCreator::getTestPath(kb.getPath(), 2);
         }
         BatchCreator::loadTriples(pathtest, testTriples);
     }

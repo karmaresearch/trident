@@ -20,7 +20,7 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
         rawtriples = NULL;
         ntriples = 0;
         currentidx = 0;
-        usedIndex = 0;
+        usedIndex = IDX_POS;
     }
 
 std::shared_ptr<Feedback> BatchCreator::getFeedback() {
@@ -28,19 +28,19 @@ std::shared_ptr<Feedback> BatchCreator::getFeedback() {
 }
 
 string BatchCreator::getValidPath() {
-    return kbdir + "/_batch_valid";
+    return kbdir + "/_batch_valid" + std::to_string(this->usedIndex);
 }
 
 string BatchCreator::getTestPath() {
-    return kbdir + "/_batch_test";
+    return kbdir + "/_batch_test" + std::to_string(this->usedIndex);
 }
 
-string BatchCreator::getValidPath(string kbdir) {
-    return kbdir + "/_batch_valid";
+string BatchCreator::getValidPath(string kbdir, int usedIndex) {
+    return kbdir + "/_batch_valid" + std::to_string(usedIndex);
 }
 
-string BatchCreator::getTestPath(string kbdir) {
-    return kbdir + "/_batch_test";
+string BatchCreator::getTestPath(string kbdir, int usedIndex) {
+    return kbdir + "/_batch_test" + std::to_string(usedIndex);
 }
 
 void BatchCreator::createInputForBatch(bool createTraining,
