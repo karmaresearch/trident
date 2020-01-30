@@ -124,7 +124,7 @@ class Embeddings {
                 LOG(DEBUGL) << "Resizing the file to " << rawsize << " bytes ...";
                 Utils::resizeFile(rawFilename, rawsize);
                 LOG(DEBUGL) << "Creating memory mapped file ...";
-                fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, false, 0, rawsize));
+                fraw = std::unique_ptr<MemoryMappedFile>(new MemoryMappedFile(rawFilename, true, 0, rawsize));
                 raw = (K*)fraw->getData();
             }
 
