@@ -200,14 +200,16 @@ class BufferCoordinates {
     }
 };
 
+struct ParamsMergeDiskFragments {
+    ParamsMergeDiskFragments() {}
+    ParamsMergeDiskFragments(string i) : inputDir(i) {}
+    string inputDir;
+};
+
 class SimpleTripleWriter;
-struct ParamSortAndInsert {
-    ParamSortAndInsert() {}
+struct ParamInsert {
     int permutation;
-    int nindices;
     int parallelProcesses;
-    int maxReadingThreads;
-    bool inputSorted;
     string inputDir;
     string *POSoutputDir;
     TreeWriter *treeWriter;
@@ -218,9 +220,7 @@ struct ParamSortAndInsert {
     SimpleTripleWriter *sampleWriter;
     double sampleRate;
     bool printstats;
-    //SinkPtr logPtr;
     bool removeInput;
-    int64_t estimatedSize;
     bool deletePreviousExt;
 };
 
@@ -241,11 +241,11 @@ class L_Triple {
             return false;
         }
 
-        static bool sLess_sop(const L_Triple &t1, const L_Triple &t2);
+        /*static bool sLess_sop(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_osp(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_ops(const L_Triple &t1, const L_Triple &t2);
         static bool sLess_pos(const L_Triple &t1, const L_Triple &t2);
-        static bool sLess_pso(const L_Triple &t1, const L_Triple &t2);
+        static bool sLess_pso(const L_Triple &t1, const L_Triple &t2);*/
 
         virtual void readFrom(int part, MultiDiskLZ4Reader *reader) {
             first = reader->readLong(part);
@@ -287,7 +287,7 @@ class L_Triple {
         virtual ~L_Triple() {}
 };
 
-class L_TripleCount : public L_Triple {
+/*class L_TripleCount : public L_Triple {
     uint64_t count;
 
     public:
@@ -348,7 +348,7 @@ class L_TripleCount : public L_Triple {
     }
 
     ~L_TripleCount() {}
-};
+};*/
 
 struct ParamsMergeCoordinates {
     string *coordinates;
@@ -487,7 +487,7 @@ class Loader {
                 int parallelProcesses,
                 int maxReadingThreads);
 
-        template<class K>
+/*        template<class K>
             static void sortPermutation(string inputDir,
                     int maxReadingThreads,
                     int parallelProcesses,
@@ -496,15 +496,15 @@ class Loader {
                     int64_t elementsMainMem,
                     int filesToMerge,
                     bool readFirstByte,
-                    std::vector<std::pair<string, char>> &additionalPermutations);
+                    std::vector<std::pair<string, char>> &additionalPermutations);*/
 
-        template<class K>
+/*        template<class K>
             static void sortPermutation_seq(const int idReader,
                     MultiDiskLZ4Reader *reader,
                     int64_t start,
                     K *output,
                     int64_t maxInserts,
-                    int64_t *count);
+                    int64_t *count);*/
 
         template<class K>
             static void dumpPermutation(std::vector<K> &input,
@@ -514,7 +514,9 @@ class Loader {
                     string out,
                     char sorter);
 
-        static void sortAndInsert(ParamSortAndInsert params);
+        static void mergeDiskFragments(ParamsMergeDiskFragments params);
+
+        static void insert(ParamInsert params);
 
         static void insertDictionary(const int part, DictMgmt *dict,
                 string dictFileInput,
@@ -554,7 +556,7 @@ class Loader {
                 nTerm highestNumber,
                 DictMgmt *dict);
 
-        void seq_createIndices(
+/*        void seq_createIndices(
                 int parallelProcesses,
                 int maxReadingThreads,
                 Inserter *ins,
@@ -591,7 +593,7 @@ class Loader {
                 string remotePath,
                 int64_t limitSpace,
                 int64_t estimatedSize,
-                int nindices);
+                int nindices);*/
 
         void createIndices(
                 int parallelProcesses,

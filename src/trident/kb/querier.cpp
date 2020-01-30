@@ -691,9 +691,80 @@ PairItr *Querier::getTermList(const int perm) {
                 }
             } else {
                 DiffTermItr *itr = factory10.get();
-                diffIndices[i]->getTermListItr(perm, itr);
+                diffIndices[i]->getTermListItr(IDX_SPO, itr);
                 RmCompositeTermItr *newitr = factory15.get();
                 newitr->init(finalItr, itr);
+                finalItr = newitr;
+            }
+        }
+    }
+
+    return finalItr;
+}
+
+PairItr *Querier::summaryAddDiff() {
+    PairItr *p = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+    if (p == NULL) {
+        return p;
+    }
+    PairItr *m = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+    if (m == NULL) {
+        return p;
+    }
+    RmItr *newitr = factory14.get();
+    newitr->init(p, m, 0);
+    return newitr;
+}
+
+PairItr *Querier::summaryRmDiff() {
+    PairItr *m = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::DELETE_df);
+    if (m == NULL) {
+        return m;
+    }
+    PairItr *p = summaryDiff(IDX_SPO, DiffIndex::TypeUpdate::ADDITION_df);
+    if (p == NULL) {
+        return m;
+    }
+    RmItr *newitr = factory14.get();
+    newitr->init(m, p, 0);
+    return newitr;
+}
+
+PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp) {
+
+    PairItr *finalItr = NULL;
+
+    //Add differential updates
+    for (size_t i = 0; i < diffIndices.size(); ++i) {
+        if (diffIndices[i]->getNUniqueKeys(perm) > 0) {
+            LOG(DEBUGL) << "diffIndices " << i;
+            if (diffIndices[i]->getType() == tp) {
+                DiffScanItr *itr = factory11.get();
+                itr->setQuerier(this);
+                PairItr *it = ((DiffIndex3*)diffIndices[i].get())->getScan(perm, itr);
+                LOG(DEBUGL) << "Adding iterator, hasNext = " << it->hasNext();
+                if (finalItr == NULL) {
+                    finalItr = it;
+                } else if (finalItr->getTypeItr() != COMPOSITESCAN_ITR) {
+                    CompositeScanItr *newitr = factory12.get();
+                    newitr->setQuerier(this);
+                    newitr->init(perm); //Initialize a compositescanitr
+                    newitr->addChild(finalItr);
+                    newitr->addChild(it);
+                    LOG(DEBUGL) << "CompositeScanItr, hasNext = " << newitr->hasNext();
+                    finalItr = newitr;
+                } else {
+                    ((CompositeScanItr*)finalItr)->addChild(itr);
+                }
+            } else {
+                if (finalItr == NULL) {
+                    continue;
+                }
+                DiffScanItr *itr = factory11.get();
+                itr->setQuerier(this);
+                PairItr *it = ((DiffIndex3*)diffIndices[i].get())->getScan(perm, itr);
+                RmItr *newitr = factory14.get();
+                newitr->init(finalItr, it, 0);
                 finalItr = newitr;
             }
         }
@@ -886,7 +957,7 @@ PairItr *Querier::get(const int idx, const int64_t s, const int64_t p, const int
     if (!diffIndices.empty()) {
 
 #ifdef MT
-        LOG(WARNL) << "The program is compiled with support to multithread, but additional indices are not yet supported in this mode";
+        LOG(DEBUGL) << "The program is compiled with support to multithread, but additional indices are run sequentially.";
 #endif
 
         std::vector<PairItr*> iterators;

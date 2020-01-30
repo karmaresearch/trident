@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #ifndef _PYTHON_H
@@ -31,16 +31,19 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
+#include <layers/TridentLayer.hpp>
+
 typedef struct {
     PyObject_HEAD
         KB *kb = NULL;
     Querier *q = NULL;
+    std::unique_ptr<TridentLayer> db;
     bool rmKbOnDelete = false;
 } trident_Db;
 
 typedef struct {
     PyObject_HEAD
-    Querier *q;
+        Querier *q;
     PairItr *itr;
     char pos;
 } trident_Itr;

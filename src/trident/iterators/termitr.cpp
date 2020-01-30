@@ -31,6 +31,7 @@ void TermItr::init(TableStorage *tables, uint64_t size, int perm, Root *tree) {
     this->nfiles = tables->getLastCreatedFile() + 1;
     this->currentfile = 0;
     this->currentMark = -1;
+    this->cachedCount = -1;
     this->size = size;
     this->perm = perm;
     this->tree = tree;
@@ -63,6 +64,7 @@ void TermItr::next() {
     setKey(key);
     buffer += 6;
     currentMark++;
+    cachedCount = -1;
 }
 
 char TermItr::getCurrentStrat() {
@@ -92,6 +94,7 @@ void TermItr::reset(char i) {
 
 void TermItr::gotoKey(int64_t keyToSearch) {
     //Is the file within the file range?
+    cachedCount = -1;
     const int64_t lastKey = Utils::decode_longFixedBytes(endbuffer - 6, 5);
     if (keyToSearch > lastKey) {
         if (currentfile < nfiles - 1) {
@@ -147,17 +150,20 @@ void TermItr::gotoKey(int64_t keyToSearch) {
 }
 
 int64_t TermItr::getCount() {
-    TermCoordinates values;
-    bool resp = tree->get(key, &values);
-    if (!resp) {
-        LOG(ERRORL) << "Every key should be in the tree...";
-        throw 10;
+    if (cachedCount < 0) {
+        TermCoordinates values;
+        bool resp = tree->get(key, &values);
+        if (!resp) {
+            LOG(ERRORL) << "Every key should be in the tree...";
+            throw 10;
+        }
+        if (perm > 2) {
+            cachedCount = values.getNElements(perm - 3);
+        } else {
+            cachedCount = values.getNElements(perm);
+        }
     }
-    if (perm > 2) {
-        return values.getNElements(perm - 3);
-    } else {
-        return values.getNElements(perm);
-    }
+    return cachedCount;
 }
 
 void TermItr::moveto(const int64_t c1, const int64_t c2) {
