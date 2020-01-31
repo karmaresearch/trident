@@ -62,6 +62,9 @@ bool Sort::Sorter::operator()(const Tuple* a, const Tuple* b)
 
             if (DictMgmt::isnumeric(v1) && DictMgmt::isnumeric(v2)) {
                 int cmp = DictMgmt::compare(DictMgmt::getType(v1), v1, DictMgmt::getType(v2), v2);
+                if (cmp == 0) {
+                    continue;
+                }
                 return cmp < 0;
             }
 

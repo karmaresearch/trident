@@ -143,10 +143,22 @@ static bool binds(const SPARQLParser::PatternGroup& group, uint64_t id)
     for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter = group.optional.begin(), limit = group.optional.end(); iter != limit; ++iter)
         if (binds(*iter, id))
             return true;
+    for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter = group.minuses.begin(), limit = group.minuses.end(); iter != limit; ++iter)
+        if (binds(*iter, id))
+            return true;
     for (std::vector<std::vector<SPARQLParser::PatternGroup> >::const_iterator iter = group.unions.begin(), limit = group.unions.end(); iter != limit; ++iter)
         for (std::vector<SPARQLParser::PatternGroup>::const_iterator iter2 = (*iter).begin(), limit2 = (*iter).end(); iter2 != limit2; ++iter2)
             if (binds(*iter2, id))
                 return true;
+    for (std::vector<std::shared_ptr<SPARQLParser>>::const_iterator iter = group.subqueries.begin(), limit = group.subqueries.end(); iter != limit; ++iter) {
+	for (SPARQLParser::projection_iterator it = (*iter)->projectionBegin(), li = (*iter)->projectionEnd(); it != li; it++) {
+	    if (*it == id) {
+		return true;
+	    }
+	}
+	if (binds((*iter)->getPatterns(), id))
+	    return true;
+    }
     for (std::vector<SPARQLParser::Assignment>::const_iterator iter = group.assignments.begin();
             iter != group.assignments.end(); ++iter) {
         if (iter->outputVar.id == id)
@@ -459,7 +471,7 @@ static bool encodeFilter(SemanticAnalysis *myself, DBLayer& dict, DifferentialIn
                                                 input.arg1,
                                                 currentQueryGraph);
         case SPARQLParser::Filter::Builtin_xsdstring:
-                                        LOG(ERRORL) << "Not implemented";
+                                        LOG(ERRORL) << "Not implemented: xsd:string";
                                         throw 10;
     }
     return false; // XXX cannot happen
@@ -770,7 +782,13 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
             }
         }
         if (~id) {
-            if (!binds(input.getPatterns(), id)) {
+	    for (SPARQLParser::projection_iterator it = input.projectionBegin(), li = input.projectionEnd(); it != li; it++) {
+		if (*it == (*iter).id) {
+		    id = (*iter).id;
+		    break;
+		}
+	    }
+            if (~id && !binds(input.getPatterns(), id)) {
                 //It could be an assignment variable...
                 bool found = false;
                 for(const auto &assignment : input.getGlobalAssignments()) {
@@ -782,10 +800,8 @@ void SemanticAnalysis::transform(const SPARQLParser& input, QueryGraph& output)
                 if (!found)
                     continue;
             }
-            o.id = id;
-        } else {
-            o.id = ~0u;
-        }
+	}
+	o.id = id;
         o.descending = (*iter).descending;
         output.addOrder(o);
     }

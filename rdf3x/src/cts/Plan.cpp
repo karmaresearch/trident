@@ -118,6 +118,9 @@ void Plan::print(unsigned indent) const
             break;
         case HashGroupify:
         case Filter:
+	case Having:
+	case GroupBy:
+	case Aggregates:
             left->print(indent + 1);
             break;
         case Union:
@@ -139,10 +142,6 @@ void Plan::print(unsigned indent) const
             break;
         case ValuesScan:
             break;
-	case GroupBy:
-	case Having:
-	case Aggregates:
-	    break;
     }
 }
 //---------------------------------------------------------------------------

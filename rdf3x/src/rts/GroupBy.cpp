@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <rts/operator/GroupBy.hpp>
 #include <rts/operator/PlanPrinter.hpp>
 

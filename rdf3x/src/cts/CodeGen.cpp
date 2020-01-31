@@ -665,8 +665,14 @@ static Operator* translateAggregates(Runtime& runtime,
     }
     //Create bindings for the output variables
     uint64_t slot = 0;
+    const QueryGraph::ValuesNode& node = *reinterpret_cast<const QueryGraph::ValuesNode*>(&hdl);
+    auto it = registers.find((QueryGraph::Node*)&node);
+    if (it == registers.end()) {
+	LOG(ERRORL) << "Register not found";
+	throw 10;
+    }
     for(auto v : vars.second) {
-        Register* reg = runtime.getRegister((*registers.find(reinterpret_cast<const QueryGraph::Node*>(&hdl))).second + slot);
+        Register* reg = runtime.getRegister(it->second + slot);
         bindings[v] = reg;
         slot++;
     }
