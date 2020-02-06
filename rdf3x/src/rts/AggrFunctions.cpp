@@ -8,7 +8,7 @@
 #include <assert.h>
 
 AggrFunctions::AggrFunctions(DBLayer& db, Operator* child,
-        std::map<unsigned, Register *> bindings,
+        std::map<unsigned, Register *> &bindings,
         const AggregateHandler &hdl,
         const std::vector<unsigned> &groupKeys,
         double expectedOutputCardinality) : Operator(expectedOutputCardinality),
@@ -212,12 +212,12 @@ void AggrFunctions::print(PlanPrinter& out) {
 
 /// Add a merge join hint
 void AggrFunctions::addMergeHint(Register* reg1,Register* reg2) {
-    LOG(ERRORL) << "Not implemented yet";
+    LOG(ERRORL) << "Not implemented yet: AggrFunctions::addMergeHint";
     throw 10;
 }
 
 /// Register parts of the tree that can be executed asynchronous
 void AggrFunctions::getAsyncInputCandidates(Scheduler& scheduler) {
-    LOG(ERRORL) << "Not implemented yet";
+    LOG(ERRORL) << "Not implemented yet: AggrFunctions::getAsyncInputCandidates";
     throw 10;
 }
