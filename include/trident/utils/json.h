@@ -89,6 +89,26 @@ class JSON {
             listchildren.push_back(value);
         }
 
+        bool containsChild(std::string key) const {
+            return children.count(key);
+        }
+
+        bool contains(std::string key) const {
+            return values.count(key);
+        }
+
+        const std::string get(std::string key) const {
+            return values.find(key)->second;
+        }
+
+        const JSON &getChild(std::string key) {
+            return children[key];
+        }
+
+        const std::vector<JSON> &getListChildren() const {
+            return listchildren;
+        }
+
         static void write(std::ostream &out, JSON &value);
 
         static void read(std::string &in, JSON &value);
