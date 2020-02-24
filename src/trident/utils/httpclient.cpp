@@ -331,6 +331,19 @@ bool HttpClient::post(const std::string &path,
     return getResponse(request, headers, response);
 }
 
+bool HttpClient::post(const std::string &path,
+        std::string &params,
+        std::string &headers,
+        std::string &response,
+        std::string contenttype) {
+    std::string request = "POST " + path + " HTTP/1.1\r\nHost: " +
+        address + ":" + std::to_string(port) + "\r\n" +
+        "Content-Type: " + contenttype + "\r\n" +
+        "Content-Length: " + std::to_string(params.size()) + "\r\n\r\n" +
+        params;
+    return getResponse(request, headers, response);
+}
+
 void HttpClient::disconnect() {
     if (sockfd != -1) {
         close(sockfd);
