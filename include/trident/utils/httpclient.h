@@ -63,6 +63,12 @@ class HttpClient {
                 std::string &response,
                 std::string contenttype = "application/x-www-form-urlencoded");
 
+        bool post(const std::string &path,
+                std::string &params,
+                std::string &headers,
+                std::string &response,
+                std::string contenttype = "application/x-www-form-urlencoded");
+
         ~HttpClient();
 
         static URL parse(std::string url);
