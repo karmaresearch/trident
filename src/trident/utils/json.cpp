@@ -94,19 +94,15 @@ void parse_array(const rapidjson::Value &value,
 
 void parse_value(const rapidjson::Value &src, JSON &dest) {
     if (src.IsObject()) {
-        std::cout << "Parse object" << std::endl;
         for (rapidjson::Value::ConstMemberIterator itr = src.MemberBegin();
                 itr != src.MemberEnd(); ++itr) {
             std::string name = itr->name.GetString();
-            std::cout << "Parse member " << name << std::endl;
             //Could be JSON or string-like element
             if (itr->value.IsObject()) {
-                std::cout << "Parse child " << std::endl;
                 JSON child;
                 parse_value(itr->value, child);
                 dest.add_child(name, child);
             } else if (itr->value.IsArray()) {
-                std::cout << "Parse array " << std::endl;
                 bool isArrayOfObjects = false;
                 std::vector<JSON> c1;
                 std::vector<std::string> c2;
@@ -126,7 +122,6 @@ void parse_value(const rapidjson::Value &src, JSON &dest) {
                 dest.put(name, parse_simpletype(itr->value));
             }
         }
-        std::cout << "Exiting" << std::endl;
     } else if (src.IsArray()) { //array
         bool isArrayOfObjects = false;
         std::vector<JSON> c1;
