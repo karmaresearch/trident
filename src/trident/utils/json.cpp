@@ -71,17 +71,43 @@ void parse_array(const rapidjson::Value &value,
         bool &jsonArray) {
 }
 
+std::string parse_value(const rapidjson::Value &value) {
+	std::string out = "";
+	if (value.IsNumber()) {
+		if (value.IsInt()) {
+		out = std::to_string(value.GetInt());
+		} else if (value.IsDouble()) {
+		out = std::to_string(value.GetDouble());
+		} else {
+		LOG(ERRORL) << "Type not recognized";
+		throw 10;
+		}
+	} else if (value.IsString()) {
+		out = value.GetString();
+	} else if (value.IsBool()) {
+		out = std::to_string(value.GetBool());
+	} else {
+		LOG(ERRORL) << "Type not recognized";
+		throw 10;
+	}
+	return out;
+}
+
 void parse_json(const rapidjson::Value &src, JSON &dest) {
     if (src.IsObject()) {
+	    std::cout << "Parse object" << std::endl;
         for (rapidjson::Value::ConstMemberIterator itr = src.MemberBegin();
                 itr != src.MemberEnd(); ++itr) {
             std::string name = itr->name.GetString();
+	    std::cout << "Parse member " << name << std::endl;
             //Could be JSON or string-like element
             if (itr->value.IsObject()) {
+	    std::cout << "Parse child " << std::endl;
                 JSON child;
                 parse_json(itr->value, child);
                 dest.add_child(name, child);
             } else if (itr->value.IsArray()) {
+	    std::cout << "Parse array " << std::endl;
                 bool isArrayOfObjects = false;
                 std::vector<JSON> c1;
                 std::vector<std::string> c2;
@@ -98,10 +124,10 @@ void parse_json(const rapidjson::Value &src, JSON &dest) {
                 }
                 dest.add_child(name, cvalue);
             } else {
-                dest.put(name, itr->value.GetString());
+                dest.put(name, parse_value(itr->value));
             }
-
         }
+	std::cout << "Exiting" << std::endl;
     } else if (src.IsArray()) { //array
         bool isArrayOfObjects = false;
         std::vector<JSON> c1;
@@ -130,5 +156,4 @@ void JSON::read(std::string &in, JSON &value) {
         throw 10;
     }
     parse_json(jsonObj, value);
-
 }
