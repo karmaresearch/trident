@@ -6,6 +6,9 @@ CINCLUDES= -I../include -I$(KOGNAC)/include -I../snap -I../snap/snap-core -I../s
 CLIBS=-L$(KOGNAC_BUILDDIR) -L$(TRIDENT_BUILDDIR) -L../snap/snap-core -L$(KOGNAC_BUILDDIR)/external/lz4/lib -L$(KOGNAC_BUILDDIR)/external/sparsehash/src -ltrident-core -lkognac-core
 CPLUS=g++
 
+test_json:
+	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testJSON -std=c++0x -O0 test_json.cpp -lpthread
+
 test_insert8:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testInsert8 -std=c++0x -O3 test_insert8.cpp -lpthread
 
