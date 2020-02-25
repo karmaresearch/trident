@@ -152,7 +152,7 @@ ENDIF()
 # ENDIF()
 
 #Create the core library
-include_directories(include/ rdf3x/include)
+include_directories(include/ rdf3x/include rapidjson/include)
 file(GLOB trident_SRC
     "src/trident/binarytables/*.cpp"
     "src/trident/files/*.cpp"
