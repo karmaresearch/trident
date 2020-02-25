@@ -80,6 +80,8 @@ std::string parse_simpletype(const rapidjson::Value &value) {
         out = value.GetString();
     } else if (value.IsBool()) {
         out = std::to_string(value.GetBool());
+    } else if (value.IsNull()) {
+        out = "NULL";
     } else {
         LOG(ERRORL) << "Type not recognized";
         throw 10;
