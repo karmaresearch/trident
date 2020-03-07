@@ -511,7 +511,7 @@ static PyObject *db_outdegree(PyObject *self, PyObject *args) {
 
 static PyObject *db_all(PyObject *self, PyObject *args) {
     int text = 0;
-    const char *permutation;
+    const char *permutation = NULL;
     if (!PyArg_ParseTuple(args, "|zb", &permutation, &text))
         return NULL;
 
