@@ -1193,6 +1193,7 @@ void Querier::releaseItr(PairItr * itr) {
             break;
         case COMPOSITETERM_ITR:
         case COMPOSITE_ITR:
+            {
             std::vector<PairItr*> children;
             if (itr->getTypeItr() == COMPOSITETERM_ITR) {
                 children = ((CompositeTermItr*)itr)->getChildren();
@@ -1204,6 +1205,16 @@ void Querier::releaseItr(PairItr * itr) {
             }
             for (int i = 0; i < children.size(); ++i) {
                 releaseItr(children[i]);
+            }
+            }
+            break;
+        case FILTERSAME_ITR:
+            {
+            PairItr *fsu = ((FilterSameItr *) itr)->getUnderlyingItr();
+            if (fsu != NULL) {
+                releaseItr(fsu);
+            }
+            factory16.release((FilterSameItr *) itr);
             }
             break;
     }

@@ -67,6 +67,7 @@
 #define DIFF1_ITR 17
 #define RM_ITR 18
 #define RMCOMPOSITETERM_ITR 19
+#define FILTERSAME_ITR 20
 
 //Use for dynamic layout
 #define W_DIFFERENCE 0

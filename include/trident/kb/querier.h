@@ -36,6 +36,7 @@
 #include <trident/iterators/compositescanitr.h>
 #include <trident/iterators/rmitr.h>
 #include <trident/iterators/rmcompositetermitr.h>
+#include <trident/iterators/filtersameitr.h>
 
 #include <trident/tree/coordinates.h>
 #include <trident/binarytables/storagestrat.h>
@@ -53,6 +54,77 @@ class Root;
 class DictMgmt;
 class CacheIdx;
 class KB;
+
+class KeyCardItr {
+    // TODO ...
+    private:
+        uint64_t key;
+        uint64_t card;
+
+    public:
+        KeyCardItr(const int64_t s, const int64_t r, const int64_t d) {
+        }
+
+        bool hasNext() {
+            // TODO
+            return true;
+        }
+
+        void next() {
+            // TODO
+        }
+
+        uint64_t getKey() {
+            return key;
+        }
+
+        uint64_t getCard() {
+            return card;
+        }
+};
+
+class EdgeItr {
+    private:
+        int *order;
+        PairItr *itr;
+
+        uint64_t getValue(int i) {
+            switch(i) {
+            case 0:
+                return itr->getKey();
+            case 1:
+                return itr->getValue1();
+            case 2:
+                return itr->getValue2();
+            default:
+                throw 10;
+            }
+        }
+
+    public:
+        EdgeItr(int *order, PairItr *itr) : order(order), itr(itr) {
+        }
+
+        bool hasNext() {
+            return itr->hasNext();
+        }
+
+        void next() {
+            itr->next();
+        }
+
+        uint64_t getSubject() {
+            return getValue(order[0]);
+        }
+
+        uint64_t getPredicate() {
+            return getValue(order[1]);
+        }
+
+        uint64_t getObject() {
+            return getValue(order[2]);
+        }
+};
 
 class Querier {
     private:
@@ -90,6 +162,7 @@ class Querier {
         Factory<Diff1Itr> factory13;
         Factory<RmItr> factory14;
         Factory<RmCompositeTermItr> factory15;
+        Factory<FilterSameItr> factory16;
 
         Factory<NewColumnTable> ncFactory;
         FactoryNewRowTable nrFactory;
@@ -110,6 +183,29 @@ class Querier {
                 const bool setConstraints);
 
         PairItr *summaryDiff(const int perm, DiffIndex::TypeUpdate tp);
+
+        bool sameVar(const int64_t s, const int64_t r, const int64_t d, int &p1, int &p2) {
+            if (s < 0) {
+                if (r == s) {
+                    p1 = 0;
+                    p2 = 1;
+                    return true;
+                }
+                if (d == s) {
+                    p1 = 0;
+                    p2 = 2;
+                    return true;
+                }
+            }
+            if (r < 0) {
+                if (d == r) {
+                    p1 = 1;
+                    p2 = 2;
+                    return true;
+                }
+            }
+            return false;
+        }
 
     public:
 
@@ -160,6 +256,20 @@ class Querier {
 
         DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p,
                 const int64_t o, const bool cons);
+
+        DDLEXPORT EdgeItr *getEdgeItr(const int idx, const int64_t s, const int64_t r, const int64_t d) {
+            int p1, p2;
+            PairItr *itr;
+            if (sameVar(s, r, d, p1, p2)) {
+                PairItr *it = get(idx, s, r, d);
+                FilterSameItr *fi = factory16.get();
+                fi->init(it, p1, p2);
+                itr = fi;
+            } else {
+                itr = get(idx, s, r, d);
+            }
+            return new EdgeItr(getInvOrder(idx), itr);
+        }
 
         PairItr *get(const int idx, TermCoordinates &value,
                 const int64_t key, const int64_t v1,
@@ -325,6 +435,181 @@ class Querier {
         const char *getTable(const int perm,
                 const short fileId,
                 const int64_t markId);
+
+        // Primitives
+        
+        DDLEXPORT  bool lbl_n(nTerm key, char *value, int &len) {
+            return getDictMgmt()->getText(key, value, len);
+        }
+
+        DDLEXPORT  bool lbl_e(nTerm key, char *value, int &len) {
+            return getDictMgmt()->getText(key, value, len);
+        }
+
+        DDLEXPORT  bool nodid(char *key, int len, nTerm *value) {
+            return getDictMgmt()->getNumber(key, len, value);
+        }
+
+        DDLEXPORT  bool edgid(char *key, int len, nTerm *value) {
+            return getDictMgmt()->getNumber(key, len, value);
+        }
+
+        DDLEXPORT  EdgeItr *edg_srd(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0) {
+                if (r > 0) {
+                    return getEdgeItr(IDX_OPS, s, r, d);
+                }
+                return getEdgeItr(IDX_OSP, s, r, d);
+            }
+            if (r > 0) {
+                return getEdgeItr(IDX_PSO, s, r, d);
+            }
+            return getEdgeItr(IDX_SPO, s, r, d);
+        }
+
+        DDLEXPORT  EdgeItr *edg_sdr(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0) {
+                if (d > 0) {
+                    return getEdgeItr(IDX_POS, s, r, d);
+                }
+                return getEdgeItr(IDX_PSO, s, r, d);
+            }
+            if (d > 0) {
+                return getEdgeItr(IDX_OSP, s, r, d);
+            }
+            return getEdgeItr(IDX_SOP, s, r, d);
+        }
+
+        DDLEXPORT  EdgeItr *edg_drs(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0) {
+                if (r > 0) {
+                    return getEdgeItr(IDX_SPO, s, r, d);
+                }
+                return getEdgeItr(IDX_SOP, s, r, d);
+            }
+            if (r > 0) {
+                return getEdgeItr(IDX_POS, s, r, d);
+            }
+            return getEdgeItr(IDX_OPS, s, r, d);
+        }
+
+        DDLEXPORT  EdgeItr *edg_dsr(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0) {
+                if (s > 0) {
+                    return getEdgeItr(IDX_PSO, s, r, d);
+                }
+                return getEdgeItr(IDX_POS, s, r, d);
+            }
+            if (s > 0) {
+                return getEdgeItr(IDX_SOP, s, r, d);
+            }
+            return getEdgeItr(IDX_OSP, s, r, d);
+        }
+
+        DDLEXPORT  EdgeItr *edg_rsd(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0) {
+                if (s > 0) {
+                    return getEdgeItr(IDX_OSP, s, r, d);
+                }
+                return getEdgeItr(IDX_OPS, s, r, d);
+            }
+            if (s > 0) {
+                return getEdgeItr(IDX_SPO, s, r, d);
+            }
+            return getEdgeItr(IDX_PSO, s, r, d);
+        }
+
+        DDLEXPORT  EdgeItr *edg_rds(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0) {
+                if (d > 0) {
+                    return getEdgeItr(IDX_SOP, s, r, d);
+                }
+                return getEdgeItr(IDX_SPO, s, r, d);
+            }
+            if (d > 0) {
+                return getEdgeItr(IDX_OPS, s, r, d);
+            }
+            return getEdgeItr(IDX_POS, s, r, d);
+        }
+
+        DDLEXPORT uint64_t countEdges(const int64_t s, const int64_t r, const int64_t d) {
+            int p1, p2;
+            if (sameVar(s, r, d, p1, p2)) {
+                uint64_t cnt = 0;
+                PairItr *it = get(IDX_SPO, s, r, d);
+                FilterSameItr *fi = factory16.get();
+                fi->init(it, p1, p2);
+                while (fi->hasNext()) {
+                    fi->next();
+                    cnt++;
+                }
+                releaseItr(fi);
+                return cnt;
+            } else {
+                return getCard(s, r, d);
+            }
+        }
+
+        DDLEXPORT KeyCardItr *grp_s(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_r(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_d(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_sr_sd(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_rs_rd(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_ds_dr(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_s(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_r(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_d(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_sr_sd(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_rs_rd(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_ds_dr(const int64_t s, const int64_t r, const int64_t d) {
+            // TODO
+            return 0;
+        }
+
 
 };
 
