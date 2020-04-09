@@ -17,7 +17,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-**/
+ **/
 
 
 #include <trident/iterators/scanitr.h>
@@ -34,8 +34,9 @@ void ScanItr::init(int idx, Querier *q) {
     initializeConstraints();
     this->idx = idx;
     this->q = q;
-    currentTable = NULL;
-    reversedItr = NULL;
+    currentTable = m_currentTable = NULL;
+    reversedItr = m_reversedItr = NULL;
+    m_itr1 = m_itr2 = NULL;
     //hasNextChecked = false;
 
     itr1 = q->getKBTermList(idx, true);
@@ -51,8 +52,6 @@ void ScanItr::init(int idx, Querier *q) {
         }
     } else
         itr2 = NULL;
-    storage = q->getTableStorage(idx);
-    strat = q->getStorageStrat();
     ignseccolumn = false;
     hnc = hn = false;
 }
@@ -82,7 +81,9 @@ bool ScanItr::hasNext() {
             hnc = hn = true;
             return hn;
         } else {
-            q->releaseItr(currentTable);
+            if (currentTable && currentTable != m_currentTable) {
+                q->releaseItr(currentTable);
+            }
             currentTable = NULL;
         }
     } else if (reversedItr != NULL) {
@@ -90,7 +91,9 @@ bool ScanItr::hasNext() {
             hnc = hn = true;
             return hn;
         } else {
-            q->releaseItr(reversedItr);
+            if (reversedItr && reversedItr != m_reversedItr) {
+                q->releaseItr(reversedItr);
+            }
             reversedItr = NULL;
         }
     }
@@ -106,7 +109,9 @@ bool ScanItr::hasNext() {
                     if (itr1->hasNext()) {
                         itr1->next();
                     } else {
-                        q->releaseItr(itr1);
+                        if (itr1 != m_itr1) {
+                            q->releaseItr(itr1);
+                        }
                         itr1 = NULL;
                     }
                 }
@@ -136,10 +141,9 @@ void ScanItr::next() {
                 char strategy = itr2->getCurrentStrat();
                 short file = itr2->getCurrentFile();
                 int64_t mark = itr2->getCurrentMark();
-                //cerr << "New reversed iterator for key " << key << " itr1=" << itr1->getKey() << " mark=" << mark << " file=" << file << endl;
                 //Need to get reversed table
                 PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
-                                      -1, -1, false, false);
+                        -1, -1, false, false);
                 reversedItr = q->newItrOnReverse(itr, -1, -1);
                 if (ignseccolumn)
                     reversedItr->ignoreSecondColumn();
@@ -155,7 +159,7 @@ void ScanItr::next() {
                 short file = itr1->getCurrentFile();
                 int64_t mark = itr1->getCurrentMark();
                 currentTable = q->get(idx, key, file, mark, strategy,
-                                      -1, -1, false, false);
+                        -1, -1, false, false);
                 if (ignseccolumn)
                     currentTable->ignoreSecondColumn();
                 setKey(key);
@@ -183,10 +187,9 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
                 char strategy = itr2->getCurrentStrat();
                 short file = itr2->getCurrentFile();
                 int64_t mark = itr2->getCurrentMark();
-                //cerr << "New reversed iterator for key " << key << " itr1=" << itr1->getKey() << " mark=" << mark << " file=" << file << endl;
                 //Need to get reversed table
                 PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
-                                      -1, -1, false, false);
+                        -1, -1, false, false);
                 reversedItr = q->newItrOnReverse(itr, -1, -1);
                 if (ignseccolumn)
                     reversedItr->ignoreSecondColumn();
@@ -201,9 +204,8 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
                 char strategy = itr1->getCurrentStrat();
                 short file = itr1->getCurrentFile();
                 int64_t mark = itr1->getCurrentMark();
-                //cerr << "New table for key " << key << " itr2 " << itr2->getKey() << " mark=" << mark << " file=" << file << endl;
                 currentTable = q->get(idx, key, file, mark, strategy,
-                                      -1, -1, false, false);
+                        -1, -1, false, false);
                 if (ignseccolumn)
                     currentTable->ignoreSecondColumn();
                 setKey(key);
@@ -222,10 +224,14 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
     if (!hasNext) {
         hnc = false;
         if (currentTable) {
-            q->releaseItr(currentTable);
+            if (currentTable != m_currentTable) {
+                q->releaseItr(currentTable);
+            }
             currentTable = NULL;
         } else if (reversedItr) {
-            q->releaseItr(reversedItr);
+            if (reversedItr != m_reversedItr) {
+                q->releaseItr(reversedItr);
+            }
             reversedItr = NULL;
         }
         hasNext = this->hasNext();
@@ -237,32 +243,115 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
 }
 
 void ScanItr::clear() {
-    if (currentTable)
+    if (m_currentTable) {
+        q->releaseItr(m_currentTable);
+    }
+
+    if (currentTable && currentTable != m_currentTable) {
         q->releaseItr(currentTable);
-    if (itr1)
+    }
+
+    if (m_itr1) {
+        q->releaseItr(m_itr1);
+    }
+
+    if (itr1 && itr1 != m_itr1) {
         q->releaseItr(itr1);
-    if (itr2)
+    }
+
+    if (m_itr2) {
+        q->releaseItr(m_itr2);
+    }
+
+    if (itr2 && itr2 != m_itr2) {
         q->releaseItr(itr2);
-    if (reversedItr) {
+    }
+
+    if (m_reversedItr) {
+        q->releaseItr(m_reversedItr);
+    }
+
+    if (reversedItr && reversedItr != m_reversedItr) {
         q->releaseItr(reversedItr);
     }
 }
 
 void ScanItr::mark() {
+    m_hnc = hnc;
+    m_hn = hn;
+    if (itr1) {
+        itr1->mark();
+        m_itr1 = itr1;
+    }
+
+    if (itr2) {
+        itr2->mark();
+        m_itr2 = itr2;
+    }
+
+    if (currentTable) {
+        currentTable->mark();
+        m_currentTable = currentTable;
+    }
+
+    if (reversedItr) {
+        reversedItr->mark();
+        m_reversedItr = reversedItr;
+    }
 }
 
 void ScanItr::reset(const char i) {
+    hnc = m_hnc;
+    hn = m_hn;
+
+    if (itr1 != m_itr1) {
+        if (itr1)
+            q->releaseItr(itr1);
+        itr1 = m_itr1;
+        if (itr1)
+            itr1->reset(i);
+    }
+
+    if (itr2 != m_itr2) {
+        if (itr2)
+            q->releaseItr(itr2);
+        itr2 = m_itr2;
+        if (itr2)
+            itr2->reset(i);
+    }
+
+    if (currentTable != m_currentTable) {
+        if (currentTable)
+            q->releaseItr(currentTable);
+        currentTable = m_currentTable;
+        if (currentTable) {
+            currentTable->reset(i);
+        }
+    }
+
+    if (reversedItr != m_reversedItr) {
+        if (reversedItr)
+            q->releaseItr(reversedItr);
+        reversedItr = m_reversedItr;
+        if (reversedItr) {
+            reversedItr->reset(i);
+        }
+    }
 }
 
 void ScanItr::gotoKey(int64_t k) {
     if (k > getKey()) {
         if (currentTable) {
             //release it
-            q->releaseItr(currentTable);
+            if (currentTable != m_currentTable) {
+                q->releaseItr(currentTable);
+            }
             currentTable = NULL;
         }
         if (reversedItr) {
-            q->releaseItr(reversedItr);
+            if (reversedItr != m_reversedItr) {
+                q->releaseItr(reversedItr);
+            }
             reversedItr = NULL;
         }
 
