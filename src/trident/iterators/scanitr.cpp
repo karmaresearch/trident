@@ -298,6 +298,7 @@ void ScanItr::mark() {
         reversedItr->mark();
         m_reversedItr = reversedItr;
     }
+    m_key = getKey();
 }
 
 void ScanItr::reset(const char i) {
@@ -337,6 +338,7 @@ void ScanItr::reset(const char i) {
             reversedItr->reset(i);
         }
     }
+    setKey(m_key);
 }
 
 void ScanItr::gotoKey(int64_t k) {
