@@ -58,8 +58,8 @@ class KB;
 class KeyCardItr {
     // TODO ...
     private:
-        uint64_t key;
-        uint64_t card;
+        uint64_t currentKey;
+        uint64_t currentCard;
 
     public:
         KeyCardItr(const int64_t s, const int64_t r, const int64_t d) {
@@ -75,11 +75,11 @@ class KeyCardItr {
         }
 
         uint64_t getKey() {
-            return key;
+            return currentKey;
         }
 
         uint64_t getCard() {
-            return card;
+            return currentCard;
         }
 };
 
