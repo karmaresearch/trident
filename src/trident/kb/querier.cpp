@@ -50,6 +50,20 @@ int PERM_SOP[] = { 0, 2, 1 };
 int INV_PERM_SOP[] = { 0, 2, 1 };
 EmptyItr emptyItr;
 
+ConstKeyCardItr::ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key) {
+    currentKey1 = key;
+    currentCard = q->getCard(s, r, d);
+    hn = currentCard > 0;
+}
+
+ConstKeyCardItr::ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key1, uint64_t key2) {
+    currentKey1 = key1;
+    currentKey1 = key2;
+    currentCard = q->getCard(s, r, d);
+    hn = currentCard > 0;
+}
+
+
 Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         const int64_t inputSize, const int64_t nTerms, const int nindices,
         const int64_t *nTablesPerPartition,

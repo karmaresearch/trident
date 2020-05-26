@@ -57,29 +57,50 @@ class KB;
 
 class KeyCardItr {
     // TODO ...
-    private:
-        uint64_t currentKey;
+    protected:
+        uint64_t currentKey1;
+        uint64_t currentKey2;
         uint64_t currentCard;
 
     public:
-        KeyCardItr(const int64_t s, const int64_t r, const int64_t d) {
+        KeyCardItr() {
         }
 
-        bool hasNext() {
-            // TODO
-            return true;
+        uint64_t getKey1() {
+            return currentKey1;
         }
 
-        void next() {
-            // TODO
-        }
-
-        uint64_t getKey() {
-            return currentKey;
+        uint64_t getKey2() {
+            return currentKey2;
         }
 
         uint64_t getCard() {
             return currentCard;
+        }
+
+        virtual bool hasNext() {
+            return false;
+        }
+
+        virtual void next() {
+        }
+};
+
+class ConstKeyCardItr : public KeyCardItr {
+    private:
+        bool hn;
+
+    public:
+        ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key);
+
+        ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key1, uint64_t key2);
+
+        bool hasNext() {
+            return hn;
+        }
+
+        void next() {
+            hn = false;
         }
 };
 
@@ -438,18 +459,22 @@ class Querier {
 
         // Primitives
         
+        // Gets node label, returns true when found
         DDLEXPORT  bool lbl_n(nTerm key, char *value, int &len) {
             return getDictMgmt()->getText(key, value, len);
         }
 
+        // Gets edge label, returns true when found
         DDLEXPORT  bool lbl_e(nTerm key, char *value, int &len) {
             return getDictMgmt()->getText(key, value, len);
         }
 
+        // Gets node id, returns true when found
         DDLEXPORT  bool nodid(char *key, int len, nTerm *value) {
             return getDictMgmt()->getNumber(key, len, value);
         }
 
+        // Gets edge id, returns true when found
         DDLEXPORT  bool edgid(char *key, int len, nTerm *value) {
             return getDictMgmt()->getNumber(key, len, value);
         }
@@ -551,61 +576,151 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_s(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0) {
+                return new ConstKeyCardItr(this, s, r, d, s);
+            }
             // TODO
             return NULL;
         }
 
         DDLEXPORT KeyCardItr *grp_r(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0) {
+                return new ConstKeyCardItr(this, s, r, d, r);
+            }
             // TODO
             return NULL;
         }
 
         DDLEXPORT KeyCardItr *grp_d(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0) {
+                return new ConstKeyCardItr(this, s, r, d, d);
+            }
             // TODO
             return NULL;
         }
 
-        DDLEXPORT KeyCardItr *grp_sr_sd(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT KeyCardItr *grp_sr(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0 && r > 0) {
+                return new ConstKeyCardItr(this, s, r, d, s, r);
+            }
             // TODO
             return NULL;
         }
 
-        DDLEXPORT KeyCardItr *grp_rs_rd(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT KeyCardItr *grp_sd(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0 && d > 0) {
+                return new ConstKeyCardItr(this, s, r, d, s, d);
+            }
             // TODO
             return NULL;
         }
 
-        DDLEXPORT KeyCardItr *grp_ds_dr(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT KeyCardItr *grp_rs(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0 && s > 0) {
+                return new ConstKeyCardItr(this, s, r, d, r, s);
+            }
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_rd(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0 && d > 0) {
+                return new ConstKeyCardItr(this, s, r, d, r, d);
+            }
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_ds(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0 && s > 0) {
+                return new ConstKeyCardItr(this, s, r, d, d, s);
+            }
+            // TODO
+            return NULL;
+        }
+
+        DDLEXPORT KeyCardItr *grp_dr(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0 && r > 0) {
+                return new ConstKeyCardItr(this, s, r, d, d, r);
+            }
             // TODO
             return NULL;
         }
 
         DDLEXPORT uint64_t cnt_grp_s(const int64_t s, const int64_t r, const int64_t d) {
-            // TODO
-            return 0;
+            if (s > 0) {
+                ConstKeyCardItr v(this, s, r, d, s);
+                return v.hasNext() ? 1 : 0;
+            }
+            return getCard(s, r, d, 0);
         }
 
         DDLEXPORT uint64_t cnt_grp_r(const int64_t s, const int64_t r, const int64_t d) {
-            // TODO
-            return 0;
+            if (r > 0) {
+                ConstKeyCardItr v(this, s, r, d, r);
+                return v.hasNext() ? 1 : 0;
+            }
+            return getCard(s, r, d, 1);
         }
 
         DDLEXPORT uint64_t cnt_grp_d(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0) {
+                ConstKeyCardItr v(this, s, r, d, d);
+                return v.hasNext() ? 1 : 0;
+            }
+            return getCard(s, r, d, 2);
+        }
+
+        DDLEXPORT uint64_t cnt_grp_sr(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0 && r > 0) {
+                ConstKeyCardItr v(this, s, r, d, s, r);
+                return v.hasNext() ? 1 : 0;
+            }
             // TODO
             return 0;
         }
 
-        DDLEXPORT uint64_t cnt_grp_sr_sd(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT uint64_t cnt_grp_sd(const int64_t s, const int64_t r, const int64_t d) {
+            if (s > 0 && d > 0) {
+                ConstKeyCardItr v(this, s, r, d, s, d);
+                return v.hasNext() ? 1 : 0;
+            }
             // TODO
             return 0;
         }
 
-        DDLEXPORT uint64_t cnt_grp_rs_rd(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT uint64_t cnt_grp_rs(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0 && s > 0) {
+                ConstKeyCardItr v(this, s, r, d, r, s);
+                return v.hasNext() ? 1 : 0;
+            }
             // TODO
             return 0;
         }
 
-        DDLEXPORT uint64_t cnt_grp_ds_dr(const int64_t s, const int64_t r, const int64_t d) {
+        DDLEXPORT uint64_t cnt_grp_rd(const int64_t s, const int64_t r, const int64_t d) {
+            if (r > 0 && d > 0) {
+                ConstKeyCardItr v(this, s, r, d, r, d);
+                return v.hasNext() ? 1 : 0;
+            }
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_ds(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0 && s > 0) {
+                ConstKeyCardItr v(this, s, r, d, d, s);
+                return v.hasNext() ? 1 : 0;
+            }
+            // TODO
+            return 0;
+        }
+
+        DDLEXPORT uint64_t cnt_grp_dr(const int64_t s, const int64_t r, const int64_t d) {
+            if (d > 0 && r > 0) {
+                ConstKeyCardItr v(this, s, r, d, d, r);
+                return v.hasNext() ? 1 : 0;
+            }
             // TODO
             return 0;
         }
