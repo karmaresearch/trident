@@ -56,7 +56,6 @@ class CacheIdx;
 class KB;
 
 class KeyCardItr {
-    // TODO ...
     protected:
         uint64_t currentKey1;
         uint64_t currentKey2;
@@ -78,12 +77,11 @@ class KeyCardItr {
             return currentCard;
         }
 
-        virtual bool hasNext() {
-            return false;
-        }
+        virtual bool hasNext() = 0;
 
-        virtual void next() {
-        }
+        virtual void next() = 0;
+
+        virtual ~KeyCardItr() {};
 };
 
 class ConstKeyCardItr : public KeyCardItr {
@@ -102,12 +100,27 @@ class ConstKeyCardItr : public KeyCardItr {
         void next() {
             hn = false;
         }
+
+        ~ConstKeyCardItr() {
+        }
 };
 
 class EdgeItr {
     private:
         int *order;
         PairItr *itr;
+
+    public:
+        EdgeItr(int *order, PairItr *itr) : order(order), itr(itr) {
+        }
+
+        bool hasNext() {
+            return itr->hasNext();
+        }
+
+        void next() {
+            itr->next();
+        }
 
         uint64_t getValue(int i) {
             switch(i) {
@@ -122,18 +135,6 @@ class EdgeItr {
             }
         }
 
-    public:
-        EdgeItr(int *order, PairItr *itr) : order(order), itr(itr) {
-        }
-
-        bool hasNext() {
-            return itr->hasNext();
-        }
-
-        void next() {
-            itr->next();
-        }
-
         uint64_t getSubject() {
             return getValue(order[0]);
         }
@@ -144,6 +145,119 @@ class EdgeItr {
 
         uint64_t getObject() {
             return getValue(order[2]);
+        }
+};
+
+class OneKeyCardItr: public KeyCardItr {
+    private:
+        EdgeItr *itr;
+        bool hn;
+        bool hnDone;
+        bool nextDone;
+        uint64_t nextCard;
+        uint64_t nextKey1;
+
+    public:
+        OneKeyCardItr(EdgeItr *itr) : itr(itr), hnDone(false), nextDone(false) {
+        }
+
+        bool hasNext() {
+            if (! hnDone) {
+                hnDone = true;
+                if (nextDone) {
+                    hn = true;
+                } else if (itr->hasNext()) {
+                    itr->next();
+                    hn = true;
+                } else {
+                    hn = false;
+                }
+                if (hn) {
+                    nextDone = false;
+                    nextCard = 1;
+                    nextKey1 = itr->getValue(0);
+                    while (itr->hasNext()) {
+                        itr->next();
+                        if (itr->getValue(0) != nextKey1) {
+                            nextDone = true;
+                            break;
+                        }
+                        nextCard++;
+                    }
+                }
+            }
+            return hn;
+        }
+
+        void next() {
+            if (! hn || ! hnDone) {
+                throw 10;
+            }
+            hnDone = false;
+            currentCard = nextCard;
+            currentKey1 = nextKey1;
+        }
+        
+        ~OneKeyCardItr() {
+            delete itr;
+        }
+};
+
+class TwoKeyCardItr: public KeyCardItr {
+    private:
+        EdgeItr *itr;
+        bool hn;
+        bool hnDone;
+        bool nextDone;
+        uint64_t nextCard;
+        uint64_t nextKey1;
+        uint64_t nextKey2;
+
+    public:
+        TwoKeyCardItr(EdgeItr *itr) : itr(itr), hnDone(false), nextDone(false) {
+        }
+
+        bool hasNext() {
+            if (! hnDone) {
+                hnDone = true;
+                if (nextDone) {
+                    hn = true;
+                } else if (itr->hasNext()) {
+                    itr->next();
+                    hn = true;
+                } else {
+                    hn = false;
+                }
+                if (hn) {
+                    nextDone = false;
+                    nextCard = 1;
+                    nextKey1 = itr->getValue(0);
+                    nextKey2 = itr->getValue(1);
+                    while (itr->hasNext()) {
+                        itr->next();
+                        if (itr->getValue(0) != nextKey1 || itr->getValue(1) != nextKey2) {
+                            nextDone = true;
+                            break;
+                        }
+                        nextCard++;
+                    }
+                }
+            }
+            return hn;
+        }
+
+        void next() {
+            if (! hn || ! hnDone) {
+                throw 10;
+            }
+            hnDone = false;
+            currentCard = nextCard;
+            currentKey1 = nextKey1;
+            currentKey2 = nextKey2;
+        }
+        
+        ~TwoKeyCardItr() {
+            delete itr;
         }
 };
 
@@ -226,6 +340,15 @@ class Querier {
                 }
             }
             return false;
+        }
+
+        uint64_t countKeyCardItr(KeyCardItr *it) {
+            uint64_t card = 0;
+            while (it->hasNext()) {
+                it->next();
+                card++;
+            }
+            return card;
         }
 
     public:
@@ -579,72 +702,72 @@ class Querier {
             if (s > 0) {
                 return new ConstKeyCardItr(this, s, r, d, s);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = d > 0 ? edg_sdr(s, r, d) : edg_srd(s, r, d);
+            return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_r(const int64_t s, const int64_t r, const int64_t d) {
             if (r > 0) {
                 return new ConstKeyCardItr(this, s, r, d, r);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = d > 0 ? edg_rds(s, r, d) : edg_rsd(s, r, d);
+            return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_d(const int64_t s, const int64_t r, const int64_t d) {
             if (d > 0) {
                 return new ConstKeyCardItr(this, s, r, d, d);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = r > 0 ? edg_drs(s, r, d) : edg_dsr(s, r, d);
+            return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_sr(const int64_t s, const int64_t r, const int64_t d) {
             if (s > 0 && r > 0) {
                 return new ConstKeyCardItr(this, s, r, d, s, r);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_srd(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_sd(const int64_t s, const int64_t r, const int64_t d) {
             if (s > 0 && d > 0) {
                 return new ConstKeyCardItr(this, s, r, d, s, d);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_sdr(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_rs(const int64_t s, const int64_t r, const int64_t d) {
             if (r > 0 && s > 0) {
                 return new ConstKeyCardItr(this, s, r, d, r, s);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_rsd(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_rd(const int64_t s, const int64_t r, const int64_t d) {
             if (r > 0 && d > 0) {
                 return new ConstKeyCardItr(this, s, r, d, r, d);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_rds(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_ds(const int64_t s, const int64_t r, const int64_t d) {
             if (d > 0 && s > 0) {
                 return new ConstKeyCardItr(this, s, r, d, d, s);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_dsr(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_dr(const int64_t s, const int64_t r, const int64_t d) {
             if (d > 0 && r > 0) {
                 return new ConstKeyCardItr(this, s, r, d, d, r);
             }
-            // TODO
-            return NULL;
+            EdgeItr *it = edg_drs(s, r, d);
+            return new TwoKeyCardItr(it);
         }
 
         DDLEXPORT uint64_t cnt_grp_s(const int64_t s, const int64_t r, const int64_t d) {
@@ -676,8 +799,11 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, s, r);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+
+            KeyCardItr *it = grp_sr(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
 
         DDLEXPORT uint64_t cnt_grp_sd(const int64_t s, const int64_t r, const int64_t d) {
@@ -685,8 +811,10 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, s, d);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+            KeyCardItr *it = grp_sd(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
 
         DDLEXPORT uint64_t cnt_grp_rs(const int64_t s, const int64_t r, const int64_t d) {
@@ -694,8 +822,10 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, r, s);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+            KeyCardItr *it = grp_rs(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
 
         DDLEXPORT uint64_t cnt_grp_rd(const int64_t s, const int64_t r, const int64_t d) {
@@ -703,8 +833,10 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, r, d);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+            KeyCardItr *it = grp_rd(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
 
         DDLEXPORT uint64_t cnt_grp_ds(const int64_t s, const int64_t r, const int64_t d) {
@@ -712,8 +844,10 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, d, s);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+            KeyCardItr *it = grp_ds(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
 
         DDLEXPORT uint64_t cnt_grp_dr(const int64_t s, const int64_t r, const int64_t d) {
@@ -721,11 +855,11 @@ class Querier {
                 ConstKeyCardItr v(this, s, r, d, d, r);
                 return v.hasNext() ? 1 : 0;
             }
-            // TODO
-            return 0;
+            KeyCardItr *it = grp_dr(s, r, d);
+            uint64_t card = countKeyCardItr(it);
+            delete it;
+            return card;
         }
-
-
 };
 
 #endif
