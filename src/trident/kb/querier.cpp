@@ -481,7 +481,7 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
             lastKeyQueried = key;
         }
         int64_t nElements = 0;
-        if (currentValue.exists(idx)) {
+        if (lastKeyFound && currentValue.exists(idx)) {
             nElements += currentValue.getNElements(idx);
         }
         for (size_t i = 0; i < diffIndices.size(); ++i) {

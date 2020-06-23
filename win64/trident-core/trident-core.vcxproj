@@ -96,6 +96,7 @@
     <ClInclude Include="..\..\include\trident\utils\parallel.h" />
     <ClInclude Include="..\..\include\trident\utils\propertymap.h" />
     <ClInclude Include="..\..\include\trident\utils\tridentutils.h" />
+    <ClInclude Include="..\..\rapidjson\include\rapidjson\document.h"/>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\trident\binarytables\binarytableinserter.cpp" />
@@ -207,7 +208,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\..\deps\include;..\..\rdf3x\include;..\..\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\deps\include;..\..\rdf3x\include;..\..\include;..\..\rapidjson\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -217,7 +218,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\..\deps\include;..\..\rdf3x\include;..\..\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\deps\include;..\..\rdf3x\include;..\..\include;..\..\rapidjson\include;..\..\..\kognac\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

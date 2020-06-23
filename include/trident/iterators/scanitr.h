@@ -38,16 +38,22 @@ class ScanItr: public PairItr {
 private:
     Querier *q;
     int idx;
+    bool ignseccolumn;
+
     PairItr *currentTable;
     PairItr *reversedItr;
-    bool ignseccolumn;
     bool hnc, hn;
-
     TermItr *itr1;
     TermItr *itr2;
 
-    TableStorage *storage;
-    StorageStrat *strat;
+    bool m_hnc, m_hn;
+    PairItr *m_currentTable;
+    PairItr *m_reversedItr;
+    TermItr *m_itr1;
+    TermItr *m_itr2;
+
+    //TableStorage *storage;
+    //StorageStrat *strat;
 
 public:
     void init(int idx, Querier *q);
