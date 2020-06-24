@@ -405,12 +405,12 @@ class Querier {
             int p1, p2;
             PairItr *itr;
             if (sameVar(s, r, d, p1, p2)) {
-                PairItr *it = get(idx, s, r, d);
+                PairItr *it = get(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
                 FilterSameItr *fi = factory16.get();
                 fi->init(it, p1, p2);
                 itr = fi;
             } else {
-                itr = get(idx, s, r, d);
+                itr = get(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
             }
             return new EdgeItr(getInvOrder(idx), itr);
         }
@@ -603,78 +603,78 @@ class Querier {
         }
 
         DDLEXPORT  EdgeItr *edg_srd(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0) {
-                if (r > 0) {
+            if (d >= 0) {
+                if (r >= 0) {
                     return getEdgeItr(IDX_OPS, s, r, d);
                 }
                 return getEdgeItr(IDX_OSP, s, r, d);
             }
-            if (r > 0) {
+            if (r >= 0) {
                 return getEdgeItr(IDX_PSO, s, r, d);
             }
             return getEdgeItr(IDX_SPO, s, r, d);
         }
 
         DDLEXPORT  EdgeItr *edg_sdr(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0) {
-                if (d > 0) {
+            if (r >= 0) {
+                if (d >= 0) {
                     return getEdgeItr(IDX_POS, s, r, d);
                 }
                 return getEdgeItr(IDX_PSO, s, r, d);
             }
-            if (d > 0) {
+            if (d >= 0) {
                 return getEdgeItr(IDX_OSP, s, r, d);
             }
             return getEdgeItr(IDX_SOP, s, r, d);
         }
 
         DDLEXPORT  EdgeItr *edg_drs(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0) {
-                if (r > 0) {
+            if (s >= 0) {
+                if (r >= 0) {
                     return getEdgeItr(IDX_SPO, s, r, d);
                 }
                 return getEdgeItr(IDX_SOP, s, r, d);
             }
-            if (r > 0) {
+            if (r >= 0) {
                 return getEdgeItr(IDX_POS, s, r, d);
             }
             return getEdgeItr(IDX_OPS, s, r, d);
         }
 
         DDLEXPORT  EdgeItr *edg_dsr(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0) {
-                if (s > 0) {
+            if (r >= 0) {
+                if (s >= 0) {
                     return getEdgeItr(IDX_PSO, s, r, d);
                 }
                 return getEdgeItr(IDX_POS, s, r, d);
             }
-            if (s > 0) {
+            if (s >= 0) {
                 return getEdgeItr(IDX_SOP, s, r, d);
             }
             return getEdgeItr(IDX_OSP, s, r, d);
         }
 
         DDLEXPORT  EdgeItr *edg_rsd(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0) {
-                if (s > 0) {
+            if (d >= 0) {
+                if (s >= 0) {
                     return getEdgeItr(IDX_OSP, s, r, d);
                 }
                 return getEdgeItr(IDX_OPS, s, r, d);
             }
-            if (s > 0) {
+            if (s >= 0) {
                 return getEdgeItr(IDX_SPO, s, r, d);
             }
             return getEdgeItr(IDX_PSO, s, r, d);
         }
 
         DDLEXPORT  EdgeItr *edg_rds(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0) {
-                if (d > 0) {
+            if (s >= 0) {
+                if (d >= 0) {
                     return getEdgeItr(IDX_SOP, s, r, d);
                 }
                 return getEdgeItr(IDX_SPO, s, r, d);
             }
-            if (d > 0) {
+            if (d >= 0) {
                 return getEdgeItr(IDX_OPS, s, r, d);
             }
             return getEdgeItr(IDX_POS, s, r, d);
@@ -699,31 +699,31 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_s(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0) {
+            if (s >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, s);
             }
-            EdgeItr *it = d > 0 ? edg_sdr(s, r, d) : edg_srd(s, r, d);
+            EdgeItr *it = d >= 0 ? edg_sdr(s, r, d) : edg_srd(s, r, d);
             return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_r(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0) {
+            if (r >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, r);
             }
-            EdgeItr *it = d > 0 ? edg_rds(s, r, d) : edg_rsd(s, r, d);
+            EdgeItr *it = d >= 0 ? edg_rds(s, r, d) : edg_rsd(s, r, d);
             return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_d(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0) {
+            if (d >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, d);
             }
-            EdgeItr *it = r > 0 ? edg_drs(s, r, d) : edg_dsr(s, r, d);
+            EdgeItr *it = r >= 0 ? edg_drs(s, r, d) : edg_dsr(s, r, d);
             return new OneKeyCardItr(it);
         }
 
         DDLEXPORT KeyCardItr *grp_sr(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0 && r > 0) {
+            if (s >= 0 && r >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, s, r);
             }
             EdgeItr *it = edg_srd(s, r, d);
@@ -731,7 +731,7 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_sd(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0 && d > 0) {
+            if (s >= 0 && d >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, s, d);
             }
             EdgeItr *it = edg_sdr(s, r, d);
@@ -739,7 +739,7 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_rs(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0 && s > 0) {
+            if (r >= 0 && s >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, r, s);
             }
             EdgeItr *it = edg_rsd(s, r, d);
@@ -747,7 +747,7 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_rd(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0 && d > 0) {
+            if (r >= 0 && d >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, r, d);
             }
             EdgeItr *it = edg_rds(s, r, d);
@@ -755,7 +755,7 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_ds(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0 && s > 0) {
+            if (d >= 0 && s >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, d, s);
             }
             EdgeItr *it = edg_dsr(s, r, d);
@@ -763,7 +763,7 @@ class Querier {
         }
 
         DDLEXPORT KeyCardItr *grp_dr(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0 && r > 0) {
+            if (d >= 0 && r >= 0) {
                 return new ConstKeyCardItr(this, s, r, d, d, r);
             }
             EdgeItr *it = edg_drs(s, r, d);
@@ -771,7 +771,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_s(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0) {
+            if (s >= 0) {
                 ConstKeyCardItr v(this, s, r, d, s);
                 return v.hasNext() ? 1 : 0;
             }
@@ -779,7 +779,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_r(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0) {
+            if (r >= 0) {
                 ConstKeyCardItr v(this, s, r, d, r);
                 return v.hasNext() ? 1 : 0;
             }
@@ -787,7 +787,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_d(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0) {
+            if (d >= 0) {
                 ConstKeyCardItr v(this, s, r, d, d);
                 return v.hasNext() ? 1 : 0;
             }
@@ -795,7 +795,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_sr(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0 && r > 0) {
+            if (s >= 0 && r >= 0) {
                 ConstKeyCardItr v(this, s, r, d, s, r);
                 return v.hasNext() ? 1 : 0;
             }
@@ -807,7 +807,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_sd(const int64_t s, const int64_t r, const int64_t d) {
-            if (s > 0 && d > 0) {
+            if (s >= 0 && d >= 0) {
                 ConstKeyCardItr v(this, s, r, d, s, d);
                 return v.hasNext() ? 1 : 0;
             }
@@ -818,7 +818,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_rs(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0 && s > 0) {
+            if (r >= 0 && s >= 0) {
                 ConstKeyCardItr v(this, s, r, d, r, s);
                 return v.hasNext() ? 1 : 0;
             }
@@ -829,7 +829,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_rd(const int64_t s, const int64_t r, const int64_t d) {
-            if (r > 0 && d > 0) {
+            if (r >= 0 && d >= 0) {
                 ConstKeyCardItr v(this, s, r, d, r, d);
                 return v.hasNext() ? 1 : 0;
             }
@@ -840,7 +840,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_ds(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0 && s > 0) {
+            if (d >= 0 && s >= 0) {
                 ConstKeyCardItr v(this, s, r, d, d, s);
                 return v.hasNext() ? 1 : 0;
             }
@@ -851,7 +851,7 @@ class Querier {
         }
 
         DDLEXPORT uint64_t cnt_grp_dr(const int64_t s, const int64_t r, const int64_t d) {
-            if (d > 0 && r > 0) {
+            if (d >= 0 && r >= 0) {
                 ConstKeyCardItr v(this, s, r, d, d, r);
                 return v.hasNext() ? 1 : 0;
             }
