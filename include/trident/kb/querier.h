@@ -135,6 +135,12 @@ class EdgeItr {
             }
         }
 
+        void getTriple(uint64_t *v) {
+            v[0] = getSubject();
+            v[1] = getPredicate();
+            v[2] = getObject();
+        }
+
         uint64_t getSubject() {
             return getValue(order[0]);
         }
@@ -859,6 +865,114 @@ class Querier {
             uint64_t card = countKeyCardItr(it);
             delete it;
             return card;
+        }
+
+        DDLEXPORT void pos_srd(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_srd(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
+        }
+
+        DDLEXPORT void pos_sdr(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_sdr(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
+        }
+
+        DDLEXPORT void pos_rsd(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_rsd(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
+        }
+
+        DDLEXPORT void pos_rds(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_rds(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
+        }
+
+        DDLEXPORT void pos_dsr(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_dsr(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
+        }
+
+        DDLEXPORT void pos_drs(const int64_t s, const int64_t r, const int64_t d, int pos,  uint64_t *result) {
+            // TODO: implement special cases
+            EdgeItr *it = edg_drs(s, r, d);
+            bool hasNext = it->hasNext();
+            for (int i = 0; i < pos; i++) {
+                if (! hasNext) {
+                    throw 10;
+                }
+                it->next();
+                hasNext = it->hasNext();
+            }
+            if (! hasNext) {
+                throw 10;
+            }
+            it->getTriple(result);
+            delete it;
         }
 };
 
