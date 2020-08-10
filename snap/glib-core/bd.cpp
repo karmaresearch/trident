@@ -5,11 +5,29 @@
 /////////////////////////////////////////////////
 // Mathmatical-Errors
 #if defined(__BCPLUSPLUS__) && (__BCPLUSPLUS__==0x0530)
+struct __exception {
+    int    type;      /* Exception type */
+    char*  name;      /* Name of function causing exception */
+    double arg1;      /* 1st argument to function */
+    double arg2;      /* 2nd argument to function */
+    double retval;    /* Function return value */
+};
+
+
+
 int std::_matherr(struct math_exception* e){
   e->retval=0;
   return 1;
 }
 #elif defined(GLib_GLIBC) || defined(GLib_BSD)
+struct __exception {
+    int    type;      /* Exception type */
+    char*  name;      /* Name of function causing exception */
+    double arg1;      /* 1st argument to function */
+    double arg2;      /* 2nd argument to function */
+    double retval;    /* Function return value */
+};
+
 int _matherr(struct __exception* e){
   e->retval=0;
   return 1;

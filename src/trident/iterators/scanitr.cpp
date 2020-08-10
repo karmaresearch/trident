@@ -298,6 +298,7 @@ void ScanItr::mark() {
         reversedItr->mark();
         m_reversedItr = reversedItr;
     }
+    m_key = getKey();
 }
 
 void ScanItr::reset(const char i) {
@@ -308,35 +309,36 @@ void ScanItr::reset(const char i) {
         if (itr1)
             q->releaseItr(itr1);
         itr1 = m_itr1;
-        if (itr1)
-            itr1->reset(i);
     }
+    if (itr1)
+        itr1->reset(i);
 
     if (itr2 != m_itr2) {
         if (itr2)
             q->releaseItr(itr2);
         itr2 = m_itr2;
-        if (itr2)
-            itr2->reset(i);
     }
+    if (itr2)
+        itr2->reset(i);
 
     if (currentTable != m_currentTable) {
         if (currentTable)
             q->releaseItr(currentTable);
         currentTable = m_currentTable;
-        if (currentTable) {
-            currentTable->reset(i);
-        }
+    }
+    if (currentTable) {
+        currentTable->reset(i);
     }
 
     if (reversedItr != m_reversedItr) {
         if (reversedItr)
             q->releaseItr(reversedItr);
         reversedItr = m_reversedItr;
-        if (reversedItr) {
-            reversedItr->reset(i);
-        }
     }
+    if (reversedItr) {
+        reversedItr->reset(i);
+    }
+    setKey(m_key);
 }
 
 void ScanItr::gotoKey(int64_t k) {

@@ -65,13 +65,36 @@ void JSON::write(std::ostream &out, JSON &value) {
     }
 }
 
+std::string parse_simpletype(const rapidjson::Value &value) {
+    std::string out = "";
+    if (value.IsNumber()) {
+        if (value.IsInt()) {
+            out = std::to_string(value.GetInt());
+        } else if (value.IsDouble()) {
+            out = std::to_string(value.GetDouble());
+        } else {
+            LOG(ERRORL) << "Type not recognized";
+            throw 10;
+        }
+    } else if (value.IsString()) {
+        out = value.GetString();
+    } else if (value.IsBool()) {
+        out = std::to_string(value.GetBool());
+    } else if (value.IsNull()) {
+        out = "NULL";
+    } else {
+        LOG(ERRORL) << "Type not recognized";
+        throw 10;
+    }
+    return out;
+}
+
 void parse_array(const rapidjson::Value &value,
         std::vector<JSON> &out1,
         std::vector<std::string> &out2,
-        bool &jsonArray) {
-}
+        bool &jsonArray);
 
-void parse_json(const rapidjson::Value &src, JSON &dest) {
+void parse_value(const rapidjson::Value &src, JSON &dest) {
     if (src.IsObject()) {
         for (rapidjson::Value::ConstMemberIterator itr = src.MemberBegin();
                 itr != src.MemberEnd(); ++itr) {
@@ -79,7 +102,7 @@ void parse_json(const rapidjson::Value &src, JSON &dest) {
             //Could be JSON or string-like element
             if (itr->value.IsObject()) {
                 JSON child;
-                parse_json(itr->value, child);
+                parse_value(itr->value, child);
                 dest.add_child(name, child);
             } else if (itr->value.IsArray()) {
                 bool isArrayOfObjects = false;
@@ -98,9 +121,8 @@ void parse_json(const rapidjson::Value &src, JSON &dest) {
                 }
                 dest.add_child(name, cvalue);
             } else {
-                dest.put(name, itr->value.GetString());
+                dest.put(name, parse_simpletype(itr->value));
             }
-
         }
     } else if (src.IsArray()) { //array
         bool isArrayOfObjects = false;
@@ -122,6 +144,24 @@ void parse_json(const rapidjson::Value &src, JSON &dest) {
     }
 }
 
+void parse_array(const rapidjson::Value &value,
+        std::vector<JSON> &out1,
+        std::vector<std::string> &out2,
+        bool &jsonArray) {
+    for (auto &v : value.GetArray()) {
+        if (v.IsObject()) {
+            JSON child;
+            parse_value(v, child);
+            out1.push_back(child);
+            jsonArray = true;
+        } else {
+            out2.push_back(parse_simpletype(v));
+            jsonArray = false;
+        }
+    }
+}
+
+
 void JSON::read(std::string &in, JSON &value) {
     rapidjson::Document jsonObj;
     const char *t = in.c_str();
@@ -129,6 +169,5 @@ void JSON::read(std::string &in, JSON &value) {
         LOG(ERRORL) << "Errors in parsing the JSON string " << in;
         throw 10;
     }
-    parse_json(jsonObj, value);
-
+    parse_value(jsonObj, value);
 }

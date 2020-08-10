@@ -1,7 +1,9 @@
 #include <trident/kb/kb.h>
 #include <trident/ml/trainworkflow.h>
 #include <trident/ml/transe.h>
+#include <trident/ml/hole.h>
 #include <trident/ml/transetester.h>
+#include <trident/ml/holetester.h>
 #include <trident/ml/distmul.h>
 #include <trident/ml/distmultester.h>
 #include <trident/ml/subgraphhandler.h>
@@ -26,10 +28,10 @@ bool _parseParams(std::string raw, std::map<std::string,std::string> &out) {
 
 void launchML(KB &kb, string op, string algo, string paramsLearn,
         string paramsPredict) {
-    if (!kb.areRelIDsSeparated()) {
-        LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
-        return;
-    }
+    /*if (!kb.areRelIDsSeparated()) {
+      LOG(ERRORL) << "The KB is not loaded with separated Rel IDs. TranSE cannot be applied.";
+      return;
+      }*/
 
     if (op == "learn") {
         LearnParams p;
@@ -52,6 +54,9 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         }
         if (mapparams.count("nthreads")) {
             p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
+        }
+        if (mapparams.count("nevalthreads")) {
+            p.nevalthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nevalthreads"]);
         }
         if (mapparams.count("nstorethreads")) {
             p.nstorethreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nstorethreads"]);
@@ -102,10 +107,20 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
             p.regeneratebatch = TridentUtils::lexical_cast<bool>(mapparams["regeneratebatch"]);
         }
         p.ne = kb.getNTerms();
-        p.nr = kb.getDictMgmt()->getNRels();
+        if (kb.areRelIDsSeparated()) {
+            p.nr = kb.getDictMgmt()->getNRels();
+        } else {
+            auto querier = kb.query();
+            auto itr = querier->getTermList(IDX_POS);
+            p.nr = itr->getCardinality();
+            querier->releaseItr(itr);
+            delete querier;
+        }
 
         if (algo == "transe") {
             TrainWorkflow<TranseLearner,TranseTester<double>>::launchLearning(kb, p);
+        } else if (algo == "hole") {
+            TrainWorkflow<HoleLearner,HoleTester<double>>::launchLearning(kb, p);
         } else if (algo == "distmul") {
             TrainWorkflow<DistMulLearner,DistMulTester<double>>::launchLearning(kb, p);
         } else {
@@ -132,6 +147,9 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
         if (mapparams.count("nametestset")) {
             p.nametestset = mapparams["nametestset"];
         }
+        if (mapparams.count("binary")) {
+            p.binary = mapparams["binary"];
+        }
         if (mapparams.count("nthreads")) {
             p.nthreads = TridentUtils::lexical_cast<uint16_t>(mapparams["nthreads"]);
         }
@@ -142,15 +160,32 @@ void launchML(KB &kb, string op, string algo, string paramsLearn,
 
 void subgraphEval(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
+    DIST secondDist = (DIST) vm["secondDist"].as<int>();
     sh.evaluate(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
             vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
             vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
             vm["subgraphThreshold"].as<long>(),
-            vm["logFile"].as<string>());
+            vm["varThreshold"].as<double>(),
+            vm["logFile"].as<string>(),
+            secondDist,
+            vm["kFile"].as<string>(),
+            vm["binEmbDir"].as<string>());
+}
+
+void subgraphAnswers(KB &kb, ProgramArgs &vm) {
+    SubgraphHandler sh;
+    DIST secondDist = (DIST) vm["secondDist"].as<int>();
+    sh.findAnswers(kb, vm["embAlgo"].as<string>(), vm["embDir"].as<string>(),
+            vm["subFile"].as<string>(), vm["subAlgo"].as<string>(),
+            vm["nameTest"].as<string>(), vm["formatTest"].as<string>(),
+            vm["subgraphThreshold"].as<long>(),
+            vm["varThreshold"].as<double>(),
+            vm["logFile"].as<string>(),
+            secondDist);
 }
 
 void subgraphCreate(KB &kb, ProgramArgs &vm) {
     SubgraphHandler sh;
     sh.create(kb, vm["subAlgo"].as<string>(), vm["embDir"].as<string>(),
-            vm["subFile"].as<string>(), vm["subgraphThreshold"].as<uint64_t>());
+            vm["subFile"].as<string>(), vm["minSubgraphSize"].as<long>());
 }

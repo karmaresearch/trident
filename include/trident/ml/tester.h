@@ -3,6 +3,7 @@
 
 #include <trident/ml/embeddings.h>
 #include <trident/kb/kb.h>
+#include <trident/kb/querier.h>
 #include <trident/utils/json.h>
 
 #include <kognac/logs.h>
@@ -12,28 +13,18 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 using namespace std;
 
+
 template<typename K>
 class Tester {
-    private:
+    protected:
         std::shared_ptr<Embeddings<K>> E;
         std::shared_ptr<Embeddings<K>> R;
+        Querier* q;
 
-        static uint64_t getPos(const uint64_t ne, const std::vector<double> &scores,
-                std::vector<size_t> &indices,
-                std::vector<size_t> &indices2,
-                const uint64_t pos) {
-
-            std::sort(indices.begin(), indices.end(), [&](size_t lhs, size_t rhs) {
-                    return scores[lhs] < scores[rhs];
-                    });
-            std::sort(indices2.begin(), indices2.end(), [&](size_t lhs, size_t rhs) {
-                    return indices[lhs] < indices[rhs];
-                    });
-            return indices2[pos];
-        }
 
         struct _OutputTest {
             uint64_t positionsO = 0;
@@ -58,8 +49,6 @@ class Tester {
             std::vector<double> scores;
             const uint64_t ne = E->getN();
             scores.resize(ne);
-            Embeddings<K> *pE = E.get();
-            Embeddings<K> *pR = R.get();
             const uint16_t dime = E->getDim();
             const uint16_t dimr = R->getDim();
             std::vector<K> testArray(dime);
@@ -85,22 +74,24 @@ class Tester {
                 uint64_t s = testset[start];
                 uint64_t p = testset[start+1];
                 uint64_t o = testset[start+2];
+
                 start += 3;
 
                 //Test objects
-                predictO(pE->get(s), dime, pR->get(p), dimr, test);
+                predictO(s, dime, p, dimr, test);
                 for(uint64_t idx = 0; idx < ne; ++idx) {
-                    scores[idx] = closeness(test, pE->get(idx), dime);
+                    scores[idx] = closeness(test, idx, dime);
                 }
                 const uint64_t posO = getPos(ne, scores, indices, indices2, o) + 1;
                 positionsO += posO;
                 hit10O += posO <= 10;
                 hit3O += posO <= 3;
 
+
                 //Test subjects
-                predictS(test, pR->get(p), dimr, pE->get(o), dime);
+                predictS(test, p, dimr, o, dime);
                 for(uint64_t idx = 0; idx < ne; ++idx) {
-                    scores[idx] = closeness(test, pE->get(idx), dime);
+                    scores[idx] = closeness(test, idx, dime);
                 }
                 const uint64_t posS = getPos(ne, scores, indices, indices2, s) + 1;
                 positionsS += posS;
@@ -140,16 +131,38 @@ class Tester {
             this->R = R;
         }
 
+        Tester(std::shared_ptr<Embeddings<K>> E,
+               std::shared_ptr<Embeddings<K>> R,
+               Querier *q) {
+            this->E = E;
+            this->R = R;
+            this->q = q;
+        }
+
         struct OutputTest {
             double loss;
             std::vector<ResSingleQuery> results;
         };
 
-        virtual double closeness(K *v1, K *v2, uint16_t dim) = 0;
+        static uint64_t getPos(const uint64_t ne, const std::vector<double> &scores,
+                std::vector<size_t> &indices,
+                std::vector<size_t> &indices2,
+                const uint64_t pos) {
 
-        virtual void predictO(K *s, uint16_t dims, K *p, uint16_t dimp, K* o) = 0;
+            std::sort(indices.begin(), indices.end(), [&](size_t lhs, size_t rhs) {
+                    return scores[lhs] < scores[rhs];
+                    });
+            std::sort(indices2.begin(), indices2.end(), [&](size_t lhs, size_t rhs) {
+                    return indices[lhs] < indices[rhs];
+                    });
+            return indices2[pos];
+        }
 
-        virtual void predictS(K *s, K *p, uint16_t dimp, K* o, uint16_t dimo) = 0;
+        virtual double closeness(K *v1, uint64_t entity, uint16_t dim) = 0;
+
+        virtual void predictO(uint64_t sub, uint16_t dims, uint64_t pred, uint16_t dimp, K* o) = 0;
+
+        virtual void predictS(K *s, uint64_t pred, uint16_t dimp, uint64_t obj, uint16_t dimo) = 0;
 
         std::shared_ptr<OutputTest> test(string nameTestset,
                 std::vector<uint64_t> &testset,
@@ -167,6 +180,7 @@ class Tester {
             uint64_t triplesPerThread = ntriples / nthreads;
             uint64_t nelsPerThread = triplesPerThread * 3;
 
+            LOG(DEBUGL) << "test set size = " << testset.size();
             size_t start = 0;
             for(uint16_t i = 0; i < nthreads; ++i) {
                 size_t end = 0;
@@ -215,6 +229,7 @@ class Tester {
             double avghit3 = (avghit3s + avghit3o) / 2;
             std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - starttime;
 
+
             LOG(INFOL) << "Time: " << elapsed_seconds.count() << " sec. Mean subj pos: " << avgsubj << " Mean obj pos: " << avgobj << " Mean pos: " << totalavg;
             LOG(INFOL) << "Hit@10(s): " << avghit10s << "% Hit@10(o): " << avghit10o << "% Hit@10: " << avghit10 << "%";
             LOG(INFOL) << "Hit@3(s): " << avghit3s << "% Hit@3(o): " << avghit3o << "% Hit@3: " << avghit3 << "%";
@@ -253,6 +268,7 @@ struct PredictParams {
     uint16_t nthreads;
     string path_modele;
     string path_modelr;
+    string binary;
 
     PredictParams();
 

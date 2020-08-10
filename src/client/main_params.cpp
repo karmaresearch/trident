@@ -48,6 +48,7 @@ void printHelp(const char *programName, string section,
         cout << "predict\t\t\t launch an algorithm to use KG embeddings for link prediction." << endl;
         cout << "subcreate\t\t create embeddings of subgraphs." << endl;
         cout << "subeval\t\t\t use embeddings of subgraphs for link prediction." << endl;
+        cout << "subanswers\t\t\t use embeddings of subgraphs for finding all answers of the query." << endl;
 #endif
 
         cout << "server\t\t\t start a server for SPARQL queries." << endl << endl;
@@ -90,6 +91,7 @@ bool checkParams(ProgramArgs &vm, int argc, const char** argv,
             && cmd != "learn"
             && cmd != "predict"
             && cmd != "subcreate"
+            && cmd != "subanswers"
             && cmd != "subeval") {
         printErrorMsg(
                 (string("The command \"") + cmd + string("\" is unknown.")).c_str());
@@ -365,11 +367,11 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
 
 #ifdef ML
     /***** SUBGRAPHS *****/
-    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval>");
+    ProgramArgs::GroupArgs& subeval_options = *vm.newGroup("Options for <subcreate> or <subeval> or <subanswers>");
     subeval_options.add<string>("", "embAlgo", "",
             "The algorithm used to create the embeddings of the entities and relations (e.g., transe).", false);
     subeval_options.add<string>("", "subAlgo", "avg",
-            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'.", false);
+            "The algorithm to use for creating the subgraph embeddings. Default is 'avg'. (can be 'var')", false);
     subeval_options.add<string>("", "embDir", "",
             "The directory that contains the embeddings of entities and relations.", false);
     subeval_options.add<string>("", "logFile", "",
@@ -378,10 +380,20 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "The path of the file that contains embeddings of the subgraphs.", false);
     subeval_options.add<string>("", "nameTest", "",
             "The path (or name) of the dataset to use to test the performance of the subgraph embeddings.", false);
+    subeval_options.add<string>("", "kFile", "",
+            "The path of the file that contains suggested K values of top subgraphs for each relation.", false);
     subeval_options.add<string>("", "formatTest", "native",
             "The format used to store the test data. For now it can be 'python' or 'native'. Default is 'native'. If it is native then sgfile can be either 'valid' or 'test'. Otherwise, it is a path of a file.", false);
     subeval_options.add<long>("", "subgraphThreshold", 10,
-            "Threshold to consider subgraphs", false);
+            "Threshold to consider subgraphs while evaluating. -1 for choosing dynamic K. -2 for choosing per relation K", false);
+    subeval_options.add<long>("", "minSubgraphSize", 10,
+            "Threshold on number of entities in a subgraph while creating", false);
+    subeval_options.add<double>("", "varThreshold", 0.25,
+            "Threshold to consider difference between variances", false);
+    subeval_options.add<int>("", "secondDist", 3,
+            "Type of distance for second level of ranking", false);
+    subeval_options.add<string>("", "binEmbDir", "",
+            "The directory that contains the binarized embeddings of subgraphs, entities and relations.", false);
 #endif
 
     /***** GENERAL OPTIONS *****/

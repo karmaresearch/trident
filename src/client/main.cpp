@@ -66,6 +66,7 @@ extern void callRDF3X(TridentLayer &db, const string &queryFileName, bool explai
 extern void launchML(KB &kb, string op, string algo, string paramsLearn,
         string paramsPredict);
 extern void subgraphEval(KB &kb, ProgramArgs &vm);
+extern void subgraphAnswers(KB &kb, ProgramArgs &vm);
 extern void subgraphCreate(KB &kb, ProgramArgs &vm);
 
 //Implemented in kb.cpp
@@ -524,6 +525,15 @@ int main(int argc, const char** argv) {
         KBConfig config;
         KB kb(kbDir.c_str(), true, false, true, config);
         subgraphEval(kb, vm);
+#else
+        LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
+        return EXIT_FAILURE;
+#endif
+    } else if (cmd == "subanswers") {
+#ifdef ML
+        KBConfig config;
+        KB kb(kbDir.c_str(), true, false, true, config);
+        subgraphAnswers(kb, vm);
 #else
         LOG(ERRORL) << "Trident was not compiled with the ML parameter enabled. Add -DML=1 to cmake";
         return EXIT_FAILURE;

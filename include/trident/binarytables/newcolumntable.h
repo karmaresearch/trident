@@ -81,25 +81,25 @@ class NewColumnTable: public AbsNewTable {
                 const uint8_t bEntry1, const uint8_t bBlock1,
                 const char *begin2, const char *end2,
                 const uint8_t bEntry2, const uint8_t bBlock2,
-                SequenceWriter *output);
+                SequenceWriter *output, bool stopAfterFirst = false);
 
         static void columnNotIn12(const char *begin1, const char* end1,
                 const uint8_t bEntry1, const uint8_t bBlock1,
                 const char *begin2, const char *end2,
                 const uint8_t bEntry2,
-                SequenceWriter *output);
+                SequenceWriter *output, bool stopAfterFirst = false);
 
         static void columnNotIn21(const char *begin1, const char* end1,
                 const uint8_t bEntry1,
                 const char *begin2, const char *end2,
                 const uint8_t bEntry2, const uint8_t bBlock2,
-                SequenceWriter *output);
+                SequenceWriter *output, bool stopAfterFirst = false);
 
         static void columnNotIn22(const char *begin1, const char* end1,
                 const uint8_t bEntry1,
                 const char *begin2, const char *end2,
                 const uint8_t bEntry2,
-                SequenceWriter *output);
+                SequenceWriter *output, bool stopAfterFirst = false);
 
     public:
 
@@ -373,7 +373,8 @@ class NewColumnTable: public AbsNewTable {
         }
 
         DDLEXPORT void columnNotIn(uint8_t columnId, NewColumnTable *other,
-                uint8_t columnOther, SequenceWriter *output);
+                uint8_t columnOther, SequenceWriter *output,
+                bool stopAfterFirst = false);
 
         void setup(const char* start, const char *end) {
             initializeConstraints();

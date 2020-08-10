@@ -206,6 +206,8 @@ class Querier {
 
         DDLEXPORT bool exists(const int64_t s, const int64_t p, const int64_t o);
 
+        DDLEXPORT static int getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o);
+
         DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
 
         char getStrategy(const int idx, const int64_t v);

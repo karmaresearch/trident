@@ -66,8 +66,8 @@ static PyObject *ana_ppr(PyObject *self, PyObject *args) {
         return Py_None;
     }
 
-    double *importanceNodes = (double*)(npNodesWeights->data);
-    uint64_t *weights = (uint64_t*)(npOutDegrees->data);
+    double *importanceNodes = (double*)PyArray_DATA(npNodesWeights);
+    uint64_t *weights = (uint64_t*)PyArray_DATA(npOutDegrees);
 
     PTrident_TNGraph graph = new Trident_TNGraph(kb);
     TSnap::GetPageRank_stl_raw<PTrident_TNGraph>(graph,
