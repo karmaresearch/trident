@@ -1,6 +1,7 @@
 #ifndef _AGGR_HDL_H
 #define _AGGR_HDL_H
 
+#include <cstdint>
 #include <vector>
 #include <map>
 

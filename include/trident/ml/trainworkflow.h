@@ -19,7 +19,7 @@ class TrainWorkflow {
                 ThreadOutput *output,
                 uint32_t epoch) {
             std::shared_ptr<BatchIO> pio;
-            uint16_t nbatches = 0;
+            uint64_t nbatches = 0;
             while (true) {
                 inputQueue->pop_wait(pio);
                 if (pio == NULL) {
@@ -37,6 +37,7 @@ class TrainWorkflow {
         }
 
         void train(const uint16_t nthreads,
+                const uint16_t nevalthreads,
                 const uint16_t nstorethreads,
                 const uint32_t evalits,
                 const uint32_t storeits,
@@ -143,7 +144,7 @@ class TrainWorkflow {
                     tr.store_model(pathmodel, compresstorage, nstorethreads);
                 }
 
-                if ((epoch+1) % evalits == 0) {
+                if ((epoch + 1) % evalits == 0) {
                     if (Utils::exists(pathvalid)) {
                         //Load the loading data into a vector
                         std::vector<uint64_t> testset;
@@ -151,7 +152,7 @@ class TrainWorkflow {
                         //Do the test
                         Tester tester(E, R);
                         LOG(DEBUGL) << "Testing on the valid dataset ...";
-                        auto result = tester.test("valid", testset, nthreads, epoch);
+                        auto result = tester.test("valid", testset, nevalthreads, epoch);
                         //Store the results of the detailed queries
                         if (shouldStoreModel) {
                             string pathresults = storefolder + "/results-" + to_string(epoch+1);
@@ -232,6 +233,7 @@ class TrainWorkflow {
             LOG(INFOL) << "Launching the training of " << tr.getName() << " ...";
             TrainWorkflow<Learner, Tester> w(kb, batcher, tr, p.epochs);
             w.train(p.nthreads,
+                    p.nevalthreads,
                     p.nstorethreads,
                     p.evalits, p.storeits,
                     batcher.getValidPath(),

@@ -253,9 +253,6 @@ ENDIF()
 IF (SERVER)
     file(GLOB webserver_SRC
         "src/trident/server/*.cpp")
-    #CURL
-    #find_library(curl curl)
-
     add_library(trident-web SHARED ${webserver_SRC})
     set_target_properties(trident-web PROPERTIES COMPILE_FLAGS "${COMPILE_FLAGS}")
     TARGET_LINK_LIBRARIES(trident-web kognac-core trident-core trident-sparql)

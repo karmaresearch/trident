@@ -33,14 +33,23 @@ class TermItr: public PairItr {
 
     private:
         TableStorage *tables;
-        size_t currentfile, nfiles;
+        int perm;
+        uint64_t size;
+        Root *tree; //used to get the count
+        size_t nfiles;
+
+        size_t currentfile;
         int64_t currentMark;
         int64_t cachedCount;
         const char *buffer;
         const char *endbuffer;
-        uint64_t size;
-        int perm;
-        Root *tree; //used to get the count
+
+        size_t m_currentfile;
+        int64_t m_currentMark;
+        int64_t m_cachedCount;
+        const char *m_buffer;
+        const char *m_endbuffer;
+        uint64_t m_key;
 
     public:
         void init(TableStorage *tables, uint64_t size, int perm, Root *tree);

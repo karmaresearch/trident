@@ -549,7 +549,11 @@ bool Querier::isEmpty(const int64_t s, const int64_t p, const int64_t o) {
     }
 }
 
-int Querier::getIndex(int64_t s, int64_t p, int64_t o) {
+int Querier::getIndex(const int64_t s, const int64_t p, const int64_t o) {
+    return Querier::getIndex_s(6, s, p, o);
+}
+
+int Querier::getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o) {
     if (nindices == 1) {
         return IDX_SPO;
     }

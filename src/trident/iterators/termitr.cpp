@@ -85,11 +85,21 @@ uint64_t TermItr::estCardinality() {
 }
 
 void TermItr::mark() {
-    throw 10; //not implemented
+    m_currentfile = currentfile;
+    m_currentMark = currentMark;
+    m_cachedCount = cachedCount;
+    m_buffer = buffer;
+    m_endbuffer = endbuffer;
+    m_key = getKey();
 }
 
 void TermItr::reset(char i) {
-    throw 10; //not implemented
+    currentfile = m_currentfile;
+    currentMark = m_currentMark;
+    cachedCount = m_cachedCount;
+    buffer = m_buffer;
+    endbuffer = m_endbuffer;
+    setKey(m_key);
 }
 
 void TermItr::gotoKey(int64_t keyToSearch) {

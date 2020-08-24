@@ -51,6 +51,7 @@ private:
     PairItr *m_reversedItr;
     TermItr *m_itr1;
     TermItr *m_itr2;
+    uint64_t m_key;
 
     //TableStorage *storage;
     //StorageStrat *strat;
