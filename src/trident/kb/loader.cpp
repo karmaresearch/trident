@@ -1438,6 +1438,14 @@ void Loader::load(ParamsLoad p) {
     std::mutex mtx;
     std::condition_variable cv;
     bool isFinished = false;
+
+    //Check if kbDir exists
+    if (Utils::exists(p.kbDir)) {
+        LOG(ERRORL) << "target directory " << p.kbDir << " should not exist";
+        throw 10;
+    }
+    Utils::create_directories(p.kbDir);
+
     if (p.timeoutStats != -1) {
         //Activate it only for Linux systems
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
@@ -1445,15 +1453,10 @@ void Loader::load(ParamsLoad p) {
 #endif
     }
 
-    //Check if kbDir exists
-    if (Utils::exists(p.kbDir)) {
-        Utils::remove_all(p.kbDir);
-    }
-    Utils::create_directories(p.kbDir);
-
     if (p.tmpDir != p.kbDir) {
         if (Utils::exists(p.tmpDir)) {
-            Utils::remove_all(p.tmpDir);
+            LOG(ERRORL) << "tmp directory " << p.kbDir << " should not exist";
+            throw 10;
         }
         Utils::create_directories(p.tmpDir);
     }
