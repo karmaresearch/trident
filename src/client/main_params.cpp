@@ -22,6 +22,7 @@ void printHelp(const char *programName, string section,
 
     if (section != "") {
         if (sections.count(section)) {
+            cout << sections["general"]->tostring() << endl;
             cout << sections[section]->tostring() << endl;
         } else {
             cout << "Command " << section << " not recognized" << endl;
@@ -405,6 +406,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     cmdline_options.add<string>("", "logfile","",
             "Set if you want to store the logs in a file", false);
 
+    sections.insert(make_pair("general",&cmdline_options));
     sections.insert(make_pair("query",&query_options));
     sections.insert(make_pair("lookup",&lookup_options));
     sections.insert(make_pair("load",&load_options));
