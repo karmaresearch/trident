@@ -1,11 +1,10 @@
+#include <python/trident.h>
 #include <Python.h>
 #include <numpy/ndarrayobject.h>
 
 
 #include <iostream>
 #include <vector>
-
-#include <python/trident.h>
 
 static PyObject *Emb_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     trident_Emb *self;
