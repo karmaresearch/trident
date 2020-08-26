@@ -64,9 +64,13 @@ namespace {
                 out << '>';
                 break;
             case Type::Literal:
-                out << '"';
+                if (*start != '"') {
+                    out << '"';
+                }
                 printValue(out, escape);
-                out << '"';
+                if (*start != '"') {
+                    out << '"';
+                }
                 break;
             case Type::CustomLanguage:
                 throw 10;
