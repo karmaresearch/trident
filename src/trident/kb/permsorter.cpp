@@ -709,7 +709,7 @@ void PermSorter::sortChunks2(
         bool includeCount) {
     std::string inputdir = permutations[0].first;
     std::vector<string> unsortedFiles = Utils::getFiles(inputdir, false);
-    const size_t threadsToUse = min((int)unsortedFiles.size(), (int) nthreads);
+    const size_t threadsToUse = max(1, min((int)unsortedFiles.size(), (int) nthreads));
 
     const size_t sizeTriple = includeCount ? 23 : 15;
 
