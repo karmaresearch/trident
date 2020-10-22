@@ -1484,6 +1484,10 @@ void Loader::load(ParamsLoad p) {
     int nperms = 1;
     int signaturePerm = 0;
     if (p.nindices == 1) {
+        if (p.aggrIndices) {
+            LOG(ERRORL) << "aggrIndices cannot be set when loading with 1 index";
+            abort();
+        }
         nperms = 1;
         Compressor::addPermutation(IDX_SPO, signaturePerm);
     } else if (p.nindices == 3) {
@@ -1966,8 +1970,9 @@ void Loader::loadKB(KB &kb,
     string aggr2Dir = tmpDir + DIR_SEP + string("aggr2");
     if (aggrIndices && nindices > 1) {
         Utils::create_directories(aggr1Dir);
-        if (nindices > 3)
+        if (nindices > 4) {
             Utils::create_directories(aggr2Dir);
+        }
     }
 
     //if sample is requested, create a subdir
@@ -2503,7 +2508,7 @@ void Loader::createIndices(
     params.parallelProcesses = parallelProcesses;
     params.permutation = 0;
     params.inputDir = permDirs[0];
-    params.POSoutputDir = aggrIndices ? &aggr2Dir : NULL;
+    params.POSoutputDir = (aggrIndices && nindices == 6) ? &aggr2Dir : NULL;
     params.treeWriter = treeWriters[0];
     params.ins = ins;
     params.aggregated = false;
@@ -2660,6 +2665,8 @@ void Loader::createIndices(
 
             insert(params);
             LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+            Utils::remove_all(lastInput);
+            lastInput = permDirs[2];
         } else {
             ParamInsert params;
             params.parallelProcesses = parallelProcesses;
@@ -2674,7 +2681,7 @@ void Loader::createIndices(
             params.sampleWriter = NULL;
             params.sampleRate = 0.0;
             params.printstats = printStats;
-            params.removeInput = true;
+            params.removeInput = false;
             params.deletePreviousExt = false;
 
             PermSorter::sortChunks2(aggr1Dir,
@@ -2687,13 +2694,12 @@ void Loader::createIndices(
 
             insert(params);
             LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+            Utils::remove_all(lastInput);
+            lastInput = aggr1Dir;
         }
-        Utils::remove_all(lastInput);
-        lastInput = permDirs[2];
 
         if (nindices == 6) {
             if (!aggrIndices) {
-                lastInput = permDirs[2];
                 if (createIndicesInBlocks) {
                     generateNewPermutation(permDirs[5],
                             lastInput, 0, 2, 1, parallelProcesses,
@@ -2743,7 +2749,7 @@ void Loader::createIndices(
                 params.sampleWriter = NULL;
                 params.sampleRate = 0.0;
                 params.printstats = printStats;
-                params.removeInput = true;
+                params.removeInput = false;
                 params.deletePreviousExt = false;
 
                 PermSorter::sortChunks2(aggr2Dir,
@@ -2756,6 +2762,8 @@ void Loader::createIndices(
 
                 insert(params);
                 LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+                Utils::remove_all(lastInput);
+                lastInput = aggr2Dir;
             }
         }
     }
