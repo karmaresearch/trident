@@ -1483,7 +1483,10 @@ void Loader::load(ParamsLoad p) {
     //Create data structures to compress the input
     int nperms = 1;
     int signaturePerm = 0;
-    if (p.nindices == 3) {
+    if (p.nindices == 1) {
+        nperms = 1;
+        Compressor::addPermutation(IDX_SPO, signaturePerm);
+    } else if (p.nindices == 3) {
         if (p.aggrIndices) {
             nperms = 2;
             Compressor::addPermutation(IDX_SPO, signaturePerm);
@@ -1522,7 +1525,11 @@ void Loader::load(ParamsLoad p) {
             Compressor::addPermutation(IDX_OSP, signaturePerm);
             Compressor::addPermutation(IDX_PSO, signaturePerm);
         }
+    } else {
+        LOG(ERRORL) << "Unknown number of indices: " << p.nindices;
+        abort();
     }
+
 
     int64_t totalCount = 0;
     string *permDirs = new string[nperms];
@@ -1975,18 +1982,21 @@ void Loader::loadKB(KB &kb,
     Inserter *ins = kb.insert();
     LOG(DEBUGL) << "Start sortAndInsert";
 
+    /*
     if (nindices != 6) {
         LOG(ERRORL) << "Support only 6 indices (for now)";
         throw 1;
     }
+    */
 
-    string outputDirs[6];
-    for (int i = 0; i < 6; ++i) {
+    string outputDirs[nindices];
+    for (int i = 0; i < nindices; ++i) {
         outputDirs[i] = kbDir + DIR_SEP + "p" + to_string(i);
     }
 
+    int nidx = nindices;
     loadKB_handleGraphTransformations(kb, graphTransformation, permDirs,
-            nindices, ins, relsOwnIDs, kbDir, storeDicts);
+            nidx, ins, relsOwnIDs, kbDir, storeDicts);
 
     createIndices(parallelProcesses, maxReadingThreads,
             ins, createIndicesInBlocks,
@@ -1996,10 +2006,7 @@ void Loader::loadKB(KB &kb,
             remoteLocation,
             limitSpace,
             totalCount,
-            nindices);
-
-    if (nindices != 6)
-        nindices = 6; //restore
+            nidx);
 
     for (int i = 0; i < nindices; ++i) {
         treeWriters[i]->finish();
@@ -2458,22 +2465,31 @@ void Loader::createIndices(
 
     LOG(DEBUGL) << "start createIndices";
     std::vector<std::pair<string, char>> permutations;
+    permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
     if (!createIndicesInBlocks) {
         if (!aggrIndices) {
-            permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
-            permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
-            permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
-            permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
-            permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
-            permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
+            // Maintaining the original order. Don't know if this is significant.
+            if (nindices == 3) {
+                permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+                permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+            } else if (nindices == 4) {
+                permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+                permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+                permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+            } else if (nindices == 6) {
+                permutations.push_back(std::make_pair(permDirs[3], IDX_SOP));
+                permutations.push_back(std::make_pair(permDirs[4], IDX_OSP));
+                permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
+                permutations.push_back(std::make_pair(permDirs[2], IDX_POS));
+                permutations.push_back(std::make_pair(permDirs[5], IDX_PSO));
+            }
         } else {
-            permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
-            permutations.push_back(std::make_pair(permDirs[2], IDX_SOP));
-            permutations.push_back(std::make_pair(permDirs[3], IDX_OSP));
+            if (nindices == 6) {
+                permutations.push_back(std::make_pair(permDirs[2], IDX_SOP));
+                permutations.push_back(std::make_pair(permDirs[3], IDX_OSP));
+            }
             permutations.push_back(std::make_pair(permDirs[1], IDX_OPS));
         }
-    } else {
-        permutations.push_back(std::make_pair(permDirs[0], IDX_SPO));
     }
     PermSorter::sortChunks2(permutations, maxReadingThreads,
             parallelProcesses,
@@ -2502,236 +2518,248 @@ void Loader::createIndices(
     insert(params);
 
     string lastInput = permDirs[0];
-    if (createIndicesInBlocks) {
-        generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
-                maxReadingThreads);
-        PermSorter::sortChunks2(permDirs[1], IDX_OPS, maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                false);
-        mergeDiskFragments(ParamsMergeDiskFragments(permDirs[1]));
-    }
-    Utils::remove_all(lastInput);
-    ins->stopInserts(0);
-    moveData(remotePath, outputDirs[0], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-
-    params.permutation = 1;
-    params.inputDir = permDirs[1];
-    params.POSoutputDir = aggrIndices ? &aggr1Dir : NULL;
-    params.treeWriter = treeWriters[1];
-    params.ins = ins;
-    params.aggregated = false;
-    params.canSkipTables = false;
-    params.storeRaw = false;
-    params.sampleWriter = NULL;
-    params.sampleRate = 0.0;
-    params.printstats = printStats;
-    params.removeInput = false;
-
-    insert(params);
-
-    lastInput = permDirs[1];
-    if (createIndicesInBlocks) {
-        generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
-                lastInput, 2, 0, 1, parallelProcesses,
-                maxReadingThreads);
-        PermSorter::sortChunks2(aggrIndices ? permDirs[2] : permDirs[3],
-                IDX_SOP, maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                false);
-        mergeDiskFragments(
-                ParamsMergeDiskFragments(
-                    aggrIndices ? permDirs[2] : permDirs[3]));
-    }
-    Utils::remove_all(lastInput);
-    ins->stopInserts(1);
-    moveData(remotePath, outputDirs[1], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-
-    params.permutation = 3;
-    params.inputDir = aggrIndices ? permDirs[2] : permDirs[3];
-    params.POSoutputDir = (string*) NULL;
-    params.treeWriter = treeWriters[3];
-    params.ins = ins;
-    params.aggregated = false;
-    params.canSkipTables = canSkipTables;
-    params.storeRaw = false;
-    params.sampleWriter = NULL;
-    params.sampleRate = 0.0;
-    params.printstats = printStats;
-    params.removeInput = false;
-
-    insert(params);
-
-    lastInput = aggrIndices ? permDirs[2] : permDirs[3];
-    if (createIndicesInBlocks) {
-        generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
-                lastInput, 1, 0, 2, parallelProcesses,
-                maxReadingThreads);
-        PermSorter::sortChunks2(aggrIndices ? permDirs[3] : permDirs[4],
-                IDX_OSP, maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                false);
-        mergeDiskFragments(
-                ParamsMergeDiskFragments(
-                    aggrIndices ? permDirs[3] : permDirs[4]));
-    }
-    Utils::remove_all(lastInput);
-    ins->stopInserts(3);
-    moveData(remotePath, outputDirs[3], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-
-    params.permutation = 4;
-    params.inputDir = aggrIndices ? permDirs[3] : permDirs[4];
-    params.POSoutputDir = (string*) NULL;
-    params.treeWriter = treeWriters[4];
-    params.ins = ins;
-    params.aggregated = false;
-    params.canSkipTables = canSkipTables;
-    params.storeRaw = false;
-    params.sampleWriter = NULL;
-    params.sampleRate = 0.0;
-    params.printstats = printStats;
-    params.removeInput = false;
-
-    insert(params);
-
-    ins->stopInserts(4);
-    moveData(remotePath, outputDirs[4], limitSpace);
-    LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-
-    lastInput = aggrIndices ? permDirs[3] : permDirs[4];
-
-    if (!aggrIndices) {
+    if (nindices > 1) {
         if (createIndicesInBlocks) {
-            generateNewPermutation(permDirs[2],
+            generateNewPermutation(permDirs[1], lastInput, 2, 1, 0, parallelProcesses,
+                    maxReadingThreads);
+            PermSorter::sortChunks2(permDirs[1], IDX_OPS, maxReadingThreads,
+                    parallelProcesses,
+                    estimatedSize,
+                    false);
+            mergeDiskFragments(ParamsMergeDiskFragments(permDirs[1]));
+        }
+        ins->stopInserts(0);
+        moveData(remotePath, outputDirs[0], limitSpace);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+        params.permutation = 1;
+        params.inputDir = permDirs[1];
+        params.POSoutputDir = aggrIndices ? &aggr1Dir : NULL;
+        params.treeWriter = treeWriters[1];
+        params.ins = ins;
+        params.aggregated = false;
+        params.canSkipTables = false;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = false;
+
+        insert(params);
+
+        Utils::remove_all(lastInput);
+        lastInput = permDirs[1];
+    }
+    if ((aggrIndices && nindices == 6) || (! aggrIndices &&  nindices > 3)) {
+        if (createIndicesInBlocks) {
+            generateNewPermutation(aggrIndices ? permDirs[2] : permDirs[3],
                     lastInput, 2, 0, 1, parallelProcesses,
                     maxReadingThreads);
-            PermSorter::sortChunks2(permDirs[2],
+            PermSorter::sortChunks2(aggrIndices ? permDirs[2] : permDirs[3],
+                    IDX_SOP, maxReadingThreads,
+                    parallelProcesses,
+                    estimatedSize,
+                    false);
+            mergeDiskFragments(
+                    ParamsMergeDiskFragments(
+                        aggrIndices ? permDirs[2] : permDirs[3]));
+        }
+        ins->stopInserts(1);
+        moveData(remotePath, outputDirs[1], limitSpace);
+        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+        params.permutation = 3;
+        params.inputDir = aggrIndices ? permDirs[2] : permDirs[3];
+        params.POSoutputDir = (string*) NULL;
+        params.treeWriter = treeWriters[3];
+        params.ins = ins;
+        params.aggregated = false;
+        params.canSkipTables = canSkipTables;
+        params.storeRaw = false;
+        params.sampleWriter = NULL;
+        params.sampleRate = 0.0;
+        params.printstats = printStats;
+        params.removeInput = false;
+
+        insert(params);
+        Utils::remove_all(lastInput);
+        lastInput = aggrIndices ? permDirs[2] : permDirs[3];
+
+        if (nindices == 6) {
+            if (createIndicesInBlocks) {
+                generateNewPermutation(aggrIndices ? permDirs[3] : permDirs[4],
+                        lastInput, 1, 0, 2, parallelProcesses,
+                        maxReadingThreads);
+                PermSorter::sortChunks2(aggrIndices ? permDirs[3] : permDirs[4],
+                        IDX_OSP, maxReadingThreads,
+                        parallelProcesses,
+                        estimatedSize,
+                        false);
+                mergeDiskFragments(
+                        ParamsMergeDiskFragments(
+                            aggrIndices ? permDirs[3] : permDirs[4]));
+            }
+            ins->stopInserts(3);
+            moveData(remotePath, outputDirs[3], limitSpace);
+            LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+            params.permutation = 4;
+            params.inputDir = aggrIndices ? permDirs[3] : permDirs[4];
+            params.POSoutputDir = (string*) NULL;
+            params.treeWriter = treeWriters[4];
+            params.ins = ins;
+            params.aggregated = false;
+            params.canSkipTables = canSkipTables;
+            params.storeRaw = false;
+            params.sampleWriter = NULL;
+            params.sampleRate = 0.0;
+            params.printstats = printStats;
+            params.removeInput = false;
+
+            insert(params);
+
+            ins->stopInserts(4);
+            moveData(remotePath, outputDirs[4], limitSpace);
+            LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+
+            Utils::remove_all(lastInput);
+            lastInput = aggrIndices ? permDirs[3] : permDirs[4];
+        }
+    }
+
+    if (nindices > 1) {
+        if (!aggrIndices) {
+            if (createIndicesInBlocks) {
+                generateNewPermutation(permDirs[2],
+                        lastInput, 2, 0, 1, parallelProcesses,
+                        maxReadingThreads);
+                PermSorter::sortChunks2(permDirs[2],
+                        IDX_POS, maxReadingThreads,
+                        parallelProcesses,
+                        estimatedSize,
+                        false);
+                mergeDiskFragments(
+                        ParamsMergeDiskFragments(permDirs[2]));
+            }
+
+            ParamInsert params;
+            params.parallelProcesses = parallelProcesses;
+            params.permutation = 2;
+            params.inputDir = permDirs[2];
+            params.POSoutputDir = (string*) NULL;
+            params.treeWriter = treeWriters[2];
+            params.ins = ins;
+            params.aggregated = false;
+            params.canSkipTables = false;
+            params.storeRaw = false;
+            params.sampleWriter = NULL;
+            params.sampleRate = 0.0;
+            params.printstats = printStats;
+            params.removeInput = false;
+            params.deletePreviousExt = false;
+
+            insert(params);
+            LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+        } else {
+            ParamInsert params;
+            params.parallelProcesses = parallelProcesses;
+            params.permutation = 2;
+            params.inputDir = aggr1Dir;
+            params.POSoutputDir = (string*) NULL;
+            params.treeWriter = treeWriters[2];
+            params.ins = ins;
+            params.aggregated = true;
+            params.canSkipTables = false;
+            params.storeRaw = false;
+            params.sampleWriter = NULL;
+            params.sampleRate = 0.0;
+            params.printstats = printStats;
+            params.removeInput = true;
+            params.deletePreviousExt = false;
+
+            PermSorter::sortChunks2(aggr1Dir,
                     IDX_POS, maxReadingThreads,
                     parallelProcesses,
                     estimatedSize,
-                    false);
+                    true);
             mergeDiskFragments(
-                    ParamsMergeDiskFragments(permDirs[2]));
+                    ParamsMergeDiskFragments(aggr1Dir));
+
+            insert(params);
+            LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
         }
+        Utils::remove_all(lastInput);
+        lastInput = permDirs[2];
 
-        ParamInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.permutation = 2;
-        params.inputDir = permDirs[2];
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[2];
-        params.ins = ins;
-        params.aggregated = false;
-        params.canSkipTables = false;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        params.removeInput = false;
-        params.deletePreviousExt = false;
+        if (nindices == 6) {
+            if (!aggrIndices) {
+                lastInput = permDirs[2];
+                if (createIndicesInBlocks) {
+                    generateNewPermutation(permDirs[5],
+                            lastInput, 0, 2, 1, parallelProcesses,
+                            maxReadingThreads);
+                    PermSorter::sortChunks2(permDirs[5],
+                            IDX_PSO, maxReadingThreads,
+                            parallelProcesses,
+                            estimatedSize,
+                            false);
+                    mergeDiskFragments(
+                            ParamsMergeDiskFragments(permDirs[5]));
+                }
 
-        insert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-    } else {
-        ParamInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.permutation = 2;
-        params.inputDir = aggr1Dir;
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[2];
-        params.ins = ins;
-        params.aggregated = true;
-        params.canSkipTables = false;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        params.removeInput = true;
-        params.deletePreviousExt = false;
+                ParamInsert params;
+                params.parallelProcesses = parallelProcesses;
+                params.permutation = 5;
+                params.inputDir = permDirs[5];
+                params.POSoutputDir = (string*) NULL;
+                params.treeWriter = treeWriters[5];
+                params.ins = ins;
+                params.aggregated = false;
+                params.canSkipTables = canSkipTables;
+                params.storeRaw = false;
+                params.sampleWriter = NULL;
+                params.sampleRate = 0.0;
+                params.printstats = printStats;
+                params.removeInput = false;
+                params.deletePreviousExt = false;
 
-        PermSorter::sortChunks2(aggr1Dir,
-                IDX_POS, maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                true);
-        mergeDiskFragments(
-                ParamsMergeDiskFragments(aggr1Dir));
+                insert(params);
+                LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
 
-        insert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+                Utils::remove_all(lastInput);
+                lastInput = permDirs[5];
+
+            } else {
+                ParamInsert params;
+                params.parallelProcesses = parallelProcesses;
+                params.permutation = 5;
+                params.inputDir = aggr2Dir;
+                params.POSoutputDir = (string*) NULL;
+                params.treeWriter = treeWriters[5];
+                params.ins = ins;
+                params.aggregated = true;
+                params.canSkipTables = canSkipTables;
+                params.storeRaw = false;
+                params.sampleWriter = NULL;
+                params.sampleRate = 0.0;
+                params.printstats = printStats;
+                params.removeInput = true;
+                params.deletePreviousExt = false;
+
+                PermSorter::sortChunks2(aggr2Dir,
+                        IDX_PSO, maxReadingThreads,
+                        parallelProcesses,
+                        estimatedSize,
+                        true);
+                mergeDiskFragments(
+                        ParamsMergeDiskFragments(aggr2Dir));
+
+                insert(params);
+                LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
+            }
+        }
     }
     Utils::remove_all(lastInput);
-
-    if (!aggrIndices) {
-        lastInput = permDirs[2];
-        if (createIndicesInBlocks) {
-            generateNewPermutation(permDirs[5],
-                    lastInput, 0, 2, 1, parallelProcesses,
-                    maxReadingThreads);
-            PermSorter::sortChunks2(permDirs[5],
-                    IDX_PSO, maxReadingThreads,
-                    parallelProcesses,
-                    estimatedSize,
-                    false);
-            mergeDiskFragments(
-                    ParamsMergeDiskFragments(permDirs[5]));
-        }
-        Utils::remove_all(lastInput);
-
-        ParamInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.permutation = 5;
-        params.inputDir = permDirs[5];
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[5];
-        params.ins = ins;
-        params.aggregated = false;
-        params.canSkipTables = canSkipTables;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        params.removeInput = false;
-        params.deletePreviousExt = false;
-
-        insert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-
-        lastInput = permDirs[5];
-        Utils::remove_all(lastInput);
-    } else {
-        ParamInsert params;
-        params.parallelProcesses = parallelProcesses;
-        params.permutation = 5;
-        params.inputDir = aggr2Dir;
-        params.POSoutputDir = (string*) NULL;
-        params.treeWriter = treeWriters[5];
-        params.ins = ins;
-        params.aggregated = true;
-        params.canSkipTables = canSkipTables;
-        params.storeRaw = false;
-        params.sampleWriter = NULL;
-        params.sampleRate = 0.0;
-        params.printstats = printStats;
-        params.removeInput = true;
-        params.deletePreviousExt = false;
-
-        PermSorter::sortChunks2(aggr2Dir,
-                IDX_PSO, maxReadingThreads,
-                parallelProcesses,
-                estimatedSize,
-                true);
-        mergeDiskFragments(
-                ParamsMergeDiskFragments(aggr2Dir));
-
-        insert(params);
-        LOG(DEBUGL) << "Memory used so far: " << Utils::getUsedMemory();
-    }
 }
 
 void Loader::createPermutations(string inputDir, int nperms, int signaturePerms,
