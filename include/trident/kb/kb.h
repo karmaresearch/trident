@@ -73,6 +73,7 @@ class KB {
         GraphType graphType;
 
         int nindices;
+        string indices;
         bool aggrIndices;
         bool incompleteIndices;
 

@@ -31,6 +31,7 @@ KBConfig::KBConfig() {
     internalMap.setBool(DICTHASH, false);
 
     internalMap.setInt(NINDICES, 6);
+    internalMap.set(INDICES, "");
     internalMap.setBool(AGGRINDICES, true);
     internalMap.setBool(INCOMPLINDICES, false);
 

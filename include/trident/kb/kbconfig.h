@@ -32,6 +32,7 @@ using namespace std;
 
 typedef enum {
     NINDICES, //Number of indices to use
+    INDICES,  // indices: f.i. "0;1;2"
     AGGRINDICES, //Use aggregated indices or not
     INCOMPLINDICES, //The additional indices (PSO,SOP,OSP) are constructed only if necessary
     DICTPARTITIONS, //Partitions for the dictionary
