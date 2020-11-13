@@ -446,7 +446,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         currentItr = q->getTermList(perm);
         LOG(INFOL) << "Check a filtered scan...";
         int64_t prevEl = -1;
-        for (auto const el : triples) {
+        for (auto const &el : triples) {
             //cout << el.s << " " << el.p << " " << el.o << endl;
             int64_t first = 0;
             switch (perm) {
@@ -741,7 +741,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
         LOG(INFOL) << "All OK";
 
         LOG(INFOL) << "Check single lookups ...";
-        for (auto const el : triples) {
+        for (auto const &el : triples) {
             int64_t first, second, third;
             first = second = third = 0;
             switch (perm) {
