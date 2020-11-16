@@ -276,9 +276,9 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     if (nHardwareThreads == 0) {
         nHardwareThreads = 8;
     }
-    int defaultConcurrentReaders = 1;
+    int defaultConcurrentReaders = 2;
 
-    if (nHardwareThreads < defaultConcurrentReaders) {
+    if (nHardwareThreads % defaultConcurrentReaders != 0) {
         defaultConcurrentReaders = 1;
     }
 
@@ -293,7 +293,7 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
     load_options.add<string>("d","dictMethod", p.dictMethod, "Method to perform dictionary encoding. It can b: \"hash\", \"heuristics\", or \"smart\". Default is heuristics.", false);
     load_options.add<string>("","popMethod", "hash", "Method to use to identify the popular terms. Can be either 'sample' or 'hash'. Default is 'hash'", false);
     load_options.add<int>("","maxThreads", nHardwareThreads,"Sets the maximum number of threads to use during the compression. Default is the number of hardware threads", false);
-    load_options.add<int>("","readThreads", p.maxReadingThreads, "Sets the number of concurrent threads that reads the raw input. Default is '1'", false);
+    load_options.add<int>("","readThreads", p.maxReadingThreads, "Sets the number of concurrent threads that reads the raw input. Default is '2'", false);
     load_options.add<int>("","ndicts", p.dictionaries, "Sets the number dictionary partitions. Default is '1'", false);
     load_options.add<bool>("","skipTables", p.canSkipTables, "Skip storage of some tables. Default is 'false'", false);
     load_options.add<int>("","thresholdSkipTable", p.thresholdSkipTable, "If dynamic strategy is enabled, this param. defines the size above which a table is not stored. Default is '10'", false);
