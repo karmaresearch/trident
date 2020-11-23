@@ -54,11 +54,11 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         const int64_t inputSize, const int64_t nTerms, const int nindices,
         const int64_t *nTablesPerPartition,
         const int64_t *nFirstTablesPerPartition, KB *sampleKB,
-        std::vector<std::unique_ptr<DiffIndex>> &diffIndices)
+        std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present)
     : inputSize(inputSize), nTerms(nTerms),
     nTablesPerPartition(nTablesPerPartition),
     nFirstTablesPerPartition(nFirstTablesPerPartition), nindices(nindices),
-    diffIndices(diffIndices) {
+    diffIndices(diffIndices), present(present) {
         this->tree = tree;
         this->dict = dict;
         this->files = files;
@@ -414,16 +414,17 @@ int64_t Querier::estCard(const int64_t s, const int64_t p, const int64_t o) {
         return card;
     } else if (countUnbound == 2) {
         int64_t key;
-        int perm;
+        int perm = getIndex(s, p, o);
+        // int perm;
         if (s >= 0) {
             key = s;
-            perm = IDX_SPO;
+            // perm = IDX_SPO;
         } else if (p >= 0) {
             key = p;
-            perm = IDX_POS;
+            // perm = IDX_POS;
         } else {
             key = o;
-            perm = IDX_OPS;
+            // perm = IDX_OPS;
         }
         if (lastKeyQueried != key) {
             lastKeyFound = tree->get(key, &currentValue);
@@ -496,8 +497,10 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
 
 //Check whether a triple exists
 bool Querier::exists(const int64_t s, const int64_t p, const int64_t o) {
-    //Use the POS index
-    PairItr *itr = get(IDX_POS, s, p, o);
+    int idx = getIndex(s, p, o);
+    PairItr *itr = get(idx, s, p, o);
+    //Use the POS index ... but we don't know that it is present.
+    // PairItr *itr = get(IDX_POS, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR) {
         bool resp = itr->hasNext();
         releaseItr(itr);
@@ -540,13 +543,16 @@ int Querier::getIndex(const int64_t s, const int64_t p, const int64_t o) {
 }
 
 int Querier::getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o) {
+
+    // Note: IDX_SPO is always present.
+
     if (nindices == 1) {
         return IDX_SPO;
     }
 
     if (s >= 0) {
         //SPO or SOP
-        if (p >= 0 || (p == -2 && o < 0)) {
+        if (p >= 0 || (p == -2 && o < 0) || ! present[IDX_SOP]) {
             return IDX_SPO;
         } else {
             return IDX_SOP;
@@ -554,12 +560,11 @@ int Querier::getIndex_s(int nindices, const int64_t s, const int64_t p, const in
     }
 
     if (o >= 0) {
-        //OPS or OSP
-        if (p >= 0 || (p == -2 && s < 0)) {
-            return IDX_OPS;
-        } else {
-            if (nindices == 3) {
-                return IDX_SOP;
+        //OPS or OSP, if present
+        //We know that s < 0 here.
+        if (present[IDX_OPS] || present[IDX_OSP]) {
+            if (p >= 0 || p == -2 || ! present[IDX_OSP]) {
+                return IDX_OPS;
             } else {
                 return IDX_OSP;
             }
@@ -568,36 +573,34 @@ int Querier::getIndex_s(int nindices, const int64_t s, const int64_t p, const in
 
     if (p >= 0) {
         //POS or PSO
-        if (o >= 0 || (o == -2 && s < 0)) {
-            return IDX_POS;
-        } else {
-            return IDX_PSO;
+        if (present[IDX_POS] || present[IDX_PSO]) {
+            if (o >= 0 || o == -2 || ! present[IDX_PSO]) {
+                return IDX_POS;
+            } else {
+                return IDX_PSO;
+            }
         }
     }
 
     //No constant on the pattern. Either they are all -1, or there is a join
     if (s == -2) {
-        if (p != -1 || o == -1) {
+        if (p != -1 || o == -1 || ! present[IDX_SOP]) {
             return IDX_SPO;
         } else {
             return IDX_SOP;
         }
     }
 
-    if (o == -2) {
-        if (p != -1 || s == -1) {
+    if (o == -2 && (present[IDX_OPS] || present[IDX_OSP])) {
+        if (p != -1 || s == -1 || ! present[IDX_OSP]) {
             return IDX_OPS;
         } else {
-            if (nindices == 3) {
-                return IDX_SOP;
-            } else {
-                return IDX_OSP;
-            }
+            return IDX_OSP;
         }
     }
 
-    if (p == -2) {
-        if (o != -1 || s == -1) {
+    if (p == -2 && (present[IDX_POS] || present[IDX_PSO])) {
+        if (o != -1 || s == -1 || ! present[IDX_PSO]) {
             return IDX_POS;
         } else {
             return IDX_PSO;
