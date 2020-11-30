@@ -36,7 +36,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         int64_t o = reader.parseVLong();
         triples.push_back(_Triple(s, p, o));
         if (triples.size() > 1) {
-            if (triples[triples.size() - 1].s < triples[triples.size() - 2].s)
+            if (_less_spo(triples[triples.size() - 1], triples[triples.size() - 2]))
                 throw 10;
         }
     }
