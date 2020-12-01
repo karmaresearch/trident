@@ -55,7 +55,7 @@ ENDIF()
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
-    set(COMPILE_FLAGS "-c -fPIC -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
+    set(COMPILE_FLAGS "-c -fPIC -fsigned-char -std=c++11 -Wall -Wno-sign-compare ${COMPILE_FLAGS}")
 endif()
 
 #Set to release mode if nothing is specified
