@@ -48,7 +48,7 @@ string BatchCreator::getTestPath(string kbdir, int usedIndex) {
 void BatchCreator::createInputForBatch(bool createTraining,
         const float valid, const float test) {
     Querier *q = kb->query();
-    auto itr = q->get(this->usedIndex, -1, -1, -1);
+    auto itr = q->getIterator(this->usedIndex, -1, -1, -1);
     int64_t s, p, o;
 
     ofstream ofs_valid;
@@ -326,7 +326,7 @@ void BatchCreator::start(int64_t s, int64_t p, int64_t o) {
             throw 10;
         }
         Querier *q = kb->query();
-        this->usedIndex = q->getIndex_s(6, s, p, o);
+        this->usedIndex = q->getIndex(s, p, o);
         delete q;
     }
 

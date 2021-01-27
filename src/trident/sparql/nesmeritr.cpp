@@ -29,7 +29,7 @@ using namespace std;
 #define GO_BACK(x) -x -1;
 
 PairItr *NestedMergeJoinItr::getFirstIterator(Pattern p) {
-    return q->get(p.idx(), p.subject(), p.predicate(), p.object());
+    return q->getIterator(p.idx(), p.subject(), p.predicate(), p.object());
 }
 
 bool NestedMergeJoinItr::checkNext(PairItr *itr, bool shouldMoveToNext) {
@@ -208,7 +208,7 @@ int NestedMergeJoinItr::executeJoin(int64_t *row, Pattern *patterns, int idxPatt
                 break;
             }
         }
-        itr = iterators[idxPattern] = q->get(patterns[idxPattern].idx(), s, p,
+        itr = iterators[idxPattern] = q->getIterator(patterns[idxPattern].idx(), s, p,
                                              o);
 
         if (!itr->hasNext()) {

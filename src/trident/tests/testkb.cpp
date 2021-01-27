@@ -386,8 +386,8 @@ void TestTrident::test_existing(std::vector<int> permutations) {
             LOG(ERRORL) << "Cardinalities do not match: " << card << " " << triples.size();
             throw 10;
         }
-        PairItr *currentItr = q->get(perm, -1, -1, -1);
-        PairItr *scanWithoutLast = q->get(perm, -1, -1, -1);
+        PairItr *currentItr = q->getIterator(perm, -1, -1, -1);
+        PairItr *scanWithoutLast = q->getIterator(perm, -1, -1, -1);
         scanWithoutLast->ignoreSecondColumn();
 
         int64_t countTriple = 0;
@@ -570,8 +570,8 @@ void TestTrident::test_existing(std::vector<int> permutations) {
 
                 //To check whether all triples are the same
                 _copyCurrentFirst(perm, pattern, currentFirst);
-                currentItr = q->get(perm, pattern[0], pattern[1], pattern[2]);
-                currentItrFirst = q->get(perm, pattern[0], pattern[1],
+                currentItr = q->getIterator(perm, pattern[0], pattern[1], pattern[2]);
+                currentItrFirst = q->getIterator(perm, pattern[0], pattern[1],
                         pattern[2]);
                 currentItrFirst->ignoreSecondColumn();
             }
@@ -712,7 +712,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     q->releaseItr(currentItr);
                 }
                 _copyCurrentFirstSecond(perm, pattern, currentFirst, currentSecond);
-                currentItr = q->get(perm, pattern[0], pattern[1], pattern[2]);
+                currentItr = q->getIterator(perm, pattern[0], pattern[1], pattern[2]);
             }
             count++;
 
@@ -777,7 +777,7 @@ void TestTrident::test_existing(std::vector<int> permutations) {
                     break;
             }
             _copyCurrentFirstSecondThird(perm, pattern, first, second, third);
-            PairItr *itr = q->get(perm, pattern[0], pattern[1], pattern[2]);
+            PairItr *itr = q->getIterator(perm, pattern[0], pattern[1], pattern[2]);
             if (!itr->hasNext()) {
                 throw 10;
             }

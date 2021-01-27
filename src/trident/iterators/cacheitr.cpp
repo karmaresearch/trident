@@ -196,7 +196,7 @@ bool CacheItr::gotoFirstTerm(int64_t c1) {
     }
 
     currentIdx = newPairs.size();
-    PairItr *subitr = q->get(IDX_SPO, c1, getKey(), -1);
+    PairItr *subitr = q->getIterator(IDX_SPO, c1, getKey(), -1);
     while (subitr->hasNext()) {
         subitr->next();
         newPairs.push_back(std::make_pair(c1, subitr->getValue2()));

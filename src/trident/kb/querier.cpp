@@ -134,7 +134,7 @@ uint64_t Querier::getCardOnIndex(const int idx, const int64_t first, const int64
     }
 
     //The first term is a constant.
-    PairItr *itr = get(idx, first, second, third);
+    PairItr *itr = getIterator(idx, first, second, third);
     if (itr->getTypeItr() != EMPTY_ITR && itr->hasNext()) {
         int countUnbound = 0;
         if (first < 0) countUnbound++;
@@ -196,7 +196,7 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o, uint
 
     //At least one variable is bound. Thus "pos" must refer to another one
     int idx = getIndex(s, p, o);
-    PairItr *itr = get(idx, s, p, o);
+    PairItr *itr = getIterator(idx, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR && itr->hasNext()) {
         int countUnbound = 0;
         if (s < 0) countUnbound++;
@@ -232,7 +232,7 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o, uint
             }
             if (idx != idx2) {
                 releaseItr(itr);
-                itr = get(idx2, s, p, o);
+                itr = getIterator(idx2, s, p, o);
             }
 
             itr->ignoreSecondColumn();
@@ -370,7 +370,7 @@ uint64_t Querier::estCardOnIndex(const int idx, const int64_t first, const int64
     if (countUnbound == 0) {
         return 1;
     } else if (countUnbound == 1 && key2 >= 0) {
-        PairItr *itr = get(idx, first, second, third);
+        PairItr *itr = getIterator(idx, first, second, third);
         int64_t card = itr->estCardinality();
         releaseItr(itr);
         return card;
@@ -408,7 +408,7 @@ int64_t Querier::estCard(const int64_t s, const int64_t p, const int64_t o) {
         return 1;
     } else if (countUnbound == 1) {
         int perm = getIndex(s, p, o);
-        PairItr *itr = get(perm, s, p, o);
+        PairItr *itr = getIterator(perm, s, p, o);
         int64_t card = itr->estCardinality();
         releaseItr(itr);
         return card;
@@ -478,7 +478,7 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
     }
 
     //Two or three constants
-    PairItr *itr = get(idx, s, p, o);
+    PairItr *itr = getIterator(idx, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR && itr->hasNext()) {
         if (countUnbound == 0) {
             releaseItr(itr);
@@ -498,7 +498,7 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
 //Check whether a triple exists
 bool Querier::exists(const int64_t s, const int64_t p, const int64_t o) {
     int idx = getIndex(s, p, o);
-    PairItr *itr = get(idx, s, p, o);
+    PairItr *itr = getIterator(idx, s, p, o);
     //Use the POS index ... but we don't know that it is present.
     // PairItr *itr = get(IDX_POS, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR) {
@@ -528,7 +528,7 @@ bool Querier::isEmpty(const int64_t s, const int64_t p, const int64_t o) {
     }
 
     int idx = getIndex(s, p, o);
-    PairItr *itr = get(idx, s, p, o);
+    PairItr *itr = getIterator(idx, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR) {
         const bool resp = itr->hasNext();
         releaseItr(itr);
@@ -539,10 +539,6 @@ bool Querier::isEmpty(const int64_t s, const int64_t p, const int64_t o) {
 }
 
 int Querier::getIndex(const int64_t s, const int64_t p, const int64_t o) {
-    return Querier::getIndex_s(6, s, p, o);
-}
-
-int Querier::getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o) {
 
     // Note: IDX_SPO is always present.
 
@@ -658,17 +654,17 @@ PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el
         const int64_t el3, const bool constrain) {
     switch (idx) {
         case IDX_SPO:
-            return get(idx, el1, el2, el3, constrain);
+            return getIterator(idx, el1, el2, el3, constrain);
         case IDX_SOP:
-            return get(idx, el1, el3, el2, constrain);
+            return getIterator(idx, el1, el3, el2, constrain);
         case IDX_POS:
-            return get(idx, el3, el1, el2, constrain);
+            return getIterator(idx, el3, el1, el2, constrain);
         case IDX_PSO:
-            return get(idx, el2, el1, el3, constrain);
+            return getIterator(idx, el2, el1, el3, constrain);
         case IDX_OSP:
-            return get(idx, el2, el3, el1, constrain);
+            return getIterator(idx, el2, el3, el1, constrain);
         case IDX_OPS:
-            return get(idx, el3, el2, el1, constrain);
+            return getIterator(idx, el3, el2, el1, constrain);
     }
     LOG(ERRORL) << "Idx " << idx << " not known";
     throw 10;
@@ -874,7 +870,7 @@ const char *Querier::getTable(const int perm,
     return coord.first;
 }
 
-PairItr *Querier::get(const int perm,
+PairItr *Querier::getIterator(const int perm,
         const int64_t key,
         const short fileIdx,
         const int64_t mark,
@@ -897,7 +893,7 @@ PairItr *Querier::get(const int perm,
 }
 
 
-PairItr *Querier::get(const int idx, const int64_t s, const int64_t p, const int64_t o,
+PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o,
         const bool cons) {
     PairItr *out = NULL;
     int64_t first, second, third;

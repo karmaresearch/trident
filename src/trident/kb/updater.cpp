@@ -391,7 +391,7 @@ void Updater::match(DiffIndex::TypeUpdate type,
                     Querier *q,
                     std::vector<Triple> &input) {
 
-    PairItr *kbitr = q->get(IDX_SPO, -1, -1, -1);
+    PairItr *kbitr = q->getIterator(IDX_SPO, -1, -1, -1);
     if (kbitr->hasNext()) {
         kbitr->next();
     } else {

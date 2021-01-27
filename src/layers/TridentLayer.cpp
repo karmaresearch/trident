@@ -805,7 +805,7 @@ std::shared_ptr<TupleTable> TridentLayer::query(Querier * querier,
     }
 
     int idx = querier->getIndex(s, p, o);
-    PairItr *itr = querier->get(idx, s, p, o);
+    PairItr *itr = querier->getIterator(idx, s, p, o);
     int * order = querier->getInvOrder(idx);
     int posToCopy[3];
     for (int i = 0; i < vars.size(); ++i) {
@@ -895,7 +895,7 @@ int64_t TridentLayer::getSizeOutput(int64_t s, int64_t p, int64_t o,
         p = -1;
     if (o < 0)
         o = -1;
-    PairItr *itr = q->get(idx, s, p, o);
+    PairItr *itr = q->getIterator(idx, s, p, o);
     size_t idxValues = 0;
     uint64_t *valsToFilter = &(valuesToFilter->at(0));
     while (itr->hasNext()) {

@@ -109,7 +109,7 @@ void dump(KB *kb, string outputdir) {
     std::unique_ptr<char[]> supportBuffer = std::unique_ptr<char[]>(new char[MAX_TERM_SIZE + 2]);
 
     const bool print_p = kb->getGraphType() == GraphType::DEFAULT;
-    PairItr *itr = q->get(IDX_SOP, -1, -1, -1);
+    PairItr *itr = q->getIterator(IDX_SOP, -1, -1, -1);
     while (itr->hasNext()) {
         int64_t s, p, o;
         itr->next();

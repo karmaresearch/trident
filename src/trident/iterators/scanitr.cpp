@@ -81,7 +81,7 @@ bool ScanItr::hasNext() {
             hnc = hn = true;
             return hn;
         } else {
-            if (currentTable && currentTable != m_currentTable) {
+            if (currentTable != m_currentTable) {
                 q->releaseItr(currentTable);
             }
             currentTable = NULL;
@@ -91,7 +91,7 @@ bool ScanItr::hasNext() {
             hnc = hn = true;
             return hn;
         } else {
-            if (reversedItr && reversedItr != m_reversedItr) {
+            if (reversedItr != m_reversedItr) {
                 q->releaseItr(reversedItr);
             }
             reversedItr = NULL;
@@ -142,7 +142,7 @@ void ScanItr::next() {
                 short file = itr2->getCurrentFile();
                 int64_t mark = itr2->getCurrentMark();
                 //Need to get reversed table
-                PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
+                PairItr *itr = q->getIterator(idx - 3, key, file, mark, strategy,
                         -1, -1, false, false);
                 reversedItr = q->newItrOnReverse(itr, -1, -1);
                 if (ignseccolumn)
@@ -158,7 +158,7 @@ void ScanItr::next() {
                 char strategy = itr1->getCurrentStrat();
                 short file = itr1->getCurrentFile();
                 int64_t mark = itr1->getCurrentMark();
-                currentTable = q->get(idx, key, file, mark, strategy,
+                currentTable = q->getIterator(idx, key, file, mark, strategy,
                         -1, -1, false, false);
                 if (ignseccolumn)
                     currentTable->ignoreSecondColumn();
@@ -188,7 +188,7 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
                 short file = itr2->getCurrentFile();
                 int64_t mark = itr2->getCurrentMark();
                 //Need to get reversed table
-                PairItr *itr = q->get(idx - 3, key, file, mark, strategy,
+                PairItr *itr = q->getIterator(idx - 3, key, file, mark, strategy,
                         -1, -1, false, false);
                 reversedItr = q->newItrOnReverse(itr, -1, -1);
                 if (ignseccolumn)
@@ -204,7 +204,7 @@ bool ScanItr::next(int64_t &v1, int64_t &v2, int64_t &v3) {
                 char strategy = itr1->getCurrentStrat();
                 short file = itr1->getCurrentFile();
                 int64_t mark = itr1->getCurrentMark();
-                currentTable = q->get(idx, key, file, mark, strategy,
+                currentTable = q->getIterator(idx, key, file, mark, strategy,
                         -1, -1, false, false);
                 if (ignseccolumn)
                     currentTable->ignoreSecondColumn();

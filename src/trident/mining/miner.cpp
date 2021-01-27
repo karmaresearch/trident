@@ -92,7 +92,7 @@ void Miner::mine() {
     Querier *q = kb->query();
 
     //First count the popularity of the rules
-    PairItr *itr = q->get(IDX_POS, -1, -1, -1);
+    PairItr *itr = q->getIterator(IDX_POS, -1, -1, -1);
 
     LOG(INFOL) << "Reading the input ...";
     //Collect all pairs in main memory

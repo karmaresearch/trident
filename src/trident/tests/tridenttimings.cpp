@@ -58,7 +58,7 @@ std::chrono::duration<double> TridentTimings::launchQuery(
             throw 10;
         }
     } else {
-        itr = q->get(permutation, s, p, o);
+        itr = q->getIterator(permutation, s, p, o);
         if (countIgnores == 1) {
             if (perm == permutation) {
                 itr->ignoreSecondColumn();

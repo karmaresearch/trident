@@ -113,6 +113,13 @@ class Querier {
 
         PairItr *summaryDiff(const int perm, DiffIndex::TypeUpdate tp);
 
+        PairItr *getIterator(const int idx, const int64_t s, const int64_t p,
+                const int64_t o, const bool cons);
+
+        PairItr *get(const int idx, TermCoordinates &value,
+                const int64_t key, const int64_t v1,
+                const int64_t v2, const bool cons);
+
     public:
 
         struct Counters {
@@ -145,13 +152,6 @@ class Querier {
 
         bool existKey(int perm, int64_t key);
 
-        TableStorage *getTableStorage(const int perm) {
-            if (nindices <= perm)
-                return NULL;
-            else
-                return files[perm];
-        }
-
         StorageStrat *getStorageStrat() {
             return &strat;
         }
@@ -160,18 +160,11 @@ class Querier {
             return present[idx];
         }
 
-        DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
-            return get(idx, s, p, o, true);
+        DDLEXPORT PairItr *getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o) {
+            return getIterator(idx, s, p, o, true);
         }
 
-        DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p,
-                const int64_t o, const bool cons);
-
-        PairItr *get(const int idx, TermCoordinates &value,
-                const int64_t key, const int64_t v1,
-                const int64_t v2, const bool cons);
-
-        PairItr *get(const int perm,
+        PairItr *getIterator(const int perm,
                 const int64_t key,
                 const short fileIdx,
                 const int64_t mark,
@@ -211,8 +204,6 @@ class Querier {
         DDLEXPORT bool isEmpty(const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT bool exists(const int64_t s, const int64_t p, const int64_t o);
-
-        DDLEXPORT int getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
 
@@ -292,7 +283,7 @@ class Querier {
             short fileIdx = value->getFileIdx(perm);
             int64_t mark = value->getMark(perm);
             char strategy = value->getStrategy(perm);
-            return get(perm, key, fileIdx, mark, strategy, c1, c2, constrain, noAggr);
+            return getIterator(perm, key, fileIdx, mark, strategy, c1, c2, constrain, noAggr);
         }
 
         PairItr *newItrOnReverse(PairItr *itr, const int64_t v1, const int64_t v2);
