@@ -164,6 +164,11 @@ class Querier {
             return getIterator(idx, s, p, o, true);
         }
 
+        // Method below should be phased out, but is part of the trident interface.
+        DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
+            return getIterator(idx, s, p, o, true);
+        }
+
         PairItr *getIterator(const int perm,
                 const int64_t key,
                 const short fileIdx,
