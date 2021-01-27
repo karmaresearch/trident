@@ -1265,7 +1265,7 @@ Plan* PlanGen::translate_int(const QueryGraph::SubQuery& query,
         }
 
     //Is there a minus
-    for (const auto itr : query.minuses) {
+    for (const auto &itr : query.minuses) {
         Plan* subqueryPlan = translate_int(itr->getQuery(), *itr, completeEstimate);
         subqueryPlan->subquery = itr;
         Plan* p = plans->alloc();
