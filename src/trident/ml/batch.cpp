@@ -17,6 +17,8 @@ BatchCreator::BatchCreator(string kbdir, uint64_t batchsize,
     /*nthreads(nthreads),*/ valid(valid), test(test),
     createBatchFile(createBatchFile), filter(filter),
     feedback(feedback) {
+        KBConfig config;
+        this->kb = new KB(kbdir.c_str(), true, false, false, config);
         rawtriples = NULL;
         ntriples = 0;
         currentidx = 0;
@@ -45,9 +47,7 @@ string BatchCreator::getTestPath(string kbdir, int usedIndex) {
 
 void BatchCreator::createInputForBatch(bool createTraining,
         const float valid, const float test) {
-    KBConfig config;
-    KB kb(kbdir.c_str(), true, false, false, config);
-    Querier *q = kb.query();
+    Querier *q = kb->query();
     auto itr = q->get(this->usedIndex, -1, -1, -1);
     int64_t s, p, o;
 
@@ -73,9 +73,9 @@ void BatchCreator::createInputForBatch(bool createTraining,
     }
 
     std::unordered_map<uint64_t, uint64_t> mapPredicates;
-    if (!kb.areRelIDsSeparated()) {
+    if (!kb->areRelIDsSeparated()) {
         size_t i = 0;
-        auto querier = kb.query();
+        auto querier = kb->query();
         auto itr = querier->getTermList(IDX_POS);
         while (itr->hasNext()) {
             itr->next();
@@ -115,7 +115,7 @@ void BatchCreator::createInputForBatch(bool createTraining,
             s = itr->getValue2();
         }
 
-        if (!kb.areRelIDsSeparated()) {
+        if (!kb->areRelIDsSeparated()) {
             p = mapPredicates[p];
         }
 
@@ -325,7 +325,9 @@ void BatchCreator::start(int64_t s, int64_t p, int64_t o) {
             LOG(ERRORL) << "Query-based batching works only if the entire KB is used for training";
             throw 10;
         }
-        this->usedIndex = Querier::getIndex_s(6, s, p, o);
+        Querier *q = kb->query();
+        this->usedIndex = q->getIndex_s(6, s, p, o);
+        delete q;
     }
 
     //First check if the file exists
@@ -346,7 +348,7 @@ void BatchCreator::start(int64_t s, int64_t p, int64_t o) {
         this->rawtriples = this->mappedFile->getData();
         this->ntriples = this->mappedFile->getLength() / 15;
     } else {
-        this->kbbatch = std::unique_ptr<KBBatch>(new KBBatch(kbdir));
+        this->kbbatch = std::unique_ptr<KBBatch>(new KBBatch(kb));
         this->kbbatch->populateCoordinates();
         this->ntriples = this->kbbatch->ntriples();
     }
@@ -504,9 +506,7 @@ void BatchCreator::loadTriples(string path, std::vector<uint64_t> &output) {
     }
 }
 
-BatchCreator::KBBatch::KBBatch(string kbdir) {
-    KBConfig config;
-    this->kb = std::unique_ptr<KB>(new KB(kbdir.c_str(), true, false, false, config));
+BatchCreator::KBBatch::KBBatch(KB *kb) : kb(kb) {
     this->querier = std::unique_ptr<Querier>(kb->query());
 }
 
@@ -597,7 +597,6 @@ void BatchCreator::KBBatch::getAt(uint64_t pos,
 
 BatchCreator::KBBatch::~KBBatch() {
     querier = NULL;
-    kb = NULL;
 }
 
 uint64_t BatchCreator::KBBatch::ntriples() {

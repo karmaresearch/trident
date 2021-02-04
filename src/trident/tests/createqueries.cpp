@@ -36,7 +36,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         int64_t o = reader.parseVLong();
         triples.push_back(_Triple(s, p, o));
         if (triples.size() > 1) {
-            if (triples[triples.size() - 1].s < triples[triples.size() - 2].s)
+            if (_less_spo(triples[triples.size() - 1], triples[triples.size() - 2]))
                 throw 10;
         }
     }
@@ -66,7 +66,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         ofile << perm << " " << -1 << " " << -1 << " " << -1 << " " << triples.size() << " " << 0 << endl;
         int64_t prevEl = -1;
         int64_t countDistinct = 0;
-        for (auto const el : triples) {
+        for (auto const &el : triples) {
             int64_t first;
             switch (perm) {
             case IDX_SPO:
@@ -103,7 +103,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         int64_t countFirst1 = 0;
         int64_t countFirst2 = 0;
         int64_t countSecond = 0;
-        for (auto const el : triples) {
+        for (auto const &el : triples) {
             int64_t first, second;
             switch (perm) {
             case IDX_SPO:

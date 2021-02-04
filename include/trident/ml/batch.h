@@ -31,14 +31,14 @@ class BatchCreator {
                     pReader reader;
                 };
 
-                std::unique_ptr<KB> kb;
+                KB *kb;
                 std::unique_ptr<Querier> querier;
                 std::vector<PredCoordinates> predicates;
                 std::vector<const char*> allposfiles;
 
             public:
 
-                KBBatch(string kbdir);
+                KBBatch(KB *kb);
 
                 void populateCoordinates();
 
@@ -52,6 +52,7 @@ class BatchCreator {
                 ~KBBatch();
         };
 
+        KB *kb;
         const string kbdir;
         const uint64_t batchsize;
         //const uint16_t nthreads;
@@ -131,6 +132,10 @@ class BatchCreator {
         static string getTestPath(string kbdir, int usedIndex);
 
         static void loadTriples(string path, std::vector<uint64_t> &output);
+
+        ~BatchCreator() {
+            delete kb;
+        }
 };
 
 #endif

@@ -97,6 +97,8 @@ class Querier {
 
         StorageStrat strat;
 
+        bool *present;
+
         //Statistics
         int64_t aggrIndices, notAggrIndices, cacheIndices;
         int64_t spo, ops, pos, sop, osp, pso;
@@ -129,7 +131,7 @@ class Querier {
                 const int64_t* nTablesPerPartition,
                 const int64_t* nFirstTablesPerPartition,
                 KB *sampleKB,
-                std::vector<std::unique_ptr<DiffIndex>> &diffIndices);
+                std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present);
 
         void initDiffIndex(DiffIndex *diff);
 
@@ -152,6 +154,10 @@ class Querier {
 
         StorageStrat *getStorageStrat() {
             return &strat;
+        }
+
+        bool isPresent(int idx) {
+            return present[idx];
         }
 
         DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
@@ -206,7 +212,7 @@ class Querier {
 
         DDLEXPORT bool exists(const int64_t s, const int64_t p, const int64_t o);
 
-        DDLEXPORT static int getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o);
+        DDLEXPORT int getIndex_s(int nindices, const int64_t s, const int64_t p, const int64_t o);
 
         DDLEXPORT int getIndex(const int64_t s, const int64_t p, const int64_t o);
 

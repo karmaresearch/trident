@@ -52,7 +52,7 @@ KB::KB(const char *path,
         bool dictEnabled,
         KBConfig &config,
         std::vector<string> locationUpdates) :
-    path(path), readOnly(readOnly), isClosed(false), ntables(), nFirstTables(),
+    path(path), readOnly(readOnly), ntables(), nFirstTables(), isClosed(false),
     dictEnabled(dictEnabled), config(config) {
 
         if (readOnly && !Utils::exists(string(path) + DIR_SEP + "tree")) {
@@ -79,6 +79,23 @@ KB::KB(const char *path,
 
             fis.read(data, 4);
             nindices = Utils::decode_int(data, 0);
+            stringstream ind;
+            bool first = true;
+            for (int i = 0; i < N_PARTITIONS; i++) {
+                stringstream is;
+                is << path << DIR_SEP << "p" << i;
+                if (Utils::exists(is.str())) {
+                    if (! first) {
+                        ind << ";";
+                    }
+                    first = false;
+                    ind << i;
+                    present[i] = true;
+                } else {
+                    present[i] = false;
+                }
+            }
+            indices = ind.str();
             fis.read(data, 1);
             if (data[0]) {
                 aggrIndices = true;
@@ -114,6 +131,20 @@ KB::KB(const char *path,
             graphType = GraphType::DEFAULT;
             relsIDsSep = config.getParamBool(RELSOWNIDS);
             nindices = config.getParamInt(NINDICES);
+            indices = config.getParam(INDICES);
+            if (indices == "") {
+                // Fill in some default values.
+                if (nindices == 1) {
+                    indices = "0";
+                } else if (nindices == 3) {
+                    indices = "0;1;2";
+                } else if (nindices == 4) {
+                    indices = "0;1;3;4";
+                } else if (nindices == 6) {
+                    indices = "0;1;2;3;4;5";
+                }
+                // Other defaults? TODO
+            }
             aggrIndices = config.getParamBool(AGGRINDICES);
             incompleteIndices = config.getParamBool(INCOMPLINDICES);
             useFixedStrategy = config.getParamBool(USEFIXEDSTRAT);
@@ -189,34 +220,38 @@ KB::KB(const char *path,
                 bytesTracker[i] = NULL;
             }
         }
+        for (int i = nindices; i < N_PARTITIONS; i++) {
+            bytesTracker[i] = NULL;
+        }
 
-        if (nindices == 3) {
-            pso = new CacheIdx();
-            osp = new CacheIdx();
-        } else {
-            pso = NULL;
-            osp = NULL;
+        std::vector<int> permutations;
+        istringstream f(indices);
+        string s;
+        while (getline(f, s, ';')) {
+            permutations.push_back(stoi(s));
+        }
+
+        for (int i = 0; i < N_PARTITIONS; i++) {
+            files[i] = NULL;
         }
 
         //Initialize the storage partitions
         for (int i = 0; i < nindices; ++i) {
             stringstream is;
-            is << path << DIR_SEP << "p" << i;
+            is << path << DIR_SEP << "p" << permutations[i];
             if (readOnly) {
                 //Check if there are actually files in the directory
                 if  (!Utils::isEmpty(is.str())) {
-                    files[i] = new TableStorage(readOnly, is.str(),
+                    files[permutations[i]] = new TableStorage(readOnly, is.str(),
                             config.getParamLong(STORAGE_MAX_FILE_SIZE),
                             config.getParamInt(STORAGE_MAX_N_FILES),
-                            NULL, stats, i);
-                } else {
-                    files[i] = NULL;
+                            NULL, stats, permutations[i]);
                 }
             } else {
-                files[i] = new TableStorage(readOnly, is.str(),
+                files[permutations[i]] = new TableStorage(readOnly, is.str(),
                         config.getParamLong(STORAGE_MAX_FILE_SIZE),
                         config.getParamInt(STORAGE_MAX_N_FILES),
-                        bytesTracker[i], stats, i);
+                        bytesTracker[i], stats, permutations[i]);
             }
         }
 
@@ -248,10 +283,10 @@ KB::KB(const char *path,
 
             if (!childrenupdates.empty()) {
                 std::vector<const char *> globalbuffers;
-                globalbuffers.resize(6);
+                globalbuffers.resize(N_PARTITIONS);
                 //Instantiate the buffers
-                for (int i = 0; i < 6; ++i)
-                    globalbuffers[0] = NULL;
+                for (int i = 0; i < N_PARTITIONS; ++i)
+                    globalbuffers[i] = NULL;
                 if (Utils::exists(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p0")) {
                     spo_f = std::unique_ptr<ROMappedFile>(
                             new ROMappedFile(defaultDiffDir + DIR_SEP + "s" + DIR_SEP + "p0"));
@@ -396,7 +431,7 @@ void KB::loadDict(KBConfig *config) {
 Querier *KB::query() {
     return new Querier(tree, dictManager, files, totalNumberTriples,
             totalNumberTerms, nindices, ntables, nFirstTables,
-            sampleKB, diffIndices);
+            sampleKB, diffIndices, present);
 }
 
 Inserter *KB::insert() {
@@ -465,7 +500,7 @@ void KB::close() {
             dictManager = NULL;
         }
     }
-    for (int i = 0; i < nindices; ++i) {
+    for (int i = 0; i < N_PARTITIONS; ++i) {
         if (files[i] != NULL) {
             delete files[i];
             files[i] = NULL;
@@ -474,21 +509,11 @@ void KB::close() {
 
     // Delete bytesTrackers after deleting all files, because
     // in read-only case, all files share the same bytesTracker. --Ceriel
-    for (int i = 0; i < nindices; ++i) {
+    for (int i = 0; i < N_PARTITIONS; ++i) {
         if (bytesTracker[i] != NULL) {
             delete bytesTracker[i];
             bytesTracker[i] = NULL;
         }
-    }
-
-    if (pso != NULL) {
-        delete pso;
-        pso = NULL;
-    }
-
-    if (osp != NULL) {
-        delete osp;
-        osp = NULL;
     }
 
     diffIndices.clear();
@@ -748,7 +773,7 @@ void KB::mergeUpdates() {
 
     Querier *q1 = new Querier(tree, dictManager, files, totalNumberTriples,
         totalNumberTerms, nindices, ntables, nFirstTables,
-        sampleKB, diffs);
+        sampleKB, diffs, present);
 
     if (addCount >= 1) {
         PairItr *addItr = q->summaryAddDiff();

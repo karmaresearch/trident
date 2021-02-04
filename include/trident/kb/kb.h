@@ -56,7 +56,6 @@ class KB {
 
         Root *tree;
         Stats stats;
-        bool isClosed;
 
         std::shared_ptr<DictMgmt::Dict> maindict;
         DictMgmt *dictManager;
@@ -71,6 +70,7 @@ class KB {
         int64_t totalNumberTerms;
         int64_t nextID;
         GraphType graphType;
+        string indices;
 
         int nindices;
         bool aggrIndices;
@@ -78,19 +78,17 @@ class KB {
 
         bool useFixedStrategy;
         char storageFixedStrategy;
-
-        size_t thresholdSkipTable;
-
+        bool isClosed;
         bool dictEnabled;
         bool relsIDsSep; //Do relations have their own IDs?
 
+        size_t thresholdSkipTable;
+
         double sampleRate;
 
+        bool present[N_PARTITIONS];
         TableStorage *files[N_PARTITIONS];
         MemoryManager<FileDescriptor> *bytesTracker[N_PARTITIONS];
-
-        CacheIdx *pso;
-        CacheIdx *osp;
 
         KB *sampleKB;
         KBConfig config;
@@ -128,6 +126,10 @@ class KB {
 
         DictMgmt *getDictMgmt() {
             return dictManager;
+        }
+
+        bool isPresent(int idx) {
+            return present[idx];
         }
 
         DDLEXPORT void mergeUpdates();

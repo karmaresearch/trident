@@ -595,100 +595,113 @@ void PermSorter::sortChunks2_permute(
         const size_t sizeTriple,
         int currentPerm,
         int nextPerm) {
-    if (currentPerm == IDX_SPO && nextPerm == IDX_SOP) {
+    if ((currentPerm == IDX_SPO && nextPerm == IDX_SOP)
+            || (currentPerm == IDX_SOP && nextPerm == IDX_SPO)
+            || (currentPerm == IDX_OSP && nextPerm == IDX_OPS)
+            || (currentPerm == IDX_OPS && nextPerm == IDX_OSP)
+            || (currentPerm == IDX_POS && nextPerm == IDX_PSO)
+            || (currentPerm == IDX_PSO && nextPerm == IDX_POS)
+            ) {
+        // switching second and third term
         while (start < end) {
             char tmp[5];
-            tmp[0] = start[5]; //copy p in tmp
+            tmp[0] = start[5]; //copy second in tmp
             tmp[1] = start[6];
             tmp[2] = start[7];
             tmp[3] = start[8];
             tmp[4] = start[9];
-            start[5] = start[10]; //copy o in p
+            start[5] = start[10]; //copy third in second
             start[6] = start[11];
             start[7] = start[12];
             start[8] = start[13];
             start[9] = start[14];
-            start[10] = tmp[0]; //copy p in o
+            start[10] = tmp[0]; //copy tmp in third
             start[11] = tmp[1];
             start[12] = tmp[2];
             start[13] = tmp[3];
             start[14] = tmp[4];
             start += sizeTriple;
         }
-    } else if (currentPerm == IDX_SOP && nextPerm == IDX_OSP) {
+    } else if ((currentPerm == IDX_SOP && nextPerm == IDX_OSP)
+            || (currentPerm == IDX_OSP && nextPerm == IDX_SOP)
+            || (currentPerm == IDX_OPS && nextPerm == IDX_POS)
+            || (currentPerm == IDX_POS && nextPerm == IDX_OPS)
+            || (currentPerm == IDX_SPO && nextPerm == IDX_PSO)
+            || (currentPerm == IDX_PSO && nextPerm == IDX_SPO)
+            ) {
+        // switching first and second term
         while (start < end) {
             char tmp[5];
-            tmp[0] = start[0]; //copy s in tmp
+            tmp[0] = start[0]; //copy first in tmp
             tmp[1] = start[1];
             tmp[2] = start[2];
             tmp[3] = start[3];
             tmp[4] = start[4];
-            start[0] = start[5]; //copy o in s
+            start[0] = start[5]; //copy second in first
             start[1] = start[6];
             start[2] = start[7];
             start[3] = start[8];
             start[4] = start[9];
-            start[5] = tmp[0]; //copy p in o
+            start[5] = tmp[0]; //copy tmp in second
             start[6] = tmp[1];
             start[7] = tmp[2];
             start[8] = tmp[3];
             start[9] = tmp[4];
             start += sizeTriple;
         }
-    } else if (currentPerm == IDX_OSP && nextPerm == IDX_OPS) {
+    } else if ((currentPerm == IDX_SPO && nextPerm == IDX_OPS)
+            || (currentPerm == IDX_OPS && nextPerm == IDX_SPO)
+            || (currentPerm == IDX_OSP && nextPerm == IDX_PSO)
+            || (currentPerm == IDX_PSO && nextPerm == IDX_OSP)
+            || (currentPerm == IDX_POS && nextPerm == IDX_SOP)
+            || (currentPerm == IDX_SOP && nextPerm == IDX_POS)
+            ) {
+        // switching first and third term
         while (start < end) {
             char tmp[5];
-            tmp[0] = start[5]; //copy s in tmp
-            tmp[1] = start[6];
-            tmp[2] = start[7];
-            tmp[3] = start[8];
-            tmp[4] = start[9];
-            start[5] = start[10]; //copy p in s
-            start[6] = start[11];
-            start[7] = start[12];
-            start[8] = start[13];
-            start[9] = start[14];
-            start[10] = tmp[0]; //copy tmp in p
+            tmp[0] = start[0]; //copy first in tmp
+            tmp[1] = start[1];
+            tmp[2] = start[2];
+            tmp[3] = start[3];
+            tmp[4] = start[4];
+            start[0] = start[10]; //copy third in first
+            start[1] = start[11];
+            start[2] = start[12];
+            start[3] = start[13];
+            start[4] = start[14];
+            start[10] = tmp[0]; //copy tmp in third
             start[11] = tmp[1];
             start[12] = tmp[2];
             start[13] = tmp[3];
             start[14] = tmp[4];
             start += sizeTriple;
         }
-    } else if (currentPerm == IDX_OPS && nextPerm == IDX_POS) {
+    } else if ((currentPerm == IDX_SPO && nextPerm == IDX_POS)
+            || (currentPerm == IDX_OPS && nextPerm == IDX_PSO)
+            || (currentPerm == IDX_OSP && nextPerm == IDX_SPO)
+            || (currentPerm == IDX_PSO && nextPerm == IDX_SOP)
+            || (currentPerm == IDX_POS && nextPerm == IDX_OSP)
+            || (currentPerm == IDX_SOP && nextPerm == IDX_OPS)
+            ) {
+        // rotating left
         while (start < end) {
             char tmp[5];
-            tmp[0] = start[0]; //copy o in tmp
+            tmp[0] = start[0]; //copy first in tmp
             tmp[1] = start[1];
             tmp[2] = start[2];
             tmp[3] = start[3];
             tmp[4] = start[4];
-            start[0] = start[5]; //copy p in o
+            start[0] = start[5]; //copy second in first
             start[1] = start[6];
             start[2] = start[7];
             start[3] = start[8];
             start[4] = start[9];
-            start[5] = tmp[0]; //copy tmp in p
-            start[6] = tmp[1];
-            start[7] = tmp[2];
-            start[8] = tmp[3];
-            start[9] = tmp[4];
-            start += sizeTriple;
-        }
-    } else if (currentPerm == IDX_POS && nextPerm == IDX_PSO) {
-        while (start < end) {
-            char tmp[5];
-            tmp[0] = start[5]; //copy s in tmp
-            tmp[1] = start[6];
-            tmp[2] = start[7];
-            tmp[3] = start[8];
-            tmp[4] = start[9];
-            start[5] = start[10]; //copy p in s
+            start[5] = start[10]; //copy third in second
             start[6] = start[11];
             start[7] = start[12];
             start[8] = start[13];
             start[9] = start[14];
-            start[10] = tmp[0]; //copy tmp in p
+            start[10] = tmp[0]; //copy tmp in third
             start[11] = tmp[1];
             start[12] = tmp[2];
             start[13] = tmp[3];
@@ -696,8 +709,31 @@ void PermSorter::sortChunks2_permute(
             start += sizeTriple;
         }
     } else {
-        LOG(ERRORL) << "Conversion from " << currentPerm << " to " << nextPerm << " is not supported";
-        throw 10;
+        // rotating right
+        while (start < end) {
+            char tmp[5];
+            tmp[0] = start[0]; //copy first in tmp
+            tmp[1] = start[1];
+            tmp[2] = start[2];
+            tmp[3] = start[3];
+            tmp[4] = start[4];
+            start[0] = start[10]; //copy third in first
+            start[1] = start[11];
+            start[2] = start[12];
+            start[3] = start[13];
+            start[4] = start[14];
+            start[10] = start[5]; //copy second in third
+            start[11] = start[6];
+            start[12] = start[7];
+            start[13] = start[8];
+            start[14] = start[9];
+            start[5] = tmp[0]; //copy tmp in second
+            start[6] = tmp[1];
+            start[7] = tmp[2];
+            start[8] = tmp[3];
+            start[9] = tmp[4];
+            start += sizeTriple;
+        }
     }
 }
 
