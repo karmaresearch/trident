@@ -5,6 +5,10 @@ TRIDENT_BUILDDIR=../$(BUILD)
 CINCLUDES= -I../include -I$(KOGNAC)/include -I../snap -I../snap/snap-core -I../snap/glib-core -I$(KOGNAC_BUILDDIR)/external/lz4/lib -I$(KOGNAC_BUILDDIR)/external/sparsehash/src
 CLIBS=-L$(KOGNAC_BUILDDIR) -L$(TRIDENT_BUILDDIR) -L../snap/snap-core -L$(KOGNAC_BUILDDIR)/external/lz4/lib -L$(KOGNAC_BUILDDIR)/external/sparsehash/src -ltrident-core -lkognac-core
 CPLUS=g++
+GOOGLE=-I /Users/jacopo/prj/kognac/build/external/sparsehash/src
+
+test_hash:
+	$(CPLUS) $(GOOGLE) -I/Users/jacopo/prj/vlog/include -fPIC -std=c++11 -DPRUNING_QSQR=1 -o ./testHash -O3 test_hashnumbers.cpp
 
 test_json:
 	$(CPLUS) $(CINCLUDES) $(CLIBS) -o ./testJSON -std=c++0x -O0 test_json.cpp -lpthread
