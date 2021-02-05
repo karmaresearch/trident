@@ -69,7 +69,7 @@ class Querier {
         std::string pathRawData;
         bool copyRawData;
 
-        const int nindices;
+        // const int nindices;
 
         std::vector<std::unique_ptr<DiffIndex>> &diffIndices;
         std::unique_ptr<Querier> sampler;

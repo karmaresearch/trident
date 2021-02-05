@@ -43,35 +43,21 @@ std::chrono::duration<double> TridentTimings::launchQuery(
 
     int64_t v1, v2, v3;
 
-    int permutation = perm;
-
     PairItr *itr;
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    if (! q->isPresent(permutation)) {
-        permutation = q->getIndex(s, p, o);
-    }
+
     if (countIgnores == 2) {
-        if (permutation == perm || permutation+3 == perm || perm+3 == permutation) {
-            itr = q->getTermList(permutation);
-        } else {
-            // TODO
-            throw 10;
-        }
+        itr = q->getTermList(perm);
     } else {
-        itr = q->getIterator(permutation, s, p, o);
-        if (countIgnores == 1) {
-            if (perm == permutation) {
-                itr->ignoreSecondColumn();
-            } else {
-                // TODO
-                throw 10;
-            }
+        itr = q->getIterator(perm, s, p, o);
+        if (itr != NULL && countIgnores == 1) {
+            itr->ignoreSecondColumn();
         }
     }
     c = 0;
 
     bool hasNext = false;
-    if (itr->hasNext()) {
+    if (itr != NULL && itr->hasNext()) {
         do {
             hasNext = itr->next(v1, v2, v3);
             c++;

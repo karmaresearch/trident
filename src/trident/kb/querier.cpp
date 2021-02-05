@@ -57,7 +57,8 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present)
     : inputSize(inputSize), nTerms(nTerms),
     nTablesPerPartition(nTablesPerPartition),
-    nFirstTablesPerPartition(nFirstTablesPerPartition), nindices(nindices),
+    nFirstTablesPerPartition(nFirstTablesPerPartition),
+    // nindices(nindices),
     diffIndices(diffIndices), present(present) {
         this->tree = tree;
         this->dict = dict;
@@ -538,17 +539,12 @@ bool Querier::isEmpty(const int64_t s, const int64_t p, const int64_t o) {
     }
 }
 
+// Note: getIndex may return an index that is actually not present.
 int Querier::getIndex(const int64_t s, const int64_t p, const int64_t o) {
-
-    // Note: IDX_SPO is always present.
-
-    if (nindices == 1) {
-        return IDX_SPO;
-    }
 
     if (s >= 0) {
         //SPO or SOP
-        if (p >= 0 || (p == -2 && o < 0) || ! present[IDX_SOP]) {
+        if (p >= 0 || (p == -2 && o < 0)) {
             return IDX_SPO;
         } else {
             return IDX_SOP;
@@ -556,47 +552,43 @@ int Querier::getIndex(const int64_t s, const int64_t p, const int64_t o) {
     }
 
     if (o >= 0) {
-        //OPS or OSP, if present
+        //OPS or OSP.
         //We know that s < 0 here.
-        if (present[IDX_OPS] || present[IDX_OSP]) {
-            if (p >= 0 || p == -2 || ! present[IDX_OSP]) {
-                return IDX_OPS;
-            } else {
-                return IDX_OSP;
-            }
-        }
-    }
-
-    if (p >= 0) {
-        //POS or PSO
-        if (present[IDX_POS] || present[IDX_PSO]) {
-            if (o >= 0 || o == -2 || ! present[IDX_PSO]) {
-                return IDX_POS;
-            } else {
-                return IDX_PSO;
-            }
-        }
-    }
-
-    //No constant on the pattern. Either they are all -1, or there is a join
-    if (s == -2) {
-        if (p != -1 || o == -1 || ! present[IDX_SOP]) {
-            return IDX_SPO;
-        } else {
-            return IDX_SOP;
-        }
-    }
-
-    if (o == -2 && (present[IDX_OPS] || present[IDX_OSP])) {
-        if (p != -1 || s == -1 || ! present[IDX_OSP]) {
+        if (p >= 0 || p == -2) {
             return IDX_OPS;
         } else {
             return IDX_OSP;
         }
     }
 
-    if (p == -2 && (present[IDX_POS] || present[IDX_PSO])) {
-        if (o != -1 || s == -1 || ! present[IDX_PSO]) {
+    if (p >= 0) {
+        //POS or PSO
+        if (o >= 0 || o == -2) {
+            return IDX_POS;
+        } else {
+            return IDX_PSO;
+        }
+    }
+
+    //No constant on the pattern. Either they are all -1, or there is a join
+    if (s == -2) {
+        if (p != -1 || o == -1) {
+            return IDX_SPO;
+        } else {
+            return IDX_SOP;
+        }
+    }
+
+    if (o == -2) {
+        if (p != -1 || s == -1) {
+            return IDX_OPS;
+        } else {
+            return IDX_OSP;
+        }
+    }
+
+    if (p == -2) {
+        if (o != -1 || s == -1) {
             return IDX_POS;
         } else {
             return IDX_PSO;
@@ -785,11 +777,15 @@ bool Querier::existKey(int perm, int64_t key) {
 }
 
 TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
-    TableStorage *storage;
-    if (perm > 2 && !enforcePerm) {
-        storage = files[perm - 3];
-    } else {
-        storage = files[perm];
+    TableStorage *storage = files[perm];
+    if (storage == NULL) {
+        if (! enforcePerm) {
+            if (perm > 2 && files[perm-3] != NULL) {
+                storage = files[perm - 3];
+            } else if (perm < 3 && files[perm+3] != NULL) {
+                storage = files[perm + 3];
+            }
+        }
     }
     if (storage != NULL) {
         TermItr *itr = factory7.get();
@@ -824,8 +820,14 @@ PairItr *Querier::get(const int idx, TermCoordinates &value,
                     false);
             return itr;
         }
-    } else if (idx - 3 >= 0 && value.exists(idx - 3)) {
+    } else if (idx >= 3 && value.exists(idx - 3)) {
         PairItr *itr = get(idx - 3, value, key, -1, -1, cons);
+        PairItr *itr2 = newItrOnReverse(itr, v1, v2);
+        itr2->setKey(key);
+        releaseItr(itr);
+        return itr2;
+    } else if (idx < 3 && value.exists(idx + 3)) {
+        PairItr *itr = get(idx + 3, value, key, -1, -1, cons);
         PairItr *itr2 = newItrOnReverse(itr, v1, v2);
         itr2->setKey(key);
         releaseItr(itr);
@@ -937,20 +939,25 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
             break;
     }
 
-    if (first >= 0) {
-        if (lastKeyQueried != first) {
-            lastKeyFound = tree->get(first, &currentValue);
-            lastKeyQueried = first;
-        }
-        if (lastKeyFound) {
-            out = get(idx, currentValue, first, second, third, cons);
+    if (present[idx] || (idx >= 3 && present[idx - 3]) || (idx < 3 && present[idx + 3])) {
+        if (first >= 0) {
+            if (lastKeyQueried != first) {
+                lastKeyFound = tree->get(first, &currentValue);
+                lastKeyQueried = first;
+            }
+            if (lastKeyFound) {
+                out = get(idx, currentValue, first, second, third, cons);
+            } else {
+                out = &emptyItr;
+            }
         } else {
-            out = &emptyItr;
+            ScanItr *itr = factory3.get();
+            itr->init(idx, this);
+            out = itr;
         }
     } else {
-        ScanItr *itr = factory3.get();
-        itr->init(idx, this);
-        out = itr;
+        // TODO!
+        throw 10;
     }
 
     if (!diffIndices.empty()) {
