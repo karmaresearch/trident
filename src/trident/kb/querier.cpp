@@ -26,6 +26,8 @@
 #include <trident/binarytables/tableshandler.h>
 #include <trident/iterators/emptyitr.h>
 #include <trident/iterators/compositetermitr.h>
+#include <trident/iterators/reorderitr.h>
+#include <trident/iterators/reordertermitr.h>
 
 #include <kognac/factory.h>
 
@@ -49,6 +51,9 @@ int INV_PERM_OSP[] = { 1, 2, 0 };
 int PERM_SOP[] = { 0, 2, 1 };
 int INV_PERM_SOP[] = { 0, 2, 1 };
 EmptyItr emptyItr;
+
+// The assumption through-out this code seems to be:
+// It cannot happen that for perm = 0, 1, 2: perm+3 exists but perm does not.
 
 Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         const int64_t inputSize, const int64_t nTerms, const int nindices,
@@ -148,12 +153,18 @@ uint64_t Querier::getCardOnIndex(const int idx, const int64_t first, const int64
                 releaseItr(itr);
                 return card;
             } else {
-                releaseItr(itr);
-
                 int64_t nElements = 0;
                 int idx2 = idx;
                 if (idx2 > 2)
                     idx2 -= 3;
+
+                if (! present[idx2]) {
+                    uint64_t card = itr->getCardinality();
+                    releaseItr(itr);
+                    return card;
+                }
+
+                releaseItr(itr);
                 if (lastKeyFound && currentValue.exists(idx2)) {
                     nElements += currentValue.getNElements(idx2);
                 }
@@ -643,6 +654,26 @@ void Querier::initNewIterator(TableStorage *storage,
 }
 
 PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el2,
+        const int64_t el3) {
+    switch (idx) {
+        case IDX_SPO:
+            return getIterator(idx, el1, el2, el3);
+        case IDX_SOP:
+            return getIterator(idx, el1, el3, el2);
+        case IDX_POS:
+            return getIterator(idx, el3, el1, el2);
+        case IDX_PSO:
+            return getIterator(idx, el2, el1, el3);
+        case IDX_OSP:
+            return getIterator(idx, el2, el3, el1);
+        case IDX_OPS:
+            return getIterator(idx, el3, el2, el1);
+    }
+    LOG(ERRORL) << "Idx " << idx << " not known";
+    throw 10;
+}
+
+PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el2,
         const int64_t el3, const bool constrain) {
     switch (idx) {
         case IDX_SPO:
@@ -664,6 +695,15 @@ PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el
 
 PairItr *Querier::getTermList(const int perm) {
     PairItr *finalItr = getKBTermList(perm, false);
+
+    if (finalItr == NULL) {
+        assert(perm != IDX_SPO && perm != IDX_SOP);
+    
+        PairItr *helper = getIterator(IDX_SPO, -1, -1, -1);
+        assert(helper != NULL);
+
+        return new ReOrderTermItr(helper, perm, this);
+    }
 
     //Add differential updates
     for (size_t i = 0; i < diffIndices.size(); ++i) {
@@ -780,10 +820,12 @@ TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
     TableStorage *storage = files[perm];
     if (storage == NULL) {
         if (! enforcePerm) {
-            if (perm > 2 && files[perm-3] != NULL) {
+            if (perm > 2 && files[perm - 3] != NULL) {
                 storage = files[perm - 3];
+            /*
             } else if (perm < 3 && files[perm+3] != NULL) {
                 storage = files[perm + 3];
+            */
             }
         }
     }
@@ -791,9 +833,10 @@ TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
         TermItr *itr = factory7.get();
         itr->init(storage, nTablesPerPartition[perm], perm, tree);
         return itr;
-    } else {
-        return NULL;
     }
+
+    return NULL;
+
 }
 
 PairItr *Querier::get(const int idx, TermCoordinates &value,
@@ -826,12 +869,14 @@ PairItr *Querier::get(const int idx, TermCoordinates &value,
         itr2->setKey(key);
         releaseItr(itr);
         return itr2;
+    /*
     } else if (idx < 3 && value.exists(idx + 3)) {
         PairItr *itr = get(idx + 3, value, key, -1, -1, cons);
         PairItr *itr2 = newItrOnReverse(itr, v1, v2);
         itr2->setKey(key);
         releaseItr(itr);
         return itr2;
+    */
     } else {
         return &emptyItr;
     }
@@ -900,6 +945,11 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
     PairItr *out = NULL;
     int64_t first, second, third;
     first = second = third = 0;
+
+    if (! (present[idx] || (idx >= 3 && present[idx - 3]) /* || (idx < 3 && present[idx + 3]) */)) {
+        return NULL;
+    }
+
     switch (idx) {
         case IDX_SPO:
             spo++;
@@ -939,25 +989,31 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
             break;
     }
 
-    if (present[idx] || (idx >= 3 && present[idx - 3]) || (idx < 3 && present[idx + 3])) {
-        if (first >= 0) {
-            if (lastKeyQueried != first) {
-                lastKeyFound = tree->get(first, &currentValue);
-                lastKeyQueried = first;
-            }
-            if (lastKeyFound) {
-                out = get(idx, currentValue, first, second, third, cons);
-            } else {
-                out = &emptyItr;
-            }
+    if (first >= 0) {
+        if (lastKeyQueried != first) {
+            lastKeyFound = tree->get(first, &currentValue);
+            lastKeyQueried = first;
+        }
+        if (lastKeyFound) {
+            out = get(idx, currentValue, first, second, third, cons);
         } else {
-            ScanItr *itr = factory3.get();
-            itr->init(idx, this);
-            out = itr;
+            out = &emptyItr;
         }
     } else {
-        // TODO!
-        throw 10;
+        ScanItr *itr = factory3.get();
+        itr->init(idx, this);
+        /* ScanItr does not support constraints ...
+         * Note that this only is a problem if not all indices are present, in which case we need
+         * a ScanItr over SPO to emulate iterators over other indices. In this case, second and/or third
+         * may be >= 0.
+        if (second >= 0) {
+            itr->setConstraint1(second);
+        }
+        if (third >= 0) {
+            itr->setConstraint2(third);
+        }
+        */
+        out = itr;
     }
 
     if (!diffIndices.empty()) {
@@ -1084,6 +1140,26 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
     return out;
 }
 
+PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o) {
+
+    // LOG(WARNL) << "getIterator(" << idx << ", " << s << ", " << p << ", " << o << ")";
+
+    PairItr *itr = getIterator(idx, s, p, o, true);
+    if (itr != NULL) {
+        return itr;
+    }
+
+    assert(idx != IDX_SPO && idx != IDX_SOP);
+    
+    PairItr *helper = getIterator(IDX_SPO, s, p, o);
+    assert(helper != NULL);
+
+    // Now, we have to create an iterator behaving like an iterator over idx.
+    // Note: helper may not obey p and/or o, since it probably is a ScanItr.
+
+    return new ReOrderItr(helper, idx, this, p, o);
+}
+
 PairItr *Querier::newItrOnReverse(PairItr * oldItr, const int64_t v1, const int64_t v2) {
     std::shared_ptr<Pairs> tmpVector = std::shared_ptr<Pairs>(new Pairs());
     while (oldItr->hasNext()) {
@@ -1200,6 +1276,10 @@ void Querier::releaseItr(PairItr * itr) {
             releaseItr(((RmCompositeTermItr*)itr)->getMainItr());
             releaseItr(((RmCompositeTermItr*)itr)->getRmItr());
             factory15.release((RmCompositeTermItr*)itr);
+            break;
+        case REORDERTERM_ITR:
+        case REORDER_ITR:
+            delete itr;
             break;
         case COMPOSITETERM_ITR:
         case COMPOSITE_ITR:

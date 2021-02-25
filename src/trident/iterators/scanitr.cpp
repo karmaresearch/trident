@@ -363,7 +363,9 @@ void ScanItr::gotoKey(int64_t k) {
             //I do not advance this iteration because it will be increased
             //the first time we call the hasNext() method.
         }
-        itr1->gotoKey(k);
+        if (itr1) {
+            itr1->gotoKey(k);
+        }
     }
 }
 

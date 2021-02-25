@@ -160,13 +160,11 @@ class Querier {
             return present[idx];
         }
 
-        DDLEXPORT PairItr *getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o) {
-            return getIterator(idx, s, p, o, true);
-        }
+        DDLEXPORT PairItr *getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o);
 
         // Method below should be phased out, but is part of the trident interface.
         DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
-            return getIterator(idx, s, p, o, true);
+            return getIterator(idx, s, p, o);
         }
 
         PairItr *getIterator(const int perm,
@@ -179,8 +177,13 @@ class Querier {
                 const bool constrain,
                 const bool noAggr);
 
+        // This one may return NULL if the requested idx is not present
         DDLEXPORT PairItr *getPermuted(const int idx, const int64_t el1, const int64_t el2,
                 const int64_t el3, const bool constrain);
+
+        // but this one may not return NULL.
+        DDLEXPORT PairItr *getPermuted(const int idx, const int64_t el1, const int64_t el2,
+                const int64_t el3);
 
         DDLEXPORT uint64_t isAggregated(const int idx, const int64_t first, const int64_t second,
                 const int64_t third);

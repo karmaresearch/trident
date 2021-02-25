@@ -842,7 +842,7 @@ void TestTrident::tryjumps(int perm, size_t s, size_t e) {
             }
 
             if (!itr) {
-                itr = q->getPermuted(perm, first, -1, -1, true);
+                itr = q->getPermuted(perm, first, -1, -1);
                 if (!itr->hasNext())
                     throw 10;
                 itr->next();
@@ -870,7 +870,7 @@ void TestTrident::tryjumps(int perm, size_t s, size_t e) {
 
 void TestTrident::test_moveto_ignoresecond(int perm, int64_t key,
         std::vector<uint64_t> &firsts) {
-    PairItr *itr = q->getPermuted(perm, key, -1, -1, true);
+    PairItr *itr = q->getPermuted(perm, key, -1, -1);
     itr->ignoreSecondColumn();
     for (int i = 0; i < firsts.size(); ++i) {
         if (!itr->hasNext()) {
@@ -895,7 +895,7 @@ void TestTrident::test_moveto_ignoresecond(int perm, int64_t key,
     //Move to the center
     if (firsts.size() > 2) {
         size_t middle = firsts.size() / 2;
-        PairItr *itr2 = q->getPermuted(perm, key, -1, -1, true);
+        PairItr *itr2 = q->getPermuted(perm, key, -1, -1);
         itr2->ignoreSecondColumn();
         itr2->hasNext();
         itr2->next();
@@ -992,10 +992,10 @@ void TestTrident::test_moveto(std::vector<int> permutations) {
                     }
                     q->releaseItr(itr);
                 }
-                itr = q->getPermuted(perm, first, -1, -1, true);
+                itr = q->getPermuted(perm, first, -1, -1);
                 prevkey = first;
 
-                PairItr *itr2 = q->getPermuted(perm, first, -1, -1, true);
+                PairItr *itr2 = q->getPermuted(perm, first, -1, -1);
                 if (!itr2->hasNext()) {
                     throw 10;
                 }
@@ -1104,7 +1104,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
             minNumber = triples.front().o;
         }
         maxNumber += 1;
-        PairItr *itr = q->getPermuted(perm, maxNumber, -1, -1, true);
+        PairItr *itr = q->getPermuted(perm, maxNumber, -1, -1);
         if (itr->hasNext()) {
             LOG(ERRORL) << "A query with key (max) " << maxNumber << " should fail!";
             throw 10;
@@ -1112,7 +1112,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
         q->releaseItr(itr);
         if (minNumber > 0) {
             LOG(INFOL) << "Testing a query with a min non-existing key";
-            PairItr *itr = q->getPermuted(perm, minNumber - 1, -1, -1, true);
+            PairItr *itr = q->getPermuted(perm, minNumber - 1, -1, -1);
             if (itr->hasNext()) {
                 LOG(ERRORL) << "A query with key (min) " << (minNumber - 1) << " should fail!";
                 throw 10;
@@ -1135,7 +1135,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
                 currentkey = triples[i].o;
             }
             if (currentkey > prevkey + 1) {
-                PairItr *itr = q->getPermuted(perm, prevkey + 1, -1, -1, true);
+                PairItr *itr = q->getPermuted(perm, prevkey + 1, -1, -1);
                 if (itr->hasNext()) {
                     throw 10;
                 }
@@ -1238,7 +1238,7 @@ void TestTrident::test_nonexist(std::vector<int> permutations) {
 }
 
 bool TestTrident::shouldFail(int idx, int64_t first, int64_t second, int64_t third) {
-    PairItr *itr = q->getPermuted(idx, first, second, third, true);
+    PairItr *itr = q->getPermuted(idx, first, second, third);
     bool sf = !itr->hasNext();
     q->releaseItr(itr);
     if (!sf) {
