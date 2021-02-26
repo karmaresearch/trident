@@ -41,6 +41,8 @@ private:
     size_t nextKeyIndex;
     int idx;
     bool initialized;
+    size_t m_nextKeyIndex;
+    size_t m_key;
 
     void fillValuesO(google::dense_hash_set<uint64_t> &keys);
 
@@ -84,13 +86,13 @@ public:
 	LIBEXP void next();
 
 	LIBEXP void mark() {
-        // TODO
-        throw 10;
+        m_key = key;
+        m_nextKeyIndex = nextKeyIndex;
     }
 
 	LIBEXP void reset(const char i) {
-        // TODO
-        throw 10;
+        key = m_key;
+        nextKeyIndex = m_nextKeyIndex;
     }
 
 	LIBEXP void clear() {

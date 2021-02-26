@@ -176,7 +176,7 @@ bool ReOrderItr::hasNext() {
 
 void ReOrderItr::next() {
     if (itr == NULL || ! itr->hasNext()) {
-        if (itr != NULL) {
+        if (itr != NULL && itr != m_itr) {
             itr->clear();
         } else {
             itr = new ArrayItr();

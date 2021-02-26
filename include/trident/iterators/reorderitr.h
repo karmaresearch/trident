@@ -48,6 +48,9 @@ private:
     bool ignSecondColumn;
     std::vector<bool> sorted;
     int64_t p, o;
+    ArrayItr *m_itr;
+    uint64_t m_key;
+    size_t m_nextKeyIndex;
 
     void fillValue(google::dense_hash_map<uint64_t, std::shared_ptr<Pairs>> &keyToPair, uint64_t key, uint64_t v1, uint64_t v2);
 
@@ -64,7 +67,7 @@ private:
 public:
     ReOrderItr(PairItr *helper, int idx, Querier *q, int64_t p, int64_t o)
         : q(q), helper(helper), idx(idx), nextKeyIndex(0), itr(NULL), initialized(false),
-          ignSecondColumn(false), p(p), o(o) {
+          ignSecondColumn(false), p(p), o(o), m_itr(NULL) {
         initializeConstraints();
     }
 
@@ -99,19 +102,30 @@ public:
 	LIBEXP void next();
 
 	LIBEXP void mark() {
-        // TODO
-        throw 10;
+        m_itr = itr;
+        m_key = key;
+        m_nextKeyIndex = nextKeyIndex;
     }
 
 	LIBEXP void reset(const char i) {
-        // TODO
-        throw 10;
+        if (itr != NULL && itr != m_itr) {
+            itr->clear();
+            delete itr;
+        }
+        itr = m_itr;
+        key = m_key;
+        nextKeyIndex = m_nextKeyIndex;
     }
 
 	LIBEXP void clear() {
         if (helper != NULL) {
             q->releaseItr(helper);
             helper = NULL;
+        }
+        if (m_itr != NULL && m_itr != itr) {
+            m_itr->clear();
+            delete m_itr;
+            m_itr = NULL;
         }
         if (itr != NULL) {
             itr->clear();
