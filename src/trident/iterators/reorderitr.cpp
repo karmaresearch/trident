@@ -46,6 +46,10 @@ void ReOrderItr::fillValuesOSP(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v1 = helper->getKey();
         uint64_t v2 = helper->getValue1();
         uint64_t key = helper->getValue2();
+        if (p >= 0 && v2 > p) {
+            helper->gotoKey(v1+1);
+            continue;
+        }
         if ((o >= 0 && key != o) || (p >= 0 && v2 != p)) {
             continue;
         }
@@ -59,6 +63,10 @@ void ReOrderItr::fillValuesPSO(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v1 = helper->getKey();
         uint64_t key = helper->getValue1();
         uint64_t v2 = helper->getValue2();
+        if (p >= 0 && key > p) {
+            helper->gotoKey(v1+1);
+            continue;
+        }
         if ((o >= 0 && v2 != o) || (p >= 0 && key != p)) {
             continue;
         }
@@ -70,9 +78,13 @@ void ReOrderItr::fillValuesPSO(google::dense_hash_map<uint64_t, std::shared_ptr<
 void ReOrderItr::fillValuesPOS(google::dense_hash_map<uint64_t, std::shared_ptr<Pairs>> &keyToPair) {
     while (helper->hasNext()) {
         helper->next();
-        uint64_t v1 = helper->getValue2();
-        uint64_t key = helper->getValue1();
         uint64_t v2 = helper->getKey();
+        uint64_t key = helper->getValue1();
+        uint64_t v1 = helper->getValue2();
+        if (p >= 0 && key > p) {
+            helper->gotoKey(v2+1);
+            continue;
+        }
         if ((o >= 0 && v1 != o) || (p >= 0 && key != p)) {
             continue;
         }
@@ -84,9 +96,13 @@ void ReOrderItr::fillValuesPOS(google::dense_hash_map<uint64_t, std::shared_ptr<
 void ReOrderItr::fillValuesOPS(google::dense_hash_map<uint64_t, std::shared_ptr<Pairs>> &keyToPair) {
     while (helper->hasNext()) {
         helper->next();
+        uint64_t v2 = helper->getKey();
         uint64_t v1 = helper->getValue1();
         uint64_t key = helper->getValue2();
-        uint64_t v2 = helper->getKey();
+        if (p >= 0 && v1 > p) {
+            helper->gotoKey(v2+1);
+            continue;
+        }
         if ((o >= 0 && key != o) || (p >= 0 && v1 != p)) {
             continue;
         }
