@@ -30,6 +30,7 @@ void ReOrderTermItr::fillValuesO(google::dense_hash_set<uint64_t> &keys) {
 }
 
 void ReOrderTermItr::fillValuesP(google::dense_hash_set<uint64_t> &keys) {
+    helper->ignoreSecondColumn();
     while (helper->hasNext()) {
         helper->next();
         uint64_t key = helper->getValue1();

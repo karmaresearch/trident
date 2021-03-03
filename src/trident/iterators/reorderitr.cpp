@@ -46,11 +46,18 @@ void ReOrderItr::fillValuesOSP(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v1 = helper->getKey();
         uint64_t v2 = helper->getValue1();
         uint64_t key = helper->getValue2();
-        if (p >= 0 && v2 > p) {
-            helper->gotoKey(v1+1);
+        if (p >= 0 && v2 != p) {
+            if (v2 > p) {
+                helper->gotoKey(v1+1);
+            }
             continue;
         }
-        if ((o >= 0 && key != o) || (p >= 0 && v2 != p)) {
+        if (o >= 0 && key != o) {
+            /* Adding this actually makes it slower
+            if (key > o) {
+                helper->moveto(v2+1, o);
+            }
+            */
             continue;
         }
         fillValue(keyToPair, key, v1, v2);
@@ -63,11 +70,18 @@ void ReOrderItr::fillValuesPSO(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v1 = helper->getKey();
         uint64_t key = helper->getValue1();
         uint64_t v2 = helper->getValue2();
-        if (p >= 0 && key > p) {
-            helper->gotoKey(v1+1);
+        if (p >= 0 && key != p) {
+            if (key > p) {
+                helper->gotoKey(v1+1);
+            }
             continue;
         }
-        if ((o >= 0 && v2 != o) || (p >= 0 && key != p)) {
+        if (o >= 0 && v2 != o) {
+            /* Adding this actually makes it slower
+            if (v2 > o) {
+                helper->moveto(key+1, o);
+            }
+            */
             continue;
         }
 
@@ -81,11 +95,18 @@ void ReOrderItr::fillValuesPOS(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v2 = helper->getKey();
         uint64_t key = helper->getValue1();
         uint64_t v1 = helper->getValue2();
-        if (p >= 0 && key > p) {
-            helper->gotoKey(v2+1);
+        if (p >= 0 && key != p) {
+            if (key > p) {
+                helper->gotoKey(v2+1);
+            }
             continue;
         }
-        if ((o >= 0 && v1 != o) || (p >= 0 && key != p)) {
+        if (o >= 0 && v1 != o) {
+            /* Adding this actually makes it slower
+            if (v1 > o) {
+                helper->moveto(key+1, o);
+            }
+            */
             continue;
         }
 
@@ -99,11 +120,18 @@ void ReOrderItr::fillValuesOPS(google::dense_hash_map<uint64_t, std::shared_ptr<
         uint64_t v2 = helper->getKey();
         uint64_t v1 = helper->getValue1();
         uint64_t key = helper->getValue2();
-        if (p >= 0 && v1 > p) {
-            helper->gotoKey(v2+1);
+        if (p >= 0 && v1 != p) {
+            if (v1 > p) {
+                helper->gotoKey(v2+1);
+            }
             continue;
         }
-        if ((o >= 0 && key != o) || (p >= 0 && v1 != p)) {
+        if (o >= 0 && key != o) {
+            /* Adding this actually makes it slower
+            if (key > o) {
+                helper->moveto(v1+1, o);
+            }
+            */
             continue;
         }
 
