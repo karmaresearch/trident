@@ -129,9 +129,9 @@ void TermItr::gotoKey(int64_t keyToSearch) {
                 return;
             }
         }
-        //Move to the very last position
+        //Move to the end, so that the next call to hasNext returns false.
         const size_t elemsAhead = (endbuffer - buffer) / 11;
-        buffer = endbuffer - 11;
+        buffer = endbuffer;
         currentMark += elemsAhead;
         setKey(lastKey);
         return;

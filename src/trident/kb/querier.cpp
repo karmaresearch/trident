@@ -1142,7 +1142,7 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
 
 PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o) {
 
-    // LOG(WARNL) << "getIterator(" << idx << ", " << s << ", " << p << ", " << o << ")";
+    // LOG(DEBUGL) << "getIterator(" << idx << ", " << s << ", " << p << ", " << o << ")";
 
     PairItr *itr = getIterator(idx, s, p, o, true);
     if (itr != NULL) {
