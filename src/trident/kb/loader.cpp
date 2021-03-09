@@ -1971,7 +1971,7 @@ void Loader::loadKB(KB &kb,
     string *sTreeWriters = new string[6];
     TreeWriter **treeWriters = new TreeWriter*[6];
     for (int i = 0; i < 6; ++i) {
-        if (signaturePerms & (1 << i)) {
+        if ((signaturePerms & (1 << i)) || (aggrIndices && (i == 2 || (nindices == 6 && i == 5)))) {
             sTreeWriters[i] = tmpDir + DIR_SEP + string("tmpTree" ) + to_string(i);
             treeWriters[i] = new TreeWriter(sTreeWriters[i]);
         } else {
