@@ -2647,7 +2647,7 @@ void Loader::createIndices(
         lastIdx = IDX_OSP;
     }
 
-    if (permDirs[IDX_POS] != "") {
+    if (permDirs[IDX_POS] != "" || aggrIndices) {
         if (!aggrIndices) {
             if (createIndicesInBlocks) {
                 generateNewPermutation(permDirs[IDX_POS],
@@ -2724,7 +2724,7 @@ void Loader::createIndices(
         lastIdx = IDX_POS;
     }
 
-    if (permDirs[IDX_PSO] != "") {
+    if (permDirs[IDX_PSO] != "" || (aggrIndices && nindices == 6)) {
         if (!aggrIndices) {
             if (createIndicesInBlocks) {
                 generateNewPermutation(permDirs[IDX_PSO],
