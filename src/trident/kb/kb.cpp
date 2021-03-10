@@ -236,7 +236,7 @@ KB::KB(const char *path,
         }
 
         //Initialize the storage partitions
-        for (int i = 0; i < nindices; ++i) {
+        for (int i = 0; i < permutations.size(); ++i) {
             stringstream is;
             is << path << DIR_SEP << "p" << permutations[i];
             if (readOnly) {
