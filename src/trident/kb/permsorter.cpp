@@ -118,8 +118,6 @@ void PermSorter::dumpPermutation_seq(
 
             count++;
 
-            if (t.count > 200000)
-                throw 10;
             t.writeTo(currentPart, writer);
             start+= 23;
         }
