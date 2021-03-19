@@ -563,11 +563,18 @@ PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const Qu
         }
     } else {
         if (unusedObject) {
-            buildAggregatedIndexScan(query, DBLayer::Order_Subject_Predicate_Object, result, s, sc, p, pc);
-            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_SPO, result, s, sc, p, pc);
+            buildAggregatedIndexScan(query, DBLayer::Order_Predicate_Subject_Object, result, p, pc, s, sc);
+            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_PSO, result, p, pc, s, sc);
         } else {
-            buildIndexScan(query, DBLayer::Order_Subject_Predicate_Object, result, s, sc, p, pc, o, oc);
-            buildIndexScan(query, DBLayer::Order_No_Order_SPO, result, s, sc, p, pc, o, oc);
+            buildIndexScan(query, DBLayer::Order_Predicate_Subject_Object, result, p, pc, s, sc, o, oc);
+            buildIndexScan(query, DBLayer::Order_No_Order_PSO, result, p, pc, s, sc, o, oc);
+        }
+        if (unusedPredicate) {
+            buildAggregatedIndexScan(query, DBLayer::Order_Object_Subject_Predicate, result, o, oc, s, sc);
+            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_OSP, result, o, oc, s, sc);
+        } else {
+            buildIndexScan(query, DBLayer::Order_Object_Subject_Predicate, result, o, oc, s, sc, p, pc);
+            buildIndexScan(query, DBLayer::Order_No_Order_OSP, result, o, oc, s, sc, p, pc);
         }
         if (unusedPredicate) {
             buildAggregatedIndexScan(query, DBLayer::Order_Subject_Object_Predicate, result, s, sc, o, oc);
@@ -577,32 +584,25 @@ PlanGen::Problem* PlanGen::buildScan(const QueryGraph::SubQuery& query, const Qu
             buildIndexScan(query, DBLayer::Order_No_Order_SOP, result, s, sc, o, oc, p, pc);
         }
         if (unusedSubject) {
+            buildAggregatedIndexScan(query, DBLayer::Order_Predicate_Object_Subject, result, p, pc, o, oc);
+            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_POS, result, p, pc, o, oc);
+        } else {
+            buildIndexScan(query, DBLayer::Order_Predicate_Object_Subject, result, p, pc, o, oc, s, sc);
+            buildIndexScan(query, DBLayer::Order_No_Order_POS, result, p, pc, o, oc, s, sc);
+        }
+        if (unusedSubject) {
             buildAggregatedIndexScan(query, DBLayer::Order_Object_Predicate_Subject, result, o, oc, p, pc);
             buildAggregatedIndexScan(query, DBLayer::Order_No_Order_OPS, result, o, oc, p, pc);
         } else {
             buildIndexScan(query, DBLayer::Order_Object_Predicate_Subject, result, o, oc, p, pc, s, sc);
             buildIndexScan(query, DBLayer::Order_No_Order_OPS, result, o, oc, p, pc, s, sc);
         }
-        if (unusedPredicate) {
-            buildAggregatedIndexScan(query, DBLayer::Order_Object_Subject_Predicate, result, o, oc, s, sc);
-            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_OSP, result, o, oc, s, sc);
-        } else {
-            buildIndexScan(query, DBLayer::Order_Object_Subject_Predicate, result, o, oc, s, sc, p, pc);
-            buildIndexScan(query, DBLayer::Order_No_Order_OSP, result, o, oc, s, sc, p, pc);
-        }
         if (unusedObject) {
-            buildAggregatedIndexScan(query, DBLayer::Order_Predicate_Subject_Object, result, p, pc, s, sc);
-            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_PSO, result, p, pc, s, sc);
+            buildAggregatedIndexScan(query, DBLayer::Order_Subject_Predicate_Object, result, s, sc, p, pc);
+            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_SPO, result, s, sc, p, pc);
         } else {
-            buildIndexScan(query, DBLayer::Order_Predicate_Subject_Object, result, p, pc, s, sc, o, oc);
-            buildIndexScan(query, DBLayer::Order_No_Order_PSO, result, p, pc, s, sc, o, oc);
-        }
-        if (unusedSubject) {
-            buildAggregatedIndexScan(query, DBLayer::Order_Predicate_Object_Subject, result, p, pc, o, oc);
-            buildAggregatedIndexScan(query, DBLayer::Order_No_Order_POS, result, p, pc, o, oc);
-        } else {
-            buildIndexScan(query, DBLayer::Order_Predicate_Object_Subject, result, p, pc, o, oc, s, sc);
-            buildIndexScan(query, DBLayer::Order_No_Order_POS, result, p, pc, o, oc, s, sc);
+            buildIndexScan(query, DBLayer::Order_Subject_Predicate_Object, result, s, sc, p, pc, o, oc);
+            buildIndexScan(query, DBLayer::Order_No_Order_SPO, result, s, sc, p, pc, o, oc);
         }
     }
 
