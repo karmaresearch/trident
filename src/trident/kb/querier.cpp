@@ -864,16 +864,11 @@ bool Querier::existKey(int perm, int64_t key) {
 
 TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
     TableStorage *storage = files[perm];
-    if (storage == NULL) {
-        if (! enforcePerm) {
-            if (perm > 2 && files[perm - 3] != NULL) {
-                storage = files[perm - 3];
-            /*
-            } else if (perm < 3 && files[perm+3] != NULL) {
-                storage = files[perm + 3];
-            */
-            }
-        }
+    if (perm > 2 && ! enforcePerm) {
+	// Note: this is essential if the skipTables option is used when generating the db.
+	storage = files[perm - 3];
+    } else {
+	storage = files[perm];
     }
     if (storage != NULL) {
         TermItr *itr = factory7.get();
@@ -882,7 +877,6 @@ TermItr *Querier::getKBTermList(const int perm, const bool enforcePerm) {
     }
 
     return NULL;
-
 }
 
 PairItr *Querier::get(const int idx, TermCoordinates &value,
