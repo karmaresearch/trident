@@ -504,18 +504,18 @@ void DiffIndex1::createDiffIndex(string outputdir,
             = nfirstterms[IDX_SOP] = size;
         //Try PS
         assert(triple[1] >= 0);
-        PairItr *itr = q->getPermuted(IDX_PSO, triple[1], -1, -1, true);
+        PairItr *itr = q->getPermuted(IDX_PSO, triple[1], -1, -1);
         string fout = outputdir + "/newps";
         nuniquefirstterms[IDX_PSO] = nuniquefirstterms[IDX_SPO] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try OS
         assert(triple[2] >= 0);
-        itr = q->getPermuted(IDX_OSP, triple[2], -1, -1, true);
+        itr = q->getPermuted(IDX_OSP, triple[2], -1, -1);
         fout = outputdir + "/newos";
         nuniquefirstterms[IDX_OSP] = nuniquefirstterms[IDX_SOP] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try PO
-        itr = q->getPermuted(IDX_POS, triple[1], triple[2], -1, true);
+        itr = q->getPermuted(IDX_POS, triple[1], triple[2], -1);
         if (itr->hasNext()) {
             nuniquefirstterms[IDX_POS] = nuniquefirstterms[IDX_OPS] = 0;
         } else {
@@ -542,17 +542,17 @@ void DiffIndex1::createDiffIndex(string outputdir,
         nfirstterms[IDX_SPO] = nfirstterms[IDX_OPS] = nfirstterms[IDX_PSO] =
             nfirstterms[IDX_POS] = size;
         //Try SP
-        PairItr *itr = q->getPermuted(IDX_SPO, triple[0], -1, -1, true);
+        PairItr *itr = q->getPermuted(IDX_SPO, triple[0], -1, -1);
         string fout = outputdir + "/newsp";
         nuniquefirstterms[IDX_SPO] = nuniquefirstterms[IDX_PSO] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try OP
-        itr = q->getPermuted(IDX_OPS, triple[2], -1, -1, true);
+        itr = q->getPermuted(IDX_OPS, triple[2], -1, -1);
         fout = outputdir + "/newop";
         nuniquefirstterms[IDX_OPS] = nuniquefirstterms[IDX_POS] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try SO
-        itr = q->getPermuted(IDX_SOP, triple[0], triple[2], -1, true);
+        itr = q->getPermuted(IDX_SOP, triple[0], triple[2], -1);
         if (itr->hasNext()) {
             nuniquefirstterms[IDX_SOP] = nuniquefirstterms[IDX_OSP] = 0;
         } else {
@@ -579,17 +579,17 @@ void DiffIndex1::createDiffIndex(string outputdir,
         nfirstterms[IDX_POS] = nfirstterms[IDX_SOP] = nfirstterms[IDX_OSP] =
             nfirstterms[IDX_OPS] = size;
         //Try SO
-        PairItr *itr = q->getPermuted(IDX_SOP, triple[0], -1, -1, true);
+        PairItr *itr = q->getPermuted(IDX_SOP, triple[0], -1, -1);
         string fout = outputdir + "/newso";
         nuniquefirstterms[IDX_SOP] = nuniquefirstterms[IDX_OSP] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try PO
-        itr = q->getPermuted(IDX_POS, triple[1], -1, -1, true);
+        itr = q->getPermuted(IDX_POS, triple[1], -1, -1);
         fout = outputdir + "/newpo";
         nuniquefirstterms[IDX_POS] = nuniquefirstterms[IDX_OPS] = outerJoin(itr, values, fout);
         q->releaseItr(itr);
         //Try SP
-        itr = q->getPermuted(IDX_SPO, triple[0], triple[1], -1, true);
+        itr = q->getPermuted(IDX_SPO, triple[0], triple[1], -1);
         if (itr->hasNext()) {
             nuniquefirstterms[IDX_SPO] = nuniquefirstterms[IDX_PSO] = 0;
         } else {

@@ -675,22 +675,68 @@ PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el
 
 PairItr *Querier::getPermuted(const int idx, const int64_t el1, const int64_t el2,
         const int64_t el3, const bool constrain) {
+    if (constrain) {
+        return getPermuted(idx, el1, el2, el3);
+    }
+    PairItr *result;
     switch (idx) {
         case IDX_SPO:
-            return getIterator(idx, el1, el2, el3, constrain);
+            result = getIterator(idx, el1, el2, el3, false);
+            assert(result != NULL);
+            break;
         case IDX_SOP:
-            return getIterator(idx, el1, el3, el2, constrain);
+            result = getIterator(idx, el1, el3, el2, false);
+            assert(result != NULL);
+            break;
         case IDX_POS:
-            return getIterator(idx, el3, el1, el2, constrain);
+            result = getIterator(idx, el3, el1, el2, false);
+            if (result == NULL) {
+                result = getIterator(idx, el3, el1, -1);
+                if (el2 >= 0) {
+                    if (result->hasNext()) {
+                        result->moveto(el1, el2);
+                    }
+                }
+            }
+            break;
         case IDX_PSO:
-            return getIterator(idx, el2, el1, el3, constrain);
+            result = getIterator(idx, el2, el1, el3, false);
+            if (result == NULL) {
+                result = getIterator(idx, el2, el1, -1);
+                if (el3 >= 0) {
+                    if (result->hasNext()) {
+                        result->moveto(el1, el3);
+                    }
+                }
+            }
+            break;
         case IDX_OSP:
-            return getIterator(idx, el2, el3, el1, constrain);
+            result = getIterator(idx, el2, el3, el1, false);
+            if (result == NULL) {
+                result = getIterator(idx, el2, el3, -1);
+                if (el1 >= 0) {
+                    if (result->hasNext()) {
+                        result->moveto(el3, el1);
+                    }
+                }
+            }
+            break;
         case IDX_OPS:
-            return getIterator(idx, el3, el2, el1, constrain);
+            result = getIterator(idx, el3, el2, el1, false);
+            if (result == NULL) {
+                result = getIterator(idx, el3, el2, -1);
+                if (el1 >= 0) {
+                    if (result->hasNext()) {
+                        result->moveto(el2, el1);
+                    }
+                }
+            }
+            break;
+        default:
+            LOG(ERRORL) << "Idx " << idx << " not known";
+            throw 10;
     }
-    LOG(ERRORL) << "Idx " << idx << " not known";
-    throw 10;
+    return result;
 }
 
 PairItr *Querier::getTermList(const int perm) {
@@ -805,7 +851,7 @@ PairItr *Querier::summaryDiff(const int perm, DiffIndex::TypeUpdate tp) {
 }
 
 bool Querier::existKey(int perm, int64_t key) {
-    PairItr *itr = getPermuted(perm, key, -1, -1, true);
+    PairItr *itr = getPermuted(perm, key, -1, -1);
     bool resp;
     if (itr->hasNext()) {
         resp = true;

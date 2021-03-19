@@ -165,7 +165,7 @@ void SubgraphHandler::getAllPossibleAnswers(Querier *q,
         } else {
             queryType = IDX_PSO;
         }
-        auto itr = q->getPermuted(queryType, meta.rel, meta.ent, -1, true);
+        auto itr = q->getPermuted(queryType, meta.rel, meta.ent, -1);
         uint64_t countResultsS = 0;
         LOG(DEBUGL) << "Subgraph ID : " << subgraphid << " " << meta.rel  << " , " << meta.ent;
         while(itr->hasNext()) {
@@ -408,7 +408,7 @@ void SubgraphHandler::getDisplacement<TranseTester<double>>(
     }
     const uint64_t posO = tester.getPos(nents, scores, indices, indices2, t) + 1;
 
-    auto itr = q->getPermuted(IDX_SPO, h, r, -1, true);
+    auto itr = q->getPermuted(IDX_SPO, h, r, -1);
     uint64_t countResultsO = 0;
     while(itr->hasNext()) {
         itr->next();
@@ -427,7 +427,7 @@ void SubgraphHandler::getDisplacement<TranseTester<double>>(
     const uint64_t posS = tester.getPos(nents, scores, indices, indices2, h) + 1;
 
     // Order POS in IDX_POS also determines order of parameters we pass to getPermuted()
-    itr = q->getPermuted(IDX_POS, r, t, -1, true);
+    itr = q->getPermuted(IDX_POS, r, t, -1);
     uint64_t countResultsS = 0;
     while (itr->hasNext()) {
         itr->next();

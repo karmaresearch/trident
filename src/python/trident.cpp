@@ -193,8 +193,8 @@ static PyObject *db_existsQuery(PyObject *self, PyObject *args) {
         int64_t p2 = PyLong_AsLong(op2);
         int64_t o2 = PyLong_AsLong(oo2);
         Querier *q = ((trident_Db*)self)->q;
-        auto itr1 = q->getPermuted(IDX_SPO, term, p1, -1, true);
-        auto itr2 = q->getPermuted(IDX_OPS, o2, p2, -1, true);
+        auto itr1 = q->getPermuted(IDX_SPO, term, p1, -1);
+        auto itr2 = q->getPermuted(IDX_OPS, o2, p2, -1);
         //Merge join
         int64_t found = 0;
         int64_t v2 = -1;
@@ -292,7 +292,7 @@ static PyObject *db_alls(PyObject *self, PyObject *args) {
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
 
-    PairItr *itr = q->getPermuted(IDX_OPS, o, p, -1, true);
+    PairItr *itr = q->getPermuted(IDX_OPS, o, p, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t s = itr->getValue2();
@@ -311,7 +311,7 @@ static PyObject *db_alls_fast(PyObject *self, PyObject *args) {
 
     trident_Itr *obj = PyObject_New(trident_Itr, &trident_ItrType);
     Querier *q = ((trident_Db*)self)->q;
-    PairItr *itr = q->getPermuted(IDX_OPS, o, p, -1, true);
+    PairItr *itr = q->getPermuted(IDX_OPS, o, p, -1);
     obj->q = q;
     obj->itr = itr;
     obj->pos = 2;
@@ -326,7 +326,7 @@ static PyObject *db_alls_aggr(PyObject *self, PyObject *args) {
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
 
-    PairItr *itr = q->getPermuted(IDX_OSP, o, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_OSP, o, -1, -1);
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
@@ -548,7 +548,7 @@ static PyObject *db_all(PyObject *self, PyObject *args) {
     Querier *q = ((trident_Db*)self)->q;
     DictMgmt *dict =  ((trident_Db*)self)->kb->getDictMgmt();
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(perm, -1, -1, -1, true);
+    PairItr *itr = q->getPermuted(perm, -1, -1, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t s = itr->getKey();
@@ -588,7 +588,7 @@ static PyObject *db_allo(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_SPO, s, p, -1, true);
+    PairItr *itr = q->getPermuted(IDX_SPO, s, p, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t o = itr->getValue2();
@@ -607,7 +607,7 @@ static PyObject *db_allo_aggr_froms(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_SOP, s, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_SOP, s, -1, -1);
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
@@ -627,7 +627,7 @@ static PyObject *db_allo_aggr_fromp(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1);
     itr->ignoreSecondColumn();
     while (itr->hasNext()) {
         itr->next();
@@ -662,7 +662,7 @@ static PyObject *db_allpo(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_SPO, s, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_SPO, s, -1, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t p = itr->getValue1();
@@ -683,7 +683,7 @@ static PyObject *db_allps(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_OPS, o, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_OPS, o, -1, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t p = itr->getValue1();
@@ -704,7 +704,7 @@ static PyObject *db_allos(PyObject *self, PyObject *args) {
         return NULL;
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1, true);
+    PairItr *itr = q->getPermuted(IDX_POS, p, -1, -1);
     while (itr->hasNext()) {
         itr->next();
         int64_t o = itr->getValue1();
@@ -818,8 +818,8 @@ static PyObject * db_join_e2e(PyObject *self, PyObject *args) {
     }
     Querier *q = ((trident_Db*)self)->q;
     PyObject *obj = PyList_New(0);
-    PairItr *itr_lh = q->getPermuted(lh_idx, lh_key, lh_firstval, -1, true);
-    PairItr *itr_rh = q->getPermuted(rh_idx, rh_key, rh_firstval, -1, true);
+    PairItr *itr_lh = q->getPermuted(lh_idx, lh_key, lh_firstval, -1);
+    PairItr *itr_rh = q->getPermuted(rh_idx, rh_key, rh_firstval, -1);
     bool move_l = true;
     bool move_r = true;
     while (true) {
