@@ -95,6 +95,9 @@ public:
 
 	LIBEXP void ignoreSecondColumn() {
         ignSecondColumn = true;
+        if (itr != NULL) {
+            itr->ignoreSecondColumn();
+        }
     }
 
 	LIBEXP bool hasNext();
