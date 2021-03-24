@@ -1047,7 +1047,7 @@ bool TridentScan::first(uint64_t el, bool constrained) {
         throw 10; //Not supported
 
     if (constrained)
-        itr = q->getPermuted(perm, el, -1, -1, false);
+        itr = q->getPermuted(perm, el, -1, -1, true);
     else
         itr = q->getPermuted(perm, -1, -1, -1, false);
 
@@ -1067,9 +1067,9 @@ bool TridentScan::first(uint64_t el1, bool constrained1, uint64_t el2, bool cons
 
     if (constrained1) {
         if (constrained2) {
-            itr = q->getPermuted(perm, el1, el2, -1, false);
+            itr = q->getPermuted(perm, el1, el2, -1, true);
         } else {
-            itr = q->getPermuted(perm, el1, -1, -1, false);
+            itr = q->getPermuted(perm, el1, -1, -1, true);
         }
     } else {
         itr = q->getPermuted(perm, -1, -1, -1, false);
@@ -1097,12 +1097,12 @@ bool TridentScan::first(uint64_t el1, bool constrained1, uint64_t el2,
     if (constrained1) {
         if (constrained2) {
             if (constrained3) {
-                itr = q->getPermuted(perm, el1, el2, el3, false);
+                itr = q->getPermuted(perm, el1, el2, el3, true);
             } else {
-                itr = q->getPermuted(perm, el1, el2, -1, false);
+                itr = q->getPermuted(perm, el1, el2, -1, true);
             }
         } else {
-            itr = q->getPermuted(perm, el1, -1, -1, false);
+            itr = q->getPermuted(perm, el1, -1, -1, true);
         }
     } else {
         itr = q->getPermuted(perm, -1, -1, -1, false);
