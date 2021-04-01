@@ -120,6 +120,8 @@ class Querier {
                 const int64_t key, const int64_t v1,
                 const int64_t v2, const bool cons);
 
+        static int64_t getCard_internal(Querier *q, const int64_t s, const int64_t p, const int64_t o);
+
     public:
 
         struct Counters {

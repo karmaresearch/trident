@@ -455,18 +455,34 @@ int64_t Querier::estCard(const int64_t s, const int64_t p, const int64_t o) {
     throw 10;
 }
 
-int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
+template <typename R, typename... Args>
+std::function<R (Args...)> memo(R (*fn)(Args...)) {
+    static std::map<std::tuple<Args...>, R> table;
+    return [fn, table](Args... args) mutable -> R {
+        auto argt = std::make_tuple(args...);
+        auto memoized = table.find(argt);
+        if(memoized == table.end()) {
+            auto result = fn(args...);
+            table[argt] = result;
+            return result;
+        } else {
+            return memoized->second;
+        }
+    };
+}
+
+int64_t Querier::getCard_internal(Querier *q, const int64_t s, const int64_t p, const int64_t o) {
     if (s < 0 && p < 0 && o < 0) {
         //They are all variables. Return the input size...
-        return getInputSize();
+        return q->getInputSize();
     }
-    int idx = getIndex(s, p, o);
+    int idx = q->getIndex(s, p, o);
 
     int countUnbound = 0;
     if (s < 0) countUnbound++;
     if (p < 0) countUnbound++;
     if (o < 0) countUnbound++;
-    if (countUnbound == 2) {
+    if (countUnbound == 2 && (q->isPresent(idx) || (idx >= 3 && q->isPresent(idx - 3)))) {
         //Get the key
         int64_t key;
         if (s >= 0)
@@ -475,37 +491,42 @@ int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
             key = p;
         else
             key = o;
-        if (lastKeyQueried != key) {
-            lastKeyFound = tree->get(key, &currentValue);
-            lastKeyQueried = key;
+        if (q->lastKeyQueried != key) {
+            q->lastKeyFound = q->tree->get(key, &q->currentValue);
+            q->lastKeyQueried = key;
         }
         int64_t nElements = 0;
-        if (lastKeyFound && currentValue.exists(idx)) {
-            nElements += currentValue.getNElements(idx);
+        if (q->lastKeyFound && q->currentValue.exists(idx)) {
+            nElements += q->currentValue.getNElements(idx);
         }
-        for (size_t i = 0; i < diffIndices.size(); ++i) {
-            nElements += diffIndices[i]->getCard(idx, key);
+        for (size_t i = 0; i < q->diffIndices.size(); ++i) {
+            nElements += q->diffIndices[i]->getCard(idx, key);
         }
         return nElements;
     }
 
-    //Two or three constants
-    PairItr *itr = getIterator(idx, s, p, o);
+    //Two or three constants, or idx not present
+    PairItr *itr = q->getIterator(idx, s, p, o);
     if (itr->getTypeItr() != EMPTY_ITR && itr->hasNext()) {
         if (countUnbound == 0) {
-            releaseItr(itr);
+            q->releaseItr(itr);
             return 1;
         }
         itr->next();
         uint64_t card = itr->getCardinality();
-        releaseItr(itr);
+        q->releaseItr(itr);
         return card;
     } else {
         if (itr->getTypeItr() != EMPTY_ITR)
-            releaseItr(itr);
+            q->releaseItr(itr);
         return 0; //EMPTY_ITR. Join will fail...
     }
 }
+
+int64_t Querier::getCard(const int64_t s, const int64_t p, const int64_t o) {
+    return memo(getCard_internal)(this, s, p, o);
+}
+
 
 //Check whether a triple exists
 bool Querier::exists(const int64_t s, const int64_t p, const int64_t o) {
