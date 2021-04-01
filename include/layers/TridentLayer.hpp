@@ -167,7 +167,11 @@ class TridentLayer : public DBLayer {
     public:
         TridentLayer(KB &kb) : kb(kb), dict(kb.getDictMgmt()), q(kb.query()),
         bifSampl(true), nindices(kb.getNIndices()), supportBuffer(new
-                char[MAX_TERM_SIZE]) { }
+                char[MAX_TERM_SIZE]) {
+	    if (kb.getNIndices() < 6) {
+		disableBifocalSampling();
+	    }
+	}
 
 		DDLEXPORT bool lookup(const std::string& text,
                 ::Type::ID type,
