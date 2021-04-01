@@ -83,34 +83,34 @@ public:
         return itr->getValue2();
     }
 
-	LIBEXP int64_t getCount() {
+    LIBEXP int64_t getCount() {
         return itr->getCount();
     }
 
-	LIBEXP uint64_t getCardinality();
+    LIBEXP uint64_t getCardinality();
 
-	LIBEXP uint64_t estCardinality() {
+    LIBEXP uint64_t estCardinality() {
         return getCardinality();
     }
 
-	LIBEXP void ignoreSecondColumn() {
+    LIBEXP void ignoreSecondColumn() {
         ignSecondColumn = true;
         if (itr != NULL) {
             itr->ignoreSecondColumn();
         }
     }
 
-	LIBEXP bool hasNext();
+    LIBEXP bool hasNext();
 
-	LIBEXP void next();
+    LIBEXP void next();
 
-	LIBEXP void mark() {
+    LIBEXP void mark() {
         m_itr = itr;
         m_key = key;
         m_nextKeyIndex = nextKeyIndex;
     }
 
-	LIBEXP void reset(const char i) {
+    LIBEXP void reset(const char i) {
         if (itr != NULL && itr != m_itr) {
             itr->clear();
             delete itr;
@@ -120,7 +120,7 @@ public:
         nextKeyIndex = m_nextKeyIndex;
     }
 
-	LIBEXP void clear() {
+    LIBEXP void clear() {
         if (helper != NULL) {
             q->releaseItr(helper);
             helper = NULL;
@@ -137,12 +137,11 @@ public:
         }
     }
 
-	LIBEXP void moveto(const int64_t c1, const int64_t c2) {
+    LIBEXP void moveto(const int64_t c1, const int64_t c2) {
         if (itr == NULL || ! itr->hasNext()) {
-	    if (! hasNext()) {
-		return;
-	    }
-            next();
+	    // Should itr == NULL even be allowed here?
+	    // Anyway, moveto should not move to a next key.
+	    return;
         }
         itr->moveto(c1, c2);
     }
