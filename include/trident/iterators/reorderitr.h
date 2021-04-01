@@ -87,6 +87,8 @@ public:
         return itr->getCount();
     }
 
+    LIBEXP void gotoKey(int64_t keyToSearch);
+
     LIBEXP uint64_t getCardinality();
 
     LIBEXP uint64_t estCardinality() {

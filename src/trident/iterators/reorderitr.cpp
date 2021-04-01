@@ -218,6 +218,27 @@ bool ReOrderItr::hasNext() {
     return true;
 }
 
+void ReOrderItr::gotoKey(int64_t newkey) {
+    if (newkey <= key) {
+	return;
+    }
+    while (nextKeyIndex < array.size()) {
+	key = array[nextKeyIndex].first;
+	if (key >= newkey) {
+	    break;
+	}
+	nextKeyIndex++;
+    }
+    if (nextKeyIndex < array.size()) {
+	if (itr != NULL && itr != m_itr) {
+	    itr->clear();
+	    delete itr;
+	}
+	itr = NULL;
+    }
+    hasNext();
+}
+
 void ReOrderItr::next() {
     if (itr == NULL || ! itr->hasNext()) {
         if (itr != NULL && itr != m_itr) {
