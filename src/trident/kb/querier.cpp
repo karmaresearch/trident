@@ -458,7 +458,7 @@ int64_t Querier::estCard(const int64_t s, const int64_t p, const int64_t o) {
 template <typename R, typename... Args>
 std::function<R (Args...)> memo(R (*fn)(Args...)) {
     static std::map<std::tuple<Args...>, R> table;
-    return [fn, table](Args... args) mutable -> R {
+    return [fn](Args... args) mutable -> R {
         auto argt = std::make_tuple(args...);
         auto memoized = table.find(argt);
         if(memoized == table.end()) {
