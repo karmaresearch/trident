@@ -139,6 +139,9 @@ public:
 
 	LIBEXP void moveto(const int64_t c1, const int64_t c2) {
         if (itr == NULL || ! itr->hasNext()) {
+	    if (! hasNext()) {
+		return;
+	    }
             next();
         }
         itr->moveto(c1, c2);
