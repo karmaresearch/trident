@@ -67,6 +67,7 @@ void AggregateHandler::reset() {
 
 void AggregateHandler::updateVarInt(unsigned var,
         int64_t value, uint64_t count) {
+    LOG(DEBUGL) << "updateVarInt: var = " << var << ", value = " << value << ", count = " << count;
     assert(var <= 63);
     varvalues[var].v_int = value;
     varvalues[var].v_count = count;
@@ -76,6 +77,7 @@ void AggregateHandler::updateVarInt(unsigned var,
 
 void AggregateHandler::updateVarDec(unsigned var,
         double value, uint64_t count) {
+    LOG(DEBUGL) << "updateVarDec: var = " << var << ", value = " << value << ", count = " << count;
     assert(var <= 63);
     varvalues[var].v_dec = value;
     varvalues[var].v_count = count;
@@ -85,6 +87,7 @@ void AggregateHandler::updateVarDec(unsigned var,
 
 void AggregateHandler::updateVarSymbol(unsigned var,
         uint64_t value, uint64_t count) {
+    LOG(DEBUGL) << "updateVarSymbol: var = " << var << ", value = " << value << ", count = " << count;
     assert(var <= 63);
     varvalues[var].v_int = value;
     varvalues[var].v_count = count;
@@ -161,7 +164,8 @@ bool AggregateHandler::execCount(FunctCall &call) {
         varvalues[call.outputvar].type = VarValue::TYPE::INT;
         return true;
     } else {
-        call.arg2_int += distinct[call.id] ? 1 : varvalues[call.inputvar].v_count;
+        call.arg1_int += distinct[call.id] ? 1 : varvalues[call.inputvar].v_count;
+        LOG(DEBUGL) << "arg1_int = " << call.arg1_int;
         return false;
     }
 }
