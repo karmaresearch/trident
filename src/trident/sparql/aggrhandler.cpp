@@ -135,6 +135,13 @@ AggregateHandler::VarValue::TYPE AggregateHandler::getValueType(
 }
 
 bool AggregateHandler::executeFunction(FunctCall &call) {
+    if (distinct[call.id] && varvalues[call.inputvar].type == VarValue::TYPE::SYMBOL) {
+        std::set<uint64_t>::iterator it = sets[call.id].find(varvalues[call.inputvar].v_int);
+        if (it != sets[call.id].end()) {
+            return false;
+        }
+        sets[call.id].insert(varvalues[call.inputvar].v_int);
+    }
     switch (call.id) {
         case FUNC::COUNT:
             return execCount(call);
@@ -165,7 +172,6 @@ bool AggregateHandler::execCount(FunctCall &call) {
         return true;
     } else {
         call.arg1_int += distinct[call.id] ? 1 : varvalues[call.inputvar].v_count;
-        LOG(DEBUGL) << "arg1_int = " << call.arg1_int;
         return false;
     }
 }

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <set>
 
 class AggregateHandler {
     public:
@@ -41,6 +42,7 @@ class AggregateHandler {
         unsigned varcount;
         std::map<FUNC,std::map<unsigned,unsigned>> assignments;
         bool distinct[FUNC::NFUNCS];
+        std::set<uint64_t> sets[FUNC::NFUNCS];
         uint64_t inputmask;
         std::vector<VarValue> varvalues;
         std::vector<FunctCall> executions;
@@ -56,6 +58,9 @@ class AggregateHandler {
 
     public:
         AggregateHandler(unsigned varcount) : varcount(varcount) {
+            for (int i = 0; i < FUNC::NFUNCS; i++) {
+                distinct[i] = false;
+            }
         }
 
         unsigned getNewOrExistingVar(FUNC funID,
