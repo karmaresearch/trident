@@ -70,20 +70,14 @@ void _test_createqueries(string inputfile, string queryfile) {
             int64_t first;
             switch (perm) {
             case IDX_SPO:
-                first = el.s;
-                break;
             case IDX_SOP:
                 first = el.s;
                 break;
             case IDX_POS:
-                first = el.p;
-                break;
             case IDX_PSO:
                 first = el.p;
                 break;
             case IDX_OSP:
-                first = el.o;
-                break;
             case IDX_OPS:
                 first = el.o;
                 break;
