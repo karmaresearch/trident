@@ -67,27 +67,27 @@ void AggregateHandler::reset() {
 
 void AggregateHandler::updateVarInt(unsigned var,
         int64_t value, uint64_t count) {
-    //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
     varvalues[var].v_int = value;
+    varvalues[var].v_count = count;
     varvalues[var].type = VarValue::TYPE::INT;
     inputmask |= (uint64_t)1 << var;
 }
 
 void AggregateHandler::updateVarDec(unsigned var,
         double value, uint64_t count) {
-    //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
     varvalues[var].v_dec = value;
+    varvalues[var].v_count = count;
     varvalues[var].type = VarValue::TYPE::DEC;
     inputmask |= (uint64_t)1 << var;
 }
 
 void AggregateHandler::updateVarSymbol(unsigned var,
         uint64_t value, uint64_t count) {
-    //For the moment I ignore "count" but later it might be taken into account
     assert(var <= 63);
     varvalues[var].v_int = value;
+    varvalues[var].v_count = count;
     varvalues[var].type = VarValue::TYPE::SYMBOL;
     inputmask |= (uint64_t)1 << var;
 }
@@ -161,7 +161,7 @@ bool AggregateHandler::execCount(FunctCall &call) {
         varvalues[call.outputvar].type = VarValue::TYPE::INT;
         return true;
     } else {
-        call.arg1_int++;
+        call.arg2_int += distinct[call.id] ? 1 : varvalues[call.inputvar].v_count;
         return false;
     }
 }

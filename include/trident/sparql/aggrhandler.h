@@ -7,11 +7,12 @@
 
 class AggregateHandler {
     public:
-        typedef enum { COUNT, MIN, MAX, SUM, GROUP_CONCAT, AVG, SAMPLE } FUNC;
+        typedef enum { COUNT, MIN, MAX, SUM, GROUP_CONCAT, AVG, SAMPLE, NFUNCS } FUNC;
 
         struct VarValue {
             typedef enum {INT, DEC, SYMBOL, NUL} TYPE;
             int64_t v_int;
+            uint64_t v_count;
             double v_dec;
             TYPE type;
             bool requiresNumber;
@@ -39,6 +40,7 @@ class AggregateHandler {
 
         unsigned varcount;
         std::map<FUNC,std::map<unsigned,unsigned>> assignments;
+        bool distinct[FUNC::NFUNCS];
         uint64_t inputmask;
         std::vector<VarValue> varvalues;
         std::vector<FunctCall> executions;
@@ -65,6 +67,14 @@ class AggregateHandler {
 
         bool empty() const {
             return assignments.empty();
+        }
+
+        void setDistinct(FUNC funID, bool distinct) {
+            this->distinct[funID] = distinct;
+        }
+
+        bool getDistinct(FUNC funID) const {
+            return distinct[funID];
         }
 
         void prepare();

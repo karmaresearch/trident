@@ -296,6 +296,7 @@ static void getVars(const SPARQLParser::Filter& input,
 static bool createAggregatedFilter(QueryGraph::Filter& output,
         SPARQLParser::Filter::Type func,
         const SPARQLParser::Filter *args,
+        const bool distinct,
         QueryGraph &currentQueryGraph) {
     //Get the variable associated with the function
     //Return a variable object
@@ -335,6 +336,7 @@ static bool createAggregatedFilter(QueryGraph::Filter& output,
         getNewOrExistingVar(
                 f, vars);
     output.type = QueryGraph::Filter::Builtin_aggr;
+    currentQueryGraph.getAggredateHandler().setDistinct(f, distinct);
     output.id = aggrVar;
     return true;
 }
@@ -469,6 +471,7 @@ static bool encodeFilter(SemanticAnalysis *myself, DBLayer& dict, DifferentialIn
                                         return createAggregatedFilter(output,
                                                 input.type,
                                                 input.arg1,
+                                                input.distinct,
                                                 currentQueryGraph);
         case SPARQLParser::Filter::Builtin_xsdstring:
                                         LOG(ERRORL) << "Not implemented: xsd:string";
