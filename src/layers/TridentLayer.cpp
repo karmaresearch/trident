@@ -142,15 +142,6 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         uint64_t value3,
         uint64_t value3C) {
 
-    if (nindices == 3 && (order == DBLayer::DataOrder::Order_No_Order_PSO ||
-                order == DBLayer::DataOrder::Order_No_Order_OSP ||
-                order == DBLayer::DataOrder::Order_No_Order_SOP ||
-                order == DBLayer::DataOrder::Order_Predicate_Subject_Object ||
-                order == DBLayer::DataOrder::Order_Object_Subject_Predicate ||
-                order == DBLayer::DataOrder::Order_Subject_Object_Predicate)) {
-        return std::numeric_limits<double>::max();
-    }
-
     //Check whether the first term in the permutation is a constant.
     int64_t v1 = -1;
     int64_t v2 = -1;
@@ -176,7 +167,7 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
 
     int idx;
     int64_t cost = 0;
-    uint64_t reversedCard, aggrEls;
+    uint64_t reversedCard = 0, aggrEls = 0;
     switch (order) {
         case DBLayer::DataOrder::Order_No_Order_SPO:
         case DBLayer::DataOrder::Order_Subject_Predicate_Object:
@@ -234,6 +225,9 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
             //native indexing
             break;
     }
+    if (! q->isPresent(idx) && aggrEls == 0 && reversedCard == 0) {
+        cost += q->getInputSize() * log(q->getInputSize());
+    }
     return cost;
 }
 
@@ -242,29 +236,56 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         uint64_t value1C,
         uint64_t value2,
         uint64_t value2C) {
-    if (nindices == 3 && (order == DBLayer::DataOrder::Order_No_Order_PSO ||
-                order == DBLayer::DataOrder::Order_No_Order_OSP ||
-                order == DBLayer::DataOrder::Order_No_Order_SOP ||
-                order == DBLayer::DataOrder::Order_Predicate_Subject_Object ||
-                order == DBLayer::DataOrder::Order_Object_Subject_Predicate ||
-                order == DBLayer::DataOrder::Order_Subject_Object_Predicate)) {
-        return std::numeric_limits<double>::max();
-    }
 
     int64_t v1 = -1;
     int64_t v2 = -1;
-    if (value1C != UINT64_MAX) {
+    if (value1 == UINT64_MAX) {
         v1 = value1C;
     }
-    if (value2C != UINT64_MAX) {
+    if (value2 == UINT64_MAX) {
         v2 = value2C;
     }
 
-    if (v1 != -1 && v2 != -1)
-        return 1;
+    if (value1 != UINT64_MAX) {
+        if (value2 == UINT64_MAX) {
+            return std::numeric_limits<double>::max(); //no constants allowed after variable
+        }
+    }
+
+    int idx;
+    if (v1 != -1 && v2 != -1) {
+        switch (order) {
+            case DBLayer::DataOrder::Order_No_Order_SPO:
+            case DBLayer::DataOrder::Order_Subject_Predicate_Object:
+                idx = IDX_SPO;
+                break;
+            case DBLayer::DataOrder::Order_No_Order_SOP:
+            case DBLayer::DataOrder::Order_Subject_Object_Predicate:
+                idx = IDX_SOP;
+                break;
+            case DBLayer::DataOrder::Order_No_Order_PSO:
+            case DBLayer::DataOrder::Order_Predicate_Subject_Object:
+                idx = IDX_PSO;
+                break;
+            case DBLayer::DataOrder::Order_No_Order_POS:
+            case DBLayer::DataOrder::Order_Predicate_Object_Subject:
+                idx = IDX_POS;
+                break;
+            case DBLayer::DataOrder::Order_No_Order_OSP:
+            case DBLayer::DataOrder::Order_Object_Subject_Predicate:
+                idx = IDX_OSP;
+                break;
+            case DBLayer::DataOrder::Order_No_Order_OPS:
+            case DBLayer::DataOrder::Order_Object_Predicate_Subject:
+                idx = IDX_OPS;
+                break;
+        }
+        if (q->isPresent(idx)) {
+            return 1;
+        }
+    }
 
     int64_t cost = 0;
-    int idx;
     switch (order) {
         case DBLayer::DataOrder::Order_No_Order_SPO:
         case DBLayer::DataOrder::Order_Subject_Predicate_Object:
@@ -297,6 +318,13 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
             cost = q->getCardOnIndex(idx, -1, -1, v1, true);
             break;
     }
+    if (! q->isPresent(idx)) {
+        if (idx >= 3 && q->isPresent(idx-3)) {
+            cost = cost * (log(cost) + 1);
+        } else {
+            cost += q->getInputSize() * log(q->getInputSize());
+        }
+    }
     LOG(DEBUGL) << "Get cost for " << v1 << " " << v2 << " on index " << order << " is " << cost;
     return cost;
 }
@@ -304,19 +332,45 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
 double TridentLayer::getScanCost(DBLayer::DataOrder order,
         uint64_t value1,
         uint64_t value1C) {
-    if (nindices == 3 && (order == DBLayer::DataOrder::Order_No_Order_PSO ||
-                order == DBLayer::DataOrder::Order_No_Order_OSP ||
-                order == DBLayer::DataOrder::Order_No_Order_SOP ||
-                order == DBLayer::DataOrder::Order_Predicate_Subject_Object ||
-                order == DBLayer::DataOrder::Order_Object_Subject_Predicate ||
-                order == DBLayer::DataOrder::Order_Subject_Object_Predicate)) {
-        return std::numeric_limits<double>::max();
+    int idx = -1;
+    switch (order) {
+        case DBLayer::DataOrder::Order_No_Order_SPO:
+        case DBLayer::DataOrder::Order_Subject_Predicate_Object:
+            idx = IDX_SPO;
+            break;
+        case DBLayer::DataOrder::Order_No_Order_SOP:
+        case DBLayer::DataOrder::Order_Subject_Object_Predicate:
+            idx = IDX_SOP;
+            break;
+        case DBLayer::DataOrder::Order_No_Order_PSO:
+        case DBLayer::DataOrder::Order_Predicate_Subject_Object:
+            idx = IDX_PSO;
+            break;
+        case DBLayer::DataOrder::Order_No_Order_POS:
+        case DBLayer::DataOrder::Order_Predicate_Object_Subject:
+            idx = IDX_POS;
+            break;
+        case DBLayer::DataOrder::Order_No_Order_OSP:
+        case DBLayer::DataOrder::Order_Object_Subject_Predicate:
+            idx = IDX_OSP;
+            break;
+        case DBLayer::DataOrder::Order_No_Order_OPS:
+        case DBLayer::DataOrder::Order_Object_Predicate_Subject:
+            idx = IDX_OPS;
+            break;
+    }
+    if (q->isPresent(idx)) {
+        if (value1C == UINT64_MAX)
+            return kb.getNTerms();
+        else
+            return 1; //It's the cost of a lookup on the tree
+    }
+    if (idx >= 3 && q->isPresent(idx-3)) {
+        // Refuse this one; there is a better option.
+        return std::numeric_limits<double>::max(); //no constants allowed after variable
     }
 
-    if (value1C == UINT64_MAX)
-        return kb.getNTerms();
-    else
-        return 1; //It's the cost of a lookup on the tree
+    return q->getInputSize() * log(q->getInputSize());
 }
 
 bool same(TupleTable *t, const size_t idx, const uint8_t *j, const uint8_t sj) {
