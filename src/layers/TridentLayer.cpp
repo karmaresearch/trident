@@ -156,6 +156,10 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         v3 = value3C;
     }
 
+    LOG(DEBUGL) << "getScanCost: order = " << order
+	<< ", value1 = " << value1 << ", value2 = " << value2 << ", value3 = " << value3
+	<< ", value1C = " << value1C << ", value2C = " << value2C << ", value3C = " << value3C;
+
     if (value1 != UINT64_MAX) { //It's a variable
         if (value2 == UINT64_MAX || value3 == UINT64_MAX) {
             return std::numeric_limits<double>::max(); //no constants allowed after variable
@@ -289,41 +293,55 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
     switch (order) {
         case DBLayer::DataOrder::Order_No_Order_SPO:
         case DBLayer::DataOrder::Order_Subject_Predicate_Object:
-            idx = IDX_SPO;
-            cost = q->getCardOnIndex(idx, v1, -1, -1, true);
+            cost = q->getCardOnIndex(IDX_SPO, v1, -1, -1, true);
             break;
         case DBLayer::DataOrder::Order_No_Order_SOP:
         case DBLayer::DataOrder::Order_Subject_Object_Predicate:
-            idx = IDX_SOP;
-            cost = q->getCardOnIndex(idx, v1, -1, -1, true);
+	    if (q->isPresent(IDX_SOP)) {
+		cost = q->getCardOnIndex(IDX_SOP, v1, -1, -1, true);
+	    } else {
+		cost = q->getCardOnIndex(IDX_SPO, v1, -1, -1, true);
+		cost *= (log(cost) + 1);
+	    }
             break;
         case DBLayer::DataOrder::Order_No_Order_PSO:
         case DBLayer::DataOrder::Order_Predicate_Subject_Object:
-            idx = IDX_PSO;
-            cost = q->getCardOnIndex(idx, -1, v1, -1, true);
+	    if (q->isPresent(IDX_PSO)) {
+		cost = q->getCardOnIndex(IDX_PSO, -1, v1, -1, true);
+	    } else {
+		cost = q->getInputSize() * log(q->getInputSize());
+	    }
             break;
         case DBLayer::DataOrder::Order_No_Order_POS:
         case DBLayer::DataOrder::Order_Predicate_Object_Subject:
-            idx = IDX_POS;
-            cost = q->getCardOnIndex(idx, -1, v1, -1, true);
+	    if (q->isPresent(IDX_POS)) {
+		cost = q->getCardOnIndex(IDX_POS, -1, v1, -1, true);
+	    } else if (q->isPresent(IDX_PSO)) {
+		cost = q->getCardOnIndex(IDX_PSO, -1, v1, -1, true);
+		cost *= (log(cost) + 1);
+	    } else {
+		cost = q->getInputSize() * log(q->getInputSize());
+	    }
             break;
         case DBLayer::DataOrder::Order_No_Order_OSP:
         case DBLayer::DataOrder::Order_Object_Subject_Predicate:
-            idx = IDX_OSP;
-            cost = q->getCardOnIndex(idx, -1, v1, -1, true);
+	    if (q->isPresent(IDX_OSP)) {
+		cost = q->getCardOnIndex(IDX_OSP, -1, -1, v1, true);
+	    } else {
+		cost = q->getInputSize() * log(q->getInputSize());
+	    }
             break;
         case DBLayer::DataOrder::Order_No_Order_OPS:
         case DBLayer::DataOrder::Order_Object_Predicate_Subject:
-            idx = IDX_OPS;
-            cost = q->getCardOnIndex(idx, -1, -1, v1, true);
+	    if (q->isPresent(IDX_OPS)) {
+		cost = q->getCardOnIndex(IDX_OPS, -1, -1, v1, true);
+	    } else if (q->isPresent(IDX_OSP)) {
+		cost = q->getCardOnIndex(IDX_OSP, -1, -1, v1, true);
+		cost *= (log(cost) + 1);
+	    } else {
+		cost = q->getInputSize() * log(q->getInputSize());
+	    }
             break;
-    }
-    if (! q->isPresent(idx)) {
-        if (idx >= 3 && q->isPresent(idx-3)) {
-            cost = cost * (log(cost) + 1);
-        } else {
-            cost += q->getInputSize() * log(q->getInputSize());
-        }
     }
     LOG(DEBUGL) << "Get cost for " << v1 << " " << v2 << " on index " << order << " is " << cost;
     return cost;
