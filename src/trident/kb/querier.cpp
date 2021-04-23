@@ -139,7 +139,6 @@ uint64_t Querier::getCardOnIndex(const int idx, const int64_t first, const int64
             break;
     }
 
-    //The first term is a constant.
     PairItr *itr = getIterator(idx, first, second, third);
     if (itr->getTypeItr() != EMPTY_ITR && itr->hasNext()) {
         int countUnbound = 0;
