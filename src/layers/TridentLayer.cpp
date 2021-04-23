@@ -165,7 +165,7 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
             return std::numeric_limits<double>::max(); //no constants allowed after variable
     }
 
-    int idx;
+    int idx = -1;
     int64_t cost = 0;
     uint64_t reversedCard = 0, aggrEls = 0;
     switch (order) {
@@ -252,7 +252,7 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         }
     }
 
-    int idx;
+    int idx = -1;
     if (v1 != -1 && v2 != -1) {
         switch (order) {
             case DBLayer::DataOrder::Order_No_Order_SPO:

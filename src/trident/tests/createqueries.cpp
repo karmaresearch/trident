@@ -67,7 +67,7 @@ void _test_createqueries(string inputfile, string queryfile) {
         int64_t prevEl = -1;
         int64_t countDistinct = 0;
         for (auto const &el : triples) {
-            int64_t first;
+            int64_t first = 0;
             switch (perm) {
             case IDX_SPO:
             case IDX_SOP:
