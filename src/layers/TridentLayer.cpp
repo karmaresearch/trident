@@ -193,6 +193,9 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         case DBLayer::DataOrder::Order_No_Order_PSO:
         case DBLayer::DataOrder::Order_Predicate_Subject_Object:
             idx = IDX_PSO;
+            if (! q->isPresent(idx)) {
+                break;
+            }
             cost = q->estCardOnIndex(idx, v2, v1, v3);
             //might be aggregating
             aggrEls = q->isAggregated(idx, v2, v1, v3);
@@ -203,6 +206,13 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         case DBLayer::DataOrder::Order_No_Order_POS:
         case DBLayer::DataOrder::Order_Predicate_Object_Subject:
             idx = IDX_POS;
+            if (! q->isPresent(idx)) {
+                if (q->isPresent(IDX_PSO)) {
+                    reversedCard = q->isReverse(idx, v1, v3, v2);
+                    return reversedCard * log(reversedCard);
+                }
+                break;
+            }
             cost = q->estCardOnIndex(idx, v2, v3, v1);
             //might be aggregating
             aggrEls = q->isAggregated(idx, v2, v3, v1);
@@ -213,6 +223,9 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         case DBLayer::DataOrder::Order_No_Order_OSP:
         case DBLayer::DataOrder::Order_Object_Subject_Predicate:
             idx = IDX_OSP;
+            if (! q->isPresent(idx)) {
+                break;
+            }
             cost = q->estCardOnIndex(idx, v3, v1, v2);
             //might be reverse
             reversedCard = q->isReverse(idx, v3, v1, v2);
@@ -225,6 +238,13 @@ double TridentLayer::getScanCost(DBLayer::DataOrder order,
         case DBLayer::DataOrder::Order_No_Order_OPS:
         case DBLayer::DataOrder::Order_Object_Predicate_Subject:
             idx = IDX_OPS;
+            if (! q->isPresent(idx)) {
+                if (q->isPresent(IDX_OSP)) {
+                    reversedCard = q->isReverse(idx, v3, v2, v1);
+                    return reversedCard * log(reversedCard);
+                }
+                break;
+            }
             cost = q->estCardOnIndex(idx, v3, v2, v1);
             //native indexing
             break;
