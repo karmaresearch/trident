@@ -54,6 +54,8 @@
     <ClInclude Include="..\..\include\trident\iterators\scanitr.h" />
     <ClInclude Include="..\..\include\trident\iterators\termitr.h" />
     <ClInclude Include="..\..\include\trident\iterators\tupleiterators.h" />
+    <ClInclude Include="..\..\include\trident\iterators\reorderitr.h" />
+    <ClInclude Include="..\..\include\trident\iterators\reordertermitr.h" />
     <ClInclude Include="..\..\include\trident\kb\cacheidx.h" />
     <ClInclude Include="..\..\include\trident\kb\consts.h" />
     <ClInclude Include="..\..\include\trident\kb\dictmgmt.h" />
@@ -113,6 +115,8 @@
     <ClCompile Include="..\..\src\trident\files\filedescriptor.cpp" />
     <ClCompile Include="..\..\src\trident\iterators\aggritr.cpp" />
     <ClCompile Include="..\..\src\trident\iterators\arrayitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\reorderitr.cpp" />
+    <ClCompile Include="..\..\src\trident\iterators\reordertermitr.cpp" />
     <ClCompile Include="..\..\src\trident\iterators\cacheitr.cpp" />
     <ClCompile Include="..\..\src\trident\iterators\compositeitr.cpp" />
     <ClCompile Include="..\..\src\trident\iterators\compositescanitr.cpp" />
