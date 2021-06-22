@@ -27,9 +27,11 @@
 #include <trident/iterators/arrayitr.h>
 #include <trident/kb/consts.h>
 #include <trident/kb/querier.h>
+#include <trident/kb/partial.h>
 
 #include <inttypes.h>
 #include <vector>
+#include <fstream>
 
 #include <google/dense_hash_map>
 
@@ -47,7 +49,7 @@ private:
     bool initialized;
     bool ignSecondColumn;
     std::vector<bool> sorted;
-    int64_t p, o;
+    int64_t s, p, o;
     ArrayItr *m_itr;
     uint64_t m_key;
     size_t m_nextKeyIndex;
@@ -63,13 +65,17 @@ private:
     void fillValuesPOS(google::dense_hash_map<uint64_t, std::shared_ptr<Pairs>> &keyToPair);
 
     void fillValues();
+    
+    bool varFirst();
 
 public:
-    ReOrderItr(PairItr *helper, int idx, Querier *q, int64_t p, int64_t o)
+    ReOrderItr(PairItr *helper, int idx, Querier *q, int64_t s, int64_t p, int64_t o)
         : q(q), helper(helper), idx(idx), nextKeyIndex(0), itr(NULL), initialized(false),
-          ignSecondColumn(false), p(p), o(o), m_itr(NULL) {
+          ignSecondColumn(false), s(s), p(p), o(o), m_itr(NULL) {
         initializeConstraints();
     }
+
+    ReOrderItr(Querier *q, int idx, int64_t s, int64_t p, int64_t o, std::fstream &data, uint64_t offset);
 
     LIBEXP int getTypeItr() {
         return REORDER_ITR;
@@ -147,6 +153,17 @@ public:
         }
         itr->moveto(c1, c2);
     }
+
+    bool dump() {
+        Partial *p = q->getPartial(idx);
+        if (p != NULL) {
+            p->dump(this);
+            return true;
+        }
+        return false;
+    }
+
+    LIBEXP void dump(ofstream &indexStream, fstream &dataStream, STripleMap &index);
 
     ~ReOrderItr() {
         clear();

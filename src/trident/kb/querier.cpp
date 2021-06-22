@@ -59,12 +59,12 @@ Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         const int64_t inputSize, const int64_t nTerms, const int nindices,
         const int64_t *nTablesPerPartition,
         const int64_t *nFirstTablesPerPartition, KB *sampleKB,
-        std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present)
+        std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present, Partial **partial)
     : inputSize(inputSize), nTerms(nTerms),
     nTablesPerPartition(nTablesPerPartition),
     nFirstTablesPerPartition(nFirstTablesPerPartition),
     // nindices(nindices),
-    diffIndices(diffIndices), present(present) {
+    diffIndices(diffIndices), present(present), partial(partial) {
         this->tree = tree;
         this->dict = dict;
         this->files = files;
@@ -1210,6 +1210,13 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
     }
 
     assert(idx != IDX_SPO && idx != IDX_SOP);
+
+    if (partial[idx] != NULL) {
+        itr = partial[idx]->getIterator(this, idx, s, p, o);
+        if (itr != NULL) {
+            return itr;
+        }
+    }
     
     PairItr *helper = getIterator(IDX_SPO, s, p, o);
     assert(helper != NULL);
@@ -1217,7 +1224,7 @@ PairItr *Querier::getIterator(const int idx, const int64_t s, const int64_t p, c
     // Now, we have to create an iterator behaving like an iterator over idx.
     // Note: helper may not obey p and/or o, since it probably is a ScanItr.
 
-    return new ReOrderItr(helper, idx, this, p, o);
+    return new ReOrderItr(helper, idx, this, s, p, o);
 }
 
 PairItr *Querier::newItrOnReverse(PairItr * oldItr, const int64_t v1, const int64_t v2) {

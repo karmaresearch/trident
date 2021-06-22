@@ -26,6 +26,7 @@
 #include <trident/kb/inserter.h>
 #include <trident/kb/consts.h>
 #include <trident/kb/kbconfig.h>
+#include <trident/kb/partial.h>
 #include <trident/tree/root.h>
 #include <trident/tree/flatroot.h>
 #include <trident/tree/stringbuffer.h>
@@ -51,7 +52,8 @@ KB::KB(const char *path,
         bool reasoning,
         bool dictEnabled,
         KBConfig &config,
-        std::vector<string> locationUpdates) :
+        std::vector<string> locationUpdates,
+        bool enablePartials) :
     path(path), readOnly(readOnly), ntables(), nFirstTables(), isClosed(false),
     dictEnabled(dictEnabled), config(config) {
 
@@ -340,6 +342,18 @@ KB::KB(const char *path,
             nextID = max(nextID, (int64_t) dictManager->getLargestGUDTerm() + 1);
         }
 
+        for (int i = 0; i < N_PARTITIONS; i++) {
+            partial[i] = NULL;
+        }
+        LOG(INFOL) << "enablePartials = " << enablePartials;
+        if (enablePartials) {
+            for (int i = 0; i < N_PARTITIONS; i++) {
+                if (i != IDX_SPO && i != IDX_SOP) {
+                    partial[i] = new Partial(i, path);
+                }
+            }
+        }
+
         sec = std::chrono::system_clock::now() - start;
         LOG(DEBUGL) << "Time init KB = " << sec.count() * 1000 << " ms and " << Utils::get_max_mem() << " MB occupied";
     }
@@ -431,7 +445,7 @@ void KB::loadDict(KBConfig *config) {
 Querier *KB::query() {
     return new Querier(tree, dictManager, files, totalNumberTriples,
             totalNumberTerms, nindices, ntables, nFirstTables,
-            sampleKB, diffIndices, present);
+            sampleKB, diffIndices, present, partial);
 }
 
 Inserter *KB::insert() {
@@ -773,7 +787,7 @@ void KB::mergeUpdates() {
 
     Querier *q1 = new Querier(tree, dictManager, files, totalNumberTriples,
         totalNumberTerms, nindices, ntables, nFirstTables,
-        sampleKB, diffs, present);
+        sampleKB, diffs, present, partial);
 
     if (addCount >= 1) {
         PairItr *addItr = q->summaryAddDiff();

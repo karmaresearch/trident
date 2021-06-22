@@ -336,7 +336,7 @@ int main(int argc, const char** argv) {
 #ifdef SPARQL
         KBConfig config;
         std::vector<string> locUpdates;
-        KB kb(kbDir.c_str(), true, false, true, config, locUpdates);
+        KB kb(kbDir.c_str(), true, false, true, config, locUpdates, vm["enablePartials"].as<bool>());
         TridentLayer layer(kb);
         callRDF3X(layer, vm["query"].as<string>(), vm["explain"].as<bool>(),
                 vm["disbifsampl"].as<bool>(), vm["decodeoutput"].as<bool>());
@@ -359,7 +359,7 @@ int main(int argc, const char** argv) {
     } else if (cmd == "query_native") {
 #ifdef SPARQL
         KBConfig config;
-        KB kb(kbDir.c_str(), true, false, true, config);
+        KB kb(kbDir.c_str(), true, false, true, config, vm["enablePartials"].as<bool>());
         Querier *q = kb.query();
         execNativeQuery(vm, q, kb, ! vm["decodeoutput"].as<bool>());
 

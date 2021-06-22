@@ -43,6 +43,7 @@ class Root;
 class StringBuffer;
 struct FileSegment;
 class FileDescriptor;
+class Partial;
 
 using namespace std;
 
@@ -89,6 +90,7 @@ class KB {
         bool present[N_PARTITIONS];
         TableStorage *files[N_PARTITIONS];
         MemoryManager<FileDescriptor> *bytesTracker[N_PARTITIONS];
+        Partial *partial[N_PARTITIONS];
 
         KB *sampleKB;
         KBConfig config;
@@ -113,12 +115,12 @@ class KB {
 
     public:
         DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
-                bool dictEnabled, KBConfig &config) : KB(path, readOnly, reasoning,
-                    dictEnabled, config, std::vector<string>()) {
+                bool dictEnabled, KBConfig &config, bool enablePartials = false) : KB(path, readOnly, reasoning,
+                    dictEnabled, config, std::vector<string>(), enablePartials) {
                 }
 
         DDLEXPORT KB(const char *path, bool readOnly, bool reasoning,
-                bool dictEnabled, KBConfig &config, std::vector<string> locationUpdates);
+                bool dictEnabled, KBConfig &config, std::vector<string> locationUpdates, bool enablePartials = false);
 
         DDLEXPORT Querier *query();
 
@@ -199,6 +201,10 @@ class KB {
         std::vector<const char*> openAllFiles(int perm);
 
         void addDiffIndex(string inputdir, const char **globalbuffers, Querier *q);
+
+        Partial *getPartial(int idx) {
+            return partial[idx];
+        }
 
         DDLEXPORT ~KB();
 };
