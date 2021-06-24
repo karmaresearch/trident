@@ -375,25 +375,25 @@ void ReOrderItr::dump(ofstream &indexStream, fstream &dataStream, STripleMap &in
         dataStream.write(reinterpret_cast<char*>(&v), sizeof(uint64_t));
     }
     for (int i = 0; i < array.size(); i++) {
-        if (vf && (idx == IDX_SPO || idx == IDX_SOP)) {
-            indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
-            t.s = array[i].first;
-        } else {
-            indexStream.write(reinterpret_cast<char*>(&s), sizeof(int64_t));
-        }
-        if (vf && (idx == IDX_PSO || idx == IDX_POS)) {
-            indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
-            t.p = array[i].first;
-        } else {
-            indexStream.write(reinterpret_cast<char*>(&p), sizeof(int64_t));
-        }
-        if (vf && (idx == IDX_OPS || idx == IDX_OSP)) {
-            indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
-            t.o = array[i].first;
-        } else {
-            indexStream.write(reinterpret_cast<char*>(&o), sizeof(int64_t));
-        }
         if (vf) {
+            if (idx == IDX_SPO || idx == IDX_SOP) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.s = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&s), sizeof(int64_t));
+            }
+            if (idx == IDX_PSO || idx == IDX_POS) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.p = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&p), sizeof(int64_t));
+            }
+            if (idx == IDX_OPS || idx == IDX_OSP) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.o = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&o), sizeof(int64_t));
+            }
             uint64_t pos = dataStream.tellp();
             indexStream.write(reinterpret_cast<char*>(&pos), sizeof(uint64_t));
             index[t] = pos;
