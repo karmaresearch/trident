@@ -49,7 +49,7 @@ bool TridentLayer::lookup(const std::string& text,
             string tp = "";
             switch(type) {
                 case ::Type::ID::String:
-                    tp = "http://www.w3.org/2001/XMLSchema#string";
+                    // tp = "http://www.w3.org/2001/XMLSchema#string";
                     break;
                 case ::Type::ID::Integer:
                     tp = "http://www.w3.org/2001/XMLSchema#integer";
@@ -70,7 +70,10 @@ bool TridentLayer::lookup(const std::string& text,
                     // TODO?
                     break;
             }
-            string txt = "\"" + text + "\"^^<" + tp + ">";
+            string txt = "\"" + text + "\"";
+            if (tp != "") {
+                txt += "^^<" + tp + ">";
+            }
             resp = dict->getNumber(txt.c_str(), txt.size(), &longid);
         }
     }
