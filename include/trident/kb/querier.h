@@ -53,6 +53,7 @@ class Root;
 class DictMgmt;
 class CacheIdx;
 class KB;
+class Partial;
 
 class Querier {
     private:
@@ -99,6 +100,8 @@ class Querier {
 
         bool *present;
 
+        Partial **partial;
+
         //Statistics
         int64_t aggrIndices, notAggrIndices, cacheIndices;
         int64_t spo, ops, pos, sop, osp, pso;
@@ -140,7 +143,7 @@ class Querier {
                 const int64_t* nTablesPerPartition,
                 const int64_t* nFirstTablesPerPartition,
                 KB *sampleKB,
-                std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present);
+                std::vector<std::unique_ptr<DiffIndex>> &diffIndices, bool *present, Partial **partial);
 
         void initDiffIndex(DiffIndex *diff);
 
@@ -222,6 +225,10 @@ class Querier {
         DDLEXPORT int *getOrder(int idx);
 
         DDLEXPORT int *getInvOrder(int idx);
+
+        Partial *getPartial(int idx) {
+            return partial[idx];
+        }
 
         uint64_t getInputSize() const {
             uint64_t tot = inputSize;

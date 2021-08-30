@@ -268,6 +268,8 @@ bool initParams(int argc, const char** argv, ProgramArgs &vm) {
             "Retrieve the original values of the results of query. Default is true", false);
     query_options.add<bool>("", "disbifsampl", false,
             "Disable bifocal sampling (accurate but expensive). Default is false", false);
+    query_options.add<bool>("", "allowPartials", false,
+            "Allow creation of partial indices (for instance when only one index is present). Default is false", false);
 
     /***** LOAD *****/
     ParamsLoad p;

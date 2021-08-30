@@ -20,6 +20,8 @@
 **/
 
 #include <trident/iterators/reorderitr.h>
+#include <trident/kb/partial.h>
+#include <fstream>
 
 void ReOrderItr::fillValue(google::dense_hash_map<uint64_t, std::shared_ptr<Pairs>> &keyToPair, uint64_t key, uint64_t v1, uint64_t v2) {
 
@@ -175,6 +177,71 @@ void ReOrderItr::fillValues() {
     sorted.resize(array.size());
 }
 
+bool ReOrderItr::varFirst() {
+    bool vf = array.size() > 1;
+    if (vf) {
+        return vf;
+    }
+    switch(idx) {
+    case IDX_SPO:
+    case IDX_SOP:
+        if (s < 0) {
+            vf = true;
+        }
+        break;
+    case IDX_PSO:
+    case IDX_POS:
+        if (p < 0) {
+            vf = true;
+        }
+        break;
+    case IDX_OPS:
+    case IDX_OSP:
+        if (o < 0) {
+            vf = true;
+        }
+        break;
+    }
+    return vf;
+}
+
+
+ReOrderItr::ReOrderItr(Querier *q, int idx, int64_t s, int64_t p, int64_t o, std::fstream &data, uint64_t offset) {
+    initializeConstraints();
+    this->q = q;
+    this->helper = NULL;
+    this->idx = idx;
+    this->nextKeyIndex = 0;
+    this->itr = this->m_itr = NULL;
+    this->initialized = true;
+    this->ignSecondColumn = false;
+    this->s = s;
+    this->p = p;
+    this->o = o;
+    data.seekg(offset, ios::beg);
+    bool vf = varFirst();
+    uint64_t sz = 1;
+    if (vf) {
+        data.read(reinterpret_cast<char*>(&sz), sizeof(uint64_t));
+    }
+    for (uint64_t i = 0; i < sz; i++) {
+        uint64_t key;
+        uint64_t npairs;
+        data.read(reinterpret_cast<char*>(&key), sizeof(uint64_t));
+        data.read(reinterpret_cast<char*>(&npairs), sizeof(uint64_t));
+        std::shared_ptr<Pairs> tmpVector = std::shared_ptr<Pairs>(new Pairs());
+        for (size_t j = 0; j < npairs; j++) {
+            uint64_t v1;
+            uint64_t v2;
+            data.read(reinterpret_cast<char*>(&v1), sizeof(uint64_t));
+            data.read(reinterpret_cast<char*>(&v2), sizeof(uint64_t));
+            tmpVector->push_back(std::pair<uint64_t, uint64_t>(v1, v2));
+        }
+        sorted.push_back(true);
+        array.push_back(std::make_pair(key, tmpVector));
+    }
+}
+
 uint64_t ReOrderItr::getCardinality() {
     if (! initialized) {
         fillValues();
@@ -268,3 +335,83 @@ void ReOrderItr::next() {
     itr->next();
 }
 
+void ReOrderItr::dump(ofstream &indexStream, fstream &dataStream, STripleMap &index) {
+    // Two files per idx:
+    // One mapping s, p, o to file index
+    // and one containing the dump of the entries.
+
+    STriple t(s, p, o);
+
+    if (index.find(t) != index.end()) {
+        return;
+    }
+    hasNext();  // To force initialization
+
+    // append s, p, o, file index to index file.
+
+    indexStream.write(reinterpret_cast<char*>(&s), sizeof(int64_t));
+    indexStream.write(reinterpret_cast<char*>(&p), sizeof(int64_t));
+    indexStream.write(reinterpret_cast<char*>(&o), sizeof(int64_t));
+    dataStream.seekg(0, ios::end);
+    uint64_t pos = dataStream.tellp();
+    indexStream.write(reinterpret_cast<char*>(&pos), sizeof(uint64_t));
+
+    // Hashtable entry for s,p,o
+    // maps s,p,o to file index.
+    index[t] = pos;
+    
+    // Number of keys now in array.size().
+    // dump number of keys
+    // for each key:
+    // - dump key value
+    // - dump number of pairs
+    // - dump pairs
+
+    bool vf = varFirst();
+
+    if (vf) {
+        // Only dump number of keys if key is variable.
+        uint64_t v = array.size();
+        dataStream.write(reinterpret_cast<char*>(&v), sizeof(uint64_t));
+    }
+    for (int i = 0; i < array.size(); i++) {
+        if (vf) {
+            if (idx == IDX_SPO || idx == IDX_SOP) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.s = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&s), sizeof(int64_t));
+            }
+            if (idx == IDX_PSO || idx == IDX_POS) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.p = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&p), sizeof(int64_t));
+            }
+            if (idx == IDX_OPS || idx == IDX_OSP) {
+                indexStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+                t.o = array[i].first;
+            } else {
+                indexStream.write(reinterpret_cast<char*>(&o), sizeof(int64_t));
+            }
+            uint64_t pos = dataStream.tellp();
+            indexStream.write(reinterpret_cast<char*>(&pos), sizeof(uint64_t));
+            index[t] = pos;
+        }
+        dataStream.write(reinterpret_cast<char*>(&array[i].first), sizeof(uint64_t));
+        auto el = array[i].second;
+        if (! sorted[i]) {
+            std::sort(el->begin(), el->end());
+            sorted[i] = true;
+        }
+        uint64_t v = el->size();
+        dataStream.write(reinterpret_cast<char*>(&v), sizeof(uint64_t));
+        for (uint64_t j = 0; j < v; j++) {
+            std::pair<uint64_t, uint64_t> p = el->at(j);
+            dataStream.write(reinterpret_cast<char*>(&p.first), sizeof(uint64_t));
+            dataStream.write(reinterpret_cast<char*>(&p.second), sizeof(uint64_t));
+        }
+    }
+    dataStream.flush();
+    indexStream.flush();
+}
