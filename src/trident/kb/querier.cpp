@@ -54,6 +54,19 @@ EmptyItr emptyItr;
 
 // The assumption through-out this code seems to be:
 // It cannot happen that for perm = 0, 1, 2: perm+3 exists but perm does not.
+ConstKeyCardItr::ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key) {
+    currentKey1 = key;
+    currentCard = q->getCard(s, r, d);
+    hn = currentCard > 0;
+}
+
+ConstKeyCardItr::ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key1, uint64_t key2) {
+    currentKey1 = key1;
+    currentKey1 = key2;
+    currentCard = q->getCard(s, r, d);
+    hn = currentCard > 0;
+}
+
 
 Querier::Querier(Root* tree, DictMgmt *dict, TableStorage** files,
         const int64_t inputSize, const int64_t nTerms, const int nindices,
@@ -1350,6 +1363,7 @@ void Querier::releaseItr(PairItr * itr) {
             break;
         case COMPOSITETERM_ITR:
         case COMPOSITE_ITR:
+            {
             std::vector<PairItr*> children;
             if (itr->getTypeItr() == COMPOSITETERM_ITR) {
                 children = ((CompositeTermItr*)itr)->getChildren();
@@ -1361,6 +1375,16 @@ void Querier::releaseItr(PairItr * itr) {
             }
             for (int i = 0; i < children.size(); ++i) {
                 releaseItr(children[i]);
+            }
+            }
+            break;
+        case FILTERSAME_ITR:
+            {
+            PairItr *fsu = ((FilterSameItr *) itr)->getUnderlyingItr();
+            if (fsu != NULL) {
+                releaseItr(fsu);
+            }
+            factory16.release((FilterSameItr *) itr);
             }
             break;
     }
