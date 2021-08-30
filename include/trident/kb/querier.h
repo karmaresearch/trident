@@ -416,19 +416,15 @@ class Querier {
             int p1, p2;
             PairItr *itr;
             if (sameVar(s, r, d, p1, p2)) {
-                PairItr *it = get(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
+                PairItr *it = getIterator(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
                 FilterSameItr *fi = factory16.get();
                 fi->init(it, p1, p2);
                 itr = fi;
             } else {
-                itr = get(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
+                itr = getIterator(idx, s < 0 ? -1 : s, r < 0 ? -1 : r, d < 0 ? -1 : d);
             }
             return new EdgeItr(getInvOrder(idx), itr);
         }
-
-        PairItr *get(const int idx, TermCoordinates &value,
-                const int64_t key, const int64_t v1,
-                const int64_t v2, const bool cons);
 
         PairItr *getIterator(const int perm,
                 const int64_t key,
@@ -704,7 +700,7 @@ class Querier {
             int p1, p2;
             if (sameVar(s, r, d, p1, p2)) {
                 uint64_t cnt = 0;
-                PairItr *it = get(IDX_SPO, s, r, d);
+                PairItr *it = getIterator(IDX_SPO, s, r, d);
                 FilterSameItr *fi = factory16.get();
                 fi->init(it, p1, p2);
                 while (fi->hasNext()) {
