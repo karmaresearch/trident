@@ -26,6 +26,7 @@
 #include <string>
 #include <cstring>
 #include <cmath>
+#include <memory>
 
 bool TupleTableItr::same(const int64_t l1, const int64_t l2) const {
     return table->getPosAtRow(l1, 0) == table->getPosAtRow(l2, 0) &&
