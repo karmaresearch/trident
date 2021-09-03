@@ -125,14 +125,14 @@ class EdgeItr {
 
         uint64_t getValue(int i) {
             switch(i) {
-            case 0:
-                return itr->getKey();
-            case 1:
-                return itr->getValue1();
-            case 2:
-                return itr->getValue2();
-            default:
-                throw 10;
+                case 0:
+                    return itr->getKey();
+                case 1:
+                    return itr->getValue1();
+                case 2:
+                    return itr->getValue2();
+                default:
+                    throw 10;
             }
         }
 
@@ -204,7 +204,7 @@ class OneKeyCardItr: public KeyCardItr {
             currentCard = nextCard;
             currentKey1 = nextKey1;
         }
-        
+
         ~OneKeyCardItr() {
             delete itr;
         }
@@ -262,7 +262,7 @@ class TwoKeyCardItr: public KeyCardItr {
             currentKey1 = nextKey1;
             currentKey2 = nextKey2;
         }
-        
+
         ~TwoKeyCardItr() {
             delete itr;
         }
@@ -412,6 +412,10 @@ class Querier {
 
         DDLEXPORT PairItr *getIterator(const int idx, const int64_t s, const int64_t p, const int64_t o);
 
+        DDLEXPORT PairItr *get(const int idx, const int64_t s, const int64_t p, const int64_t o) {
+            return getIterator(idx, s, p, o);
+        }
+
         DDLEXPORT EdgeItr *getEdgeItr(const int idx, const int64_t s, const int64_t r, const int64_t d) {
             int p1, p2;
             PairItr *itr;
@@ -425,10 +429,6 @@ class Querier {
             }
             return new EdgeItr(getInvOrder(idx), itr);
         }
-
-        PairItr *get(const int idx, TermCoordinates &value,
-                const int64_t key, const int64_t v1,
-                const int64_t v2, const bool cons);
 
         PairItr *getIterator(const int perm,
                 const int64_t key,
@@ -601,7 +601,7 @@ class Querier {
                 const int64_t markId);
 
         // Primitives
-        
+
         // Gets node label, returns true when found
         DDLEXPORT  bool lbl_n(nTerm key, char *value, int &len) {
             return getDictMgmt()->getText(key, value, len);
