@@ -34,10 +34,10 @@
 
 #define COMPRESSION_ENABLED 0
 #define MAX_N_MAPPINGS  5000
-
+#define TRIDENT_BLOCK_SIZE 65536
 
 struct FileSegment {
-    char block[BLOCK_SIZE];
+    char block[TRIDENT_BLOCK_SIZE];
     int memId;
 };
 
@@ -53,7 +53,6 @@ private:
     int uncompressedSize;
     FileSegment *uncompressedBuffers[MAX_N_MAPPINGS];
 
-    //char specialTmpBuffer[BLOCK_MIN_SIZE];
     std::unique_ptr<char[]> specialTmpBuffers[MAX_SESSIONS];
 
     int lastAccessedSegment;
