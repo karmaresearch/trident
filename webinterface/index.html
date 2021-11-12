@@ -33,10 +33,11 @@
         </div>
 
         <script type="text/javascript">
-var yasqe = YASQE(document.getElementById("yasqe"), {
+
+        var yasqe = YASQE(document.getElementById("yasqe"), {
         sparql: {
                 showQueryButton: true,
-                endpoint: 'http://localhost:WEB_PORT/sparql'            
+                endpoint: '/sparql'
         }
         });
         yasqe.addPrefixes({"owl": "http://www.w3.org/2002/07/owl#" });
