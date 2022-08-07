@@ -14,7 +14,7 @@ Snap.o: *.h *.cpp ../glib-core/*.h ../glib-core/*.cpp
 
 lib: Snap.o
 	rm -f libsnap.a
-	ar -cvq libsnap.a Snap.o
+	ar -cvrs libsnap.a Snap.o
 
 libinstall: lib
 	cp libsnap.a /usr/local/lib/libsnap.a
