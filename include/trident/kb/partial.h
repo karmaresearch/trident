@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <fstream>
 #include <google/sparse_hash_map>
+#include <trident/kb/consts.h>
 
 class ReOrderItr;
 class Querier;
@@ -80,9 +81,9 @@ private:
     std::fstream dataStream;
 
 public:
-    Partial(int idx, std::string baseDir);
+    DDLEXPORT Partial(int idx, std::string baseDir);
 
-    ReOrderItr *getIterator(Querier *q, const int idx, const int64_t s, const int64_t p, const int64_t o);
+    DDLEXPORT ReOrderItr *getIterator(Querier *q, const int idx, const int64_t s, const int64_t p, const int64_t o);
 
     ~Partial() {
         indexStream.close();

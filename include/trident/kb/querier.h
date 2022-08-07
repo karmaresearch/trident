@@ -90,9 +90,9 @@ class ConstKeyCardItr : public KeyCardItr {
         bool hn;
 
     public:
-        ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key);
+        DDLEXPORT ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key);
 
-        ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key1, uint64_t key2);
+        DDLEXPORT ConstKeyCardItr(Querier *q, uint64_t s, uint64_t r, uint64_t d, uint64_t key1, uint64_t key2);
 
         bool hasNext() {
             return hn;
