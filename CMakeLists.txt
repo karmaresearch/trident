@@ -110,6 +110,11 @@ ELSE()
         DOWNLOAD_DIR .
         SOURCE_DIR kognac
         BUILD_IN_SOURCE 1
+        IF (DIST)
+            CMAKE_ARGS "-DDIST=1" "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        ELSE()
+            CMAKE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        ENDIF()
         INSTALL_COMMAND ""
         )
     ExternalProject_Get_Property(git-kognac SOURCE_DIR)
