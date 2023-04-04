@@ -6,7 +6,7 @@
 #-DSPARQL=1 enable advanced sparql support
 #-DML=1 enable machine learning algorithms
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.12)
 
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_C_COMPILER "gcc")
