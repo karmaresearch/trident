@@ -549,8 +549,6 @@ int main(int argc, const char** argv) {
 #endif
     }
 
-
-
     //Print other stats
     LOG(INFOL) << "Max memory used: " << Utils::get_max_mem() << " MB";
     return EXIT_SUCCESS;

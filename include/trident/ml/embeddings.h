@@ -322,13 +322,12 @@ class Embeddings {
             //There should be a file that ends with -meta
             uint32_t n;
             uint16_t dim;
-            uint32_t embperblock = 0;
             //Get the metadata
             std::ifstream ifs;
             ifs.open(path + "-meta", std::ifstream::in);
             char buffer[10];
             ifs.read(buffer, 10);
-            embperblock = *(uint32_t*) buffer;
+            //uint32_t embperblock = *(uint32_t*) buffer;
             n = *(uint32_t*)(buffer + 4);
             dim = *(uint16_t*)(buffer + 8);
             ifs.close();

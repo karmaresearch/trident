@@ -8,6 +8,10 @@
 #include <vector>
 #include <iostream>
 
+
+template<class T>
+bool operator!=(const std::reverse_iterator<T>  &a, const std::reverse_iterator<T> &b) { return !(a == b);}
+
 class JSON {
     private:
         std::map<std::string, std::string> values;

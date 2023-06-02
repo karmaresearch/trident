@@ -40,6 +40,22 @@ UpdateStats::UpdateStats(Querier *q, int perm1,
     }
 }
 
+void UpdateStats::addCoordForKey(int64_t key, uint32_t pos1, uint32_t pos2,            
+                    uint64_t nelements, char strat1, char strat2,
+                    uint64_t nfirsts1, uint64_t nfirsts2)
+{
+    KeyInfo k;
+    k.key = key;
+    k.pos1 = pos1;
+    k.pos2 = pos2;
+    k.nelements = nelements;
+    k.strat1 = strat1;
+    k.strat2 = strat2;
+    k.nfirsts1 = nfirsts1;
+    k.nfirsts2 = nfirsts2;
+    keys.push_back(k);
+}
+
 UpdateStats::~UpdateStats() {
     if (itr1) {
         q->releaseItr(itr1);

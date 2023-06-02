@@ -19,3 +19,4 @@ scripts
 *.iobj
 *.a
 *.o
+venv

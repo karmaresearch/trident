@@ -111,6 +111,7 @@ class PairItr {
         }
 
         virtual void moveto(const int64_t c1, const int64_t c2) = 0;
+
 };
 
 #endif

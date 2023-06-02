@@ -345,7 +345,7 @@ KB::KB(const char *path,
         for (int i = 0; i < N_PARTITIONS; i++) {
             partial[i] = NULL;
         }
-        LOG(INFOL) << "enablePartials = " << enablePartials;
+        LOG(DEBUGL) << "enablePartials = " << enablePartials;
         if (enablePartials) {
             for (int i = 0; i < N_PARTITIONS; i++) {
                 if (i != IDX_SPO && i != IDX_SOP) {

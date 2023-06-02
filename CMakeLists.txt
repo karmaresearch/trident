@@ -261,15 +261,9 @@ ENDIF()
 
 #Create Python library
 IF(PYTHON)
-    #include(FindPkgConfig)
-    #set(Python_ADDITIONAL_VERSIONS 3.5)
-    #pkg_check_modules(PY3 REQUIRED QUIET python3)
-    #find_package(PythonLibs REQUIRED)
-
-    find_package (Python3 COMPONENTS Interpreter Development)
+    find_package (Python3 COMPONENTS Development NumPy)
     IF(Python3_FOUND)
         INCLUDE_DIRECTORIES(${Python3_INCLUDE_DIRS})
-        #message("Python include path = ${Python3_INCLUDE_DIRS}")
     ENDIF()
     #NumPY
     if (Python3_EXECUTABLE)
@@ -294,9 +288,9 @@ IF(PYTHON)
         include_directories(${PYTHON_NUMPY_INCLUDE_DIR} SYSTEM)
     endif(PYTHON_NUMPY_INCLUDE_DIR)
 
-    include(FindPackageHandleStandardArgs)
-    find_package_handle_standard_args(NumPy REQUIRED_VARS PYTHON_NUMPY_INCLUDE_DIR
-        VERSION_VAR __numpy_version)
+    #include(FindPackageHandleStandardArgs)
+    #find_package_handle_standard_args(NumPy REQUIRED_VARS PYTHON_NUMPY_INCLUDE_DIR
+    #    VERSION_VAR __numpy_version)
 
     file(GLOB tridentp_SRC "src/python/*.cpp")
     add_library(tridentp SHARED ${tridentp_SRC}) #Python library

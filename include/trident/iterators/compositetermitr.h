@@ -84,20 +84,9 @@ public:
         return count;
     }
 
-    void add(PairItr *itr) {
-        currentCount = 0;
-        children.push_back(itr);
-        if (itr->hasNext()) {
-            itr->next();
-            activechildren.push_back(itr);
-            nc = true;
-        }
-        if (activechildren.size() > 1) {
-            sort(activechildren.begin(), activechildren.end(), _sorter);
-        }
-    }
+    void add(PairItr *itr);
 
-    std::vector<PairItr*> getChildren() {
+    const std::vector<PairItr*> &getChildren() {
         return activechildren;
     }
 

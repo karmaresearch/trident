@@ -1,11 +1,8 @@
 #ifndef _ANALYTICS_H
 #define _ANALYTICS_H
 
-#include <snap-core/Snap.h>
 #include <snap/nativetasks.h>
 #include <snap/tasks.h>
-#include <snap/directed.h>
-#include <snap/undirected.h>
 
 #include <trident/kb/kb.h>
 #include <trident/kb/querier.h>
@@ -19,6 +16,9 @@
 #include <functional>
 
 typedef enum _RetValue { NORETURN, DOUBLE, INT, V_LONG } F_RetValue;
+
+template<class T>
+bool operator!=(const std::reverse_iterator<T>  &a, const std::reverse_iterator<T> &b) { return !(a == b);}
 
 class Analytics {
 
@@ -326,21 +326,7 @@ class Analytics {
         static void run(KB &kb,
                 string nameTask,
                 string outputfile,
-                string params) {
-
-            //Check what type of graph is stored in the KB
-            if (kb.getGraphType() == GraphType::DIRECTED) {
-                Analytics::runTask<PTrident_TNGraph, Trident_TNGraph>(kb, nameTask, outputfile, params);
-            } else {
-                //Graph should be undirected
-                if ((kb.getGraphType() != GraphType::UNDIRECTED)) {
-                    LOG(ERRORL) << "Graph analytical operations work only on simple directed or simple undirected graphs";
-                    throw 10;
-                }
-                Analytics::runTask<PTrident_UTNGraph, Trident_UTNGraph>(kb, nameTask, outputfile, params);
-            }
-
-        }
+                string params);
 };
 
 #endif
