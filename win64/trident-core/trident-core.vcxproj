@@ -64,6 +64,7 @@
     <ClInclude Include="..\..\include\trident\kb\kb.h" />
     <ClInclude Include="..\..\include\trident\kb\kbconfig.h" />
     <ClInclude Include="..\..\include\trident\kb\memoryopt.h" />
+    <ClInclude Include="..\..\include\trident\kb\partial.h" />
     <ClInclude Include="..\..\include\trident\kb\permsorter.h" />
     <ClInclude Include="..\..\include\trident\kb\querier.h" />
     <ClInclude Include="..\..\include\trident\kb\schema.h" />
@@ -135,6 +136,7 @@
     <ClCompile Include="..\..\src\trident\kb\loader.cpp" />
     <ClCompile Include="..\..\src\trident\kb\memoryopt.cpp" />
     <ClCompile Include="..\..\src\trident\kb\permsorter.cpp" />
+    <ClCompile Include="..\..\src\trident\kb\partial.cpp" />
     <ClCompile Include="..\..\src\trident\kb\querier.cpp" />
     <ClCompile Include="..\..\src\trident\kb\updater.cpp" />
     <ClCompile Include="..\..\src\trident\kb\updatestats.cpp" />

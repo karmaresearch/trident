@@ -14,7 +14,15 @@ set(CMAKE_C_COMPILER "gcc")
 project (Trident)
 include(ExternalProject)
 set(CMAKE_MACOSX_RPATH 1)
-set(CMAKE_VS_PLATFORM_NAME, "x64")
+if (DIST)
+  set(CMAKE_OSX_ARCHITECTURES arm64 x86_64)
+  set(ONLY_ACIVE_ARCH NO)
+# No universal libraries for Python
+  set(PYTHON 0)
+else()
+  set(CMAKE_VS_PLATFORM_NAME, "x64")
+endif()
+
 
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
@@ -102,6 +110,11 @@ ELSE()
         DOWNLOAD_DIR .
         SOURCE_DIR kognac
         BUILD_IN_SOURCE 1
+        IF (DIST)
+            CMAKE_ARGS "-DDIST=1" "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        ELSE()
+            CMAKE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        ENDIF()
         INSTALL_COMMAND ""
         )
     ExternalProject_Get_Property(git-kognac SOURCE_DIR)
@@ -208,6 +221,11 @@ ENDIF()
 #ANALYTICS
 if (ANALYTICS)
     add_library(snap STATIC IMPORTED)
+    IF (DIST AND ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+        set(MOREFLAGS "-arch x86_64 -arch arm64")
+    ELSE()
+        set(MOREFLAGS "")
+    ENDIF()
     IF(NOT EXISTS "${CMAKE_SOURCE_DIR}/snap/snap-core/libsnap.a")
         #Call make to compile the library
         message("I'm also going to compile SNAP")
@@ -216,7 +234,7 @@ if (ANALYTICS)
             DOWNLOAD_DIR .
             CONFIGURE_COMMAND ""
             BUILD_IN_SOURCE 1
-            BUILD_COMMAND make lib
+            BUILD_COMMAND make MOREFLAGS=${MOREFLAGS} lib
             INSTALL_COMMAND ""
             )
         add_dependencies(snap srcsnap)
