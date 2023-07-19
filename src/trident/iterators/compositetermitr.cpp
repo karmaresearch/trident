@@ -9,7 +9,7 @@ void CompositeTermItr::add(PairItr *itr) {
             nc = true;
         }
         if (activechildren.size() > 1) {
-            sort(activechildren.begin(), activechildren.end(), _sorter);
+            std::sort(activechildren.begin(), activechildren.end(), _sorter);
         }
     }
 

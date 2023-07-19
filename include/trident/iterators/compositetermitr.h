@@ -23,6 +23,9 @@
 #ifndef _COMPOSITE_TERM_ITR_H
 #define _COMPOSITE_TERM_ITR_H
 
+#include <vector>
+#include <algorithm>
+
 #include <trident/iterators/pairitr.h>
 #include <trident/iterators/difftermitr.h>
 #include <trident/kb/consts.h>
@@ -109,7 +112,7 @@ public:
             }
             if (! activechildren.empty()) {
                 if (activechildren.size() > 1) {
-                    sort(activechildren.begin(), activechildren.end(), _sorter);
+                    std::sort(activechildren.begin(), activechildren.end(), _sorter);
                 }
                 nc = true;
             }
